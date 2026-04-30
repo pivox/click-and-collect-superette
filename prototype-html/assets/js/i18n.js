@@ -1,0 +1,1 @@
+function toggleLanguage(lang){const html=document.documentElement;if(lang==='ar'){html.lang='ar';document.body.classList.add('rtl')}else{html.lang='fr';document.body.classList.remove('rtl')}}window.toggleLanguage=toggleLanguage;
