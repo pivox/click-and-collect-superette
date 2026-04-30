@@ -26,6 +26,18 @@
 - CustomerArrivedEarly
 - CustomerWaitingStarted
 - CustomerWaitingEnded
+- CustomerEtaShared
+- CustomerEtaUpdated
+- FreshPreparationScheduled
+- FreshPreparationWindowOpened
+- FreshProductsPreparationStarted
+- FreshProductsPrepared
+- PickupDelegationCreated
+- PickupDelegationRevoked
+- DelegatedPickupCodeGenerated
+- DelegatedPersonArrived
+- DelegatedPickupCodePresented
+- DelegatedPickupValidated
 - PickupQrCodePresented
 - MerchantPickupValidated
 - CustomerPickupValidated
@@ -55,6 +67,17 @@
 - MarkOrderReady
 - NotifyCustomerOrderReady
 - MarkCustomerArrived
+- ShareCustomerEta
+- UpdateCustomerEta
+- ScheduleFreshPreparation
+- OpenFreshPreparationWindow
+- StartFreshPreparation
+- MarkFreshProductsPrepared
+- CreatePickupDelegation
+- RevokePickupDelegation
+- GenerateDelegatedPickupCode
+- MarkDelegatedPersonArrived
+- ValidateDelegatedPickupCode
 - StartCustomerWaiting
 - EndCustomerWaiting
 - GeneratePickupQrCode
@@ -102,9 +125,31 @@ When `OrderReadyForPickup` and customer is waiting
 Then alert the merchant immediately and allow pickup validation.
 
 ### Policy 8
+When `CustomerEtaShared` or `CustomerEtaUpdated`
+Then recalculate `FreshPreparationScheduled` if the order contains fresh or frozen products.
+
+### Policy 9
+When `FreshPreparationWindowOpened`
+Then alert the merchant to prepare fresh or frozen products at the last moment.
+
+### Policy 10
+When `CreatePickupDelegation`
+Then `GenerateDelegatedPickupCode`
+
+The delegated person can retrieve the order only with a valid delegated pickup code.
+
+### Policy 11
+When `DelegatedPickupCodePresented`
+Then the merchant validates the code and checks the delegated person identity hint if configured.
+
+### Policy 12
+When `DelegatedPickupValidated` and `MerchantPickupValidated`
+Then `CompleteOrder`
+
+### Policy 13
 When `MerchantPickupValidated` and `CustomerPickupValidated`
 Then `CompleteOrder`
 
-### Policy 9
+### Policy 14
 When pickup deadline expired
 Then `CancelOrder`
