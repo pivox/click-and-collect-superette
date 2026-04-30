@@ -14,6 +14,7 @@
 - OrderPreparationStarted
 - ProductMarkedPrepared
 - OrderReadyForPickup
+- CustomerNotifiedOrderReady
 - PickupQrCodeGenerated
 - CustomerArrived
 - PickupQrCodePresented
@@ -37,6 +38,7 @@
 - StartOrderPreparation
 - MarkProductPrepared
 - MarkOrderReady
+- NotifyCustomerOrderReady
 - GeneratePickupQrCode
 - ValidateMerchantPickup
 - ValidateCustomerPickup
@@ -56,9 +58,15 @@ When `OrderPreparationStarted`
 Then `GeneratePickupQrCode`
 
 ### Policy 3
+When `MarkOrderReady`
+Then the merchant may optionally trigger `NotifyCustomerOrderReady`
+
+Notification is useful but not mandatory. The order can still continue to pickup without this notification.
+
+### Policy 4
 When `MerchantPickupValidated` and `CustomerPickupValidated`
 Then `CompleteOrder`
 
-### Policy 4
+### Policy 5
 When pickup deadline expired
 Then `CancelOrder`
