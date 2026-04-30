@@ -1,0 +1,30 @@
+[
+  {
+    "sku": "TOMATE-001",
+    "name_fr": "Tomate",
+    "name_ar": "طماطم",
+    "price_tnd": 1.45,
+    "emoji": "🍅"
+  },
+  {
+    "sku": "BANANE-001",
+    "name_fr": "Banane",
+    "name_ar": "موز",
+    "price_tnd": 2.30,
+    "emoji": "🍌"
+  },
+  {
+    "sku": "CONCOMBRE-001",
+    "name_fr": "Concombre",
+    "name_ar": "خيار",
+    "price_tnd": 1.20,
+    "emoji": "🥒"
+  },
+  {
+    "sku": "LAIT-001",
+    "name_fr": "Lait UHT",
+    "name_ar": "حليب",
+    "price_tnd": 2.10,
+    "emoji": "🥛"
+  }
+]
