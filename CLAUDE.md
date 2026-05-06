@@ -1,5 +1,6 @@
 # CLAUDE.md — Click & Collect Supérette Tunisie
 
+@AGENTS.md
 @AI_CONTEXT.md
 @Claude/instructions.md
 @Claude/workflows.md
@@ -22,7 +23,7 @@ Tu dois aider à produire :
 
 ## Règles prioritaires
 
-1. Lire `AI_CONTEXT.md` avant toute proposition.
+1. Lire `AGENTS.md` et `AI_CONTEXT.md` avant toute proposition.
 2. Respecter le périmètre MVP.
 3. Répondre en français par défaut.
 4. Ne pas introduire paiement, livraison ou marketplace multi-marchands sans demande explicite.
