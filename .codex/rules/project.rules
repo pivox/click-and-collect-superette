@@ -1,0 +1,67 @@
+# Project execution rules for Codex.
+# These rules apply to commands that Codex asks to run outside the sandbox.
+
+prefix_rule(
+    pattern = ["rm", "-rf", "/"],
+    decision = "forbidden",
+    justification = "Never remove the filesystem root.",
+    match = [
+        "rm -rf /",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--force"],
+    decision = "prompt",
+    justification = "Force push must be explicitly reviewed by the developer.",
+    match = [
+        "git push --force",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--force-with-lease"],
+    decision = "prompt",
+    justification = "Force-with-lease still rewrites remote history and requires review.",
+    match = [
+        "git push --force-with-lease",
+    ],
+)
+
+prefix_rule(
+    pattern = ["symfony", "console", "doctrine:migrations:migrate"],
+    decision = "prompt",
+    justification = "Database migrations must be explicitly approved before execution.",
+    match = [
+        "symfony console doctrine:migrations:migrate",
+        "symfony console doctrine:migrations:migrate --no-interaction",
+    ],
+)
+
+prefix_rule(
+    pattern = ["bin/console", "doctrine:migrations:migrate"],
+    decision = "prompt",
+    justification = "Database migrations must be explicitly approved before execution.",
+    match = [
+        "bin/console doctrine:migrations:migrate",
+        "bin/console doctrine:migrations:migrate --no-interaction",
+    ],
+)
+
+prefix_rule(
+    pattern = ["composer", "require"],
+    decision = "prompt",
+    justification = "Adding dependencies changes the project surface and must be reviewed.",
+    match = [
+        "composer require api-platform/core",
+    ],
+)
+
+prefix_rule(
+    pattern = ["composer", "remove"],
+    decision = "prompt",
+    justification = "Removing dependencies can break the project and must be reviewed.",
+    match = [
+        "composer remove api-platform/core",
+    ],
+)
