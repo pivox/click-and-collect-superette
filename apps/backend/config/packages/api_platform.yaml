@@ -1,0 +1,17 @@
+api_platform:
+    title: 'Click & Collect Supérette — API'
+    version: '1.0.0'
+    description: 'API MVP Click & Collect Supérette Tunisie'
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+    formats:
+        json: ['application/json']
+        jsonld: ['application/ld+json']
+    error_formats:
+        json: ['application/json']
+        jsonproblem: ['application/problem+json']
+    pagination_enabled: true
+    pagination_items_per_page: 20
+    pagination_maximum_items_per_page: 100
