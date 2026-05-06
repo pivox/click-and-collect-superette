@@ -1,0 +1,21 @@
+# Project-level Codex configuration for Click & Collect Supérette Tunisie.
+# Codex loads this layer only after the project is trusted locally.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+personality = "pragmatic"
+model_reasoning_effort = "high"
+
+developer_instructions = """
+Always read AGENTS.md and AI_CONTEXT.md before starting work.
+Respond in French by default.
+Keep the MVP scope strict: no online payment, no delivery, no loyalty program, no multi-merchant marketplace cart unless explicitly requested.
+Preserve the business vocabulary: Kadhia, supérette, marchand, client, rendez-vous, retrait.
+For code changes, prefer small patches, explicit Symfony/API Platform design, Doctrine migrations and tests.
+Never claim tests passed unless they were actually run.
+"""
+
+[agents]
+max_threads = 6
+max_depth = 1
