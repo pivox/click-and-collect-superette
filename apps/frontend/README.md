@@ -1,50 +1,36 @@
-# Frontend — Click & Collect Supérette
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Interface web responsive du MVP.
+## Getting Started
 
-## Périmètre
+First, run the development server:
 
-Cette application couvre les espaces suivants :
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-- espace client ;
-- espace marchand ;
-- espace admin plateforme.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-Il n'y a pas d'application mobile native dans le MVP.
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## Responsabilités
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-### Client
+## Learn More
 
-- accéder à une supérette via QR code ;
-- consulter le catalogue du magasin ;
-- composer sa Kadhia ;
-- choisir un rendez-vous ;
-- suivre le statut de la commande ;
-- présenter le QR code de retrait.
+To learn more about Next.js, take a look at the following resources:
 
-### Marchand
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-- voir les commandes reçues ;
-- accepter ou refuser une commande ;
-- passer une commande en préparation ;
-- indiquer qu'une commande est prête ;
-- valider le retrait ;
-- gérer les prix et disponibilités produits.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-### Admin plateforme
+## Deploy on Vercel
 
-- gérer les supérettes ;
-- gérer les comptes marchands ;
-- gérer le référentiel produits ;
-- superviser les commandes.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Règle importante
-
-Le frontend affiche et orchestre les parcours utilisateur, mais le backend reste la source de vérité pour :
-
-- les prix ;
-- les statuts de commande ;
-- les droits d'accès ;
-- la validation des QR codes ;
-- les règles métier.
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
