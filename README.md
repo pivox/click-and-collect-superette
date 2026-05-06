@@ -153,18 +153,45 @@ Le MVP couvre :
 
 Hors périmètre MVP initial :
 
+- applications mobiles natives iOS / Android ;
 - paiement en ligne ;
 - livraison à domicile ;
 - programme de fidélité avancé ;
 - gestion de stock complexe multi-entrepôts ;
 - marketplace multi-marchands avec panier partagé.
 
-## Documentation produit
+## Structure technique MVP
+
+Le MVP est organisé autour de deux applications seulement :
+
+1. `apps/frontend/` : frontend web responsive pour les espaces client, marchand et admin ;
+2. `apps/backend/` : backend API, logique métier, sécurité, persistance et intégrations.
+
+```text
+click-and-collect-superette/
+├── apps/
+│   ├── frontend/
+│   └── backend/
+├── docs/
+│   ├── adr/
+│   ├── architecture/
+│   └── product/
+└── README.md
+```
+
+Aucune application mobile native n'est prévue dans le MVP. La décision est documentée dans `docs/adr/0001-front-back-only-mvp.md`.
+
+## Documentation produit et technique
 
 La documentation produit est organisée dans `docs/product/` :
 
 - `docs/product/epics.md` : vision PO, epics et découpage fonctionnel ;
 - `docs/product/user-stories/` : une user story par fichier.
+
+La documentation technique est organisée dans :
+
+- `docs/architecture/front-back-structure.md` : structure frontend / backend du MVP ;
+- `docs/adr/0001-front-back-only-mvp.md` : décision de ne garder que frontend + backend pour le MVP.
 
 ## Références utiles
 
