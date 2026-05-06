@@ -26,3 +26,6 @@ Arabe, français, TND.
 
 ## EPIC-009 — Administration
 Gérer les supérettes et les comptes.
+
+## EPIC-010 — Personnalisation visuelle
+Permettre à l'administrateur de définir un thème global par défaut et à chaque marchand de personnaliser l'apparence de sa supérette (couleurs, police, image de fond) lors de son onboarding.
