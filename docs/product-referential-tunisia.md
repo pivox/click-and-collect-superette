@@ -418,6 +418,111 @@ Les prix doivent être stockés en millimes pour éviter les erreurs de flottant
 12.900 TND = 12900 millimes
 ```
 
+### 8.5 MerchantProductPriceHistory
+
+Le prix courant d'un produit marchand reste stocké dans `merchant_product_offer.price_tnd_millimes` pour permettre une lecture rapide du catalogue.
+
+Chaque changement de prix doit aussi être historisé dans une table dédiée afin de conserver une trace exploitable pour l'audit, l'analyse commerciale, les promotions et la compréhension de l'évolution des prix dans le temps.
+
+```sql
+CREATE TABLE merchant_product_price_history (
+    id UUID PRIMARY KEY,
+
+    merchant_product_offer_id UUID NOT NULL
+        REFERENCES merchant_product_offer(id),
+
+    merchant_id UUID NOT NULL,
+    product_id UUID NOT NULL REFERENCES product_master(id),
+
+    old_price_tnd_millimes INT NULL,
+    new_price_tnd_millimes INT NOT NULL,
+
+    currency CHAR(3) NOT NULL DEFAULT 'TND',
+
+    change_type VARCHAR(40) NOT NULL DEFAULT 'manual',
+    source_type VARCHAR(60) NOT NULL DEFAULT 'merchant_admin',
+
+    reason VARCHAR(255) NULL,
+    changed_by_user_id UUID NULL,
+
+    valid_from TIMESTAMP NOT NULL,
+    valid_to TIMESTAMP NULL,
+
+    created_at TIMESTAMP NOT NULL,
+
+    metadata JSONB NULL
+);
+```
+
+Le couple `merchant_product_offer_id` + `valid_to IS NULL` représente le prix actuellement actif dans l'historique.
+
+Même si `merchant_id` et `product_id` peuvent être retrouvés via `merchant_product_offer_id`, ils sont conservés dans l'historique pour faciliter les requêtes, les exports, les statistiques et les audits.
+
+Types de changement recommandés :
+
+```text
+manual              → changement manuel par le marchand
+bulk_import         → import CSV / Excel
+supplier_sync       → synchronisation fournisseur
+promotion_start     → début d'une promotion
+promotion_end       → fin d'une promotion
+correction          → correction d'une erreur
+system              → changement automatique futur
+```
+
+Règle métier :
+
+```text
+Si le prix ne change pas :
+    ne pas créer d'historique
+
+Si le prix change :
+    fermer l'historique actif avec valid_to
+    créer une nouvelle ligne avec new_price_tnd_millimes
+    mettre à jour merchant_product_offer.price_tnd_millimes
+```
+
+Exemple :
+
+```text
+Produit : Vitalait — Lait demi-écrémé — 1 L
+Marchand : Supérette A
+
+2026-05-01 : création à 1.950 TND → 1950 millimes
+2026-05-04 : passage à 2.000 TND → 2000 millimes
+2026-05-06 : promotion à 1.890 TND → 1890 millimes
+```
+
+Point critique pour les commandes : une commande ne doit jamais dépendre du prix courant après validation.
+
+Au moment de la commande, le prix doit être copié dans la ligne de commande :
+
+```sql
+CREATE TABLE order_item (
+    id UUID PRIMARY KEY,
+    order_id UUID NOT NULL,
+    merchant_product_offer_id UUID NOT NULL,
+    product_id UUID NOT NULL,
+
+    product_display_name VARCHAR(255) NOT NULL,
+
+    unit_price_tnd_millimes INT NOT NULL,
+    quantity NUMERIC(10, 3) NOT NULL,
+    total_price_tnd_millimes INT NOT NULL,
+
+    created_at TIMESTAMP NOT NULL
+);
+```
+
+Décision retenue :
+
+```text
+Le prix courant est stocké dans MerchantProductOffer.price_tnd_millimes.
+Chaque modification de prix crée une entrée immutable dans MerchantProductPriceHistory.
+Chaque commande copie le prix au moment de l'achat dans OrderItem.unit_price_tnd_millimes.
+Le prix est toujours stocké en millimes tunisiens, jamais en float.
+```
+
 ---
 
 ## 9. Déduplication
