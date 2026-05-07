@@ -20,11 +20,16 @@ final class StoreThemeCacheSubscriber implements EventSubscriberInterface
     public function onKernelResponse(ResponseEvent $event): void
     {
         $request = $event->getRequest();
+        $response = $event->getResponse();
 
         if ('GET' !== $request->getMethod() || !preg_match('#^/api/stores/[^/]+/theme$#', $request->getPathInfo())) {
             return;
         }
 
-        $event->getResponse()->headers->set('Cache-Control', 'public, max-age=300');
+        if (!$response->isSuccessful()) {
+            return;
+        }
+
+        $response->headers->set('Cache-Control', 'public, max-age=300');
     }
 }
