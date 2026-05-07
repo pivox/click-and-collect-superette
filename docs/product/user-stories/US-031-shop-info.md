@@ -65,6 +65,6 @@ afin de **savoir si elle est ouverte, où elle se trouve et comment la contacter
 
 ## Notes techniques
 
-- Endpoint : `GET /api/shops/{slug}` retourne les champs `name`, `address`, `phone`, `openingHours`, `logoUrl`.
+- Endpoint : `GET /api/stores/{slug}` retourne les champs `name`, `address`, `phone`, `openingHours`, `logoUrl`.
 - Les horaires sont stockés sous forme de plages par jour (`openingHours[monday] = { open: "08:00", close: "20:00" }`).
 - L'état ouvert/fermé est calculé côté client à partir des horaires et de l'heure locale.
