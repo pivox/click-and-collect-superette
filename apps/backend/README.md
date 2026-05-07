@@ -60,3 +60,65 @@ apps/backend/
 ## Règle importante
 
 Aucune règle métier critique ne doit dépendre uniquement du frontend.
+
+## Documentation API locale
+
+API Platform scanne explicitement :
+
+- `apps/backend/src/Entity`
+- `apps/backend/src/ApiResource`
+
+Routes de documentation locales :
+
+- Swagger UI / API Platform docs : `http://127.0.0.1:8001/api/docs`
+- OpenAPI JSON : `http://127.0.0.1:8001/api/docs.jsonopenapi`
+- OpenAPI YAML : `http://127.0.0.1:8001/api/docs.yamlopenapi`
+
+Le projet expose aussi la route Symfony `api_doc` sur `/api/docs.{_format}`.
+
+Statut actuel vérifié sur cette branche :
+
+- `/api/docs.jsonopenapi` répond en `200 OK`
+- `/api/docs.yamlopenapi` répond en `200 OK`
+- `/api/docs` répond en `200 OK` pour une requête générique, mais l'affichage HTML Swagger UI échoue en `500` avec `Accept: text/html` car `symfony/twig-bundle` n'est pas installé
+
+## Commandes de vérification
+
+Depuis `apps/backend/` :
+
+```bash
+composer validate --no-check-publish
+find src tests migrations -name '*.php' -exec php -l {} \;
+bin/console debug:router
+bin/console debug:router | grep theme
+bin/console router:match /api/docs
+bin/console router:match /api/docs.jsonopenapi
+bin/console router:match /api/docs.yamlopenapi
+php -S 127.0.0.1:8001 -t public public/index.php
+curl -I http://127.0.0.1:8001/api/docs.jsonopenapi
+curl -I http://127.0.0.1:8001/api/docs.yamlopenapi
+curl -I -H 'Accept: text/html' http://127.0.0.1:8001/api/docs
+curl http://127.0.0.1:8001/api/docs.jsonopenapi | grep -E '"/api/(admin/theme|stores/\{storeId\}/theme)"'
+```
+
+## Vérification manuelle Swagger/OpenAPI
+
+Attendu dans OpenAPI :
+
+- `GET /api/stores/{storeId}/theme`
+- `GET /api/admin/theme`
+- `PUT /api/admin/theme`
+
+Attendu absent pour cette PR :
+
+- endpoints marchand `ShopTheme`
+
+Checklist manuelle actuelle :
+
+1. Démarrer le serveur local sur `http://127.0.0.1:8001`.
+2. Ouvrir `http://127.0.0.1:8001/api/docs.jsonopenapi`.
+3. Vérifier que `GET /api/stores/{storeId}/theme` apparaît.
+4. Vérifier que `GET /api/admin/theme` apparaît.
+5. Vérifier que `PUT /api/admin/theme` apparaît.
+6. Vérifier qu'aucune route marchand de type `/api/merchant/.../theme` ou `POST|PUT|DELETE /api/stores/{storeId}/theme` n'apparaît encore.
+7. Tester `http://127.0.0.1:8001/api/docs` dans un navigateur ou avec `Accept: text/html` pour constater le blocage Swagger UI actuel lié à Twig.
