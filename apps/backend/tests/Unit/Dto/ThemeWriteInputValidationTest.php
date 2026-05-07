@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Dto;
 
 use App\Dto\ThemeWriteInput;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -36,9 +37,7 @@ final class ThemeWriteInputValidationTest extends TestCase
         self::assertSame('fontFamily', $violations->get(0)->getPropertyPath());
     }
 
-    /**
-     * @dataProvider invalidFontSizes
-     */
+    #[DataProvider('invalidFontSizes')]
     public function testItRejectsBaseFontSizeOutsideAllowedRange(int $baseFontSize): void
     {
         $violations = $this->validator->validate($this->validInput(baseFontSize: $baseFontSize));
