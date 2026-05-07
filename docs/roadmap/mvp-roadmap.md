@@ -166,7 +166,7 @@ Permettre à l'administrateur de définir le thème visuel par défaut de la pla
 - Le marchand configure son thème **une seule fois** lors de l'onboarding ; il peut le modifier ultérieurement depuis ses paramètres.
 - Les valeurs du thème sont stockées en base et injectées comme variables CSS (`--color-primary`, `--font-family`, etc.) via l'API.
 - L'upload d'image de fond est **hors périmètre MVP** (voir ADR-0004).
-- Décision d'architecture documentée dans `docs/adr/0004-visual-customization.md`.
+- Décision d'architecture documentée dans `docs/adr/0004-theme-customization-mvp.md`.
 
 ### Fonctionnalités
 
@@ -176,14 +176,14 @@ Permettre à l'administrateur de définir le thème visuel par défaut de la pla
 
 **Côté onboarding marchand :**
 - Configurer le thème de la supérette lors de l'onboarding (étape dédiée, optionnelle).
-- Choisir parmi des thèmes prédéfinis ou personnaliser manuellement les 5 couleurs et la police.
+- Conserver le thème global ou personnaliser manuellement les 5 couleurs, la police et la taille de base.
 - Aperçu du rendu avant validation.
 
 **Côté API :**
-- `GET /api/stores/{id}/theme` — retourne les variables CSS du thème actif (thème supérette ou thème global par défaut). Public.
+- `GET /api/stores/{storeId}/theme` — retourne les variables CSS du thème actif (thème supérette ou thème global par défaut). Public.
 - `PUT /api/admin/theme` — met à jour le thème global. `ROLE_ADMIN`.
-- `POST /api/stores/{id}/theme` — crée le thème d'une supérette. `ROLE_MERCHANT`.
-- `PUT /api/stores/{id}/theme` — met à jour le thème d'une supérette. `ROLE_MERCHANT`.
+- `POST /api/stores/{storeId}/theme` — crée le thème d'une supérette. `ROLE_MERCHANT`.
+- `PUT /api/stores/{storeId}/theme` — met à jour le thème d'une supérette. `ROLE_MERCHANT`.
 
 ### Entités principales
 
@@ -200,7 +200,7 @@ Permettre à l'administrateur de définir le thème visuel par défaut de la pla
 
 ### Critère de sortie
 
-L'administrateur a configuré un thème global cohérent. Chaque supérette onboardée dispose de son propre thème ou hérite du thème par défaut. La PWA client reflète le thème de la supérette via `GET /api/stores/{id}/theme`.
+L'administrateur a configuré un thème global cohérent. Chaque supérette onboardée dispose de son propre thème ou hérite du thème par défaut. La PWA client reflète le thème de la supérette via `GET /api/stores/{storeId}/theme`.
 
 ---
 

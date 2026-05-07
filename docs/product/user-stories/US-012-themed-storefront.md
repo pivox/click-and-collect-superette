@@ -22,7 +22,7 @@ Je distingue immédiatement la supérette Al Baraka de la supérette Carthage ; 
 ## Scénario nominal
 
 1. Le client ouvre la supérette (via QR code ou liste).
-2. La PWA appelle `GET /api/stores/{id}/theme`.
+2. La PWA appelle `GET /api/stores/{storeId}/theme`.
 3. L'API retourne le thème actif (propre ou hérité).
 4. La PWA injecte les variables CSS dans `:root`.
 5. Toute l'interface (header, boutons, badges, typographie, fond) utilise les couleurs de la supérette.
@@ -70,7 +70,7 @@ Je distingue immédiatement la supérette Al Baraka de la supérette Carthage ; 
 
 ## Notes techniques
 
-- Endpoint : `GET /api/stores/{id}/theme` — public, sans authentification requise.
+- Endpoint : `GET /api/stores/{storeId}/theme` — public, sans authentification requise.
 - Réponse : variables CSS JSON :
   ```json
   {
