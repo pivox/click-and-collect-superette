@@ -26,7 +26,7 @@ Ma supérette a une identité visuelle qui lui appartient ; les clients reconnai
 3. Le marchand conserve le thème global ou personnalise manuellement les couleurs, la police et la taille de base.
 4. L'aperçu se met à jour.
 5. Le marchand valide en cliquant sur **Confirmer mon thème**.
-6. Un `ShopTheme` est créé et associé à sa supérette.
+6. Si le marchand a personnalisé le thème, un `ShopTheme` est créé ou mis à jour et associé à sa supérette.
 7. L'onboarding passe à l'étape suivante.
 
 ---
@@ -72,7 +72,7 @@ Ma supérette a une identité visuelle qui lui appartient ; les clients reconnai
 - [ ] Le marchand peut définir la taille de base entre 14 et 20 px.
 - [ ] L'aperçu reflète les choix du marchand.
 - [ ] Le marchand peut conserver le thème par défaut sans rien modifier.
-- [ ] La validation crée le `ShopTheme` et le lie à la supérette.
+- [ ] La validation d'un thème personnalisé crée ou met à jour le `ShopTheme` et le lie à la supérette.
 - [ ] Un avertissement contraste est affiché si le ratio texte/fond est inférieur à 4.5:1.
 - [ ] La modification ultérieure est accessible depuis Backoffice > Paramètres > Apparence.
 
@@ -81,8 +81,9 @@ Ma supérette a une identité visuelle qui lui appartient ; les clients reconnai
 ## Notes techniques
 
 - Entité : `ShopTheme` lié à `Shop` (relation OneToOne, nullable).
-- Endpoint création : `POST /api/stores/{storeId}/theme`.
-- Endpoint modification : `PUT /api/stores/{storeId}/theme`.
+- Endpoint lecture marchand : `GET /api/merchant/stores/{storeId}/theme` — authentifié, retourne `ShopTheme` si présent, sinon `PlatformTheme`.
+- Endpoint création/modification marchand : `PUT /api/merchant/stores/{storeId}/theme` — upsert, crée un `ShopTheme` si la supérette n'en a pas, met à jour l'existant sinon.
 - Endpoint lecture thème actif : `GET /api/stores/{storeId}/theme` — retourne `ShopTheme` si présent, sinon `PlatformTheme`.
+- Conserver le thème par défaut peut ne créer aucun `ShopTheme`.
 - Sécurité : modification réservée au `ROLE_MERCHANT` propriétaire de la supérette.
 - Champs identiques à `PlatformTheme` (voir US-010 notes techniques).

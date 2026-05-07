@@ -325,13 +325,38 @@ Réponse :
 
 Cache : `Cache-Control: public, max-age=300`.
 
-### Créer le thème d'une supérette (onboarding marchand)
+### Lire le thème d'une supérette côté marchand
 
 ```http
-POST /api/stores/{storeId}/theme
+GET /api/merchant/stores/{storeId}/theme
+```
+
+Réservé à `ROLE_MERCHANT`, propriétaire de la supérette. Retourne le `ShopTheme` de la supérette si présent, sinon le `PlatformTheme` global, avec le payload métier utilisé par le backoffice marchand.
+
+Réponse métier :
+
+```json
+{
+  "primary_color": "#1B6CA8",
+  "secondary_color": "#F0A500",
+  "accent_color": "#E63946",
+  "text_color": "#1A1A1A",
+  "background_color": "#FFFFFF",
+  "font_family": "inter",
+  "base_font_size": 16,
+  "warnings": []
+}
+```
+
+### Créer ou modifier le thème d'une supérette côté marchand
+
+```http
+PUT /api/merchant/stores/{storeId}/theme
 ```
 
 Réservé à `ROLE_MERCHANT`, propriétaire de la supérette.
+
+Ce `PUT` est un upsert : il crée un `ShopTheme` si la supérette n'en a pas encore, et met à jour le `ShopTheme` existant sinon.
 
 Payload :
 
@@ -347,21 +372,9 @@ Payload :
 }
 ```
 
-### Modifier le thème d'une supérette
-
-```http
-PUT /api/stores/{storeId}/theme
-```
-
-Réservé à `ROLE_MERCHANT`, propriétaire de la supérette. Même payload que la création.
-
 ### Supprimer le thème d'une supérette
 
-```http
-DELETE /api/stores/{storeId}/theme
-```
-
-Décision : post-MVP ou à arbitrer plus tard. Cette route n'est pas implémentée dans la PR actuelle.
+Post-MVP ou à arbitrer plus tard. Aucune route contractuelle de suppression du thème marchand n'est exposée dans le MVP actuel.
 
 ### Lire le thème global (admin)
 
