@@ -10,11 +10,11 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 final readonly class ThemeWarningOutput
 {
     public function __construct(
-        #[Groups(['admin_theme:read'])]
+        #[Groups(['admin_theme:read', 'merchant_shop_theme:read'])]
         public string $code,
-        #[Groups(['admin_theme:read'])]
+        #[Groups(['admin_theme:read', 'merchant_shop_theme:read'])]
         public string $message,
-        #[Groups(['admin_theme:read'])]
+        #[Groups(['admin_theme:read', 'merchant_shop_theme:read'])]
         #[SerializedName('contrast_ratio')]
         public float $contrastRatio,
     ) {

@@ -108,10 +108,15 @@ Attendu dans OpenAPI :
 - `GET /api/stores/{storeId}/theme`
 - `GET /api/admin/theme`
 - `PUT /api/admin/theme`
+- `GET /api/merchant/stores/{storeId}/theme`
+- `PUT /api/merchant/stores/{storeId}/theme`
 
-Attendu absent pour cette PR :
+Attendu absent :
 
-- endpoints marchand `ShopTheme`
+- suppression de thème marchand
+- upload d'image
+- endpoint CDN
+- endpoint frontend
 
 Checklist manuelle actuelle :
 
@@ -120,5 +125,7 @@ Checklist manuelle actuelle :
 3. Vérifier que `GET /api/stores/{storeId}/theme` apparaît.
 4. Vérifier que `GET /api/admin/theme` apparaît.
 5. Vérifier que `PUT /api/admin/theme` apparaît.
-6. Vérifier qu'aucune route marchand de type `/api/merchant/.../theme` ou `POST|PUT|DELETE /api/stores/{storeId}/theme` n'apparaît encore.
-7. Tester `http://127.0.0.1:8001/api/docs` dans un navigateur ou avec `Accept: text/html` pour constater le blocage Swagger UI actuel lié à Twig.
+6. Vérifier que `GET /api/merchant/stores/{storeId}/theme` apparaît.
+7. Vérifier que `PUT /api/merchant/stores/{storeId}/theme` apparaît.
+8. Vérifier qu'aucune route marchand de suppression, d'upload, de CDN ou de frontend n'apparaît.
+9. Tester `http://127.0.0.1:8001/api/docs` dans un navigateur ou avec `Accept: text/html` pour constater le blocage Swagger UI actuel lié à Twig.
