@@ -9,7 +9,7 @@ use Symfony\Component\Yaml\Yaml;
 
 final class SecurityAccessControlTest extends TestCase
 {
-    public function testStoreThemeGetStaysPublicAndMerchantWriteRuleExists(): void
+    public function testApiDocsAndStoreThemePublicRulesStayBeforeGeneralApiRule(): void
     {
         $config = Yaml::parseFile(\dirname(__DIR__, 3).'/config/packages/security.yaml');
         $rules = $config['security']['access_control'] ?? [];
