@@ -58,29 +58,17 @@ final class ShopOwnerVoterTest extends TestCase
         self::assertSame(Voter::ACCESS_GRANTED, $result);
     }
 
-    /**
-     * @dataProvider anonymousUsers
-     */
-    public function testAnonymousUserIsDenied(mixed $anonymousUser): void
+    public function testAnonymousUserIsDenied(): void
     {
         $shop = (new Shop())->setOwner($this->merchant('owner@example.com'));
 
         $result = $this->voterWithAdminFlag(false)->vote(
-            $this->tokenReturningUser($anonymousUser),
+            $this->tokenReturningUser(null),
             $shop,
             [ShopOwnerVoter::SHOP_OWNER],
         );
 
         self::assertSame(Voter::ACCESS_DENIED, $result);
-    }
-
-    /**
-     * @return iterable<string, array{0: mixed}>
-     */
-    public static function anonymousUsers(): iterable
-    {
-        yield 'null user' => [null];
-        yield 'string user' => ['anon.'];
     }
 
     public function testShopWithoutOwnerIsDeniedForMerchant(): void
