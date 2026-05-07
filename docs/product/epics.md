@@ -14,7 +14,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **User stories** :
 - US-001 — Scanner le QR code d'une supérette
-- US-015 — Voir les informations de la supérette
+- US-031 — Voir les informations de la supérette
 
 **Critère de sortie** : Un client scanne un QR code, arrive sur la page de la supérette et voit son catalogue.
 
@@ -154,18 +154,20 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 ## EPIC-010 — Personnalisation visuelle
 
-**Objectif** : Permettre à l'administrateur de définir un thème global par défaut, et à chaque marchand de personnaliser l'apparence de sa supérette lors de l'onboarding.
+**Objectif** : Permettre à l'administrateur de définir un thème global par défaut (couleurs + police), et à chaque marchand de personnaliser l'identité visuelle de sa supérette lors de l'onboarding.
 
 **Valeur produit** : Chaque supérette peut avoir son identité visuelle. La plateforme reste cohérente par défaut.
 
 **Sprint** : Sprint 6 — Personnalisation visuelle
+
+**Périmètre MVP** : couleurs (5 champs) + police uniquement. Upload d'image de fond exclu du MVP (ADR-0004).
 
 **User stories** :
 - US-010 — Configurer le thème global (admin)
 - US-011 — Personnaliser le thème de la supérette lors de l'onboarding
 - US-012 — Afficher le storefront avec le thème actif
 
-**Critère de sortie** : La PWA client et le backoffice marchand reflètent le thème de la supérette, avec fallback sur le thème global.
+**Critère de sortie** : La PWA client reflète le thème de la supérette via `GET /api/stores/{id}/theme`, avec fallback sur le thème global si aucun `ShopTheme` n'existe.
 
 ---
 

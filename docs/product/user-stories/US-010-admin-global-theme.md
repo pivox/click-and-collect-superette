@@ -4,7 +4,7 @@
 Administrateur plateforme.
 
 ## Besoin
-Je veux définir les couleurs, la police et l'image de fond par défaut de la plateforme.
+Je veux définir les couleurs et la police par défaut de la plateforme.
 
 ## Bénéfice
 Toute supérette qui n'a pas configuré son propre thème hérite d'une identité visuelle cohérente et professionnelle.
@@ -22,29 +22,28 @@ Toute supérette qui n'a pas configuré son propre thème hérite d'une identit�
 
 1. L'administrateur accède à **Admin > Personnalisation**.
 2. L'écran affiche le thème actif avec ses valeurs courantes.
-3. L'administrateur modifie une ou plusieurs valeurs (couleur primaire, police, etc.).
-4. L'aperçu en direct se met à jour instantanément.
+3. L'administrateur modifie une ou plusieurs valeurs (couleurs, police).
+4. L'aperçu se met à jour.
 5. L'administrateur clique sur **Enregistrer et appliquer**.
 6. Le thème global est mis à jour en base.
-7. Toutes les supérettes sans thème propre reflètent immédiatement le nouveau thème.
+7. Toutes les supérettes sans thème propre reflètent le nouveau thème au prochain chargement.
 
 ---
 
 ## Scénarios alternatifs
 
-**A — Réinitialisation**
-- L'administrateur clique sur **Réinitialiser**.
-- Le thème revient aux valeurs d'usine (seed initial).
-- Une confirmation est demandée avant application.
+**A — Avertissement contraste**
+- Lors de la saisie, si le ratio de contraste entre la couleur de texte et la couleur de fond n'atteint pas 4.5:1 (WCAG 2.1 AA), un avertissement est affiché.
+- L'enregistrement n'est pas bloqué ; l'avertissement est informatif.
 
-**B — Upload image de fond**
-- L'administrateur glisse ou sélectionne un fichier (JPEG/PNG/WebP, max 2 Mo).
-- Le fichier est uploadé et l'aperçu se met à jour.
-- Si le fichier dépasse 2 Mo ou a un format non supporté, un message d'erreur est affiché.
+---
 
-**C — Suppression image de fond**
-- L'administrateur supprime l'image en cliquant sur la croix.
-- Le fond revient à la couleur de fond unie définie.
+## Hors périmètre MVP
+
+- Upload d'image de fond (post-MVP, voir ADR-0004).
+- Prévisualisation temps réel desktop + mobile.
+- Réinitialisation aux valeurs d'usine.
+- Export de configuration.
 
 ---
 
@@ -52,32 +51,32 @@ Toute supérette qui n'a pas configuré son propre thème hérite d'une identit�
 
 - Le thème global est un singleton (`PlatformTheme`) ; il ne peut pas être supprimé, seulement modifié.
 - Une supérette avec un `ShopTheme` propre n'est jamais affectée par les modifications du thème global.
-- Les valeurs sont stockées en JSON et injectées comme variables CSS via `GET /api/theme/default`.
-- L'image de fond est stockée côté serveur ; seul le chemin est enregistré en base.
-- L'opacité de l'image de fond est comprise entre 0 % et 100 %.
+- Les valeurs sont stockées en base et exposées comme variables CSS via `GET /api/stores/{id}/theme`.
 
 ---
 
 ## Critères d'acceptation
 
-- [ ] L'administrateur peut modifier les 5 couleurs (primaire, secondaire, accent, texte, fond).
+- [ ] L'administrateur peut modifier les 5 couleurs : primaire, secondaire, accent, texte, fond.
 - [ ] L'administrateur peut choisir la police parmi la liste approuvée.
-- [ ] L'administrateur peut uploader une image de fond (max 2 Mo, formats JPEG/PNG/WebP).
-- [ ] L'administrateur peut régler l'opacité, la position et le comportement de l'image de fond.
-- [ ] L'aperçu se met à jour en temps réel sans rechargement de page.
-- [ ] L'aperçu bascule entre vue desktop et vue mobile.
-- [ ] L'enregistrement met à jour le thème global immédiatement.
+- [ ] Un avertissement contraste est affiché si le ratio texte/fond est inférieur à 4.5:1 (WCAG 2.1 AA).
+- [ ] L'enregistrement met à jour le thème global.
 - [ ] Les supérettes sans thème propre héritent du nouveau thème.
-- [ ] La réinitialisation demande une confirmation explicite.
-- [ ] Un fichier trop lourd ou au mauvais format affiche un message d'erreur explicite.
 
 ---
 
 ## Notes techniques
 
-- Entité : `PlatformTheme` (singleton, id fixe en base).
-- Endpoint : `PUT /api/admin/theme`, `POST /api/admin/theme/background`.
-- Les valeurs sont exposées via `GET /api/theme/default` sous forme de variables CSS JSON.
+- Entité : `PlatformTheme` (singleton, id fixe en base, seed au déploiement).
+- Endpoint modification : `PUT /api/admin/theme`.
+- Le thème résolu d'une supérette est exposé via `GET /api/stores/{id}/theme`.
 - Le frontend injecte les variables dans `:root` au chargement.
-- Stocker l'image dans `storage/themes/platform/` avec un nom unique (UUID).
 - Sécurité : route réservée au rôle `ROLE_ADMIN`.
+- Champs `ThemeConfig` (communs à `PlatformTheme` et `ShopTheme`) :
+  - `primaryColor` (hex)
+  - `secondaryColor` (hex)
+  - `accentColor` (hex)
+  - `textColor` (hex)
+  - `backgroundColor` (hex)
+  - `fontFamily` (enum : `inter`, `cairo`, `roboto`, `noto_sans_arabic`, `system`)
+  - `baseFontSize` (int, px, entre 14 et 20)
