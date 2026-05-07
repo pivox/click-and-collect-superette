@@ -32,7 +32,7 @@ security:
         - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/stores/by-qr, roles: PUBLIC_ACCESS }
         - { path: ^/api/stores/[^/]+/theme$, roles: PUBLIC_ACCESS, methods: [GET] }
-        - { path: ^/api/stores/[^/]+/theme$, roles: ROLE_MERCHANT, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/stores/[^/]+/theme$, roles: [ROLE_MERCHANT, ROLE_ADMIN], methods: [POST, PUT, DELETE] }
         - { path: ^/api/stores/\w+/catalog, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/merchant, roles: ROLE_MERCHANT }
         - { path: ^/api/admin, roles: ROLE_ADMIN }
