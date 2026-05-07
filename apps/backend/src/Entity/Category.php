@@ -99,12 +99,12 @@ class Category
         return $this;
     }
 
-    public function getParent(): ?Category
+    public function getParent(): ?self
     {
         return $this->parent;
     }
 
-    public function setParent(?Category $parent): static
+    public function setParent(?self $parent): static
     {
         $this->parent = $parent;
 
