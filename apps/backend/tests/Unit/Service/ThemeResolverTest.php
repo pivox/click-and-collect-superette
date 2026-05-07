@@ -14,6 +14,7 @@ use App\Repository\ShopRepository;
 use App\Service\ThemeResolver;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Uid\Uuid;
 
 final class ThemeResolverTest extends TestCase
 {
@@ -65,7 +66,7 @@ final class ThemeResolverTest extends TestCase
             ->method('findDefault');
 
         (new ThemeResolver($this->shopRepositoryFinding(null), $platformThemeRepository))
-            ->resolveForStore('00000000-0000-0000-0000-000000000001');
+            ->resolveForStore((string) Uuid::v4());
     }
 
     public function testItRejectsDisabledStore(): void
