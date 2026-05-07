@@ -1,0 +1,5 @@
+security:
+    firewalls:
+        api:
+            custom_authenticators:
+                - App\Tests\Support\Security\TestAuthenticator
