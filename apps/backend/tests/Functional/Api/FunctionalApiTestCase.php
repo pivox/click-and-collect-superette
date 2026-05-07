@@ -23,11 +23,21 @@ abstract class FunctionalApiTestCase extends KernelTestCase
 
     protected function setUp(): void
     {
+        $this->useSqliteDatabaseForFunctionalTest();
         self::bootKernel();
 
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $this->rebuildSchema();
         $this->createDefaultPlatformTheme();
+    }
+
+    private function useSqliteDatabaseForFunctionalTest(): void
+    {
+        $databaseUrl = 'sqlite:///%s/kadhia_functional_api_tests_%s.db';
+        $databaseUrl = \sprintf($databaseUrl, sys_get_temp_dir(), str_replace('\\', '_', static::class));
+
+        $_ENV['DATABASE_URL'] = $databaseUrl;
+        $_SERVER['DATABASE_URL'] = $databaseUrl;
     }
 
     protected function tearDown(): void
