@@ -6,12 +6,12 @@ api_platform:
         stateless: true
         cache_headers:
             vary: ['Content-Type', 'Authorization', 'Origin']
+        pagination_enabled: true
+        pagination_items_per_page: 20
+        pagination_maximum_items_per_page: 100
     formats:
         json: ['application/json']
         jsonld: ['application/ld+json']
     error_formats:
         json: ['application/json']
         jsonproblem: ['application/problem+json']
-    pagination_enabled: true
-    pagination_items_per_page: 20
-    pagination_maximum_items_per_page: 100
