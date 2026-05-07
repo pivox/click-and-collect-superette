@@ -42,7 +42,7 @@ PlatformTheme (singleton, id fixe)
   fontFamily (enum)
   baseFontSize (int, px)
 
-ShopTheme (OneToOne nullable → Shop)
+ShopTheme (OneToOne nullable → Store)
   [mêmes champs que PlatformTheme]
 ```
 
