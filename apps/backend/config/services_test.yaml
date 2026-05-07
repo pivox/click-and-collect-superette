@@ -1,0 +1,4 @@
+services:
+    App\Tests\Support\Security\TestAuthenticator:
+        autowire: true
+        autoconfigure: false
