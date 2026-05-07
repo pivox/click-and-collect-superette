@@ -103,7 +103,8 @@ Prefer this conceptual model unless the project documents evolve:
 
 - `Shop`
 - `CustomerShop` or `FavoriteShop`
-- `ProductMasterTunisia`
+- `ProductReference`
+- `ProductReferenceProposal`
 - `ProductVariant`
 - `MerchantProductOffer`
 - `ProductFoodInfo`

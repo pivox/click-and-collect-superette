@@ -213,6 +213,44 @@ created_at: datetime
 updated_at: datetime
 ```
 
+## PlatformTheme
+
+Thème visuel global par défaut de la plateforme. Singleton (un seul enregistrement, id fixe, seedé au déploiement).
+
+```yaml
+id: uuid
+primary_color: string (hex)
+secondary_color: string (hex)
+accent_color: string (hex)
+text_color: string (hex)
+background_color: string (hex)
+font_family: enum (inter|cairo|roboto|noto_sans_arabic|system)
+base_font_size: integer (px, entre 14 et 20)
+updated_at: datetime
+```
+
+Règle : ne peut pas être supprimé, seulement modifié. Modifiable uniquement par `ROLE_ADMIN`.
+
+## ShopTheme
+
+Thème visuel propre à une supérette. Optionnel (OneToOne nullable vers `Store`).
+
+```yaml
+id: uuid
+store_id: uuid
+primary_color: string (hex)
+secondary_color: string (hex)
+accent_color: string (hex)
+text_color: string (hex)
+background_color: string (hex)
+font_family: enum (inter|cairo|roboto|noto_sans_arabic|system)
+base_font_size: integer (px, entre 14 et 20)
+created_at: datetime
+updated_at: datetime
+```
+
+Règle : si présent, surcharge entièrement le `PlatformTheme` pour la supérette concernée. Si absent, la supérette hérite du `PlatformTheme`. Modifiable uniquement par le `ROLE_MERCHANT` propriétaire de la supérette.
+
 ## Contraintes importantes
 
 - `ProductReference` doit être unique autant que possible par marque, nom, variante, volume, unité et catégorie.

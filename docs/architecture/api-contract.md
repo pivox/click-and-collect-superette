@@ -299,6 +299,70 @@ Payload :
 }
 ```
 
+## Thèmes
+
+### Lire le thème actif d'une supérette
+
+```http
+GET /api/stores/{storeId}/theme
+```
+
+Public, sans authentification. Retourne le `ShopTheme` de la supérette si présent, sinon le `PlatformTheme` global.
+
+Réponse :
+
+```json
+{
+  "--color-primary": "#1B6CA8",
+  "--color-secondary": "#F0A500",
+  "--color-accent": "#E63946",
+  "--color-text": "#1A1A1A",
+  "--color-background": "#FFFFFF",
+  "--font-family": "Inter",
+  "--font-size-base": "16px"
+}
+```
+
+Cache : `Cache-Control: public, max-age=300`.
+
+### Créer le thème d'une supérette (onboarding marchand)
+
+```http
+POST /api/stores/{storeId}/theme
+```
+
+Réservé à `ROLE_MERCHANT`, propriétaire de la supérette.
+
+Payload :
+
+```json
+{
+  "primary_color": "#1B6CA8",
+  "secondary_color": "#F0A500",
+  "accent_color": "#E63946",
+  "text_color": "#1A1A1A",
+  "background_color": "#FFFFFF",
+  "font_family": "inter",
+  "base_font_size": 16
+}
+```
+
+### Modifier le thème d'une supérette
+
+```http
+PUT /api/stores/{storeId}/theme
+```
+
+Réservé à `ROLE_MERCHANT`, propriétaire de la supérette. Même payload que la création.
+
+### Modifier le thème global (admin)
+
+```http
+PUT /api/admin/theme
+```
+
+Réservé à `ROLE_ADMIN`. Même payload que les endpoints marchand.
+
 ## Codes d'erreur MVP
 
 | Code | Signification |

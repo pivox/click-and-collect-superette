@@ -162,39 +162,45 @@ Permettre à l'administrateur de définir le thème visuel par défaut de la pla
 ### Contexte de décision
 
 - Le thème global (admin) s'applique à toutes les interfaces comme valeur par défaut.
-- Chaque supérette peut surcharger ce thème avec ses propres couleurs, police et image de fond.
+- Chaque supérette peut surcharger ce thème avec ses propres couleurs et police.
 - Le marchand configure son thème **une seule fois** lors de l'onboarding ; il peut le modifier ultérieurement depuis ses paramètres.
-- Les valeurs du thème sont stockées en JSON en base de données (`ThemeConfig`) et injectées comme variables CSS (`--color-primary`, `--font-family`, etc.) à la volée via l'API.
-- L'image de fond est uploadée sur le serveur (JPEG/PNG/WebP, max 2 Mo).
+- Les valeurs du thème sont stockées en base et injectées comme variables CSS (`--color-primary`, `--font-family`, etc.) via l'API.
+- L'upload d'image de fond est **hors périmètre MVP** (voir ADR-0004).
+- Décision d'architecture documentée dans `docs/adr/0004-visual-customization.md`.
 
 ### Fonctionnalités
 
 **Côté administration :**
-- Définir le thème global par défaut (couleurs, police, image de fond).
-- Réinitialiser le thème global.
-- Exporter la configuration de thème.
-- Prévisualiser le thème en temps réel (desktop + mobile).
+- Définir le thème global par défaut (5 couleurs + police).
+- Avertissement contraste WCAG 2.1 AA (ratio 4.5:1) lors de la saisie.
 
 **Côté onboarding marchand :**
-- Configurer le thème de la supérette lors de l'onboarding (étape dédiée).
-- Choisir parmi des thèmes prédéfinis ou personnaliser manuellement.
-- Uploader une image de fond.
-- Prévisualiser le rendu avant validation.
+- Configurer le thème de la supérette lors de l'onboarding (étape dédiée, optionnelle).
+- Choisir parmi des thèmes prédéfinis ou personnaliser manuellement les 5 couleurs et la police.
+- Aperçu du rendu avant validation.
 
 **Côté API :**
-- `GET /api/shops/{id}/theme` — retourne les variables CSS du thème actif (thème supérette ou thème global par défaut).
-- `PUT /api/admin/theme` — met à jour le thème global.
-- `PUT /api/shops/{id}/theme` — met à jour le thème d'une supérette.
-- `POST /api/shops/{id}/theme/background` — upload de l'image de fond.
+- `GET /api/stores/{id}/theme` — retourne les variables CSS du thème actif (thème supérette ou thème global par défaut). Public.
+- `PUT /api/admin/theme` — met à jour le thème global. `ROLE_ADMIN`.
+- `POST /api/stores/{id}/theme` — crée le thème d'une supérette. `ROLE_MERCHANT`.
+- `PUT /api/stores/{id}/theme` — met à jour le thème d'une supérette. `ROLE_MERCHANT`.
 
 ### Entités principales
 
 - `PlatformTheme` (singleton — thème global par défaut).
-- `ShopTheme` (lié à `Shop`, optionnel — surcharge le thème global).
+- `ShopTheme` (lié à `Store`, optionnel — surcharge entièrement le thème global pour cette supérette).
+
+### Hors périmètre MVP (post-Sprint 6)
+
+- Upload et gestion d'image de fond.
+- Prévisualisation temps réel desktop + mobile.
+- Réinitialisation aux valeurs d'usine.
+- Export de configuration de thème.
+- Versioning / cache-busting du thème.
 
 ### Critère de sortie
 
-L'administrateur a configuré un thème global cohérent. Chaque supérette onboardée dispose de son propre thème ou hérite du thème par défaut. La PWA client et le backoffice marchand reflètent le thème de la supérette concernée.
+L'administrateur a configuré un thème global cohérent. Chaque supérette onboardée dispose de son propre thème ou hérite du thème par défaut. La PWA client reflète le thème de la supérette via `GET /api/stores/{id}/theme`.
 
 ---
 

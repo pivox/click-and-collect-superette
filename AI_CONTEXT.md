@@ -29,6 +29,7 @@ Inclus :
 - commande prête ;
 - QR code de retrait ;
 - double validation client + marchand ;
+- personnalisation visuelle par supérette (couleurs + police, Sprint 6) ;
 - historique simple ;
 - interface français / arabe ;
 - montants en TND.
@@ -72,7 +73,8 @@ Exclus du MVP :
 
 - `Shop`
 - `CustomerShop` ou `FavoriteShop`
-- `ProductMasterTunisia`
+- `ProductReference`
+- `ProductReferenceProposal`
 - `ProductVariant`
 - `MerchantProductOffer`
 - `ProductFoodInfo`
@@ -83,6 +85,8 @@ Exclus du MVP :
 - `Order`
 - `OrderLine`
 - `PickupSession`
+- `PlatformTheme`
+- `ShopTheme`
 
 ## Stack cible recommandée
 

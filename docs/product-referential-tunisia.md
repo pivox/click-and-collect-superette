@@ -9,7 +9,7 @@ Le marchand ne doit pas recréer chaque produit à la main. L'utilisateur final 
 Le modèle cible est donc :
 
 ```text
-ProductMasterTunisia
+ProductReference
         ↓
 MerchantProductOffer
         ↓
@@ -36,7 +36,7 @@ Offres marchands :
 - Enseigne C : 1.890 TND, stock 30
 ```
 
-Le produit est unique dans `ProductMasterTunisia`, mais chaque marchand peut avoir son propre prix, son propre stock et sa propre disponibilité.
+Le produit est unique dans `ProductReference`, mais chaque marchand peut avoir son propre prix, son propre stock et sa propre disponibilité.
 
 ---
 
@@ -726,7 +726,7 @@ Approche production :
 Décision retenue :
 
 ```text
-ProductMasterTunisia
+ProductReference
 = identité produit globale
 
 ProductIdentifier
