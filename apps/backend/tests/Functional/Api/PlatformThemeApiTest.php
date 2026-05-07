@@ -17,6 +17,8 @@ final class PlatformThemeApiTest extends FunctionalApiTestCase
         self::assertSame(200, $getResponse->getStatusCode());
         $getPayload = $this->decodeJson($getResponse);
         self::assertSame('#1B6CA8', $getPayload['primary_color']);
+        self::assertArrayHasKey('warnings', $getPayload);
+        self::assertSame([], $getPayload['warnings']);
 
         $putResponse = $this->requestJson(
             'PUT',
@@ -51,6 +53,8 @@ final class PlatformThemeApiTest extends FunctionalApiTestCase
         $getResponse = $this->requestJson('GET', '/api/admin/theme');
         $putResponse = $this->requestJson('PUT', '/api/admin/theme', $this->validThemePayload());
 
+        // API Platform exception listener (priority 0) may intercept AccessDeniedException
+        // before Symfony security's entry point (priority -64), so both 401 and 403 are valid.
         self::assertContains($getResponse->getStatusCode(), [401, 403]);
         self::assertContains($putResponse->getStatusCode(), [401, 403]);
     }
