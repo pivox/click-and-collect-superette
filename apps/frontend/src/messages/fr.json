@@ -1,0 +1,59 @@
+{
+  "common": {
+    "appName": "Click & Collect Supérette",
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue",
+    "retry": "Réessayer",
+    "confirm": "Confirmer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "back": "Retour",
+    "tnd": "TND"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "email": "Email",
+    "password": "Mot de passe"
+  },
+  "client": {
+    "kadhia": "Kadhia",
+    "addToKadhia": "Ajouter à la Kadhia",
+    "viewKadhia": "Voir ma Kadhia",
+    "emptyKadhia": "Votre Kadhia est vide",
+    "submitOrder": "Soumettre ma commande",
+    "pickupSlot": "Créneau de retrait",
+    "chooseSlot": "Choisir un créneau",
+    "orderStatus": "Statut de la commande",
+    "pickupQrCode": "QR code de retrait",
+    "myOrders": "Mes commandes"
+  },
+  "merchant": {
+    "dashboard": "Tableau de bord",
+    "orders": "Commandes",
+    "pendingOrders": "En attente",
+    "catalog": "Catalogue",
+    "accept": "Accepter",
+    "reject": "Refuser",
+    "prepare": "Préparer",
+    "markReady": "Déclarer prête",
+    "validatePickup": "Valider le retrait"
+  },
+  "admin": {
+    "shops": "Supérettes",
+    "merchants": "Marchands",
+    "referential": "Référentiel produit",
+    "proposals": "Propositions produit"
+  },
+  "orderStatus": {
+    "draft": "Brouillon",
+    "submitted": "Soumise",
+    "accepted": "Acceptée",
+    "rejected": "Refusée",
+    "preparing": "En préparation",
+    "ready": "Prête",
+    "pickup_pending": "Retrait en cours",
+    "completed": "Finalisée",
+    "cancelled": "Annulée"
+  }
+}
