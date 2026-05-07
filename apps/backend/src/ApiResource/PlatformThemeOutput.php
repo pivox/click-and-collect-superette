@@ -27,6 +27,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             formats: ['json' => ['application/json']],
             input: ThemeWriteInput::class,
             output: self::class,
+            read: false,
             processor: UpdatePlatformThemeProcessor::class,
             normalizationContext: ['groups' => ['admin_theme:read']],
             security: "is_granted('ROLE_ADMIN')",

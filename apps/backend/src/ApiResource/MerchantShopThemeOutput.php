@@ -28,6 +28,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             formats: ['json' => ['application/json']],
             input: ThemeWriteInput::class,
             output: self::class,
+            read: false,
             processor: UpdateMerchantShopThemeProcessor::class,
             normalizationContext: ['groups' => ['merchant_shop_theme:read']],
             security: "is_granted('ROLE_MERCHANT')",
