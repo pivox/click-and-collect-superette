@@ -23,7 +23,7 @@ Ma supérette a une identité visuelle qui lui appartient ; les clients reconnai
 
 1. Lors de l'onboarding, le marchand arrive à l'étape **Personnalisation de votre supérette**.
 2. L'écran présente le thème global par défaut pré-rempli en point de départ.
-3. Le marchand choisit un thème prédéfini ou modifie manuellement les couleurs et la police.
+3. Le marchand conserve le thème global ou personnalise manuellement les couleurs, la police et la taille de base.
 4. L'aperçu se met à jour.
 5. Le marchand valide en cliquant sur **Confirmer mon thème**.
 6. Un `ShopTheme` est créé et associé à sa supérette.
@@ -59,7 +59,6 @@ Ma supérette a une identité visuelle qui lui appartient ; les clients reconnai
 - Le thème est configuré **une seule fois** lors de l'onboarding ; l'étape ne se représente pas.
 - La modification ultérieure est possible depuis les paramètres.
 - Un `ShopTheme` propre surcharge entièrement le `PlatformTheme` pour cette supérette.
-- Si le marchand supprime son `ShopTheme`, la supérette revient au thème global.
 - L'aperçu montré au marchand est celui de la PWA client (vue mobile).
 
 ---
@@ -68,9 +67,9 @@ Ma supérette a une identité visuelle qui lui appartient ; les clients reconnai
 
 - [ ] L'étape de personnalisation apparaît une fois dans le tunnel d'onboarding marchand.
 - [ ] Le thème global par défaut est pré-chargé comme point de départ.
-- [ ] Le marchand peut choisir parmi les thèmes prédéfinis.
 - [ ] Le marchand peut modifier les 5 couleurs : primaire, secondaire, accent, texte, fond.
 - [ ] Le marchand peut choisir une police dans la liste approuvée.
+- [ ] Le marchand peut définir la taille de base entre 14 et 20 px.
 - [ ] L'aperçu reflète les choix du marchand.
 - [ ] Le marchand peut conserver le thème par défaut sans rien modifier.
 - [ ] La validation crée le `ShopTheme` et le lie à la supérette.
@@ -82,8 +81,8 @@ Ma supérette a une identité visuelle qui lui appartient ; les clients reconnai
 ## Notes techniques
 
 - Entité : `ShopTheme` lié à `Shop` (relation OneToOne, nullable).
-- Endpoint création : `POST /api/stores/{id}/theme`.
-- Endpoint modification : `PUT /api/stores/{id}/theme`.
-- Endpoint lecture thème actif : `GET /api/stores/{id}/theme` — retourne `ShopTheme` si présent, sinon `PlatformTheme`.
+- Endpoint création : `POST /api/stores/{storeId}/theme`.
+- Endpoint modification : `PUT /api/stores/{storeId}/theme`.
+- Endpoint lecture thème actif : `GET /api/stores/{storeId}/theme` — retourne `ShopTheme` si présent, sinon `PlatformTheme`.
 - Sécurité : modification réservée au `ROLE_MERCHANT` propriétaire de la supérette.
 - Champs identiques à `PlatformTheme` (voir US-010 notes techniques).

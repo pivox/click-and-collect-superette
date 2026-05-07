@@ -160,14 +160,14 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Sprint** : Sprint 6 — Personnalisation visuelle
 
-**Périmètre MVP** : couleurs (5 champs) + police uniquement. Upload d'image de fond exclu du MVP (ADR-0004).
+**Périmètre MVP** : couleurs (5 champs), police et taille de base uniquement. Upload d'image de fond exclu du MVP (ADR-0004).
 
 **User stories** :
 - US-010 — Configurer le thème global (admin)
 - US-011 — Personnaliser le thème de la supérette lors de l'onboarding
 - US-012 — Afficher le storefront avec le thème actif
 
-**Critère de sortie** : La PWA client reflète le thème de la supérette via `GET /api/stores/{id}/theme`, avec fallback sur le thème global si aucun `ShopTheme` n'existe.
+**Critère de sortie** : La PWA client reflète le thème de la supérette via `GET /api/stores/{storeId}/theme`, avec fallback sur le thème global si aucun `ShopTheme` n'existe.
 
 ---
 

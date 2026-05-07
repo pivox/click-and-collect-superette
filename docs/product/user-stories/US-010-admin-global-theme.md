@@ -51,7 +51,7 @@ Toute supérette qui n'a pas configuré son propre thème hérite d'une identit�
 
 - Le thème global est un singleton (`PlatformTheme`) ; il ne peut pas être supprimé, seulement modifié.
 - Une supérette avec un `ShopTheme` propre n'est jamais affectée par les modifications du thème global.
-- Les valeurs sont stockées en base et exposées comme variables CSS via `GET /api/stores/{id}/theme`.
+- Les valeurs sont stockées en base et exposées comme variables CSS via `GET /api/stores/{storeId}/theme`.
 
 ---
 
@@ -59,6 +59,7 @@ Toute supérette qui n'a pas configuré son propre thème hérite d'une identit�
 
 - [ ] L'administrateur peut modifier les 5 couleurs : primaire, secondaire, accent, texte, fond.
 - [ ] L'administrateur peut choisir la police parmi la liste approuvée.
+- [ ] L'administrateur peut définir la taille de base entre 14 et 20 px.
 - [ ] Un avertissement contraste est affiché si le ratio texte/fond est inférieur à 4.5:1 (WCAG 2.1 AA).
 - [ ] L'enregistrement met à jour le thème global.
 - [ ] Les supérettes sans thème propre héritent du nouveau thème.
@@ -69,7 +70,7 @@ Toute supérette qui n'a pas configuré son propre thème hérite d'une identit�
 
 - Entité : `PlatformTheme` (singleton, id fixe en base, seed au déploiement).
 - Endpoint modification : `PUT /api/admin/theme`.
-- Le thème résolu d'une supérette est exposé via `GET /api/stores/{id}/theme`.
+- Le thème résolu d'une supérette est exposé via `GET /api/stores/{storeId}/theme`.
 - Le frontend injecte les variables dans `:root` au chargement.
 - Sécurité : route réservée au rôle `ROLE_ADMIN`.
 - Champs `ThemeConfig` (communs à `PlatformTheme` et `ShopTheme`) :

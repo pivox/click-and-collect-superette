@@ -37,7 +37,7 @@ Toutes les requêtes protégées :
 - `POST /api/auth/login`
 - `GET /api/stores/by-qr/{token}` — accès QR code magasin
 - `GET /api/stores/{id}/catalog` — catalogue visible
-- `GET /api/stores/{id}/theme` — thème visuel de la supérette (voir ADR-0004)
+- `GET /api/stores/{storeId}/theme` — thème visuel de la supérette (voir ADR-0004)
 
 ## Séparation des rôles
 
