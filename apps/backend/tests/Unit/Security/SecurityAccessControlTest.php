@@ -32,6 +32,18 @@ final class SecurityAccessControlTest extends TestCase
             ['ROLE_MERCHANT', 'ROLE_ADMIN'],
             ['POST', 'PUT', 'DELETE'],
         );
+        $merchantAreaIndex = $this->findRuleIndex(
+            $rules,
+            '^/api/merchant',
+            'ROLE_MERCHANT',
+            null,
+        );
+        $adminAreaIndex = $this->findRuleIndex(
+            $rules,
+            '^/api/admin',
+            'ROLE_ADMIN',
+            null,
+        );
         $generalApiIndex = $this->findRuleIndex(
             $rules,
             '^/api',
@@ -42,10 +54,14 @@ final class SecurityAccessControlTest extends TestCase
         self::assertNotNull($apiDocsIndex);
         self::assertNotNull($publicGetIndex);
         self::assertNotNull($merchantWriteIndex);
+        self::assertNotNull($merchantAreaIndex);
+        self::assertNotNull($adminAreaIndex);
         self::assertNotNull($generalApiIndex);
         self::assertLessThan($generalApiIndex, $apiDocsIndex);
         self::assertLessThan($generalApiIndex, $publicGetIndex);
         self::assertLessThan($generalApiIndex, $merchantWriteIndex);
+        self::assertLessThan($generalApiIndex, $merchantAreaIndex);
+        self::assertLessThan($adminAreaIndex, $merchantAreaIndex);
     }
 
     /**
