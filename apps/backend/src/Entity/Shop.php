@@ -45,6 +45,10 @@ class Shop
     #[Assert\NotBlank]
     private string $qrCodeToken;
 
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $owner = null;
+
     #[ORM\OneToOne(mappedBy: 'shop', targetEntity: ShopTheme::class)]
     private ?ShopTheme $theme = null;
 
@@ -164,6 +168,18 @@ class Shop
     public function setQrCodeToken(string $qrCodeToken): static
     {
         $this->qrCodeToken = $qrCodeToken;
+
+        return $this;
+    }
+
+    public function getOwner(): ?User
+    {
+        return $this->owner;
+    }
+
+    public function setOwner(?User $owner): static
+    {
+        $this->owner = $owner;
 
         return $this;
     }
