@@ -14,6 +14,12 @@ final class SecurityAccessControlTest extends TestCase
         $config = Yaml::parseFile(\dirname(__DIR__, 3).'/config/packages/security.yaml');
         $rules = $config['security']['access_control'] ?? [];
 
+        $apiDocsIndex = $this->findRuleIndex(
+            $rules,
+            '^/api/docs(?:\\..+)?$',
+            'PUBLIC_ACCESS',
+            null,
+        );
         $publicGetIndex = $this->findRuleIndex(
             $rules,
             '^/api/stores/[^/]+/theme$',
@@ -33,9 +39,11 @@ final class SecurityAccessControlTest extends TestCase
             null,
         );
 
+        self::assertNotNull($apiDocsIndex);
         self::assertNotNull($publicGetIndex);
         self::assertNotNull($merchantWriteIndex);
         self::assertNotNull($generalApiIndex);
+        self::assertLessThan($generalApiIndex, $apiDocsIndex);
         self::assertLessThan($generalApiIndex, $publicGetIndex);
         self::assertLessThan($generalApiIndex, $merchantWriteIndex);
     }
