@@ -20,7 +20,8 @@ final class StoreThemeCacheSubscriberTest extends TestCase
 
         (new StoreThemeCacheSubscriber())->onKernelResponse($event);
 
-        self::assertSame('public, max-age=300', $response->headers->get('Cache-Control'));
+        self::assertTrue($response->headers->getCacheControlDirective('public'));
+        self::assertSame(300, $response->headers->getCacheControlDirective('max-age'));
     }
 
     public function testItDoesNotSetCacheHeaderForErrorThemeResponse(): void
@@ -30,7 +31,8 @@ final class StoreThemeCacheSubscriberTest extends TestCase
 
         (new StoreThemeCacheSubscriber())->onKernelResponse($event);
 
-        self::assertNull($response->headers->get('Cache-Control'));
+        self::assertFalse($response->headers->hasCacheControlDirective('public'));
+        self::assertFalse($response->headers->hasCacheControlDirective('max-age'));
     }
 
     private function responseEventForThemeRoute(Response $response): ResponseEvent
