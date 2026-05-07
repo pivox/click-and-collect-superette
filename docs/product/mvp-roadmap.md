@@ -69,7 +69,18 @@
 
 ---
 
-## Sprint 6 — Production
+## Sprint 6 — Personnalisation visuelle
+
+### Goals
+
+- PlatformTheme (admin, singleton)
+- ShopTheme (marchand, onboarding)
+- GET /api/stores/{id}/theme (public)
+- CSS variables injection in PWA
+
+---
+
+## Sprint 7 — Production
 
 ### Goals
 
