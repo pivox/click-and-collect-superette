@@ -134,7 +134,8 @@ flowchart TD
 - gérer les comptes marchands ;
 - superviser les commandes ;
 - consulter les métriques ;
-- gérer les langues et paramètres globaux.
+- gérer les langues et paramètres globaux ;
+- configurer le thème visuel global de la plateforme.
 
 ## Périmètre MVP
 
@@ -148,6 +149,7 @@ Le MVP couvre :
 - suivi des statuts ;
 - QR code de retrait ;
 - double validation au retrait ;
+- personnalisation visuelle par supérette (couleurs + police) ;
 - interface français / arabe ;
 - prix en dinars tunisiens.
 

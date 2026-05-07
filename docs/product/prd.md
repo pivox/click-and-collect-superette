@@ -73,6 +73,7 @@ Personne qui supervise les supérettes, les comptes marchands et le référentie
 - Déclarer une commande prête.
 - Contrôler le QR code de retrait.
 - Finaliser la commande.
+- Configurer l'identité visuelle de sa supérette (couleurs + police) lors de l'onboarding.
 
 ### Administrateur
 
@@ -82,6 +83,7 @@ Personne qui supervise les supérettes, les comptes marchands et le référentie
 - Gérer les marques.
 - Corriger les produits du référentiel.
 - Valider les propositions de nouveaux produits.
+- Configurer le thème visuel global par défaut de la plateforme.
 
 ## Hors périmètre MVP
 
