@@ -1,0 +1,6 @@
+doctrine:
+    dbal:
+        driver: pdo_sqlite
+        url: 'sqlite:///%kernel.cache_dir%/functional_tests.db'
+        server_version: null
+        dbname_suffix: ''
