@@ -20,7 +20,7 @@ final class ThemeCssVariablesMapper
             colorText: $theme->getTextColor(),
             colorBackground: $theme->getBackgroundColor(),
             fontFamily: $this->mapFontFamily($theme->getFontFamily()),
-            fontSizeBase: sprintf('%dpx', $theme->getBaseFontSize()),
+            fontSizeBase: \sprintf('%dpx', $theme->getBaseFontSize()),
             storeId: $storeId,
         );
     }
