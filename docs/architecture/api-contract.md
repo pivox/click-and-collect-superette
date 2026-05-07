@@ -355,6 +355,37 @@ PUT /api/stores/{storeId}/theme
 
 Réservé à `ROLE_MERCHANT`, propriétaire de la supérette. Même payload que la création.
 
+### Supprimer le thème d'une supérette
+
+```http
+DELETE /api/stores/{storeId}/theme
+```
+
+Décision : post-MVP ou à arbitrer plus tard. Cette route n'est pas implémentée dans la PR actuelle.
+
+### Lire le thème global (admin)
+
+```http
+GET /api/admin/theme
+```
+
+Réservé à `ROLE_ADMIN`.
+
+Réponse métier :
+
+```json
+{
+  "primary_color": "#1B6CA8",
+  "secondary_color": "#F0A500",
+  "accent_color": "#E63946",
+  "text_color": "#1A1A1A",
+  "background_color": "#FFFFFF",
+  "font_family": "inter",
+  "base_font_size": 16,
+  "warnings": []
+}
+```
+
 ### Modifier le thème global (admin)
 
 ```http
