@@ -75,7 +75,7 @@
 
 - PlatformTheme (admin, singleton)
 - ShopTheme (marchand, onboarding)
-- GET /api/stores/{id}/theme (public)
+- GET /api/stores/{storeId}/theme (public)
 - CSS variables injection in PWA
 
 ---
