@@ -2,6 +2,10 @@ api_platform:
     title: 'Click & Collect Supérette — API'
     version: '1.0.0'
     description: 'API MVP Click & Collect Supérette Tunisie'
+    mapping:
+        paths:
+            - '%kernel.project_dir%/src/Entity'
+            - '%kernel.project_dir%/src/ApiResource'
     defaults:
         stateless: true
         cache_headers:
