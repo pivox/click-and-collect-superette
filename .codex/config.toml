@@ -21,9 +21,9 @@ max_threads = 6
 max_depth = 1
 
 [agents.product_owner]
-config_file = ".codex/agents/product-owner.toml"
+config_file = "agents/product-owner.toml"
 description = "Product owner agent for MVP scope, user stories, Tunisian click & collect workflows, and product decisions."
 
 [agents.symfony_architect]
-config_file = ".codex/agents/symfony-architect.toml"
+config_file = "agents/symfony-architect.toml"
 description = "Symfony 7, API Platform, Doctrine, PostgreSQL, security and backend architecture agent."
