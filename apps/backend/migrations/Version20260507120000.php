@@ -11,11 +11,14 @@ final class Version20260507120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Add shop, platform theme and shop theme persistence.';
+        return 'Add user, shop, platform theme and shop theme persistence.';
     }
 
     public function up(Schema $schema): void
     {
+        $this->addSql('CREATE TABLE users (id UUID NOT NULL, email VARCHAR(180) NOT NULL, roles JSON NOT NULL, password VARCHAR(255) NOT NULL, name VARCHAR(100) NOT NULL, phone VARCHAR(20) DEFAULT NULL, active BOOLEAN NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, PRIMARY KEY(id))');
+        $this->addSql('CREATE UNIQUE INDEX UNIQ_USERS_EMAIL ON users (email)');
+
         $this->addSql('CREATE TABLE shops (id UUID NOT NULL, name VARCHAR(160) NOT NULL, slug VARCHAR(180) NOT NULL, address VARCHAR(255) DEFAULT NULL, city VARCHAR(100) DEFAULT NULL, country VARCHAR(2) NOT NULL, phone VARCHAR(20) DEFAULT NULL, active BOOLEAN NOT NULL, qr_code_token VARCHAR(64) NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, PRIMARY KEY(id))');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_6F6A974989D9B62 ON shops (slug)');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_6F6A9749B03A8386 ON shops (qr_code_token)');
@@ -49,5 +52,6 @@ final class Version20260507120000 extends AbstractMigration
         $this->addSql('DROP TABLE shop_themes');
         $this->addSql('DROP TABLE platform_themes');
         $this->addSql('DROP TABLE shops');
+        $this->addSql('DROP TABLE users');
     }
 }
