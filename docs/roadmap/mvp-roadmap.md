@@ -181,9 +181,10 @@ Permettre à l'administrateur de définir le thème visuel par défaut de la pla
 
 **Côté API :**
 - `GET /api/stores/{storeId}/theme` — retourne les variables CSS du thème actif (thème supérette ou thème global par défaut). Public.
+- `GET /api/merchant/stores/{storeId}/theme` — lit le thème côté backoffice marchand. `ROLE_MERCHANT` propriétaire.
+- `PUT /api/merchant/stores/{storeId}/theme` — crée ou met à jour le thème d'une supérette par upsert. `ROLE_MERCHANT` propriétaire.
+- `GET /api/admin/theme` — lit le thème global. `ROLE_ADMIN`.
 - `PUT /api/admin/theme` — met à jour le thème global. `ROLE_ADMIN`.
-- `POST /api/stores/{storeId}/theme` — crée le thème d'une supérette. `ROLE_MERCHANT`.
-- `PUT /api/stores/{storeId}/theme` — met à jour le thème d'une supérette. `ROLE_MERCHANT`.
 
 ### Entités principales
 
