@@ -10,6 +10,9 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
+/**
+ * @extends Voter<string, Shop>
+ */
 final class ShopOwnerVoter extends Voter
 {
     public const SHOP_OWNER = 'SHOP_OWNER';

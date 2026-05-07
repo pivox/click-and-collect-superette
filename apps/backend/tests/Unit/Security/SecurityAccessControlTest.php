@@ -11,7 +11,7 @@ final class SecurityAccessControlTest extends TestCase
 {
     public function testStoreThemeGetStaysPublicAndMerchantWriteRuleExists(): void
     {
-        $config = Yaml::parseFile(dirname(__DIR__, 3).'/config/packages/security.yaml');
+        $config = Yaml::parseFile(\dirname(__DIR__, 3).'/config/packages/security.yaml');
         $rules = $config['security']['access_control'] ?? [];
 
         $publicGetIndex = $this->findRuleIndex(
@@ -42,7 +42,7 @@ final class SecurityAccessControlTest extends TestCase
 
     /**
      * @param list<array<string, mixed>> $rules
-     * @param list<string>|null $methods
+     * @param list<string>|null          $methods
      */
     private function findRuleIndex(array $rules, string $path, string|array $role, ?array $methods): ?int
     {
