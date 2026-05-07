@@ -23,7 +23,7 @@ final class SecurityAccessControlTest extends TestCase
         $merchantWriteIndex = $this->findRuleIndex(
             $rules,
             '^/api/stores/[^/]+/theme$',
-            'ROLE_MERCHANT',
+            ['ROLE_MERCHANT', 'ROLE_ADMIN'],
             ['POST', 'PUT', 'DELETE'],
         );
         $generalApiIndex = $this->findRuleIndex(
@@ -44,7 +44,7 @@ final class SecurityAccessControlTest extends TestCase
      * @param list<array<string, mixed>> $rules
      * @param list<string>|null $methods
      */
-    private function findRuleIndex(array $rules, string $path, string $role, ?array $methods): ?int
+    private function findRuleIndex(array $rules, string $path, string|array $role, ?array $methods): ?int
     {
         foreach ($rules as $index => $rule) {
             if (($rule['path'] ?? null) !== $path) {

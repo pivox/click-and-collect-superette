@@ -31,6 +31,7 @@ Champs MVP :
 id: uuid
 name: string
 slug: string
+owner_user_id: uuid|null
 address: string|null
 city: string|null
 country: TN
@@ -40,6 +41,8 @@ qr_code_token: string
 created_at: datetime
 updated_at: datetime
 ```
+
+Règle : `owner_user_id` est nullable dans le MVP pour ne pas bloquer les supérettes déjà créées ou seedées. Les futures routes marchand réservées au thème de supérette devront vérifier que l'utilisateur authentifié est le propriétaire de la supérette, avec exception pour `ROLE_ADMIN`.
 
 ## Merchant
 
