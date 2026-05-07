@@ -9,7 +9,7 @@ use Symfony\Component\Yaml\Yaml;
 
 final class SecurityAccessControlTest extends TestCase
 {
-    public function testApiDocsAndStoreThemePublicRulesStayBeforeGeneralApiRule(): void
+    public function testSpecificApiAccessRulesStayBeforeGeneralApiRule(): void
     {
         $config = Yaml::parseFile(\dirname(__DIR__, 3).'/config/packages/security.yaml');
         $rules = $config['security']['access_control'] ?? [];
@@ -61,7 +61,7 @@ final class SecurityAccessControlTest extends TestCase
         self::assertLessThan($generalApiIndex, $publicGetIndex);
         self::assertLessThan($generalApiIndex, $merchantWriteIndex);
         self::assertLessThan($generalApiIndex, $merchantAreaIndex);
-        self::assertLessThan($adminAreaIndex, $merchantAreaIndex);
+        self::assertLessThan($generalApiIndex, $adminAreaIndex);
     }
 
     /**
