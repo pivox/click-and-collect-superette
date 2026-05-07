@@ -1,0 +1,59 @@
+{
+  "common": {
+    "appName": "كليك آند كوليكت",
+    "loading": "جار التحميل...",
+    "error": "حدث خطأ",
+    "retry": "إعادة المحاولة",
+    "confirm": "تأكيد",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "back": "رجوع",
+    "tnd": "د.ت"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور"
+  },
+  "client": {
+    "kadhia": "القاضية",
+    "addToKadhia": "أضف إلى القاضية",
+    "viewKadhia": "عرض القاضية",
+    "emptyKadhia": "قاضيتك فارغة",
+    "submitOrder": "إرسال الطلب",
+    "pickupSlot": "موعد الاستلام",
+    "chooseSlot": "اختر موعداً",
+    "orderStatus": "حالة الطلب",
+    "pickupQrCode": "رمز QR للاستلام",
+    "myOrders": "طلباتي"
+  },
+  "merchant": {
+    "dashboard": "لوحة القيادة",
+    "orders": "الطلبات",
+    "pendingOrders": "في انتظار",
+    "catalog": "الكتالوج",
+    "accept": "قبول",
+    "reject": "رفض",
+    "prepare": "تحضير",
+    "markReady": "تحديد جاهز",
+    "validatePickup": "التحقق من الاستلام"
+  },
+  "admin": {
+    "shops": "المحلات",
+    "merchants": "التجار",
+    "referential": "مرجع المنتجات",
+    "proposals": "اقتراحات المنتجات"
+  },
+  "orderStatus": {
+    "draft": "مسودة",
+    "submitted": "مُرسل",
+    "accepted": "مقبول",
+    "rejected": "مرفوض",
+    "preparing": "قيد التحضير",
+    "ready": "جاهز",
+    "pickup_pending": "الاستلام جارٍ",
+    "completed": "مكتمل",
+    "cancelled": "ملغى"
+  }
+}
