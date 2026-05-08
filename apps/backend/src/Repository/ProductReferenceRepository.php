@@ -54,7 +54,7 @@ class ProductReferenceRepository extends ServiceEntityRepository
                 ->setParameter('categorySlug', $categorySlug);
         }
 
-        /** @var list<ProductReference> */
+        /* @var list<ProductReference> */
         return $qb->getQuery()->getResult();
     }
 }

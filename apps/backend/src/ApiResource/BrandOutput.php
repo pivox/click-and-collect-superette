@@ -31,5 +31,6 @@ final readonly class BrandOutput
         public string $name,
         #[Groups(['brand:read'])]
         public string $slug,
-    ) {}
+    ) {
+    }
 }

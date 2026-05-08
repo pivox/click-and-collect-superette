@@ -70,5 +70,6 @@ final readonly class ProductReferenceSearchOutput
         #[Groups(['product_reference_search:read'])]
         #[SerializedName('already_in_catalog')]
         public bool $alreadyInCatalog,
-    ) {}
+    ) {
+    }
 }

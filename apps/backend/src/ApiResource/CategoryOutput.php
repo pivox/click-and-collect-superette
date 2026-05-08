@@ -42,5 +42,6 @@ final readonly class CategoryOutput
         #[Groups(['category:read'])]
         #[SerializedName('sort_order')]
         public int $sortOrder,
-    ) {}
+    ) {
+    }
 }

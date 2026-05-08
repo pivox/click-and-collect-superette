@@ -23,7 +23,8 @@ final readonly class ProductReferenceProposalCollectionProvider implements Provi
         private ShopRepository $shopRepository,
         private ProductReferenceProposalRepository $productReferenceProposalRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
-    ) {}
+    ) {
+    }
 
     /**
      * @param array<string, mixed> $uriVariables
@@ -48,7 +49,7 @@ final readonly class ProductReferenceProposalCollectionProvider implements Provi
         $proposals = $this->productReferenceProposalRepository->findForShop($shop);
 
         return array_map(
-            fn (ProductReferenceProposal $p) => new ProductReferenceProposalOutput(
+            static fn (ProductReferenceProposal $p) => new ProductReferenceProposalOutput(
                 $p->getId()->toRfc4122(),
                 $p->getNameFr(),
                 $p->getNameAr(),
