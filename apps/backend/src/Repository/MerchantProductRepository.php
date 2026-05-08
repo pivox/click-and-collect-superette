@@ -35,4 +35,63 @@ class MerchantProductRepository extends ServiceEntityRepository
             'productReference' => $productReference,
         ]);
     }
+
+    /**
+     * @return list<MerchantProduct>
+     */
+    public function findPublicCatalogForShop(Shop $shop, ?string $query = null, ?string $categorySlug = null): array
+    {
+        $normalizedQuery = $this->normalizeSearchValue($query);
+        $normalizedCategorySlug = $this->normalizeSearchValue($categorySlug);
+
+        $merchantProducts = $this->findBy([
+            'shop' => $shop,
+            'isVisible' => true,
+            'isAvailable' => true,
+        ]);
+
+        $merchantProducts = array_filter(
+            $merchantProducts,
+            static function (MerchantProduct $merchantProduct) use ($normalizedQuery, $normalizedCategorySlug): bool {
+                $productReference = $merchantProduct->getProductReference();
+                $brand = $productReference->getBrand();
+                $category = $productReference->getCategory();
+
+                if (null !== $normalizedCategorySlug && strtolower($category->getSlug()) !== $normalizedCategorySlug) {
+                    return false;
+                }
+
+                if (null === $normalizedQuery) {
+                    return true;
+                }
+
+                return str_contains(strtolower($productReference->getNameFr()), $normalizedQuery)
+                    || str_contains(strtolower($brand->getCanonicalName()), $normalizedQuery);
+            },
+        );
+
+        usort(
+            $merchantProducts,
+            static fn (MerchantProduct $left, MerchantProduct $right): int => [
+                $left->getProductReference()->getNameFr(),
+                $left->getProductReference()->getBrand()->getCanonicalName(),
+            ] <=> [
+                $right->getProductReference()->getNameFr(),
+                $right->getProductReference()->getBrand()->getCanonicalName(),
+            ],
+        );
+
+        return $merchantProducts;
+    }
+
+    private function normalizeSearchValue(?string $value): ?string
+    {
+        if (null === $value) {
+            return null;
+        }
+
+        $value = trim(strtolower($value));
+
+        return '' === $value ? null : $value;
+    }
 }
