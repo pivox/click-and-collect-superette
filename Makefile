@@ -1,6 +1,7 @@
 .PHONY: help up down restart build logs bash-backend bash-frontend \
         migrate migrate-diff db-reset test-backend test-frontend lint-backend lint-frontend \
-        jwt-keys cc
+        jwt-keys cc \
+        import-products seed-prices products-stats setup-dev-data
 
 DOCKER_COMPOSE = docker compose
 BACKEND  = $(DOCKER_COMPOSE) exec backend
@@ -100,3 +101,17 @@ cc: ## Bootstrap complet : up + jwt-keys + migrate + validate
 	$(MAKE) migrate
 	$(MAKE) validate
 	@echo "✅ Environnement prêt sur http://localhost:3000 (frontend) et http://localhost:8000/api (backend)"
+
+# ─── Dev data ─────────────────────────────────────────────────────────────────
+
+import-products: ## Importe les produits depuis Open Food/Beauty/Products Facts (~50k)
+	$(BACKEND) php bin/console app:products:import --source=all --pages=30
+
+seed-prices: ## Assigne des prix TND fictifs et active les produits importés
+	$(BACKEND) php bin/console app:products:seed-prices
+
+products-stats: ## Affiche les statistiques des produits importés
+	$(BACKEND) php bin/console app:products:stats
+
+setup-dev-data: import-products seed-prices products-stats ## Prépare le jeu de données dev complet
+	@echo "✅ Jeu de données dev prêt"
