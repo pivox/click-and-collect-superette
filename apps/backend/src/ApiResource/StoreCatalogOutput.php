@@ -7,6 +7,7 @@ namespace App\ApiResource;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\QueryParameter;
 use App\Provider\StoreCatalogProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -18,6 +19,16 @@ use Symfony\Component\Serializer\Attribute\Groups;
             provider: StoreCatalogProvider::class,
             normalizationContext: ['groups' => ['store_catalog:read']],
             security: "is_granted('PUBLIC_ACCESS')",
+            parameters: [
+                'query' => new QueryParameter(
+                    schema: ['type' => 'string'],
+                    description: 'Recherche simple sur nom, marque, format et champs produit publics.',
+                ),
+                'category' => new QueryParameter(
+                    schema: ['type' => 'string'],
+                    description: 'Slug de catégorie produit.',
+                ),
+            ],
         ),
     ],
 )]
