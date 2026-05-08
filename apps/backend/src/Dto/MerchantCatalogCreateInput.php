@@ -16,7 +16,7 @@ final readonly class MerchantCatalogCreateInput
         public string $productReferenceId,
         #[Assert\NotBlank]
         #[Assert\Regex('/^\d+(?:\.\d{1,3})?$/')]
-        #[Assert\PositiveOrZero]
+        #[Assert\Positive]
         #[SerializedName('price_tnd')]
         public string $priceTnd,
         #[SerializedName('is_available')]

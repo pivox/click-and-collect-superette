@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\ApiResource;
 
-use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
@@ -24,11 +23,12 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 
 #[ApiResource(
     operations: [
-        new Get(
+        new GetCollection(
             uriTemplate: '/merchant/stores/{storeId}/catalog',
             uriVariables: [
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
             ],
+            itemUriTemplate: '/merchant/catalog/{merchantProductId}',
             formats: ['json' => ['application/json']],
             provider: MerchantCatalogProductCollectionProvider::class,
             normalizationContext: ['groups' => ['merchant_catalog:read']],
@@ -39,12 +39,13 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             uriVariables: [
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
             ],
+            itemUriTemplate: '/merchant/catalog/{merchantProductId}',
             formats: ['json' => ['application/json']],
             input: MerchantCatalogCreateInput::class,
-            output: self::class,
+            output: false,
+            status: 201,
             read: false,
             processor: CreateMerchantCatalogProductProcessor::class,
-            normalizationContext: ['groups' => ['merchant_catalog:read']],
             security: "is_granted('ROLE_MERCHANT')",
         ),
         new Patch(
@@ -104,8 +105,6 @@ final readonly class MerchantCatalogProductOutput
         #[Groups(['merchant_catalog:read'])]
         #[SerializedName('merchant_note')]
         public ?string $merchantNote,
-        #[ApiProperty(identifier: true)]
-        public ?string $merchantProductId = null,
     ) {
     }
 }

@@ -34,6 +34,7 @@ final class OpenApiThemeContractTest extends FunctionalApiTestCase
         $this->assertOpenApiOperationExists($paths, '/api/admin/theme', 'put');
 
         self::assertArrayNotHasKey('/api/stores/{storeId}/catalog', $paths);
+        self::assertSame('array', $paths['/api/merchant/stores/{storeId}/catalog']['get']['responses']['200']['content']['application/json']['schema']['type']);
         self::assertArrayNotHasKey('post', $paths['/api/stores/{storeId}/theme'] ?? []);
         self::assertArrayNotHasKey('put', $paths['/api/stores/{storeId}/theme'] ?? []);
         self::assertArrayNotHasKey('delete', $paths['/api/stores/{storeId}/theme'] ?? []);

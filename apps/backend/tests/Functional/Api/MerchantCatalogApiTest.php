@@ -9,6 +9,7 @@ use App\Entity\Category;
 use App\Entity\MerchantProduct;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
+use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 
 final class MerchantCatalogApiTest extends FunctionalApiTestCase
@@ -60,20 +61,15 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         );
 
         self::assertSame(201, $postResponse->getStatusCode());
-        $createdPayload = $this->decodeJson($postResponse);
-        self::assertSame($productReference->getId()->toRfc4122(), $createdPayload['product_reference_id']);
-        self::assertSame('Lait demi-écrémé', $createdPayload['name_fr']);
-        self::assertSame('Vitalait', $createdPayload['brand']);
-        self::assertSame('Lait & produits laitiers', $createdPayload['category']);
-        self::assertSame('1.000', $createdPayload['volume']);
-        self::assertSame('litre', $createdPayload['unit']);
-        self::assertSame('1.650', $createdPayload['price_tnd']);
-        self::assertTrue($createdPayload['is_available']);
-        self::assertTrue($createdPayload['is_visible']);
-        self::assertNull($createdPayload['merchant_note']);
+        $createdMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->findOneForShopAndProductReference($shop, $productReference);
+        self::assertInstanceOf(MerchantProduct::class, $createdMerchantProduct);
+        self::assertSame('1.650', $createdMerchantProduct->getPriceTnd());
+        self::assertTrue($createdMerchantProduct->isAvailable());
+        self::assertTrue($createdMerchantProduct->isVisible());
+        self::assertNull($createdMerchantProduct->getMerchantNote());
         $patchResponse = $this->requestJson(
             'PATCH',
-            \sprintf('/api/merchant/catalog/%s', $createdPayload['id']),
+            \sprintf('/api/merchant/catalog/%s', $createdMerchantProduct->getId()),
             [
                 'price_tnd' => '1.700',
                 'is_available' => false,
@@ -84,14 +80,14 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         );
 
         self::assertSame(200, $patchResponse->getStatusCode());
-        $updatedMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->find($createdPayload['id']);
+        $updatedMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->find($createdMerchantProduct->getId());
         self::assertInstanceOf(MerchantProduct::class, $updatedMerchantProduct);
         self::assertSame('1.700', $updatedMerchantProduct->getPriceTnd());
         self::assertFalse($updatedMerchantProduct->isAvailable());
         self::assertTrue($updatedMerchantProduct->isVisible());
         self::assertSame('Rupture fréquente', $updatedMerchantProduct->getMerchantNote());
 
-        $deleteResponse = $this->requestJson('DELETE', \sprintf('/api/merchant/catalog/%s', $createdPayload['id']), user: $merchant);
+        $deleteResponse = $this->requestJson('DELETE', \sprintf('/api/merchant/catalog/%s', $createdMerchantProduct->getId()), user: $merchant);
         self::assertSame(204, $deleteResponse->getStatusCode());
         self::assertSame(0, $this->entityManager->getRepository(MerchantProduct::class)->count(['shop' => $shop]));
     }
@@ -199,6 +195,65 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         self::assertSame(1, $this->entityManager->getRepository(MerchantProduct::class)->count(['shop' => $shop]));
     }
 
+    public function testCatalogCreateRejectsZeroPrice(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-owner@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait zéro');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()),
+            $this->validCatalogCreatePayload($productReference, ['price_tnd' => '0.000']),
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame(0, $this->entityManager->getRepository(MerchantProduct::class)->count(['shop' => $shop]));
+    }
+
+    public function testCatalogPatchRejectsBlankPriceWithoutChangingCurrentPrice(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-owner@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Délice', 'Yaourts', 'Yaourt prix vide');
+        $merchantProduct = $this->createMerchantProduct($shop, $productReference);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
+            ['price_tnd' => ''],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        $persistedMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->find($merchantProduct->getId());
+        self::assertInstanceOf(MerchantProduct::class, $persistedMerchantProduct);
+        self::assertSame('1.500', $persistedMerchantProduct->getPriceTnd());
+    }
+
+    public function testCatalogCreateRejectsUnapprovedProductReference(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-owner@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference(
+            'Randa',
+            'Pâtes',
+            'Spaghetti non approuvé',
+            ProductReferenceStatus::Draft,
+        );
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()),
+            $this->validCatalogCreatePayload($productReference),
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame(0, $this->entityManager->getRepository(MerchantProduct::class)->count(['shop' => $shop]));
+    }
+
     public function testCatalogMutationsDoNotModifyProductReference(): void
     {
         $merchant = $this->createUser('merchant-catalog-owner@example.test', ['ROLE_MERCHANT']);
@@ -215,11 +270,12 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
             $this->validCatalogCreatePayload($productReference, ['price_tnd' => '1.200']),
             $merchant,
         );
-        $createdPayload = $this->decodeJson($postResponse);
+        $createdMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->findOneForShopAndProductReference($shop, $productReference);
+        self::assertInstanceOf(MerchantProduct::class, $createdMerchantProduct);
 
         $patchResponse = $this->requestJson(
             'PATCH',
-            \sprintf('/api/merchant/catalog/%s', $createdPayload['id']),
+            \sprintf('/api/merchant/catalog/%s', $createdMerchantProduct->getId()),
             [
                 'price_tnd' => '1.300',
                 'is_available' => false,
@@ -242,8 +298,12 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         self::assertFalse(method_exists(ProductReference::class, 'isVisible'));
     }
 
-    private function createProductReference(string $brandName, string $categoryName, string $nameFr): ProductReference
-    {
+    private function createProductReference(
+        string $brandName,
+        string $categoryName,
+        string $nameFr,
+        ProductReferenceStatus $status = ProductReferenceStatus::Approved,
+    ): ProductReference {
         $suffix = (string) $this->entityManager->getRepository(ProductReference::class)->count([]);
         $brand = (new Brand())
             ->setCanonicalName($brandName)
@@ -256,7 +316,8 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
             ->setCategory($category)
             ->setNameFr($nameFr)
             ->setVolume('1.000')
-            ->setUnit(ProductUnit::Litre);
+            ->setUnit(ProductUnit::Litre)
+            ->setStatus($status);
 
         $this->entityManager->persist($brand);
         $this->entityManager->persist($category);
