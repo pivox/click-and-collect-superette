@@ -39,7 +39,7 @@ class ProductReferenceRepository extends ServiceEntityRepository
             ->setFirstResult($offset);
 
         if (null !== $query) {
-            $qb->andWhere('LOWER(pr.nameFr) LIKE LOWER(:q) OR LOWER(b.canonicalName) LIKE LOWER(:q) OR pr.barcode = :exact')
+            $qb->andWhere('(LOWER(pr.nameFr) LIKE LOWER(:q) OR LOWER(b.canonicalName) LIKE LOWER(:q) OR pr.barcode = :exact)')
                 ->setParameter('q', '%'.$query.'%')
                 ->setParameter('exact', $query);
         }
