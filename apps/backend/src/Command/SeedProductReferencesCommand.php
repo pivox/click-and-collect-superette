@@ -163,6 +163,11 @@ final class SeedProductReferencesCommand extends Command
 
         $productsCreated = 0;
         foreach ($productsData as $data) {
+            $existing = $this->entityManager->getRepository(ProductReference::class)->findOneBy(['barcode' => $data['barcode']]);
+            if (null !== $existing) {
+                continue;
+            }
+
             $brand = $brandMap[$data['brand']];
             $category = $categoryMap[$data['category']];
 
@@ -181,7 +186,7 @@ final class SeedProductReferencesCommand extends Command
 
         $this->entityManager->flush();
 
-        $io->success(\sprintf('Done. %d brands, %d categories, %d products created.', $brandsCreated, $categoriesCreated, $productsCreated));
+        $io->success(sprintf('Done. %d brands, %d categories, %d products created.', $brandsCreated, $categoriesCreated, $productsCreated));
 
         return Command::SUCCESS;
     }
