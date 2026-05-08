@@ -252,12 +252,12 @@ final class ImportProductsCommand extends Command
         $nutriments = $raw['nutriments'] ?? [];
 
         $nutritionMap = [
-            'energy'   => $nutriments['energy-kcal_100g'] ?? null,
+            'energy' => $nutriments['energy-kcal_100g'] ?? null,
             'proteins' => $nutriments['proteins_100g'] ?? null,
-            'carbs'    => $nutriments['carbohydrates_100g'] ?? null,
-            'fat'      => $nutriments['fat_100g'] ?? null,
-            'fiber'    => $nutriments['fiber_100g'] ?? null,
-            'salt'     => $nutriments['salt_100g'] ?? null,
+            'carbs' => $nutriments['carbohydrates_100g'] ?? null,
+            'fat' => $nutriments['fat_100g'] ?? null,
+            'fiber' => $nutriments['fiber_100g'] ?? null,
+            'salt' => $nutriments['salt_100g'] ?? null,
         ];
 
         $nutrition = [];
