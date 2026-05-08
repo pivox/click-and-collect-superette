@@ -17,7 +17,8 @@ final readonly class BrandCollectionProvider implements ProviderInterface
 {
     public function __construct(
         private BrandRepository $brandRepository,
-    ) {}
+    ) {
+    }
 
     /**
      * @param array<string, mixed> $uriVariables
@@ -28,7 +29,7 @@ final readonly class BrandCollectionProvider implements ProviderInterface
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
     {
         return array_map(
-            fn (Brand $b) => new BrandOutput($b->getId()->toRfc4122(), $b->getCanonicalName(), $b->getSlug()),
+            static fn (Brand $b) => new BrandOutput($b->getId()->toRfc4122(), $b->getCanonicalName(), $b->getSlug()),
             $this->brandRepository->findActive(),
         );
     }

@@ -17,7 +17,8 @@ final readonly class CategoryCollectionProvider implements ProviderInterface
 {
     public function __construct(
         private CategoryRepository $categoryRepository,
-    ) {}
+    ) {
+    }
 
     /**
      * @param array<string, mixed> $uriVariables
@@ -28,7 +29,7 @@ final readonly class CategoryCollectionProvider implements ProviderInterface
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
     {
         return array_map(
-            fn (Category $c) => new CategoryOutput(
+            static fn (Category $c) => new CategoryOutput(
                 $c->getId()->toRfc4122(),
                 $c->getNameFr(),
                 $c->getNameAr(),

@@ -127,7 +127,7 @@ final class SeedProductReferencesCommand extends Command
                 continue;
             }
 
-            $parent = $categoryMap[$data['parent']] ?? null;
+            $parent = $categoryMap[$data['parent']];
 
             $category = (new Category())
                 ->setNameFr($data['nameFr'])
@@ -163,13 +163,8 @@ final class SeedProductReferencesCommand extends Command
 
         $productsCreated = 0;
         foreach ($productsData as $data) {
-            $brand = $brandMap[$data['brand']] ?? null;
-            $category = $categoryMap[$data['category']] ?? null;
-
-            if (null === $brand || null === $category) {
-                $io->warning(sprintf('Skipping "%s": brand or category not found.', $data['nameFr']));
-                continue;
-            }
+            $brand = $brandMap[$data['brand']];
+            $category = $categoryMap[$data['category']];
 
             $ref = (new ProductReference())
                 ->setNameFr($data['nameFr'])
@@ -186,7 +181,7 @@ final class SeedProductReferencesCommand extends Command
 
         $this->entityManager->flush();
 
-        $io->success(sprintf('Done. %d brands, %d categories, %d products created.', $brandsCreated, $categoriesCreated, $productsCreated));
+        $io->success(\sprintf('Done. %d brands, %d categories, %d products created.', $brandsCreated, $categoriesCreated, $productsCreated));
 
         return Command::SUCCESS;
     }

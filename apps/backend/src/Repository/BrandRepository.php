@@ -21,7 +21,7 @@ class BrandRepository extends ServiceEntityRepository
     /** @return list<Brand> */
     public function findActive(): array
     {
-        /** @var list<Brand> */
+        /* @var list<Brand> */
         return $this->findBy(['active' => true], ['canonicalName' => 'ASC']);
     }
 }

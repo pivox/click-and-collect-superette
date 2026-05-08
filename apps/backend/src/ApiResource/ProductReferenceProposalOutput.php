@@ -71,5 +71,6 @@ final readonly class ProductReferenceProposalOutput
         #[Groups(['product_proposal:read'])]
         #[SerializedName('created_at')]
         public string $createdAt,
-    ) {}
+    ) {
+    }
 }

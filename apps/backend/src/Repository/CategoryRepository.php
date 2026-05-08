@@ -21,7 +21,7 @@ class CategoryRepository extends ServiceEntityRepository
     /** @return list<Category> */
     public function findActive(): array
     {
-        /** @var list<Category> */
+        /* @var list<Category> */
         return $this->findBy(['active' => true], ['sortOrder' => 'ASC', 'nameFr' => 'ASC']);
     }
 }

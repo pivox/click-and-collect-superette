@@ -34,5 +34,6 @@ final readonly class ProductReferenceProposalCreateInput
         public ProductUnit $unit = ProductUnit::Piece,
         #[Assert\Length(max: 64)]
         public ?string $barcode = null,
-    ) {}
+    ) {
+    }
 }

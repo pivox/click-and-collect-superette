@@ -27,7 +27,8 @@ final readonly class ProductReferenceSearchProvider implements ProviderInterface
         private MerchantProductRepository $merchantProductRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private RequestStack $requestStack,
-    ) {}
+    ) {
+    }
 
     /**
      * @param array<string, mixed> $uriVariables

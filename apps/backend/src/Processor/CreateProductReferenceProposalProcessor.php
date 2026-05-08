@@ -11,7 +11,6 @@ use App\Entity\ProductReferenceProposal;
 use App\Entity\User;
 use App\Repository\BrandRepository;
 use App\Repository\CategoryRepository;
-use App\Repository\ProductReferenceProposalRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
@@ -28,11 +27,11 @@ final readonly class CreateProductReferenceProposalProcessor implements Processo
         private ShopRepository $shopRepository,
         private BrandRepository $brandRepository,
         private CategoryRepository $categoryRepository,
-        private ProductReferenceProposalRepository $productReferenceProposalRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
         private Security $security,
-    ) {}
+    ) {
+    }
 
     /**
      * @param array<string, mixed> $uriVariables
