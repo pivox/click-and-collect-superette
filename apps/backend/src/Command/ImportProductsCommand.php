@@ -58,6 +58,8 @@ final class ImportProductsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        ini_set('memory_limit', '512M');
+
         $io = new SymfonyStyle($input, $output);
         $io->title('Open*Facts product import');
 
@@ -159,6 +161,7 @@ final class ImportProductsCommand extends Command
 
             $progressBar->setMessage((string) $page);
             $pageData = (1 === $page) ? $page1Data : $this->fetchPage($baseUrl, $page);
+            unset($page1Data);
 
             if (null === $pageData) {
                 ++$stats['errors'];
@@ -182,11 +185,6 @@ final class ImportProductsCommand extends Command
                     continue;
                 }
 
-                ++$gcCount;
-                if (0 === ($gcCount % self::GC_INTERVAL)) {
-                    gc_collect_cycles();
-                }
-
                 if ($dryRun) {
                     // Skip DB access entirely in dry-run — all valid products counted as fetched
                     ++$stats['inserted'];
@@ -208,6 +206,9 @@ final class ImportProductsCommand extends Command
                     $this->entityManager->clear();
                 }
             }
+
+            unset($pageData);
+            gc_collect_cycles();
         }
 
         if (!$dryRun) {
@@ -299,6 +300,14 @@ final class ImportProductsCommand extends Command
             return null;
         }
 
-        return (null !== $maxLen) ? substr($str, 0, $maxLen) : $str;
+        // Remove invalid UTF-8 byte sequences that PostgreSQL would reject
+        $str = (string) iconv('UTF-8', 'UTF-8//IGNORE', $str);
+
+        if ('' === $str) {
+            return null;
+        }
+
+        // mb_substr preserves whole multi-byte characters unlike substr
+        return (null !== $maxLen) ? mb_substr($str, 0, $maxLen) : $str;
     }
 }
