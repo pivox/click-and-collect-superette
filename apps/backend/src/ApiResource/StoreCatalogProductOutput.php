@@ -19,9 +19,18 @@ final readonly class StoreCatalogProductOutput
         #[SerializedName('name_fr')]
         public string $nameFr,
         #[Groups(['store_catalog:read'])]
+        #[SerializedName('name_ar')]
+        public ?string $nameAr,
+        #[Groups(['store_catalog:read'])]
         public string $brand,
         #[Groups(['store_catalog:read'])]
         public string $category,
+        #[Groups(['store_catalog:read'])]
+        #[SerializedName('category_ar')]
+        public ?string $categoryAr,
+        #[Groups(['store_catalog:read'])]
+        #[SerializedName('category_slug')]
+        public string $categorySlug,
         #[Groups(['store_catalog:read'])]
         public ?string $volume,
         #[Groups(['store_catalog:read'])]

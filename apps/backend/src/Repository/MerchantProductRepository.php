@@ -7,6 +7,8 @@ namespace App\Repository;
 use App\Entity\MerchantProduct;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
+use App\Enum\ProductReferenceStatus;
+use App\Enum\ProductUnit;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -52,10 +54,14 @@ class MerchantProductRepository extends ServiceEntityRepository
 
         $merchantProducts = array_filter(
             $merchantProducts,
-            static function (MerchantProduct $merchantProduct) use ($normalizedQuery, $normalizedCategorySlug): bool {
+            function (MerchantProduct $merchantProduct) use ($normalizedQuery, $normalizedCategorySlug): bool {
                 $productReference = $merchantProduct->getProductReference();
                 $brand = $productReference->getBrand();
                 $category = $productReference->getCategory();
+
+                if (ProductReferenceStatus::Approved !== $productReference->getStatus()) {
+                    return false;
+                }
 
                 if (null !== $normalizedCategorySlug && strtolower($category->getSlug()) !== $normalizedCategorySlug) {
                     return false;
@@ -65,8 +71,7 @@ class MerchantProductRepository extends ServiceEntityRepository
                     return true;
                 }
 
-                return str_contains(strtolower($productReference->getNameFr()), $normalizedQuery)
-                    || str_contains(strtolower($brand->getCanonicalName()), $normalizedQuery);
+                return $this->matchesPublicCatalogQuery($merchantProduct, $normalizedQuery);
             },
         );
 
@@ -90,8 +95,95 @@ class MerchantProductRepository extends ServiceEntityRepository
             return null;
         }
 
-        $value = trim(strtolower($value));
+        $value = trim($this->normalizeSearchText($value));
 
         return '' === $value ? null : $value;
+    }
+
+    private function matchesPublicCatalogQuery(MerchantProduct $merchantProduct, string $normalizedQuery): bool
+    {
+        foreach ($this->buildPublicSearchTerms($merchantProduct) as $term) {
+            if (str_contains($this->normalizeSearchText($term), $normalizedQuery)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function buildPublicSearchTerms(MerchantProduct $merchantProduct): array
+    {
+        $productReference = $merchantProduct->getProductReference();
+        $terms = [
+            $productReference->getNameFr(),
+            $productReference->getBrand()->getCanonicalName(),
+            $productReference->getUnit()->value,
+        ];
+
+        foreach ([$productReference->getNameAr(), $productReference->getVariantFr(), $productReference->getVariantAr(), $productReference->getVolume()] as $optionalTerm) {
+            if (null !== $optionalTerm && '' !== trim($optionalTerm)) {
+                $terms[] = $optionalTerm;
+            }
+        }
+
+        $compactFormat = $this->buildCompactFormat($productReference->getVolume(), $productReference->getUnit());
+        if (null !== $compactFormat) {
+            $terms[] = $compactFormat;
+        }
+
+        return $terms;
+    }
+
+    private function buildCompactFormat(?string $volume, ProductUnit $unit): ?string
+    {
+        if (null === $volume) {
+            return null;
+        }
+
+        $normalizedVolume = rtrim(rtrim($volume, '0'), '.');
+        if ('' === $normalizedVolume) {
+            return null;
+        }
+
+        return match ($unit) {
+            ProductUnit::Litre => $normalizedVolume.'l',
+            ProductUnit::Millilitre => $normalizedVolume.'ml',
+            ProductUnit::Kilogramme => $normalizedVolume.'kg',
+            ProductUnit::Gramme => $normalizedVolume.'g',
+            ProductUnit::Piece => $normalizedVolume.'pc',
+            ProductUnit::Paquet => $normalizedVolume.'pq',
+        };
+    }
+
+    private function normalizeSearchText(string $value): string
+    {
+        $value = strtolower($value);
+        $value = strtr($value, [
+            'à' => 'a',
+            'â' => 'a',
+            'ä' => 'a',
+            'ç' => 'c',
+            'é' => 'e',
+            'è' => 'e',
+            'ê' => 'e',
+            'ë' => 'e',
+            'î' => 'i',
+            'ï' => 'i',
+            'ô' => 'o',
+            'ö' => 'o',
+            'ù' => 'u',
+            'û' => 'u',
+            'ü' => 'u',
+        ]);
+        $transliterated = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+
+        if (false !== $transliterated && '' !== trim($transliterated, " ?\t\n\r\0\x0B")) {
+            return strtolower($transliterated);
+        }
+
+        return $value;
     }
 }

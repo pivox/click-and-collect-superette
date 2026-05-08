@@ -37,6 +37,11 @@ final class OpenApiThemeContractTest extends FunctionalApiTestCase
         self::assertArrayNotHasKey('post', $paths['/api/stores/{storeId}/catalog'] ?? []);
         self::assertArrayNotHasKey('patch', $paths['/api/stores/{storeId}/catalog'] ?? []);
         self::assertArrayNotHasKey('delete', $paths['/api/stores/{storeId}/catalog'] ?? []);
+        self::assertContains('query', array_column($paths['/api/stores/{storeId}/catalog']['get']['parameters'] ?? [], 'name'));
+        self::assertContains('category', array_column($paths['/api/stores/{storeId}/catalog']['get']['parameters'] ?? [], 'name'));
+        self::assertArrayHasKey('name_ar', $payload['components']['schemas']['StoreCatalogProductOutput-store_catalog.read']['properties'] ?? []);
+        self::assertArrayHasKey('category_ar', $payload['components']['schemas']['StoreCatalogProductOutput-store_catalog.read']['properties'] ?? []);
+        self::assertArrayHasKey('category_slug', $payload['components']['schemas']['StoreCatalogProductOutput-store_catalog.read']['properties'] ?? []);
         self::assertSame('array', $paths['/api/merchant/stores/{storeId}/catalog']['get']['responses']['200']['content']['application/json']['schema']['type']);
         self::assertArrayNotHasKey('post', $paths['/api/stores/{storeId}/theme'] ?? []);
         self::assertArrayNotHasKey('put', $paths['/api/stores/{storeId}/theme'] ?? []);
