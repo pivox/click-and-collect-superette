@@ -9,7 +9,6 @@ use App\Entity\Category;
 use App\Entity\MerchantProduct;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
-use App\Entity\User;
 use App\Enum\ProductUnit;
 
 final class MerchantCatalogApiTest extends FunctionalApiTestCase
