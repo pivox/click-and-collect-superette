@@ -25,10 +25,15 @@ final class OpenApiThemeContractTest extends FunctionalApiTestCase
 
         $this->assertOpenApiOperationExists($paths, '/api/merchant/stores/{storeId}/theme', 'get');
         $this->assertOpenApiOperationExists($paths, '/api/merchant/stores/{storeId}/theme', 'put');
+        $this->assertOpenApiOperationExists($paths, '/api/merchant/stores/{storeId}/catalog', 'get');
+        $this->assertOpenApiOperationExists($paths, '/api/merchant/stores/{storeId}/catalog', 'post');
+        $this->assertOpenApiOperationExists($paths, '/api/merchant/catalog/{merchantProductId}', 'patch');
+        $this->assertOpenApiOperationExists($paths, '/api/merchant/catalog/{merchantProductId}', 'delete');
         $this->assertOpenApiOperationExists($paths, '/api/stores/{storeId}/theme', 'get');
         $this->assertOpenApiOperationExists($paths, '/api/admin/theme', 'get');
         $this->assertOpenApiOperationExists($paths, '/api/admin/theme', 'put');
 
+        self::assertArrayNotHasKey('/api/stores/{storeId}/catalog', $paths);
         self::assertArrayNotHasKey('post', $paths['/api/stores/{storeId}/theme'] ?? []);
         self::assertArrayNotHasKey('put', $paths['/api/stores/{storeId}/theme'] ?? []);
         self::assertArrayNotHasKey('delete', $paths['/api/stores/{storeId}/theme'] ?? []);
