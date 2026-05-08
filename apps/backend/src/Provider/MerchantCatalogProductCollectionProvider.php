@@ -15,7 +15,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * @implements ProviderInterface<list<MerchantCatalogProductOutput>>
+ * @implements ProviderInterface<MerchantCatalogProductOutput>
  */
 final readonly class MerchantCatalogProductCollectionProvider implements ProviderInterface
 {
