@@ -41,10 +41,10 @@ final class ProductStatsCommand extends Command
         $grandActive = 0;
 
         foreach ($sources as $key => $label) {
-            $total = $this->count('p.source = :src', ['src' => $key]);
-            $withImage = $this->count('p.source = :src AND p.imageUrl IS NOT NULL', ['src' => $key]);
-            $withPrice = $this->count('p.source = :src AND p.priceTnd IS NOT NULL', ['src' => $key]);
-            $active = $this->count('p.source = :src AND p.active = true', ['src' => $key]);
+            $total = $this->dqlCount('p.source = :src', ['src' => $key]);
+            $withImage = $this->dqlCount('p.source = :src AND p.imageUrl IS NOT NULL', ['src' => $key]);
+            $withPrice = $this->dqlCount('p.source = :src AND p.priceTnd IS NOT NULL', ['src' => $key]);
+            $active = $this->dqlCount('p.source = :src AND p.active = true', ['src' => $key]);
 
             $rows[] = [$label, $total, $withImage, $withPrice, $active];
 
@@ -67,7 +67,7 @@ final class ProductStatsCommand extends Command
     /**
      * @param array<string, mixed> $params
      */
-    private function count(string $condition, array $params = []): int
+    private function dqlCount(string $condition, array $params = []): int
     {
         $dql = sprintf('SELECT COUNT(p.id) FROM App\Entity\OpenDataProduct p WHERE %s', $condition);
         $query = $this->entityManager->createQuery($dql);

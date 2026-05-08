@@ -28,23 +28,16 @@ final class ImportProductsCommand extends Command
     private const GC_INTERVAL = 1000;
     private const RATE_LIMIT_US = 100_000;
 
+    private const OFF_TUNISIA_URL = 'https://world.openfoodfacts.org/cgi/search.pl?action=process&tagtype_0=countries&tag_contains_0=contains&tag_0=tunisia&page_size=1000&json=1&page={page}';
+    private const OFF_WORLD_URL = 'https://world.openfoodfacts.org/cgi/search.pl?action=process&sort_by=unique_scans_n&page_size=1000&json=1&page={page}';
+
     /**
-     * @var array<string, array<string, string>>
+     * @var array<string, array{type: string, url: string}>
      */
     private const SOURCES = [
-        'off' => [
-            'type'        => 'food',
-            'url_tunisia' => 'https://world.openfoodfacts.org/cgi/search.pl?action=process&tagtype_0=countries&tag_contains_0=contains&tag_0=tunisia&page_size=1000&json=1&page={page}',
-            'url_world'   => 'https://world.openfoodfacts.org/cgi/search.pl?action=process&sort_by=unique_scans_n&page_size=1000&json=1&page={page}',
-        ],
-        'obf' => [
-            'type' => 'beauty',
-            'url'  => 'https://world.openbeautyfacts.org/cgi/search.pl?action=process&sort_by=unique_scans_n&page_size=1000&json=1&page={page}',
-        ],
-        'opf' => [
-            'type' => 'product',
-            'url'  => 'https://world.openproductsfacts.org/cgi/search.pl?action=process&sort_by=unique_scans_n&page_size=1000&json=1&page={page}',
-        ],
+        'off' => ['type' => 'food',    'url' => self::OFF_TUNISIA_URL],
+        'obf' => ['type' => 'beauty',  'url' => 'https://world.openbeautyfacts.org/cgi/search.pl?action=process&sort_by=unique_scans_n&page_size=1000&json=1&page={page}'],
+        'opf' => ['type' => 'product', 'url' => 'https://world.openproductsfacts.org/cgi/search.pl?action=process&sort_by=unique_scans_n&page_size=1000&json=1&page={page}'],
     ];
 
     public function __construct(
@@ -128,7 +121,7 @@ final class ImportProductsCommand extends Command
         /** @var array{fetched: int, inserted: int, updated: int, skipped: int, errors: int} */
         $stats = ['fetched' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0];
 
-        $baseUrl = ('off' === $sourceKey) ? $config['url_tunisia'] : $config['url'];
+        $baseUrl = $config['url'];
 
         $page1Data = $this->fetchPage($baseUrl, 1);
         if (null === $page1Data) {
@@ -139,7 +132,7 @@ final class ImportProductsCommand extends Command
 
         // Fallback: too few Tunisia products → switch to world URL
         if ('off' === $sourceKey && count($page1Data['products'] ?? []) < 100) {
-            $baseUrl = $config['url_world'];
+            $baseUrl = self::OFF_WORLD_URL;
             $page1Data = $this->fetchPage($baseUrl, 1);
             if (null === $page1Data) {
                 ++$stats['errors'];
@@ -150,8 +143,9 @@ final class ImportProductsCommand extends Command
 
         $pageCount = max(1, (int) ($page1Data['page_count'] ?? 1));
         $pagesToFetch = min($maxPages, $pageCount);
+        $totalProducts = min((int) ($page1Data['count'] ?? $pagesToFetch * 1000), $pagesToFetch * 1000);
 
-        $progressBar = new ProgressBar($output, $pagesToFetch * 1000);
+        $progressBar = new ProgressBar($output, $totalProducts);
         $progressBar->setFormat('  %current%/%max% [%bar%] %percent:3s%% — page %message%');
         $progressBar->start();
 
@@ -188,28 +182,30 @@ final class ImportProductsCommand extends Command
                     continue;
                 }
 
+                ++$gcCount;
+                if (0 === ($gcCount % self::GC_INTERVAL)) {
+                    gc_collect_cycles();
+                }
+
+                if ($dryRun) {
+                    // Skip DB access entirely in dry-run — all valid products counted as fetched
+                    ++$stats['inserted'];
+                    continue;
+                }
+
                 $existing = $repository->findOneByBarcode($barcode);
                 $isNew = null === $existing;
                 $product = $existing ?? new OpenDataProduct();
 
                 $this->mapFields($product, $raw, $sourceKey, $type);
-
-                if (!$dryRun) {
-                    $this->entityManager->persist($product);
-                }
+                $this->entityManager->persist($product);
 
                 $isNew ? ++$stats['inserted'] : ++$stats['updated'];
 
                 ++$batchCount;
-                ++$gcCount;
-
-                if (!$dryRun && 0 === ($batchCount % self::BATCH_SIZE)) {
+                if (0 === ($batchCount % self::BATCH_SIZE)) {
                     $this->entityManager->flush();
                     $this->entityManager->clear();
-                }
-
-                if (0 === ($gcCount % self::GC_INTERVAL)) {
-                    gc_collect_cycles();
                 }
             }
         }
