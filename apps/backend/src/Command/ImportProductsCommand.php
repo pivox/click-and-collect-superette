@@ -195,7 +195,7 @@ final class ImportProductsCommand extends Command
                 $isNew = null === $existing;
                 $product = $existing ?? new OpenDataProduct();
 
-                $this->mapFields($product, $raw, $sourceKey, $type);
+                $this->mapFields($product, $raw, $sourceKey, $type, $isNew);
                 $this->entityManager->persist($product);
 
                 $isNew ? ++$stats['inserted'] : ++$stats['updated'];
@@ -247,7 +247,7 @@ final class ImportProductsCommand extends Command
     /**
      * @param array<string, mixed> $raw
      */
-    private function mapFields(OpenDataProduct $product, array $raw, string $source, string $type): void
+    private function mapFields(OpenDataProduct $product, array $raw, string $source, string $type, bool $isNew): void
     {
         /** @var array<string, mixed> $nutriments */
         $nutriments = $raw['nutriments'] ?? [];
@@ -288,8 +288,11 @@ final class ImportProductsCommand extends Command
             ->setEcoscore('' !== $ecoscore ? $ecoscore : null)
             ->setNutrition(empty($nutrition) ? null : $nutrition)
             ->setSource($source)
-            ->setType($type)
-            ->setActive(false);
+            ->setType($type);
+
+        if ($isNew) {
+            $product->setActive(false);
+        }
     }
 
     private function str(mixed $value, ?int $maxLen = null): ?string
