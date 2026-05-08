@@ -17,4 +17,11 @@ class CategoryRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Category::class);
     }
+
+    /** @return list<Category> */
+    public function findActive(): array
+    {
+        /** @var list<Category> */
+        return $this->findBy(['active' => true], ['sortOrder' => 'ASC', 'nameFr' => 'ASC']);
+    }
 }

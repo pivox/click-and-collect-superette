@@ -17,4 +17,11 @@ class BrandRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Brand::class);
     }
+
+    /** @return list<Brand> */
+    public function findActive(): array
+    {
+        /** @var list<Brand> */
+        return $this->findBy(['active' => true], ['canonicalName' => 'ASC']);
+    }
 }
