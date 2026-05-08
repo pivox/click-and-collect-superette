@@ -11,6 +11,7 @@ use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
+use Symfony\Component\Routing\RouterInterface;
 
 final class MerchantCatalogApiTest extends FunctionalApiTestCase
 {
@@ -165,10 +166,50 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         $admin = $this->createUser('admin-catalog@example.test', ['ROLE_ADMIN']);
         $merchant = $this->createUser('merchant-catalog-owner@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Safia', 'Eaux', 'Eau admin');
+        $merchantProduct = $this->createMerchantProduct($shop, $productReference);
 
-        $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $admin);
+        $getResponse = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $admin);
+        $postResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()),
+            $this->validCatalogCreatePayload($productReference),
+            $admin,
+        );
+        $patchResponse = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
+            ['is_available' => false],
+            $admin,
+        );
+        $deleteResponse = $this->requestJson('DELETE', \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()), user: $admin);
 
-        self::assertSame(403, $response->getStatusCode());
+        self::assertSame(403, $getResponse->getStatusCode());
+        self::assertSame(403, $postResponse->getStatusCode());
+        self::assertSame(403, $patchResponse->getStatusCode());
+        self::assertSame(403, $deleteResponse->getStatusCode());
+        self::assertSame(1, $this->entityManager->getRepository(MerchantProduct::class)->count(['shop' => $shop]));
+    }
+
+    public function testCatalogRoutesExposeOnlyMerchantCatalogContract(): void
+    {
+        $router = self::getContainer()->get(RouterInterface::class);
+        $catalogRoutes = [];
+
+        foreach ($router->getRouteCollection() as $route) {
+            if (str_contains($route->getPath(), 'catalog')) {
+                $catalogRoutes[] = implode(' ', $route->getMethods()).' '.$route->getPath();
+            }
+        }
+
+        sort($catalogRoutes);
+
+        self::assertSame([
+            'DELETE /api/merchant/catalog/{merchantProductId}',
+            'GET /api/merchant/stores/{storeId}/catalog',
+            'PATCH /api/merchant/catalog/{merchantProductId}',
+            'POST /api/merchant/stores/{storeId}/catalog',
+        ], $catalogRoutes);
     }
 
     public function testDuplicateProductReferenceInSameShopReturnsConflict(): void
@@ -212,6 +253,23 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         self::assertSame(0, $this->entityManager->getRepository(MerchantProduct::class)->count(['shop' => $shop]));
     }
 
+    public function testCatalogCreateRejectsPriceTooLargeForDatabasePrecision(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-owner@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait trop cher');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()),
+            $this->validCatalogCreatePayload($productReference, ['price_tnd' => '99999999.999']),
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame(0, $this->entityManager->getRepository(MerchantProduct::class)->count(['shop' => $shop]));
+    }
+
     public function testCatalogPatchRejectsBlankPriceWithoutChangingCurrentPrice(): void
     {
         $merchant = $this->createUser('merchant-catalog-owner@example.test', ['ROLE_MERCHANT']);
@@ -223,6 +281,26 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
             'PATCH',
             \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
             ['price_tnd' => ''],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        $persistedMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->find($merchantProduct->getId());
+        self::assertInstanceOf(MerchantProduct::class, $persistedMerchantProduct);
+        self::assertSame('1.500', $persistedMerchantProduct->getPriceTnd());
+    }
+
+    public function testCatalogPatchRejectsPriceTooLargeForDatabasePrecision(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-owner@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Délice', 'Yaourts', 'Yaourt prix trop grand');
+        $merchantProduct = $this->createMerchantProduct($shop, $productReference);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
+            ['price_tnd' => '99999999.999'],
             $merchant,
         );
 
