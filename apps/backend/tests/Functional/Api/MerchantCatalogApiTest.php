@@ -207,6 +207,7 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         self::assertSame([
             'DELETE /api/merchant/catalog/{merchantProductId}',
             'GET /api/merchant/stores/{storeId}/catalog',
+            'GET /api/stores/{storeId}/catalog',
             'PATCH /api/merchant/catalog/{merchantProductId}',
             'POST /api/merchant/stores/{storeId}/catalog',
         ], $catalogRoutes);
