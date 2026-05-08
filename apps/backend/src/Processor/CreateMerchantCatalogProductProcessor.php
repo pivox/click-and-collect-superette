@@ -6,22 +6,23 @@ namespace App\Processor;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\ApiResource\MerchantCatalogProductOutput;
 use App\Dto\MerchantCatalogCreateInput;
 use App\Entity\MerchantProduct;
-use App\Mapper\MerchantCatalogProductMapper;
+use App\Enum\ProductReferenceStatus;
 use App\Repository\MerchantProductRepository;
 use App\Repository\ProductReferenceRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * @implements ProcessorInterface<MerchantCatalogCreateInput, MerchantCatalogProductOutput>
+ * @implements ProcessorInterface<MerchantCatalogCreateInput, void>
  */
 final readonly class CreateMerchantCatalogProductProcessor implements ProcessorInterface
 {
@@ -29,7 +30,6 @@ final readonly class CreateMerchantCatalogProductProcessor implements ProcessorI
         private ShopRepository $shopRepository,
         private ProductReferenceRepository $productReferenceRepository,
         private MerchantProductRepository $merchantProductRepository,
-        private MerchantCatalogProductMapper $merchantCatalogProductMapper,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
     ) {
@@ -39,7 +39,7 @@ final readonly class CreateMerchantCatalogProductProcessor implements ProcessorI
      * @param array<string, mixed> $uriVariables
      * @param array<string, mixed> $context
      */
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): MerchantCatalogProductOutput
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): void
     {
         if (!$data instanceof MerchantCatalogCreateInput) {
             throw new \InvalidArgumentException('MerchantCatalogCreateInput expected.');
@@ -62,6 +62,10 @@ final readonly class CreateMerchantCatalogProductProcessor implements ProcessorI
             throw new NotFoundHttpException('PRODUCT_REFERENCE_NOT_FOUND');
         }
 
+        if (ProductReferenceStatus::Approved !== $productReference->getStatus()) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PRODUCT_REFERENCE_NOT_APPROVED');
+        }
+
         if (null !== $this->merchantProductRepository->findOneForShopAndProductReference($shop, $productReference)) {
             throw new ConflictHttpException('MERCHANT_PRODUCT_ALREADY_EXISTS');
         }
@@ -81,7 +85,5 @@ final readonly class CreateMerchantCatalogProductProcessor implements ProcessorI
         } catch (UniqueConstraintViolationException) {
             throw new ConflictHttpException('MERCHANT_PRODUCT_ALREADY_EXISTS');
         }
-
-        return $this->merchantCatalogProductMapper->toOutput($merchantProduct);
     }
 }

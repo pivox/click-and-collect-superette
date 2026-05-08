@@ -25,7 +25,6 @@ final readonly class MerchantCatalogProductMapper
             isAvailable: $merchantProduct->isAvailable(),
             isVisible: $merchantProduct->isVisible(),
             merchantNote: $merchantProduct->getMerchantNote(),
-            merchantProductId: $merchantProduct->getId()->toRfc4122(),
         );
     }
 }

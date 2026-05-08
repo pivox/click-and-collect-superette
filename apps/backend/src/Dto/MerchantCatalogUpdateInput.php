@@ -10,7 +10,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 final class MerchantCatalogUpdateInput
 {
     #[Assert\Regex('/^\d+(?:\.\d{1,3})?$/')]
-    #[Assert\PositiveOrZero]
+    #[Assert\NotBlank(allowNull: true)]
+    #[Assert\Positive]
     #[SerializedName('price_tnd')]
     public ?string $priceTnd = null;
 
