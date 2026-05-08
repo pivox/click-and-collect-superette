@@ -186,7 +186,7 @@ final class SeedProductReferencesCommand extends Command
 
         $this->entityManager->flush();
 
-        $io->success(sprintf('Done. %d brands, %d categories, %d products created.', $brandsCreated, $categoriesCreated, $productsCreated));
+        $io->success(\sprintf('Done. %d brands, %d categories, %d products created.', $brandsCreated, $categoriesCreated, $productsCreated));
 
         return Command::SUCCESS;
     }
