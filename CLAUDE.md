@@ -32,13 +32,12 @@ Tu dois aider à produire :
 
 ## Commandes projet
 
-Le dépôt contient actuellement surtout du cadrage produit et de la documentation.
-
-Quand le socle Symfony/API Platform sera ajouté, compléter cette section avec les commandes réelles :
+Le backend Symfony se trouve dans `apps/backend/`.
 
 ```bash
+cd apps/backend
 composer install
-symfony console doctrine:migrations:migrate
+bin/console doctrine:migrations:migrate
 symfony server:start
 vendor/bin/phpunit
 vendor/bin/phpstan analyse

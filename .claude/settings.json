@@ -8,7 +8,12 @@
       "Read(./config/secrets/**)",
       "Read(./var/**)",
       "Read(./vendor/**)",
-      "Read(./node_modules/**)"
+      "Read(./node_modules/**)",
+      "Bash(git push --force*)",
+      "Bash(bin/console doctrine:migrations:migrate*)",
+      "Bash(symfony console doctrine:migrations:migrate*)",
+      "Bash(composer require *)",
+      "Bash(composer remove *)"
     ]
   }
 }
