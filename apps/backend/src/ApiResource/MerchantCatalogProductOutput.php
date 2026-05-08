@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\ApiResource;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\GetCollection;
@@ -78,6 +79,7 @@ final readonly class MerchantCatalogProductOutput
 {
     public function __construct(
         #[Groups(['merchant_catalog:read'])]
+        #[ApiProperty(identifier: false)]
         public string $id,
         #[Groups(['merchant_catalog:read'])]
         #[SerializedName('product_reference_id')]
