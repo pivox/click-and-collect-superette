@@ -41,10 +41,26 @@ Aider à concevoir, documenter et développer l'application click & collect pour
 - Toujours distinguer : MVP, post-MVP, hors scope.
 - Ajouter des exemples concrets liés à la Tunisie quand utile.
 
-## Règles de code futures
+## Règles de code
 
 - Symfony/API Platform : séparer les opérations de lecture et d'écriture si les payloads diffèrent.
 - Doctrine : migrations obligatoires pour les changements de schéma.
 - Services : logique métier hors contrôleurs.
 - Tests : ajouter au minimum tests unitaires ou fonctionnels pour les règles métier importantes.
 - Sécurité : séparer clairement client, marchand et administrateur.
+
+## Doctrine/PostgreSQL
+
+- Utiliser des noms de colonnes et d'entités explicites et orientés métier.
+- Garder les relations lisibles et justifiées par le domaine.
+- Indexer les champs de recherche fréquents : `shop`, `product`, `status`, `createdAt`, `pickupSlot`.
+- Ne pas créer une gestion de stock complexe dans le MVP.
+- Garder une traçabilité minimale sur les commandes et les changements de statut.
+
+## Rappel produit pour le code
+
+- Client : interface mobile-first, parcours QR rapide.
+- Marchand : interface pragmatique, actions simples et rapides.
+- Admin plateforme : sobre, orienté supervision.
+- Produits tunisiens : marque, format, volume et catégorie sont des champs critiques.
+- Prix et disponibilité sont propres à chaque marchand, jamais partagés.
