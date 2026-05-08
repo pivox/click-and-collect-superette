@@ -69,7 +69,7 @@ final class ProductStatsCommand extends Command
      */
     private function dqlCount(string $condition, array $params = []): int
     {
-        $dql = sprintf('SELECT COUNT(p.id) FROM App\Entity\OpenDataProduct p WHERE %s', $condition);
+        $dql = \sprintf('SELECT COUNT(p.id) FROM App\Entity\OpenDataProduct p WHERE %s', $condition);
         $query = $this->entityManager->createQuery($dql);
 
         foreach ($params as $name => $value) {

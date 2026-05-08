@@ -70,7 +70,7 @@ final class ImportProductsCommand extends Command
         }
 
         if ('all' !== $sourceArg && !isset(self::SOURCES[$sourceArg])) {
-            $io->error(sprintf('Unknown source "%s". Valid values: off, obf, opf, all.', $sourceArg));
+            $io->error(\sprintf('Unknown source "%s". Valid values: off, obf, opf, all.', $sourceArg));
 
             return Command::FAILURE;
         }
@@ -83,7 +83,7 @@ final class ImportProductsCommand extends Command
         $grand = ['fetched' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0];
 
         foreach ($sourceKeys as $key) {
-            $io->section(sprintf('Source: %s (%s)', $key, self::SOURCES[$key]['type']));
+            $io->section(\sprintf('Source: %s (%s)', $key, self::SOURCES[$key]['type']));
 
             $stats = $this->importSource($key, $maxPages, $dryRun, $repository, $output);
 
@@ -91,13 +91,13 @@ final class ImportProductsCommand extends Command
                 $grand[$stat] += $stats[$stat];
             }
 
-            $io->text(sprintf(
+            $io->text(\sprintf(
                 '  → fetched %d | inserted %d | updated %d | skipped %d | errors %d',
                 $stats['fetched'], $stats['inserted'], $stats['updated'], $stats['skipped'], $stats['errors']
             ));
         }
 
-        $io->success(sprintf(
+        $io->success(\sprintf(
             'Import complete — fetched: %d | inserted: %d | updated: %d | skipped: %d | errors: %d',
             $grand['fetched'], $grand['inserted'], $grand['updated'], $grand['skipped'], $grand['errors']
         ));
@@ -131,7 +131,7 @@ final class ImportProductsCommand extends Command
         }
 
         // Fallback: too few Tunisia products → switch to world URL
-        if ('off' === $sourceKey && count($page1Data['products'] ?? []) < 100) {
+        if ('off' === $sourceKey && \count($page1Data['products'] ?? []) < 100) {
             $baseUrl = self::OFF_WORLD_URL;
             $page1Data = $this->fetchPage($baseUrl, 1);
             if (null === $page1Data) {
