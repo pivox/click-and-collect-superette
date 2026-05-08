@@ -77,11 +77,11 @@ final class SeedProductPricesCommand extends Command
             $this->entityManager->flush();
             $this->entityManager->clear();
 
-            $processed += count($batch);
-            $io->text(sprintf('  Processed %d products...', $processed));
-        } while (count($batch) === self::BATCH_SIZE);
+            $processed += \count($batch);
+            $io->text(\sprintf('  Processed %d products...', $processed));
+        } while (self::BATCH_SIZE === \count($batch));
 
-        $io->success(sprintf('Done. %d products updated with TND prices and activated.', $processed));
+        $io->success(\sprintf('Done. %d products updated with TND prices and activated.', $processed));
 
         return Command::SUCCESS;
     }
