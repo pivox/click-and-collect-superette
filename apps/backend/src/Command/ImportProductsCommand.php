@@ -25,7 +25,6 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 final class ImportProductsCommand extends Command
 {
     private const BATCH_SIZE = 200;
-    private const GC_INTERVAL = 1000;
     private const RATE_LIMIT_US = 100_000;
 
     private const OFF_TUNISIA_URL = 'https://world.openfoodfacts.org/cgi/search.pl?action=process&tagtype_0=countries&tag_contains_0=contains&tag_0=tunisia&page_size=1000&json=1&page={page}';
