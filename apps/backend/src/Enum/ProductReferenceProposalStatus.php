@@ -9,4 +9,5 @@ enum ProductReferenceProposalStatus: string
     case Pending = 'pending';
     case Approved = 'approved';
     case Rejected = 'rejected';
+    case Merged = 'merged';
 }

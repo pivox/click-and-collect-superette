@@ -67,6 +67,10 @@ class ProductReferenceProposal
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $rejectionReason = null;
 
+    #[ORM\ManyToOne(targetEntity: ProductReference::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?ProductReference $createdProductReference = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -243,6 +247,18 @@ class ProductReferenceProposal
     public function setRejectionReason(?string $rejectionReason): static
     {
         $this->rejectionReason = $rejectionReason;
+
+        return $this;
+    }
+
+    public function getCreatedProductReference(): ?ProductReference
+    {
+        return $this->createdProductReference;
+    }
+
+    public function setCreatedProductReference(?ProductReference $createdProductReference): static
+    {
+        $this->createdProductReference = $createdProductReference;
 
         return $this;
     }
