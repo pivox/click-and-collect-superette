@@ -163,6 +163,11 @@ final class SeedProductReferencesCommand extends Command
 
         $productsCreated = 0;
         foreach ($productsData as $data) {
+            $existing = $this->entityManager->getRepository(ProductReference::class)->findOneBy(['barcode' => $data['barcode']]);
+            if (null !== $existing) {
+                continue;
+            }
+
             $brand = $brandMap[$data['brand']];
             $category = $categoryMap[$data['category']];
 
