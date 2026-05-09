@@ -148,7 +148,7 @@ final class PromoteProductsCommand extends Command
         $ref = new ProductReference();
         $ref->setBarcode($odp->getBarcode())
             ->setNameFr(mb_substr($nameFr, 0, 255))
-            ->setNameAr($odp->getNameAr() !== null ? mb_substr($odp->getNameAr(), 0, 255) : null)
+            ->setNameAr(null !== $odp->getNameAr() ? mb_substr($odp->getNameAr(), 0, 255) : null)
             ->setBrand($brand)
             ->setCategory($category)
             ->setVolume($volume)
@@ -281,7 +281,7 @@ final class PromoteProductsCommand extends Command
     /** @return list<OpenDataProduct> */
     private function fetchBatch(int $limit): array
     {
-        /** @var list<OpenDataProduct> */
+        /* @var list<OpenDataProduct> */
         return $this->entityManager->createQuery(
             'SELECT o FROM App\Entity\OpenDataProduct o
              WHERE NOT EXISTS (
