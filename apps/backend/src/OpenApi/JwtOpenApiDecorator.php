@@ -18,16 +18,8 @@ final class JwtOpenApiDecorator implements OpenApiFactoryInterface
     {
         $openApi = ($this->decorated)($context);
 
-        $securitySchemes = $openApi->getComponents()->getSecuritySchemes() ?? new \ArrayObject();
-        $securitySchemes['bearerAuth'] = new \ArrayObject([
-            'type' => 'http',
-            'scheme' => 'bearer',
-            'bearerFormat' => 'JWT',
-        ]);
-
-        return $openApi
-            ->withComponents(
-                $openApi->getComponents()->withSecuritySchemes($securitySchemes)
-            );
+        // Apply JWT as global security requirement so Swagger UI sends
+        // the Authorization: Bearer header on every operation.
+        return $openApi->withSecurity([['JWT' => []]]);
     }
 }
