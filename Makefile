@@ -1,11 +1,14 @@
 .PHONY: help up down restart build logs bash-backend bash-frontend \
         migrate migrate-diff db-reset test-backend test-frontend lint-backend lint-frontend \
-        jwt-keys cc \
+        jwt-keys cc phpunit \
         import-products seed-prices products-stats setup-dev-data
 
 DOCKER_COMPOSE = docker compose
 BACKEND  = $(DOCKER_COMPOSE) exec backend
 FRONTEND = $(DOCKER_COMPOSE) exec frontend
+
+# Paramètre optionnel pour phpunit (ex: make phpunit ARGS="--filter monTest")
+ARGS ?=
 
 # ─── Help ────────────────────────────────────────────────────────────────────
 
@@ -62,13 +65,21 @@ jwt-keys: ## Génère les clés JWT (à faire une seule fois)
 
 # ─── Tests ───────────────────────────────────────────────────────────────────
 
-test-backend: ## Lance les tests PHPUnit
+test-backend: ## Lance les tests PHPUnit dans le container backend (stack doit être up)
 	$(BACKEND) php bin/phpunit
 
 test-frontend: ## Lance les tests Vitest
 	$(FRONTEND) npm run test
 
 test: test-backend test-frontend ## Lance tous les tests
+
+phpunit: ## Lance PHPUnit via conteneur PHP 8.4 one-shot — pas besoin du stack complet (ARGS="--filter xyz")
+	docker run --rm \
+		-v $(CURDIR)/apps/backend:/app \
+		-w /app \
+		-e APP_ENV=test \
+		php:8.4-cli-alpine \
+		php bin/phpunit $(ARGS)
 
 # ─── Qualité ─────────────────────────────────────────────────────────────────
 
