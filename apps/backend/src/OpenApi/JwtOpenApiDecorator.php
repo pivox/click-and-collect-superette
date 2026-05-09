@@ -28,7 +28,6 @@ final class JwtOpenApiDecorator implements OpenApiFactoryInterface
         return $openApi
             ->withComponents(
                 $openApi->getComponents()->withSecuritySchemes($securitySchemes)
-            )
-            ->withSecurity([['bearerAuth' => []]]);
+            );
     }
 }
