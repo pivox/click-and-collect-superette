@@ -57,4 +57,35 @@ class ProductReferenceRepository extends ServiceEntityRepository
         /* @var list<ProductReference> */
         return $qb->getQuery()->getResult();
     }
+
+    public function countSearch(
+        ?string $query = null,
+        ?string $brandId = null,
+        ?string $categorySlug = null,
+    ): int {
+        $qb = $this->createQueryBuilder('pr')
+            ->select('COUNT(pr.id)')
+            ->join('pr.brand', 'b')
+            ->join('pr.category', 'c')
+            ->where('pr.status = :status')
+            ->setParameter('status', ProductReferenceStatus::Approved);
+
+        if (null !== $query) {
+            $qb->andWhere('(LOWER(pr.nameFr) LIKE LOWER(:q) OR LOWER(b.canonicalName) LIKE LOWER(:q) OR pr.barcode = :exact)')
+                ->setParameter('q', '%'.$query.'%')
+                ->setParameter('exact', $query);
+        }
+
+        if (null !== $brandId) {
+            $qb->andWhere('b.id = :brandId')
+                ->setParameter('brandId', $brandId);
+        }
+
+        if (null !== $categorySlug) {
+            $qb->andWhere('c.slug = :categorySlug')
+                ->setParameter('categorySlug', $categorySlug);
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
 }
