@@ -34,7 +34,7 @@ final class SeedDemoStoreCommand extends Command
     private const DEMO_STORE_COUNTRY = 'TN';
     private const DEMO_STORE_QR_CODE_TOKEN = 'demo-superette-el-amen';
 
-    /** @var array<string, string> */
+    /** @var array<int, string> */
     private const DEMO_PRICE_BY_BARCODE = [
         '6191234560001' => '1.750',
         '6191234560002' => '1.650',
