@@ -25,8 +25,8 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 )]
 final class SeedDemoStoreCommand extends Command
 {
-    private const DEMO_MERCHANT_EMAIL = 'merchant.demo@kadhia.local';
-    private const DEMO_MERCHANT_PASSWORD = 'password';
+    private const DEMO_MERCHANT_EMAIL = 'merchant@test.com';
+    private const DEMO_MERCHANT_PASSWORD = 'secret123';
     private const DEMO_MERCHANT_NAME = 'Marchand Demo';
     private const DEMO_STORE_NAME = 'Supérette El Amen';
     private const DEMO_STORE_SLUG = 'superette-el-amen';
