@@ -25,7 +25,7 @@ final class SeedDemoStoreCommandTest extends FunctionalApiTestCase
 
         $commandTester = $this->runCommand();
 
-        $merchant = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'merchant.demo@kadhia.local']);
+        $merchant = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'merchant@test.com']);
         self::assertInstanceOf(User::class, $merchant);
         self::assertContains('ROLE_MERCHANT', $merchant->getRoles());
         self::assertTrue($merchant->isActive());
