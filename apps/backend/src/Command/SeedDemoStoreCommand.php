@@ -187,7 +187,8 @@ final class SeedDemoStoreCommand extends Command
 
         $demoReferences = [];
         foreach ($approvedReferences as $productReference) {
-            if (null !== $productReference->getBarcode() && \array_key_exists($productReference->getBarcode(), self::DEMO_PRICE_BY_BARCODE)) {
+            $barcode = $productReference->getBarcode();
+            if (null !== $barcode && ctype_digit($barcode) && \array_key_exists((int) $barcode, self::DEMO_PRICE_BY_BARCODE)) {
                 $demoReferences[] = $productReference;
             }
         }
@@ -239,8 +240,11 @@ final class SeedDemoStoreCommand extends Command
     private function resolvePriceTnd(ProductReference $productReference): string
     {
         $barcode = $productReference->getBarcode();
-        if (null !== $barcode && isset(self::DEMO_PRICE_BY_BARCODE[$barcode])) {
-            return self::DEMO_PRICE_BY_BARCODE[$barcode];
+        if (null !== $barcode && ctype_digit($barcode)) {
+            $barcodeKey = (int) $barcode;
+            if (isset(self::DEMO_PRICE_BY_BARCODE[$barcodeKey])) {
+                return self::DEMO_PRICE_BY_BARCODE[$barcodeKey];
+            }
         }
 
         [$minimumMillimes, $maximumMillimes] = $this->priceRangeForUnit($productReference->getUnit());
