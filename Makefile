@@ -1,7 +1,7 @@
 .PHONY: help up down restart build logs bash-backend bash-frontend \
         migrate migrate-diff db-reset test-backend test-frontend lint-backend lint-frontend \
         jwt-keys cc phpunit \
-        import-products seed-prices products-stats setup-dev-data
+        import-products seed-prices seed-demo-store seed-demo-store-all products-stats setup-dev-data
 
 DOCKER_COMPOSE = docker compose
 BACKEND  = $(DOCKER_COMPOSE) exec backend
@@ -120,6 +120,12 @@ import-products: ## Importe les produits depuis Open Food/Beauty/Products Facts 
 
 seed-prices: ## Assigne des prix TND fictifs et active les produits importés
 	$(BACKEND) php bin/console app:products:seed-prices
+
+seed-demo-store: ## Crée une supérette demo avec un petit catalogue test
+	$(BACKEND) php bin/console app:dev:seed-demo-store --catalog=demo
+
+seed-demo-store-all: ## Crée une supérette demo avec tout le référentiel approuvé
+	$(BACKEND) php bin/console app:dev:seed-demo-store --catalog=all
 
 products-stats: ## Affiche les statistiques des produits importés
 	$(BACKEND) php bin/console app:products:stats
