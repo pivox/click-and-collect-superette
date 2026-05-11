@@ -1,4 +1,4 @@
-# US-001 — Scanner le QR code d'une supérette
+# US-001 — Reconnaître une supérette par QR code
 
 ## Sprint
 
@@ -6,23 +6,25 @@ Sprint 2 — Parcours client.
 
 ## Epic rattaché
 
-EPIC-001 — Onboarding par QR code.
+EPIC-001 — Onboarding client par reconnaissance de supérette.
 
 ## Objectif produit
 
-Permettre à un client d'accéder directement à l'espace digital d'une supérette en scannant son QR code physique, sans avoir à rechercher manuellement le magasin dans une liste.
+Permettre à un client d'identifier automatiquement une supérette en scannant son QR code physique.
 
-Cette user story est le point d'entrée principal du parcours client MVP : le QR code affiché dans la supérette ou partagé par le marchand doit amener le client vers la bonne supérette, avec son catalogue, son identité visuelle et ses informations publiques.
+Le QR code ne doit plus être considéré uniquement comme un raccourci vers le catalogue. Il sert d'abord à reconnaître le store, à afficher son identité publique, puis à créer ou mettre à jour la relation entre le client et cette supérette lorsque le client est connecté.
+
+Cette relation permettra ensuite au client de retrouver ses supérettes connues, de revenir plus vite vers un catalogue déjà visité et de construire progressivement son parcours Click & Collect autour de magasins identifiés.
 
 ## Récit utilisateur
 
 En tant que client d'une supérette,
 je veux scanner le QR code du magasin,
-afin d'ouvrir directement la page de cette supérette et commencer ma Kadhia sans friction.
+afin que l'application reconnaisse cette supérette et me permette d'accéder à son espace client.
 
 ## Acteurs
 
-- Client final.
+- Client final connecté ou non connecté.
 - Supérette active.
 - Plateforme Click & Collect.
 
@@ -32,7 +34,8 @@ afin d'ouvrir directement la page de cette supérette et commencer ma Kadhia san
 - La supérette est active.
 - La supérette possède un `qr_code_token` unique.
 - Le QR code encode une URL publique contenant ce token.
-- Le token ne doit pas exposer de donnée sensible.
+- Le token ne doit pas exposer d'identifiant interne sensible.
+- Si le client est connecté, son identité applicative est connue du backend.
 
 ## Parcours nominal
 
@@ -40,8 +43,10 @@ afin d'ouvrir directement la page de cette supérette et commencer ma Kadhia san
 2. Le navigateur ouvre l'URL publique associée au QR code.
 3. Le frontend appelle l'API publique de résolution du QR code.
 4. Le backend retrouve la supérette active correspondant au token.
-5. Le client est redirigé ou positionné sur la page publique de cette supérette.
-6. Le client peut ensuite consulter les informations de la supérette et son catalogue.
+5. Le frontend affiche la fiche publique de la supérette.
+6. Si le client est connecté, le backend crée ou met à jour la relation client/supérette avec la source `qr_code`.
+7. Si le client n'est pas connecté, le frontend peut conserver temporairement le store courant côté session locale.
+8. Le client peut ensuite consulter le catalogue de cette même supérette.
 
 ## Règles métier
 
@@ -49,8 +54,25 @@ afin d'ouvrir directement la page de cette supérette et commencer ma Kadhia san
 - Une supérette inactive ne doit pas être accessible via QR code.
 - Un token inconnu doit retourner une erreur claire, sans fuite d'information.
 - Le QR code doit rester stable tant qu'il n'est pas explicitement régénéré.
-- L'accès par QR code est public et ne nécessite pas d'authentification.
-- Le QR code sert uniquement à l'entrée dans le storefront ; il ne donne aucun droit marchand ou admin.
+- L'accès par QR code est public et ne nécessite pas de JWT.
+- Le QR code sert uniquement à reconnaître un store ; il ne donne aucun droit marchand ou admin.
+- Le QR code ne doit pas exposer directement l'identifiant technique interne du store.
+- Si le client est connecté, scanner le même store plusieurs fois ne doit pas créer de doublon dans la relation client/supérette.
+- Si la relation existe déjà, `last_seen_at` est mis à jour.
+- La source de découverte doit être enregistrée à `qr_code` lors du premier scan.
+
+## Données minimales retournées
+
+La résolution du QR code doit permettre d'afficher :
+
+- l'identifiant public du store ;
+- le nom de la supérette ;
+- le slug public ;
+- la ville ;
+- le pays ;
+- le statut actif ;
+- les informations nécessaires à l'application du thème actif ;
+- le lien logique vers le catalogue du store.
 
 ## API cible
 
@@ -69,7 +91,28 @@ Réponse attendue minimale :
   "slug": "superette-el-amen",
   "city": "Tunis",
   "country": "TN",
-  "is_active": true
+  "is_active": true,
+  "theme_url": "/api/stores/{storeId}/theme",
+  "catalog_url": "/api/stores/{storeId}/catalog"
+}
+```
+
+Si le client est connecté, la création ou mise à jour de la relation peut être faite :
+
+- soit implicitement pendant la résolution du QR code ;
+- soit explicitement via un endpoint de visite.
+
+Option recommandée pour garder une séparation claire :
+
+```http
+POST /api/me/stores/{storeId}/visit
+```
+
+Payload :
+
+```json
+{
+  "source": "qr_code"
 }
 ```
 
@@ -81,6 +124,27 @@ Réponse attendue minimale :
 quand le client scanne le QR code,
 alors le système retrouve la supérette,
 et retourne les informations publiques nécessaires pour ouvrir son espace client.
+
+### Création de relation client/supérette
+
+Étant donné un client connecté,
+quand il scanne le QR code d'une supérette active,
+alors une relation client/supérette est créée si elle n'existe pas déjà,
+et la source de découverte est `qr_code`.
+
+### Relation déjà existante
+
+Étant donné un client connecté qui connaît déjà cette supérette,
+quand il scanne à nouveau son QR code,
+alors aucune relation dupliquée n'est créée,
+et `last_seen_at` est mis à jour.
+
+### Client non connecté
+
+Étant donné un client non connecté,
+quand il scanne le QR code,
+alors il peut consulter la fiche publique de la supérette,
+et aucune relation persistée en base n'est créée.
 
 ### Token inconnu
 
@@ -109,21 +173,27 @@ alors il peut accéder à la page publique de la supérette sans JWT.
 - Test fonctionnel avec supérette inactive.
 - Test de sécurité confirmant l'accès public.
 - Test d'unicité du `qr_code_token` côté base de données.
+- Test de création de relation client/supérette après scan connecté.
+- Test d'idempotence : deux scans du même store ne créent pas deux relations.
+- Test de mise à jour de `last_seen_at`.
 
 ## Hors périmètre
 
 - Génération graphique du QR code.
 - Impression du QR code.
-- Statistiques de scan.
+- Statistiques avancées de scan.
 - Géolocalisation client.
-- Sélection de supérette par carte ou liste.
+- Recherche de supérette par carte.
+- Droits marchand ou admin.
 
 ## Dépendances
 
-- Entité `Shop` existante.
+- Entité `Shop` ou `Store` existante.
+- Relation client/supérette décrite dans `US-032`.
 - Seed de supérette de démonstration.
 - Endpoint public de catalogue pour la suite du parcours.
+- Endpoint public de thème actif du store.
 
 ## Définition de fini
 
-La story est terminée lorsque le client peut scanner un QR code valide, résoudre la supérette côté backend, arriver sur l'espace public du magasin et poursuivre vers la consultation du catalogue.
+La story est terminée lorsque le client peut scanner un QR code valide, reconnaître la bonne supérette, voir sa fiche publique, créer ou mettre à jour sa relation client/supérette s'il est connecté, puis poursuivre vers la consultation du catalogue.
