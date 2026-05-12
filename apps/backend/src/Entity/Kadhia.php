@@ -38,7 +38,7 @@ class Kadhia
     private ?string $notes = null;
 
     /** @var Collection<int, KadhiaLine> */
-    #[ORM\OneToMany(targetEntity: KadhiaLine::class, mappedBy: 'kadhia', cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(targetEntity: KadhiaLine::class, mappedBy: 'kadhia', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $lines;
 
     #[ORM\Column]
