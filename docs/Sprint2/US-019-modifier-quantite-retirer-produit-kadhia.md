@@ -68,7 +68,7 @@ afin d'ajuster ma commande avant de la soumettre.
 Consulter la Kadhia :
 
 ```http
-GET /api/kadhia?shopId={shopId}
+GET /api/kadhia?storeId={storeId}
 Authorization: Bearer <client_jwt>
 ```
 

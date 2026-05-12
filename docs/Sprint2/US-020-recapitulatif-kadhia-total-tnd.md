@@ -74,7 +74,7 @@ Le récapitulatif doit afficher au minimum :
 Endpoint protégé client :
 
 ```http
-GET /api/kadhia?shopId={shopId}
+GET /api/kadhia?storeId={storeId}
 Authorization: Bearer <client_jwt>
 ```
 
@@ -83,7 +83,7 @@ Réponse attendue :
 ```json
 {
   "id": "kadhia-uuid",
-  "shop_id": "store-uuid",
+  "store_id": "store-uuid",
   "store_name": "Supérette El Amen",
   "status": "draft",
   "items": [

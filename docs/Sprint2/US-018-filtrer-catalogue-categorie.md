@@ -56,13 +56,13 @@ afin de parcourir plus facilement les produits d'un rayon précis.
 Endpoint public :
 
 ```http
-GET /api/shops/{shopId}/catalog?category=lait
+GET /api/stores/{storeId}/catalog?category=lait
 ```
 
 Combinaison recherche + catégorie :
 
 ```http
-GET /api/shops/{shopId}/catalog?query=vitalait&category=lait
+GET /api/stores/{storeId}/catalog?query=vitalait&category=lait
 ```
 
 Réponse attendue : même structure que le catalogue public, filtrée par catégorie.

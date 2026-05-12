@@ -73,14 +73,14 @@ Chaque créneau doit contenir au minimum :
 Endpoint protégé client ou public selon décision produit. Recommandation MVP : public en lecture, mais filtré par supérette.
 
 ```http
-GET /api/shops/{shopId}/pickup-slots?from=today&available=true
+GET /api/stores/{storeId}/pickup-slots?from=today&available=true
 ```
 
 Réponse attendue :
 
 ```json
 {
-  "shop_id": "store-uuid",
+  "store_id": "store-uuid",
   "items": [
     {
       "id": "pickup-slot-uuid",

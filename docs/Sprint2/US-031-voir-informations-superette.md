@@ -73,7 +73,7 @@ Informations possibles plus tard, hors MVP immédiat :
 Option recommandée : enrichir la résolution du QR code ou prévoir un endpoint public dédié.
 
 ```http
-GET /api/shops/{shopId}
+GET /api/stores/{storeId}
 ```
 
 Réponse attendue minimale :

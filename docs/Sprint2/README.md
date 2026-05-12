@@ -127,28 +127,28 @@ order
 ### Supérette
 
 ```http
-GET  /api/shops/by-qr/{qrCodeToken}
-GET  /api/shops/search?query=amen&city=tunis
-GET  /api/shops/{shopId}
-GET  /api/me/shops
-POST /api/me/shops/{shopId}/visit
-PATCH /api/me/shops/{shopId}/favorite
-DELETE /api/me/shops/{shopId}
+GET  /api/stores/by-qr/{qrCodeToken}
+GET  /api/stores/search?query=amen&city=tunis
+GET  /api/stores/{storeId}
+GET  /api/me/stores
+POST /api/me/stores/{storeId}/visit
+PATCH /api/me/stores/{storeId}/favorite
+DELETE /api/me/stores/{storeId}
 ```
 
 ### Catalogue
 
 ```http
-GET /api/shops/{shopId}/catalog
-GET /api/shops/{shopId}/catalog?query=lait
-GET /api/shops/{shopId}/catalog?category=lait
-GET /api/shops/{shopId}/catalog?query=vitalait&category=lait
+GET /api/stores/{storeId}/catalog
+GET /api/stores/{storeId}/catalog?query=lait
+GET /api/stores/{storeId}/catalog?category=lait
+GET /api/stores/{storeId}/catalog?query=vitalait&category=lait
 ```
 
 ### Kadhia
 
 ```http
-GET    /api/kadhia?shopId={shopId}
+GET    /api/kadhia?storeId={storeId}
 POST   /api/kadhia/lines
 PATCH  /api/kadhia/lines/{lineId}
 DELETE /api/kadhia/lines/{lineId}
@@ -157,7 +157,7 @@ DELETE /api/kadhia/lines/{lineId}
 ### Créneau et commande
 
 ```http
-GET  /api/shops/{shopId}/pickup-slots?from=today&available=true
+GET  /api/stores/{storeId}/pickup-slots?from=today&available=true
 POST /api/orders
 ```
 

@@ -74,14 +74,14 @@ Chaque produit affiché doit contenir au minimum :
 Endpoint public :
 
 ```http
-GET /api/shops/{shopId}/catalog
+GET /api/stores/{storeId}/catalog
 ```
 
 Réponse attendue minimale :
 
 ```json
 {
-  "shop_id": "uuid",
+  "store_id": "uuid",
   "items": [
     {
       "id": "merchant-product-uuid",

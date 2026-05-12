@@ -78,14 +78,14 @@ Exemples de recherches attendues :
 Endpoint public :
 
 ```http
-GET /api/shops/{shopId}/catalog?query=lait
+GET /api/stores/{storeId}/catalog?query=lait
 ```
 
 Réponse attendue : même structure que le catalogue public, filtrée par recherche.
 
 ```json
 {
-  "shop_id": "uuid",
+  "store_id": "uuid",
   "items": [
     {
       "id": "merchant-product-uuid",

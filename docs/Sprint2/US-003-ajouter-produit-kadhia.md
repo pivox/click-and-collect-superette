@@ -86,7 +86,7 @@ Payload :
 
 ```json
 {
-  "shop_id": "store-uuid",
+  "store_id": "store-uuid",
   "merchant_product_id": "merchant-product-uuid",
   "quantity": 1
 }
@@ -97,7 +97,7 @@ Réponse attendue :
 ```json
 {
   "id": "kadhia-uuid",
-  "shop_id": "store-uuid",
+  "store_id": "store-uuid",
   "status": "draft",
   "items": [
     {

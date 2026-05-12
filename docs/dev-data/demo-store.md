@@ -73,8 +73,8 @@ Les créneaux sont idempotents : la commande les recrée uniquement s'ils n'exis
 La commande affiche l'identifiant de la supérette et les URLs publiques :
 
 ```http
-GET /api/shops/{shopId}/catalog
-GET /api/shops/{shopId}/catalog?query=lait
-GET /api/shops/{shopId}/catalog?category=lait
-GET /api/shops/{shopId}/pickup-slots?from=today&available=true
+GET /api/stores/{storeId}/catalog
+GET /api/stores/{storeId}/catalog?query=lait
+GET /api/stores/{storeId}/catalog?category=lait
+GET /api/stores/{storeId}/pickup-slots?from=today&available=true
 ```

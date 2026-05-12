@@ -95,13 +95,13 @@ La relation peut être créée ou mise à jour depuis :
 Liste des supérettes connues du client :
 
 ```http
-GET /api/me/shops
+GET /api/me/stores
 ```
 
 Créer ou mettre à jour une visite :
 
 ```http
-POST /api/me/shops/{shopId}/visit
+POST /api/me/stores/{storeId}/visit
 ```
 
 Payload :
@@ -115,7 +115,7 @@ Payload :
 Marquer en favori :
 
 ```http
-PATCH /api/me/shops/{shopId}/favorite
+PATCH /api/me/stores/{storeId}/favorite
 ```
 
 Payload :
@@ -129,7 +129,7 @@ Payload :
 Retirer de la liste visible :
 
 ```http
-DELETE /api/me/shops/{shopId}
+DELETE /api/me/stores/{storeId}
 ```
 
 ## Critères d'acceptation
@@ -156,7 +156,7 @@ et `last_seen_at` est mis à jour.
 ### Liste des stores connus
 
 Étant donné un client connecté avec plusieurs supérettes connues,
-quand il consulte `GET /api/me/shops`,
+quand il consulte `GET /api/me/stores`,
 alors il reçoit la liste de ses stores actifs, triés par favori puis par dernière consultation.
 
 ### Favori
@@ -178,7 +178,7 @@ alors aucune relation persistée n'est créée côté backend.
 - Test d'idempotence de la visite.
 - Test de mise à jour de `last_seen_at`.
 - Test de conservation de `first_seen_at`.
-- Test de liste `GET /api/me/shops`.
+- Test de liste `GET /api/me/stores`.
 - Test de favori.
 - Test de refus ou non-création pour une supérette inactive.
 - Test de sécurité : un client ne peut gérer que ses propres relations.
