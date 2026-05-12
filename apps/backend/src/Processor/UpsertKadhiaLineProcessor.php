@@ -1,0 +1,101 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Processor;
+
+use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\ProcessorInterface;
+use App\ApiResource\KadhiaOutput;
+use App\Dto\KadhiaLineUpsertInput;
+use App\Entity\Kadhia;
+use App\Entity\KadhiaLine;
+use App\Entity\User;
+use App\Factory\KadhiaOutputFactory;
+use App\Repository\KadhiaLineRepository;
+use App\Repository\KadhiaRepository;
+use App\Repository\MerchantProductRepository;
+use App\Repository\ShopRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Uid\Uuid;
+
+/**
+ * @implements ProcessorInterface<KadhiaLineUpsertInput, KadhiaOutput>
+ */
+final readonly class UpsertKadhiaLineProcessor implements ProcessorInterface
+{
+    public function __construct(
+        private ShopRepository $shopRepository,
+        private MerchantProductRepository $merchantProductRepository,
+        private KadhiaRepository $kadhiaRepository,
+        private KadhiaLineRepository $kadhiaLineRepository,
+        private EntityManagerInterface $entityManager,
+        private KadhiaOutputFactory $kadhiaOutputFactory,
+        private Security $security,
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $uriVariables
+     * @param array<string, mixed> $context
+     */
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): KadhiaOutput
+    {
+        if (!$data instanceof KadhiaLineUpsertInput) {
+            throw new \InvalidArgumentException('KadhiaLineUpsertInput expected.');
+        }
+
+        $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            throw new AccessDeniedHttpException('CUSTOMER_ACCESS_REQUIRED');
+        }
+
+        $storeId = (string) ($uriVariables['storeId'] ?? '');
+        if (!Uuid::isValid($storeId)) {
+            throw new NotFoundHttpException('STORE_NOT_FOUND');
+        }
+
+        $shop = $this->shopRepository->find($storeId);
+        if (null === $shop || !$shop->isActive()) {
+            throw new NotFoundHttpException('STORE_NOT_FOUND');
+        }
+
+        $merchantProductId = (string) ($uriVariables['merchantProductId'] ?? '');
+        if (!Uuid::isValid($merchantProductId)) {
+            throw new NotFoundHttpException('MERCHANT_PRODUCT_NOT_FOUND');
+        }
+
+        $merchantProduct = $this->merchantProductRepository->find($merchantProductId);
+        if (null === $merchantProduct
+            || !$merchantProduct->getShop()->getId()->equals($shop->getId())
+            || !$merchantProduct->isAvailable()
+            || !$merchantProduct->isVisible()) {
+            throw new NotFoundHttpException('MERCHANT_PRODUCT_NOT_FOUND');
+        }
+
+        $kadhia = $this->kadhiaRepository->findDraftByCustomerAndShop($user, $shop);
+        if (null === $kadhia) {
+            $kadhia = (new Kadhia())->setCustomer($user)->setShop($shop);
+            $this->entityManager->persist($kadhia);
+        }
+
+        $line = $this->kadhiaLineRepository->findOneByKadhiaAndProduct($kadhia, $merchantProduct);
+        if (null === $line) {
+            $line = (new KadhiaLine())
+                ->setMerchantProduct($merchantProduct)
+                ->setUnitPriceTnd($merchantProduct->getPriceTnd())
+                ->setQuantity($data->quantity);
+            $kadhia->addLine($line);
+            $this->entityManager->persist($line);
+        } else {
+            $line->setQuantity($data->quantity);
+        }
+
+        $this->entityManager->flush();
+
+        return $this->kadhiaOutputFactory->toOutput($kadhia);
+    }
+}
