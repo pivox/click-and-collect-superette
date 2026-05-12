@@ -14,7 +14,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 #[ApiResource(
     operations: [
         new Get(
-            uriTemplate: '/stores/{storeId}',
+            uriTemplate: '/stores/{storeId<[0-9a-fA-F\-]{32,36}>}',
             formats: ['json' => ['application/json']],
             provider: StorePublicProvider::class,
             normalizationContext: ['groups' => ['store_public:read']],
