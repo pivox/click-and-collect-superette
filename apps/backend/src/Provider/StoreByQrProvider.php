@@ -36,13 +36,17 @@ final readonly class StoreByQrProvider implements ProviderInterface
             throw new NotFoundHttpException('STORE_NOT_FOUND');
         }
 
+        $storeId = $shop->getId()->toRfc4122();
+
         return new StoreByQrOutput(
-            storeId: $shop->getId()->toRfc4122(),
+            storeId: $storeId,
             name: $shop->getName(),
             slug: $shop->getSlug(),
             city: $shop->getCity(),
             country: $shop->getCountry(),
             isActive: $shop->isActive(),
+            themeUrl: \sprintf('/api/stores/%s/theme', $storeId),
+            catalogUrl: \sprintf('/api/stores/%s/catalog', $storeId),
             qrCodeToken: $token,
         );
     }

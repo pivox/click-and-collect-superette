@@ -19,6 +19,8 @@ final class StorePublicApiTest extends FunctionalApiTestCase
         self::assertSame($shop->getSlug(), $payload['slug']);
         self::assertSame($shop->getCountry(), $payload['country']);
         self::assertTrue($payload['is_active']);
+        self::assertSame(\sprintf('/api/stores/%s/theme', $shop->getId()->toRfc4122()), $payload['theme_url']);
+        self::assertSame(\sprintf('/api/stores/%s/catalog', $shop->getId()->toRfc4122()), $payload['catalog_url']);
     }
 
     public function testGetStoreByQrTokenDoesNotExposePrivateData(): void
