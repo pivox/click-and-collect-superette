@@ -6,6 +6,7 @@ namespace App\Provider;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use App\ApiResource\PickupSlotCollectionOutput;
 use App\ApiResource\PickupSlotOutput;
 use App\Entity\PickupSlot;
 use App\Repository\PickupSlotRepository;
@@ -14,7 +15,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * @implements ProviderInterface<PickupSlotOutput>
+ * @implements ProviderInterface<PickupSlotCollectionOutput>
  */
 final readonly class PickupSlotCollectionProvider implements ProviderInterface
 {
@@ -27,10 +28,8 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
     /**
      * @param array<string, mixed> $uriVariables
      * @param array<string, mixed> $context
-     *
-     * @return list<PickupSlotOutput>
      */
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): PickupSlotCollectionOutput
     {
         $storeId = (string) ($uriVariables['storeId'] ?? '');
         if (!Uuid::isValid($storeId)) {
@@ -42,7 +41,7 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
             throw new NotFoundHttpException('STORE_NOT_FOUND');
         }
 
-        return array_map(
+        $items = array_map(
             static fn (PickupSlot $slot): PickupSlotOutput => new PickupSlotOutput(
                 id: $slot->getId()->toRfc4122(),
                 startsAt: $slot->getStartsAt()->format(\DateTimeInterface::ATOM),
@@ -52,5 +51,7 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
             ),
             $this->pickupSlotRepository->findAvailableForShop($shop),
         );
+
+        return new PickupSlotCollectionOutput($storeId, $items);
     }
 }

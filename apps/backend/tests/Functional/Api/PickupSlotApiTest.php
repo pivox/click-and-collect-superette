@@ -35,14 +35,17 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(2, $payload);
-        self::assertSame($slot1->getId()->toRfc4122(), $payload[0]['id']);
-        self::assertSame(5, $payload[0]['capacity']);
-        self::assertSame(5, $payload[0]['available_count']);
-        self::assertArrayHasKey('starts_at', $payload[0]);
-        self::assertArrayHasKey('ends_at', $payload[0]);
-        self::assertSame($slot2->getId()->toRfc4122(), $payload[1]['id']);
-        self::assertSame(3, $payload[1]['capacity']);
+        self::assertFalse(array_is_list($payload));
+        self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
+        self::assertArrayHasKey('items', $payload);
+        self::assertCount(2, $payload['items']);
+        self::assertSame($slot1->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertSame(5, $payload['items'][0]['capacity']);
+        self::assertSame(5, $payload['items'][0]['available_count']);
+        self::assertArrayHasKey('starts_at', $payload['items'][0]);
+        self::assertArrayHasKey('ends_at', $payload['items'][0]);
+        self::assertSame($slot2->getId()->toRfc4122(), $payload['items'][1]['id']);
+        self::assertSame(3, $payload['items'][1]['capacity']);
     }
 
     public function testGetPickupSlotsPartiallyBookedShowsReducedAvailability(): void
@@ -64,9 +67,10 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(1, $payload);
-        self::assertSame(3, $payload[0]['capacity']);
-        self::assertSame(2, $payload[0]['available_count']);
+        self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame(3, $payload['items'][0]['capacity']);
+        self::assertSame(2, $payload['items'][0]['available_count']);
     }
 
     public function testGetPickupSlotsExcludesFullSlots(): void
@@ -88,7 +92,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(0, $payload);
+        self::assertCount(0, $payload['items']);
     }
 
     public function testGetPickupSlotsExcludesInactiveSlots(): void
@@ -110,7 +114,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(0, $payload);
+        self::assertCount(0, $payload['items']);
     }
 
     public function testGetPickupSlotsExcludesPastSlots(): void
@@ -131,7 +135,36 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(0, $payload);
+        self::assertCount(0, $payload['items']);
+    }
+
+    public function testGetPickupSlotsExcludesAlreadyStartedSlots(): void
+    {
+        $shop = $this->createShop();
+        $now = new \DateTimeImmutable();
+
+        $alreadyStarted = (new PickupSlot())
+            ->setShop($shop)
+            ->setStartsAt($now->modify('-15 minutes'))
+            ->setEndsAt($now->modify('+15 minutes'))
+            ->setCapacity(3);
+
+        $future = (new PickupSlot())
+            ->setShop($shop)
+            ->setStartsAt($now->modify('+1 hour'))
+            ->setEndsAt($now->modify('+2 hours'))
+            ->setCapacity(3);
+
+        $this->entityManager->persist($alreadyStarted);
+        $this->entityManager->persist($future);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', \sprintf('/api/stores/%s/pickup-slots', $shop->getId()));
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($future->getId()->toRfc4122(), $payload['items'][0]['id']);
     }
 
     public function testGetPickupSlotsOnlyReturnsSlotsBelongingToRequestedShop(): void
@@ -160,8 +193,8 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(1, $payload);
-        self::assertSame($slotShop1->getId()->toRfc4122(), $payload[0]['id']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($slotShop1->getId()->toRfc4122(), $payload['items'][0]['id']);
     }
 
     public function testGetPickupSlotsUnknownShopReturns404(): void
