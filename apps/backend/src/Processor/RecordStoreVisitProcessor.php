@@ -10,6 +10,7 @@ use App\ApiResource\CustomerStoreOutput;
 use App\Dto\CustomerStoreVisitInput;
 use App\Entity\CustomerShop;
 use App\Entity\User;
+use App\Enum\CustomerShopStatus;
 use App\Repository\CustomerShopRepository;
 use App\Repository\ShopRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -67,6 +68,9 @@ final readonly class RecordStoreVisitProcessor implements ProcessorInterface
             $this->entityManager->persist($relation);
         } else {
             $relation->touchLastSeenAt();
+            if (CustomerShopStatus::Hidden === $relation->getStatus()) {
+                $relation->setStatus(CustomerShopStatus::Active);
+            }
         }
 
         $this->entityManager->flush();

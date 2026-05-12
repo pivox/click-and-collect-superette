@@ -64,6 +64,32 @@ final class CustomerStoreApiTest extends FunctionalApiTestCase
         self::assertCount(1, $repo->findAll());
     }
 
+    public function testVisitReactivatesHiddenRelation(): void
+    {
+        $customer = $this->createUser('customer-reactivate@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $hidden = (new CustomerShop())
+            ->setCustomer($customer)
+            ->setShop($shop)
+            ->setSource(CustomerShopSource::QrCode)
+            ->setStatus(CustomerShopStatus::Hidden);
+        $this->entityManager->persist($hidden);
+        $this->entityManager->flush();
+
+        $this->requestJson(
+            'POST',
+            \sprintf('/api/me/stores/%s/visit', $shop->getId()),
+            ['source' => 'qr_code'],
+            $customer,
+        );
+
+        $listResponse = $this->requestJson('GET', '/api/me/stores', user: $customer);
+        $payload = $this->decodeJson($listResponse);
+        self::assertCount(1, $payload);
+        self::assertSame($shop->getId()->toRfc4122(), $payload[0]['store_id']);
+    }
+
     public function testVisitShopNotFoundReturns404(): void
     {
         $customer = $this->createUser('customer-visit-404@example.test', ['ROLE_CUSTOMER']);
