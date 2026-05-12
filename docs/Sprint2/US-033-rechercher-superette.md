@@ -48,8 +48,9 @@ afin de choisir le magasin dans lequel je veux faire ma Kadhia.
 4. Le backend retourne les supérettes actives correspondant aux critères.
 5. Le client sélectionne une supérette.
 6. Le frontend affiche la fiche publique du store.
-7. Si le client est connecté, une relation client/supérette est créée ou mise à jour avec la source `search`.
-8. Le client peut ensuite accéder au catalogue de cette supérette.
+7. Si le client est connecté et ne connaît pas encore ce store, une relation client/supérette est créée avec la source `search`.
+8. Si le client connaît déjà ce store, la relation existante est conservée, sa source initiale n'est pas modifiée et `last_seen_at` est mis à jour.
+9. Le client peut ensuite accéder au catalogue de cette supérette.
 
 ## Règles métier
 
@@ -58,7 +59,8 @@ afin de choisir le magasin dans lequel je veux faire ma Kadhia.
 - Les données retournées doivent rester publiques.
 - Un résultat de recherche doit toujours mener vers une fiche publique de store.
 - Une recherche sans résultat doit être gérée proprement côté frontend.
-- Si le client est connecté et ouvre un résultat, la relation client/supérette peut être créée ou mise à jour.
+- Si le client est connecté et ouvre un résultat inconnu, la relation client/supérette est créée avec `source = search`.
+- Si une relation existe déjà, la source de découverte initiale est préservée et seule la date `last_seen_at` est mise à jour.
 
 ## API cible
 
@@ -100,6 +102,8 @@ Payload :
 }
 ```
 
+Ce payload indique la source de la visite courante. Il ne doit remplacer la source stockée que lors de la création initiale de la relation.
+
 ## Critères d'acceptation
 
 ### Recherche par nom
@@ -126,11 +130,18 @@ alors cette supérette n'apparaît pas dans les résultats standards.
 quand le client valide sa recherche,
 alors l'API retourne une liste vide.
 
-### Relation après recherche
+### Création de relation après recherche
 
-Étant donné un client connecté,
-quand il ouvre une supérette depuis la recherche,
-alors une relation client/supérette est créée ou mise à jour avec `source = search`.
+Étant donné un client connecté qui ne connaît pas encore la supérette,
+quand il ouvre cette supérette depuis la recherche,
+alors une relation client/supérette est créée avec `source = search`.
+
+### Mise à jour d'une relation existante après recherche
+
+Étant donné un client connecté qui connaît déjà la supérette via une autre source,
+quand il ouvre cette supérette depuis la recherche,
+alors la source initiale est conservée,
+et `last_seen_at` est mis à jour.
 
 ## Tests attendus
 
@@ -139,7 +150,9 @@ alors une relation client/supérette est créée ou mise à jour avec `source = 
 - Test d'exclusion des supérettes inactives.
 - Test de résultat vide.
 - Test de cohérence entre résultat de recherche et fiche publique store.
-- Test de création ou mise à jour de la relation client/supérette après ouverture d'un résultat.
+- Test de création de relation client/supérette avec `source = search` pour un store inconnu.
+- Test de préservation de la source initiale pour une relation existante.
+- Test de mise à jour de `last_seen_at` après ouverture d'un résultat déjà connu.
 
 ## Hors périmètre
 
@@ -158,4 +171,4 @@ alors une relation client/supérette est créée ou mise à jour avec `source = 
 
 ## Définition de fini
 
-La story est terminée lorsque le client peut rechercher une supérette active par nom ou ville, ouvrir sa fiche publique, puis créer ou mettre à jour sa relation avec ce store lorsqu'il est connecté.
+La story est terminée lorsque le client peut rechercher une supérette active par nom ou ville, ouvrir sa fiche publique, puis créer une relation avec `source = search` uniquement si ce store n'est pas encore connu. Si la relation existe déjà, la source initiale est conservée et la dernière visite est mise à jour.
