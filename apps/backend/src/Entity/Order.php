@@ -122,6 +122,9 @@ class Order
 
     public function setPickupSlot(?PickupSlot $pickupSlot): static
     {
+        if (null !== $pickupSlot && $pickupSlot->getShop() !== $this->shop) {
+            throw new \LogicException('PICKUP_SLOT_SHOP_MISMATCH');
+        }
         $this->pickupSlot = $pickupSlot;
 
         return $this;
@@ -152,6 +155,9 @@ class Order
 
     public function addLine(OrderLine $line): static
     {
+        if ($line->getMerchantProduct()->getShop() !== $this->shop) {
+            throw new \LogicException('ORDER_LINE_SHOP_MISMATCH');
+        }
         if (!$this->lines->contains($line)) {
             $this->lines->add($line);
             $line->setOrder($this);

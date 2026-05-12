@@ -4,13 +4,41 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Entity;
 
+use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
+use App\Entity\PickupSlot;
+use App\Entity\Shop;
 use App\Enum\OrderStatus;
 use PHPUnit\Framework\TestCase;
 
 final class OrderTest extends TestCase
 {
+    private static int $shopCounter = 0;
+
+    private function makeShop(): Shop
+    {
+        $i = ++self::$shopCounter;
+
+        return (new Shop())->setName("Shop $i")->setSlug("shop-$i")->setQrCodeToken("qr-$i");
+    }
+
+    private function makeProductForShop(Shop $shop): MerchantProduct
+    {
+        $product = $this->createMock(MerchantProduct::class);
+        $product->method('getShop')->willReturn($shop);
+
+        return $product;
+    }
+
+    private function makeSlotForShop(Shop $shop): PickupSlot
+    {
+        $slot = $this->createMock(PickupSlot::class);
+        $slot->method('getShop')->willReturn($shop);
+
+        return $slot;
+    }
+
     public function testOrderDefaultsToDraftStatus(): void
     {
         self::assertSame(OrderStatus::Draft, (new Order())->getStatus());
@@ -167,13 +195,16 @@ final class OrderTest extends TestCase
 
     public function testRecomputeTotalSumsLines(): void
     {
-        $order = new Order();
+        $shop = $this->makeShop();
+        $order = (new Order())->setShop($shop);
 
         $line1 = (new OrderLine())
+            ->setMerchantProduct($this->makeProductForShop($shop))
             ->setLineTotalTnd('5.500');
         $order->addLine($line1);
 
         $line2 = (new OrderLine())
+            ->setMerchantProduct($this->makeProductForShop($shop))
             ->setLineTotalTnd('3.250');
         $order->addLine($line2);
 
@@ -191,8 +222,9 @@ final class OrderTest extends TestCase
 
     public function testAddLineMaintainsBidirectionalRelation(): void
     {
-        $order = new Order();
-        $line = new OrderLine();
+        $shop = $this->makeShop();
+        $order = (new Order())->setShop($shop);
+        $line = (new OrderLine())->setMerchantProduct($this->makeProductForShop($shop));
         $order->addLine($line);
         self::assertSame($order, $line->getOrder());
         self::assertTrue($order->getLines()->contains($line));
@@ -200,10 +232,38 @@ final class OrderTest extends TestCase
 
     public function testAddLineIsIdempotent(): void
     {
-        $order = new Order();
-        $line = new OrderLine();
+        $shop = $this->makeShop();
+        $order = (new Order())->setShop($shop);
+        $line = (new OrderLine())->setMerchantProduct($this->makeProductForShop($shop));
         $order->addLine($line);
         $order->addLine($line);
         self::assertCount(1, $order->getLines());
+    }
+
+    public function testSetPickupSlotNullIsAlwaysAllowed(): void
+    {
+        $shop = $this->makeShop();
+        $order = (new Order())->setShop($shop);
+        $order->setPickupSlot(null);
+        self::assertNull($order->getPickupSlot());
+    }
+
+    public function testSetPickupSlotThrowsWhenShopMismatch(): void
+    {
+        $shop1 = $this->makeShop();
+        $shop2 = $this->makeShop();
+        $order = (new Order())->setShop($shop1);
+        $this->expectException(\LogicException::class);
+        $order->setPickupSlot($this->makeSlotForShop($shop2));
+    }
+
+    public function testAddLineThrowsWhenShopMismatch(): void
+    {
+        $shop1 = $this->makeShop();
+        $shop2 = $this->makeShop();
+        $order = (new Order())->setShop($shop1);
+        $line = (new OrderLine())->setMerchantProduct($this->makeProductForShop($shop2));
+        $this->expectException(\LogicException::class);
+        $order->addLine($line);
     }
 }

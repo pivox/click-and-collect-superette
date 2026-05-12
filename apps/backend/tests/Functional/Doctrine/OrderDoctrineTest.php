@@ -11,20 +11,24 @@ use App\Entity\Order;
 use App\Entity\OrderLine;
 use App\Entity\PickupSlot;
 use App\Entity\ProductReference;
+use App\Entity\Shop;
 use App\Enum\OrderStatus;
 use App\Tests\Functional\Api\FunctionalApiTestCase;
 
 final class OrderDoctrineTest extends FunctionalApiTestCase
 {
-    private function makeMerchantProduct(string $priceTnd = '2.500'): MerchantProduct
+    private static int $refCounter = 0;
+
+    private function makeMerchantProduct(string $priceTnd = '2.500', ?Shop $shop = null): MerchantProduct
     {
-        $shop = $this->createShop();
-        $brand = (new Brand())->setCanonicalName('Vitalait')->setSlug('vitalait-order');
-        $category = (new Category())->setNameFr('Lait')->setSlug('lait-order');
+        $shop ??= $this->createShop();
+        $i = ++self::$refCounter;
+        $brand = (new Brand())->setCanonicalName("Brand $i")->setSlug("brand-order-$i");
+        $category = (new Category())->setNameFr("Cat $i")->setSlug("cat-order-$i");
         $ref = (new ProductReference())
             ->setBrand($brand)
             ->setCategory($category)
-            ->setNameFr('Lait demi-écrémé');
+            ->setNameFr("Produit $i");
 
         $product = (new MerchantProduct())
             ->setShop($shop)
@@ -66,7 +70,7 @@ final class OrderDoctrineTest extends FunctionalApiTestCase
     {
         $customer = $this->createUser('customer-lines@example.com', ['ROLE_CUSTOMER']);
         $shop = $this->createShop();
-        $product = $this->makeMerchantProduct('3.000');
+        $product = $this->makeMerchantProduct('3.000', $shop);
 
         $this->entityManager->flush();
 
@@ -132,7 +136,7 @@ final class OrderDoctrineTest extends FunctionalApiTestCase
     {
         $customer = $this->createUser('customer-cascade@example.com', ['ROLE_CUSTOMER']);
         $shop = $this->createShop();
-        $product = $this->makeMerchantProduct();
+        $product = $this->makeMerchantProduct('2.500', $shop);
         $this->entityManager->flush();
 
         $line = (new OrderLine())
