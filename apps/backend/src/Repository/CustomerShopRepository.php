@@ -27,16 +27,21 @@ class CustomerShopRepository extends ServiceEntityRepository
     }
 
     /**
-     * Returns active customer-shop relations, ordered by favorites first then by last seen.
+     * Returns active customer-shop relations for active shops only,
+     * ordered by favorites first then by last seen.
      *
      * @return list<CustomerShop>
      */
     public function findActiveByCustomer(User $customer): array
     {
-        /* @var list<CustomerShop> */
-        return $this->findBy(
+        $relations = $this->findBy(
             ['customer' => $customer, 'status' => CustomerShopStatus::Active],
             ['isFavorite' => 'DESC', 'lastSeenAt' => 'DESC'],
+        );
+
+        /* @var list<CustomerShop> */
+        return array_values(
+            array_filter($relations, static fn (CustomerShop $cs): bool => $cs->getShop()->isActive()),
         );
     }
 }

@@ -213,4 +213,28 @@ final class CustomerShopDoctrineTest extends FunctionalApiTestCase
         self::assertCount(1, $results);
         self::assertSame(CustomerShopStatus::Active, $results[0]->getStatus());
     }
+
+    public function testFindActiveByCustomerExcludesInactiveShops(): void
+    {
+        $customer = $this->createUser('customer-inactive-shop@example.test', ['ROLE_CUSTOMER']);
+        $activeShop = $this->createShop();
+        $inactiveShop = $this->createShop();
+        $inactiveShop->setActive(false);
+        $this->entityManager->flush();
+
+        $rel1 = (new CustomerShop())->setCustomer($customer)->setShop($activeShop)->setSource(CustomerShopSource::QrCode);
+        $rel2 = (new CustomerShop())->setCustomer($customer)->setShop($inactiveShop)->setSource(CustomerShopSource::QrCode);
+
+        $this->entityManager->persist($rel1);
+        $this->entityManager->persist($rel2);
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        /** @var CustomerShopRepository $repo */
+        $repo = $this->entityManager->getRepository(CustomerShop::class);
+        $results = $repo->findActiveByCustomer($customer);
+
+        self::assertCount(1, $results);
+        self::assertTrue($results[0]->getShop()->isActive());
+    }
 }
