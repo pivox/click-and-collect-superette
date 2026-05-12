@@ -79,21 +79,21 @@ La résolution du QR code doit permettre d'afficher :
 Endpoint public cible :
 
 ```http
-GET /api/stores/by-qr/{qrCodeToken}
+GET /api/shops/by-qr/{qrCodeToken}
 ```
 
 Réponse attendue minimale :
 
 ```json
 {
-  "store_id": "uuid",
+  "shop_id": "uuid",
   "name": "Supérette El Amen",
   "slug": "superette-el-amen",
   "city": "Tunis",
   "country": "TN",
   "is_active": true,
-  "theme_url": "/api/stores/{storeId}/theme",
-  "catalog_url": "/api/stores/{storeId}/catalog"
+  "theme_url": "/api/shops/{shopId}/theme",
+  "catalog_url": "/api/shops/{shopId}/catalog"
 }
 ```
 
@@ -105,7 +105,7 @@ Si le client est connecté, la création ou mise à jour de la relation peut êt
 Option recommandée pour garder une séparation claire :
 
 ```http
-POST /api/me/stores/{storeId}/visit
+POST /api/me/shops/{shopId}/visit
 ```
 
 Payload :
@@ -168,7 +168,7 @@ alors il peut accéder à la page publique de la supérette sans JWT.
 
 ## Tests attendus
 
-- Test fonctionnel `GET /api/stores/by-qr/{token}` avec token valide.
+- Test fonctionnel `GET /api/shops/by-qr/{token}` avec token valide.
 - Test fonctionnel avec token inconnu.
 - Test fonctionnel avec supérette inactive.
 - Test de sécurité confirmant l'accès public.

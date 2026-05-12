@@ -60,7 +60,7 @@ afin d'indiquer au marchand quand je viendrai récupérer ma commande.
 Chaque créneau doit contenir au minimum :
 
 - identifiant du créneau ;
-- `store_id` ;
+- `shop_id` ;
 - début ;
 - fin ;
 - timezone ;
@@ -73,14 +73,14 @@ Chaque créneau doit contenir au minimum :
 Endpoint protégé client ou public selon décision produit. Recommandation MVP : public en lecture, mais filtré par supérette.
 
 ```http
-GET /api/stores/{storeId}/pickup-slots?from=today&available=true
+GET /api/shops/{shopId}/pickup-slots?from=today&available=true
 ```
 
 Réponse attendue :
 
 ```json
 {
-  "store_id": "store-uuid",
+  "shop_id": "store-uuid",
   "items": [
     {
       "id": "pickup-slot-uuid",
@@ -132,7 +132,7 @@ alors le backend vérifie à nouveau que le créneau est encore disponible.
 - Test liste des créneaux futurs disponibles.
 - Test exclusion des créneaux passés.
 - Test exclusion des créneaux complets.
-- Test isolation par `storeId`.
+- Test isolation par `shopId`.
 - Test format timezone `Africa/Tunis`.
 - Test revalidation au moment de la soumission, à couvrir avec US-021.
 

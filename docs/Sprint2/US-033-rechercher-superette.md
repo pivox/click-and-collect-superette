@@ -67,7 +67,7 @@ afin de choisir le magasin dans lequel je veux faire ma Kadhia.
 Endpoint public recommandé :
 
 ```http
-GET /api/stores/search?query=amen&city=tunis
+GET /api/shops/search?query=amen&city=tunis
 ```
 
 Réponse attendue minimale :
@@ -76,7 +76,7 @@ Réponse attendue minimale :
 {
   "items": [
     {
-      "store_id": "uuid",
+      "shop_id": "uuid",
       "name": "Supérette El Amen",
       "slug": "superette-el-amen",
       "city": "Tunis",
@@ -91,7 +91,7 @@ Réponse attendue minimale :
 Après sélection d'un résultat par un client connecté, la visite peut être enregistrée via :
 
 ```http
-POST /api/me/stores/{storeId}/visit
+POST /api/me/shops/{shopId}/visit
 ```
 
 Payload :

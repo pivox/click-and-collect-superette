@@ -92,7 +92,7 @@ Réponse attendue :
 {
   "id": "order-uuid",
   "status": "submitted",
-  "store_id": "store-uuid",
+  "shop_id": "store-uuid",
   "kadhia_id": "kadhia-uuid",
   "pickup_slot": {
     "id": "pickup-slot-uuid",

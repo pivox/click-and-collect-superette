@@ -1,6 +1,6 @@
 # Supérette demo
 
-Cette commande prépare une supérette exploitable pour tester le parcours client avant la Kadhia.
+Cette commande prépare une supérette exploitable pour tester le parcours client complet du Sprint 2 : catalogue, Kadhia, créneaux de retrait et soumission de commande.
 
 ## Commandes
 
@@ -54,22 +54,27 @@ Les produits catalogue sont créés ou mis à jour avec :
 
 La commande est idempotente : elle peut être relancée sans créer de doublons.
 
+## Créneaux de retrait
+
+La commande crée 3 créneaux de retrait futurs, nécessaires pour tester US-004 et US-021 :
+
+| Créneau | Plage horaire | Capacité |
+| --- | --- | --- |
+| Créneau 1 | J+1, 10h00–10h30 | 5 |
+| Créneau 2 | J+1, 14h00–14h30 | 5 |
+| Créneau 3 | J+2, 10h00–10h30 | 5 |
+
+Timezone : `Africa/Tunis` (UTC+1, pas de changement d'heure).
+
+Les créneaux sont idempotents : la commande les recrée uniquement s'ils n'existent pas déjà ou s'ils sont passés.
+
 ## Vérification
 
-La commande affiche l'identifiant de la supérette et l'URL publique :
+La commande affiche l'identifiant de la supérette et les URLs publiques :
 
 ```http
-GET /api/stores/{storeId}/catalog
-```
-
-Recherche :
-
-```http
-GET /api/stores/{storeId}/catalog?query=lait
-```
-
-Catégorie :
-
-```http
-GET /api/stores/{storeId}/catalog?category=lait
+GET /api/shops/{shopId}/catalog
+GET /api/shops/{shopId}/catalog?query=lait
+GET /api/shops/{shopId}/catalog?category=lait
+GET /api/shops/{shopId}/pickup-slots?from=today&available=true
 ```

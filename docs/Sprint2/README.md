@@ -57,16 +57,16 @@ QR code ou recherche
 ### Relation client / supérette
 
 ```text
-Client 1..n ClientStore n..1 Store
+Client 1..n CustomerShop n..1 Shop
 ```
 
 Champs minimaux :
 
 ```text
-client_store
+customer_shop
 - id
 - customer_id
-- store_id
+- shop_id
 - source          (qr_code | search | manual | order)
 - first_seen_at
 - last_seen_at
@@ -75,7 +75,7 @@ client_store
 - created_at
 - updated_at
 
-UNIQUE(customer_id, store_id)
+UNIQUE(customer_id, shop_id)
 ```
 
 ### Kadhia et commande
@@ -84,7 +84,7 @@ UNIQUE(customer_id, store_id)
 kadhia
 - id
 - customer_id
-- store_id
+- shop_id
 - status          (draft | submitted)
 - created_at
 - updated_at
@@ -102,7 +102,7 @@ kadhia_line
 
 pickup_slot
 - id
-- store_id
+- shop_id
 - starts_at
 - ends_at
 - timezone        (Africa/Tunis)
@@ -113,7 +113,7 @@ order
 - id
 - kadhia_id
 - customer_id
-- store_id
+- shop_id
 - pickup_slot_id
 - status          (submitted | accepted | rejected | preparing | ready | pickup_pending | completed | cancelled)
 - total_tnd
@@ -124,33 +124,31 @@ order
 
 ## Endpoints candidats
 
-> **Note nommage** : les US Sprint 2 utilisent le préfixe `/api/stores/`. Le modèle de données global (AGENTS.md, AI_CONTEXT.md) nomme l'entité `Shop`. Cette incohérence devra être tranchée avant l'implémentation.
-
 ### Supérette
 
 ```http
-GET  /api/stores/by-qr/{qrCodeToken}
-GET  /api/stores/search?query=amen&city=tunis
-GET  /api/stores/{storeId}
-GET  /api/me/stores
-POST /api/me/stores/{storeId}/visit
-PATCH /api/me/stores/{storeId}/favorite
-DELETE /api/me/stores/{storeId}
+GET  /api/shops/by-qr/{qrCodeToken}
+GET  /api/shops/search?query=amen&city=tunis
+GET  /api/shops/{shopId}
+GET  /api/me/shops
+POST /api/me/shops/{shopId}/visit
+PATCH /api/me/shops/{shopId}/favorite
+DELETE /api/me/shops/{shopId}
 ```
 
 ### Catalogue
 
 ```http
-GET /api/stores/{storeId}/catalog
-GET /api/stores/{storeId}/catalog?query=lait
-GET /api/stores/{storeId}/catalog?category=lait
-GET /api/stores/{storeId}/catalog?query=vitalait&category=lait
+GET /api/shops/{shopId}/catalog
+GET /api/shops/{shopId}/catalog?query=lait
+GET /api/shops/{shopId}/catalog?category=lait
+GET /api/shops/{shopId}/catalog?query=vitalait&category=lait
 ```
 
 ### Kadhia
 
 ```http
-GET    /api/kadhia
+GET    /api/kadhia?shopId={shopId}
 POST   /api/kadhia/lines
 PATCH  /api/kadhia/lines/{lineId}
 DELETE /api/kadhia/lines/{lineId}
@@ -159,7 +157,7 @@ DELETE /api/kadhia/lines/{lineId}
 ### Créneau et commande
 
 ```http
-GET  /api/stores/{storeId}/pickup-slots?from=today&available=true
+GET  /api/shops/{shopId}/pickup-slots?from=today&available=true
 POST /api/orders
 ```
 

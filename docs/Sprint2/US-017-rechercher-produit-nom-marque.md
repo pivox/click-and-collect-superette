@@ -78,14 +78,14 @@ Exemples de recherches attendues :
 Endpoint public :
 
 ```http
-GET /api/stores/{storeId}/catalog?query=lait
+GET /api/shops/{shopId}/catalog?query=lait
 ```
 
 Réponse attendue : même structure que le catalogue public, filtrée par recherche.
 
 ```json
 {
-  "store_id": "uuid",
+  "shop_id": "uuid",
   "items": [
     {
       "id": "merchant-product-uuid",
@@ -138,7 +138,7 @@ alors aucun produit propre uniquement à la supérette B ne doit apparaître.
 - Test recherche insensible à la casse.
 - Test recherche avec accent / sans accent si supporté.
 - Test recherche sans résultat.
-- Test isolation par `storeId`.
+- Test isolation par `shopId`.
 - Test exclusion des produits invisibles ou indisponibles.
 
 ## Hors périmètre

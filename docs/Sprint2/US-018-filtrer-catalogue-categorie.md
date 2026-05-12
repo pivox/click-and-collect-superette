@@ -56,13 +56,13 @@ afin de parcourir plus facilement les produits d'un rayon précis.
 Endpoint public :
 
 ```http
-GET /api/stores/{storeId}/catalog?category=lait
+GET /api/shops/{shopId}/catalog?category=lait
 ```
 
 Combinaison recherche + catégorie :
 
 ```http
-GET /api/stores/{storeId}/catalog?query=vitalait&category=lait
+GET /api/shops/{shopId}/catalog?query=vitalait&category=lait
 ```
 
 Réponse attendue : même structure que le catalogue public, filtrée par catégorie.
@@ -106,7 +106,7 @@ alors aucun produit d'une autre supérette ne doit apparaître.
 - Test combinaison `query` + `category`.
 - Test reset côté contrat API via absence du paramètre `category`.
 - Test exclusion des produits invisibles et indisponibles.
-- Test isolation par `storeId`.
+- Test isolation par `shopId`.
 
 ## Hors périmètre
 

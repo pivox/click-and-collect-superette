@@ -37,15 +37,15 @@ afin de retrouver facilement mes magasins habituels.
 
 Créer une entité pivot entre le client et la supérette.
 
-Nom proposé : `ClientStore` ou `CustomerStore` selon le vocabulaire final du code.
+Nom proposé : `CustomerShop` ou `CustomerShop` selon le vocabulaire final du code.
 
 Champs minimaux :
 
 ```text
-client_store
+customer_shop
 - id
 - customer_id
-- store_id
+- shop_id
 - source: qr_code | search | manual | order
 - first_seen_at
 - last_seen_at
@@ -58,7 +58,7 @@ client_store
 Contrainte obligatoire :
 
 ```text
-UNIQUE(customer_id, store_id)
+UNIQUE(customer_id, shop_id)
 ```
 
 ## Sources de création possibles
@@ -95,13 +95,13 @@ La relation peut être créée ou mise à jour depuis :
 Liste des supérettes connues du client :
 
 ```http
-GET /api/me/stores
+GET /api/me/shops
 ```
 
 Créer ou mettre à jour une visite :
 
 ```http
-POST /api/me/stores/{storeId}/visit
+POST /api/me/shops/{shopId}/visit
 ```
 
 Payload :
@@ -115,7 +115,7 @@ Payload :
 Marquer en favori :
 
 ```http
-PATCH /api/me/stores/{storeId}/favorite
+PATCH /api/me/shops/{shopId}/favorite
 ```
 
 Payload :
@@ -129,7 +129,7 @@ Payload :
 Retirer de la liste visible :
 
 ```http
-DELETE /api/me/stores/{storeId}
+DELETE /api/me/shops/{shopId}
 ```
 
 ## Critères d'acceptation
@@ -156,7 +156,7 @@ et `last_seen_at` est mis à jour.
 ### Liste des stores connus
 
 Étant donné un client connecté avec plusieurs supérettes connues,
-quand il consulte `GET /api/me/stores`,
+quand il consulte `GET /api/me/shops`,
 alors il reçoit la liste de ses stores actifs, triés par favori puis par dernière consultation.
 
 ### Favori
@@ -174,11 +174,11 @@ alors aucune relation persistée n'est créée côté backend.
 ## Tests attendus
 
 - Test de création d'une relation client/supérette.
-- Test d'unicité `customer_id + store_id`.
+- Test d'unicité `customer_id + shop_id`.
 - Test d'idempotence de la visite.
 - Test de mise à jour de `last_seen_at`.
 - Test de conservation de `first_seen_at`.
-- Test de liste `GET /api/me/stores`.
+- Test de liste `GET /api/me/shops`.
 - Test de favori.
 - Test de refus ou non-création pour une supérette inactive.
 - Test de sécurité : un client ne peut gérer que ses propres relations.
