@@ -23,7 +23,6 @@ final readonly class OrderOutputFactory
             $order->getLines()->toArray(),
         );
 
-        /** @var \App\Entity\PickupSlot $slot */
         $slot = $order->getPickupSlot();
 
         return new OrderOutput(
@@ -31,7 +30,7 @@ final readonly class OrderOutputFactory
             storeId: $order->getShop()->getId()->toRfc4122(),
             status: $order->getStatus()->value,
             totalTnd: $order->getTotalTnd(),
-            pickupSlotId: $slot->getId()->toRfc4122(),
+            pickupSlotId: $slot?->getId()->toRfc4122(),
             notes: $order->getNotes(),
             lines: $lines,
             createdAt: $order->getCreatedAt()->format(\DateTimeInterface::ATOM),
