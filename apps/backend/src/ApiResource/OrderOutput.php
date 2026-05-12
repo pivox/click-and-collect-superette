@@ -1,0 +1,64 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\ApiResource;
+
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Link;
+use ApiPlatform\Metadata\Post;
+use App\Dto\SubmitOrderInput;
+use App\Entity\Shop;
+use App\Processor\SubmitOrderProcessor;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
+
+#[ApiResource(
+    operations: [
+        new Post(
+            uriTemplate: '/me/stores/{storeId}/orders',
+            uriVariables: ['storeId' => new Link(fromClass: Shop::class, identifiers: ['id'])],
+            formats: ['json' => ['application/json']],
+            input: SubmitOrderInput::class,
+            normalizationContext: ['groups' => ['order:read']],
+            status: 201,
+            read: false,
+            processor: SubmitOrderProcessor::class,
+            security: "is_granted('ROLE_CUSTOMER')",
+        ),
+    ],
+)]
+final readonly class OrderOutput
+{
+    /**
+     * @param list<OrderLineOutput> $lines
+     */
+    public function __construct(
+        #[ApiProperty(identifier: true)]
+        #[Groups(['order:read'])]
+        public string $id,
+        #[Groups(['order:read'])]
+        #[SerializedName('store_id')]
+        public string $storeId,
+        #[Groups(['order:read'])]
+        public string $status,
+        #[Groups(['order:read'])]
+        #[SerializedName('total_tnd')]
+        public string $totalTnd,
+        #[Groups(['order:read'])]
+        #[SerializedName('pickup_slot_id')]
+        public string $pickupSlotId,
+        #[Groups(['order:read'])]
+        public ?string $notes,
+        #[Groups(['order:read'])]
+        public array $lines,
+        #[Groups(['order:read'])]
+        #[SerializedName('created_at')]
+        public string $createdAt,
+        #[Groups(['order:read'])]
+        #[SerializedName('updated_at')]
+        public string $updatedAt,
+    ) {
+    }
+}
