@@ -13,8 +13,10 @@ Before changing anything, read these files when present:
 1. `AI_CONTEXT.md` — product context, MVP scope, business vocabulary, order statuses, reference entities
 2. `README.md`
 3. `docs/product/`
-4. `Claude/instructions.md`
-5. `Claude/workflows.md`
+
+**Codex CLI** — then read: `Codex/instructions.md`, `Codex/workflows.md`, `Codex/checklist.md`
+
+**Claude Code** — `CLAUDE.md` handles agent-specific config via `@imports` (`Claude/instructions.md`, `Claude/workflows.md`).
 
 ## Language and tone
 
