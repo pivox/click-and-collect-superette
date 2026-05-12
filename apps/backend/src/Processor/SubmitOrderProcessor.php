@@ -76,6 +76,10 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             throw new UnprocessableEntityHttpException('PICKUP_SLOT_FULL');
         }
 
+        if ($slot->getEndsAt() <= new \DateTimeImmutable()) {
+            throw new UnprocessableEntityHttpException('PICKUP_SLOT_EXPIRED');
+        }
+
         $kadhia = $this->kadhiaRepository->findDraftByCustomerAndShop($user, $shop);
         if (null === $kadhia) {
             throw new UnprocessableEntityHttpException('KADHIA_NOT_FOUND');
@@ -121,7 +125,16 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
                 $order->recomputeTotal();
                 $order->submit();
 
-                $slot->book();
+                // Atomic conditional UPDATE prevents concurrent over-booking: only
+                // increments booked_count if it is still below capacity at the DB level.
+                $booked = $this->entityManager->getConnection()->executeStatement(
+                    'UPDATE pickup_slots SET booked_count = booked_count + 1 WHERE id = :id AND booked_count < capacity',
+                    ['id' => $slot->getId()->toBinary()],
+                );
+
+                if (0 === $booked) {
+                    throw new \RuntimeException('PICKUP_SLOT_FULL');
+                }
 
                 $kadhia->setStatus(KadhiaStatus::Submitted);
 

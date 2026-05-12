@@ -225,6 +225,25 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('STORE_NOT_FOUND', (string) $response->getContent());
     }
 
+    public function testSubmitOrderExpiredSlotReturns422(): void
+    {
+        $customer = $this->createUser('submit-expired@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop, capacity: 5, startsAtModifier: '-3 hours', endsAtModifier: '-1 hour');
+        $product = $this->createMerchantProduct($shop, '1.000');
+        $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '1.000');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_EXPIRED', (string) $response->getContent());
+    }
+
     public function testSubmitOrderSlotFromAnotherShopReturns404(): void
     {
         $customer = $this->createUser('submit-slot-wrong-shop@example.test', ['ROLE_CUSTOMER']);
@@ -247,13 +266,17 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
     // Helpers
 
-    private function createPickupSlot(Shop $shop, int $capacity = 5): PickupSlot
-    {
+    private function createPickupSlot(
+        Shop $shop,
+        int $capacity = 5,
+        string $startsAtModifier = '+1 hour',
+        string $endsAtModifier = '+2 hours',
+    ): PickupSlot {
         $now = new \DateTimeImmutable();
         $slot = (new PickupSlot())
             ->setShop($shop)
-            ->setStartsAt($now->modify('+1 hour'))
-            ->setEndsAt($now->modify('+2 hours'))
+            ->setStartsAt($now->modify($startsAtModifier))
+            ->setEndsAt($now->modify($endsAtModifier))
             ->setCapacity($capacity);
 
         $this->entityManager->persist($slot);
