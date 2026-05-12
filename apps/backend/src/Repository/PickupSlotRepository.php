@@ -36,7 +36,7 @@ class PickupSlotRepository extends ServiceEntityRepository
         return array_values(
             array_filter(
                 $slots,
-                static fn (PickupSlot $s): bool => $s->getEndsAt() > $after && !$s->isFull(),
+                static fn (PickupSlot $s): bool => $s->getStartsAt() > $after && !$s->isFull(),
             ),
         );
     }

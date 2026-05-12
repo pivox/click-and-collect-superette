@@ -104,7 +104,13 @@ final class PickupSlotDoctrineTest extends FunctionalApiTestCase
             ->setEndsAt($now->modify('-1 hour'))
             ->setCapacity(3);
 
-        foreach ([$available, $full, $inactive, $past] as $s) {
+        $alreadyStarted = (new PickupSlot())
+            ->setShop($shop)
+            ->setStartsAt($now->modify('-15 minutes'))
+            ->setEndsAt($now->modify('+15 minutes'))
+            ->setCapacity(3);
+
+        foreach ([$available, $full, $inactive, $past, $alreadyStarted] as $s) {
             $this->entityManager->persist($s);
         }
         $this->entityManager->flush();
