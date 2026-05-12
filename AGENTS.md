@@ -10,70 +10,20 @@ The customer scans a shop QR code, opens the shop space, browses products, prepa
 
 Before changing anything, read these files when present:
 
-1. `AI_CONTEXT.md`
+1. `AI_CONTEXT.md` — product context, MVP scope, business vocabulary, order statuses, reference entities
 2. `README.md`
 3. `docs/product/`
-4. `Codex/instructions.md`
-5. `Codex/workflows.md`
-6. `Codex/checklist.md`
+
+**Codex CLI** — then read: `Codex/instructions.md`, `Codex/workflows.md`, `Codex/checklist.md`
+
+**Claude Code** — `CLAUDE.md` handles agent-specific config via `@imports` (`Claude/instructions.md`, `Claude/workflows.md`).
 
 ## Language and tone
 
 - Respond in French by default.
 - Keep product documentation clear, concrete and MVP-oriented.
 - Use English comments in code when code is added.
-- Preserve the business vocabulary: **Kadhia**, supérette, marchand, client, rendez-vous, retrait.
-
-## MVP boundaries
-
-Included in MVP:
-
-- shop QR code access;
-- simple catalog;
-- Kadhia / cart;
-- pickup slot selection;
-- order submission;
-- merchant accept/reject workflow;
-- preparation states;
-- pickup QR code;
-- customer + merchant double validation;
-- French / Arabic interface;
-- prices in TND.
-
-Excluded unless explicitly requested:
-
-- online payment;
-- delivery;
-- loyalty program;
-- complex warehouse stock management;
-- multi-merchant marketplace cart.
-
-## Product rules
-
-- A product can exist in a shared Tunisian product reference, then be offered by each merchant with its own price, availability and visibility.
-- Do not assume every merchant has the same price or availability.
-- A customer must be able to find already-known products by name, brand, format and category.
-- The QR code shop flow is central to the product.
-- Pickup completion must keep a secure double-validation step.
-- The app must be prepared for French and Arabic, including RTL UI constraints.
-
-## Technical target
-
-Preferred backend stack:
-
-- Symfony 7;
-- API Platform;
-- Doctrine ORM;
-- PostgreSQL;
-- Symfony Messenger for async jobs;
-- Redis only when useful;
-- Mercure or WebSocket only when the use case requires realtime updates.
-
-Preferred frontend target:
-
-- mobile-first PWA for customers;
-- responsive web backoffice for merchants;
-- admin platform for supervision.
+- Preserve the business vocabulary defined in `AI_CONTEXT.md`: **Kadhia**, supérette, marchand, client, rendez-vous, retrait.
 
 ## Coding rules
 
@@ -96,25 +46,6 @@ When backend code exists:
 - Avoid exposing internal persistence details to the client.
 - Use validation constraints on input DTOs or entities.
 - Use voters/security expressions for merchant/customer/admin access separation.
-
-## Data model guidance
-
-Prefer this conceptual model unless the project documents evolve:
-
-- `Shop`
-- `CustomerShop` or `FavoriteShop`
-- `ProductReference`
-- `ProductReferenceProposal`
-- `ProductVariant`
-- `MerchantProductOffer`
-- `ProductFoodInfo`
-- `ProductExternalSource`
-- `Kadhia`
-- `KadhiaLine`
-- `PickupSlot`
-- `Order`
-- `OrderLine`
-- `PickupSession`
 
 ## Verification commands
 
