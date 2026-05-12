@@ -147,7 +147,7 @@ final class CustomerShopDoctrineTest extends FunctionalApiTestCase
         $this->entityManager->flush();
         $this->entityManager->clear();
 
-        /** @var \App\Repository\CustomerShopRepository $repo */
+        /** @var CustomerShopRepository $repo */
         $repo = $this->entityManager->getRepository(CustomerShop::class);
         $found = $repo->findOneByCustomerAndShop($customer, $shop);
 
@@ -160,7 +160,7 @@ final class CustomerShopDoctrineTest extends FunctionalApiTestCase
         $customer = $this->createUser('customer-notfound@example.test', ['ROLE_CUSTOMER']);
         $shop = $this->createShop();
 
-        /** @var \App\Repository\CustomerShopRepository $repo */
+        /** @var CustomerShopRepository $repo */
         $repo = $this->entityManager->getRepository(CustomerShop::class);
         $found = $repo->findOneByCustomerAndShop($customer, $shop);
 
@@ -184,7 +184,7 @@ final class CustomerShopDoctrineTest extends FunctionalApiTestCase
         $this->entityManager->flush();
         $this->entityManager->clear();
 
-        /** @var \App\Repository\CustomerShopRepository $repo */
+        /** @var CustomerShopRepository $repo */
         $repo = $this->entityManager->getRepository(CustomerShop::class);
         $results = $repo->findActiveByCustomer($customer);
 
@@ -206,7 +206,7 @@ final class CustomerShopDoctrineTest extends FunctionalApiTestCase
         $this->entityManager->flush();
         $this->entityManager->clear();
 
-        /** @var \App\Repository\CustomerShopRepository $repo */
+        /** @var CustomerShopRepository $repo */
         $repo = $this->entityManager->getRepository(CustomerShop::class);
         $results = $repo->findActiveByCustomer($customer);
 
