@@ -120,7 +120,7 @@ alors le client peut accéder au catalogue de cette même supérette.
 - Test fonctionnel de lecture d'une supérette active.
 - Test fonctionnel d'une supérette inactive.
 - Test de non-exposition des champs sensibles.
-- Test de cohérence entre `store_id` et catalogue public.
+- Test de cohérence entre `shop_id` et catalogue public.
 
 ## Hors périmètre
 

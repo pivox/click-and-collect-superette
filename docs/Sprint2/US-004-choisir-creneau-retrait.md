@@ -60,7 +60,7 @@ afin d'indiquer au marchand quand je viendrai récupérer ma commande.
 Chaque créneau doit contenir au minimum :
 
 - identifiant du créneau ;
-- `store_id` ;
+- `shop_id` ;
 - début ;
 - fin ;
 - timezone ;
@@ -132,7 +132,7 @@ alors le backend vérifie à nouveau que le créneau est encore disponible.
 - Test liste des créneaux futurs disponibles.
 - Test exclusion des créneaux passés.
 - Test exclusion des créneaux complets.
-- Test isolation par `storeId`.
+- Test isolation par `shopId`.
 - Test format timezone `Africa/Tunis`.
 - Test revalidation au moment de la soumission, à couvrir avec US-021.
 

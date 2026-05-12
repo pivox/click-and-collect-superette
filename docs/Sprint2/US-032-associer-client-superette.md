@@ -37,15 +37,15 @@ afin de retrouver facilement mes magasins habituels.
 
 Créer une entité pivot entre le client et la supérette.
 
-Nom proposé : `ClientStore` ou `CustomerStore` selon le vocabulaire final du code.
+Nom proposé : `CustomerShop` ou `CustomerShop` selon le vocabulaire final du code.
 
 Champs minimaux :
 
 ```text
-client_store
+customer_shop
 - id
 - customer_id
-- store_id
+- shop_id
 - source: qr_code | search | manual | order
 - first_seen_at
 - last_seen_at
@@ -58,7 +58,7 @@ client_store
 Contrainte obligatoire :
 
 ```text
-UNIQUE(customer_id, store_id)
+UNIQUE(customer_id, shop_id)
 ```
 
 ## Sources de création possibles
@@ -174,7 +174,7 @@ alors aucune relation persistée n'est créée côté backend.
 ## Tests attendus
 
 - Test de création d'une relation client/supérette.
-- Test d'unicité `customer_id + store_id`.
+- Test d'unicité `customer_id + shop_id`.
 - Test d'idempotence de la visite.
 - Test de mise à jour de `last_seen_at`.
 - Test de conservation de `first_seen_at`.

@@ -74,7 +74,7 @@ Le récapitulatif doit afficher au minimum :
 Endpoint protégé client :
 
 ```http
-GET /api/kadhia
+GET /api/kadhia?storeId={storeId}
 Authorization: Bearer <client_jwt>
 ```
 
