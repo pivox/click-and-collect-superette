@@ -17,6 +17,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 #[AsCommand(
@@ -58,6 +59,8 @@ final class SeedDemoStoreCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
+        #[Autowire('%kernel.environment%')]
+        private readonly string $environment,
     ) {
         parent::__construct();
     }
@@ -76,6 +79,13 @@ final class SeedDemoStoreCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+
+        if (!\in_array($this->environment, ['dev', 'test'], true)) {
+            $io->error('This command is only available in dev/test environment.');
+
+            return Command::FAILURE;
+        }
+
         $catalogMode = (string) $input->getOption('catalog');
 
         if (!\in_array($catalogMode, ['demo', 'all'], true)) {

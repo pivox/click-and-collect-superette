@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Command;
 
+use App\Command\SeedDemoStoreCommand;
 use App\Entity\Brand;
 use App\Entity\Category;
 use App\Entity\MerchantProduct;
@@ -13,8 +14,11 @@ use App\Entity\User;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 use App\Tests\Functional\Api\FunctionalApiTestCase;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class SeedDemoStoreCommandTest extends FunctionalApiTestCase
 {
@@ -81,6 +85,21 @@ final class SeedDemoStoreCommandTest extends FunctionalApiTestCase
         foreach ($merchantProducts as $merchantProduct) {
             self::assertSame(ProductReferenceStatus::Approved, $merchantProduct->getProductReference()->getStatus());
         }
+    }
+
+    public function testSeedDemoStoreFailsCleanlyOutsideDevAndTestEnvironment(): void
+    {
+        $command = new SeedDemoStoreCommand(
+            $this->createMock(EntityManagerInterface::class),
+            $this->createMock(UserPasswordHasherInterface::class),
+            'staging',
+        );
+        $commandTester = new CommandTester($command);
+
+        $exitCode = $commandTester->execute([]);
+
+        self::assertSame(Command::FAILURE, $exitCode);
+        self::assertStringContainsString('This command is only available in dev/test environment.', $commandTester->getDisplay());
     }
 
     public function testSeedDemoStoreCatalogIsReadableThroughPublicCatalogApi(): void
