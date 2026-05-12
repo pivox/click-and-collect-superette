@@ -6,16 +6,34 @@ namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use App\Dto\SubmitOrderInput;
 use App\Entity\Shop;
 use App\Processor\SubmitOrderProcessor;
+use App\Provider\OrderCollectionProvider;
+use App\Provider\OrderItemProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 
 #[ApiResource(
     operations: [
+        new GetCollection(
+            uriTemplate: '/me/orders',
+            formats: ['json' => ['application/json']],
+            normalizationContext: ['groups' => ['order:read']],
+            provider: OrderCollectionProvider::class,
+            security: "is_granted('ROLE_CUSTOMER')",
+        ),
+        new Get(
+            uriTemplate: '/me/orders/{id}',
+            formats: ['json' => ['application/json']],
+            normalizationContext: ['groups' => ['order:read']],
+            provider: OrderItemProvider::class,
+            security: "is_granted('ROLE_CUSTOMER')",
+        ),
         new Post(
             uriTemplate: '/me/stores/{storeId}/orders',
             uriVariables: ['storeId' => new Link(fromClass: Shop::class, identifiers: ['id'])],
@@ -48,7 +66,7 @@ final readonly class OrderOutput
         public string $totalTnd,
         #[Groups(['order:read'])]
         #[SerializedName('pickup_slot_id')]
-        public string $pickupSlotId,
+        public ?string $pickupSlotId,
         #[Groups(['order:read'])]
         public ?string $notes,
         #[Groups(['order:read'])]
