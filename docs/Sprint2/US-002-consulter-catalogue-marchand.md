@@ -137,7 +137,7 @@ alors aucun produit propre à la supérette B ne doit être retourné.
 - Test fonctionnel catalogue public avec produits visibles.
 - Test d'exclusion des produits invisibles.
 - Test d'exclusion des produits indisponibles.
-- Test d'isolation par `storeId`.
+- Test d'isolation par `shopId`.
 - Test du format de sortie `price_tnd`.
 - Test d'accès public sans JWT.
 

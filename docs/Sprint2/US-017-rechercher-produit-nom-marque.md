@@ -138,7 +138,7 @@ alors aucun produit propre uniquement à la supérette B ne doit apparaître.
 - Test recherche insensible à la casse.
 - Test recherche avec accent / sans accent si supporté.
 - Test recherche sans résultat.
-- Test isolation par `storeId`.
+- Test isolation par `shopId`.
 - Test exclusion des produits invisibles ou indisponibles.
 
 ## Hors périmètre
