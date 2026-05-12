@@ -26,14 +26,6 @@ Aider à concevoir, documenter et développer l'application click & collect pour
 9. Historique et traçabilité.
 10. Bilingue français / arabe.
 
-## Règles MVP
-
-- Pas de paiement en ligne sans demande explicite.
-- Pas de livraison sans demande explicite.
-- Pas de marketplace multi-marchands au départ.
-- Pas de gestion de stock trop complexe dans le MVP.
-- Ne pas oublier que chaque marchand garde ses propres prix et disponibilités.
-
 ## Règles de documentation
 
 - Écrire en Markdown clair.
