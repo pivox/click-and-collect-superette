@@ -7,26 +7,17 @@ namespace App\ApiResource;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use App\Dto\SubmitOrderInput;
 use App\Entity\Shop;
 use App\Processor\SubmitOrderProcessor;
-use App\Provider\OrderCollectionProvider;
 use App\Provider\OrderItemProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 
 #[ApiResource(
     operations: [
-        new GetCollection(
-            uriTemplate: '/me/orders',
-            formats: ['json' => ['application/json']],
-            normalizationContext: ['groups' => ['order:read']],
-            provider: OrderCollectionProvider::class,
-            security: "is_granted('ROLE_CUSTOMER')",
-        ),
         new Get(
             uriTemplate: '/me/orders/{id}',
             formats: ['json' => ['application/json']],

@@ -22,12 +22,19 @@ class OrderRepository extends ServiceEntityRepository
     /**
      * @return list<Order>
      */
-    public function findByCustomer(User $customer): array
+    public function findByCustomerPaginated(User $customer, int $limit, int $offset): array
     {
         return $this->findBy(
             ['customer' => $customer],
             ['createdAt' => 'DESC'],
+            $limit,
+            $offset,
         );
+    }
+
+    public function countByCustomer(User $customer): int
+    {
+        return \count($this->findBy(['customer' => $customer]));
     }
 
     public function findOneByCustomerAndId(User $customer, string $orderId): ?Order

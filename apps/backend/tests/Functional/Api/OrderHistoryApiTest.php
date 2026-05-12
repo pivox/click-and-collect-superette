@@ -28,7 +28,10 @@ final class OrderHistoryApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertSame([], $payload);
+        self::assertSame([], $payload['items']);
+        self::assertSame(0, $payload['total']);
+        self::assertSame(1, $payload['page']);
+        self::assertSame(20, $payload['limit']);
     }
 
     public function testGetOrdersReturnsList(): void
@@ -46,9 +49,10 @@ final class OrderHistoryApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(2, $payload);
-        self::assertSame($order2->getId()->toRfc4122(), $payload[0]['id']);
-        self::assertSame($order1->getId()->toRfc4122(), $payload[1]['id']);
+        self::assertSame(2, $payload['total']);
+        self::assertCount(2, $payload['items']);
+        self::assertSame($order2->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertSame($order1->getId()->toRfc4122(), $payload['items'][1]['id']);
     }
 
     public function testGetOrdersOnlyReturnsOwnOrders(): void
@@ -64,8 +68,9 @@ final class OrderHistoryApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(1, $payload);
-        self::assertSame($orderA->getId()->toRfc4122(), $payload[0]['id']);
+        self::assertSame(1, $payload['total']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($orderA->getId()->toRfc4122(), $payload['items'][0]['id']);
     }
 
     public function testGetOrdersUnauthenticatedReturns401(): void
