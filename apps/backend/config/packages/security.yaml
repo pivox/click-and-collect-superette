@@ -32,6 +32,7 @@ security:
         - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/docs(?:\..+)?$, roles: PUBLIC_ACCESS }
         - { path: ^/api/stores/by-qr, roles: PUBLIC_ACCESS }
+        - { path: ^/api/stores/search$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/stores/[^/]+$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/stores/[^/]+/theme$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/stores/[^/]+/catalog$, roles: PUBLIC_ACCESS, methods: [GET] }
