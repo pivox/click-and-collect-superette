@@ -1,5 +1,15 @@
 # US-003 — Ajouter un produit à la Kadhia
 
+> **OBSOLÈTE — remplacée par le modèle Kadhia multiple.**
+> Voir [`kadhia-multiple-user-stories.md`](./kadhia-multiple-user-stories.md) pour le contrat à jour :
+> - **US-003-A** — Créer une Kadhia
+> - **US-003-D** — Ajouter un produit à une Kadhia draft
+>
+> L'ancienne création automatique de Kadhia et l'endpoint `POST /api/kadhia/lines` ne sont plus le contrat de référence.
+> Ne pas implémenter à partir de ce document.
+
+---
+
 ## Sprint
 
 Sprint 2 — Parcours client.
@@ -10,14 +20,14 @@ EPIC-003 — Gestion Kadhia.
 
 ## Objectif produit
 
-Permettre au client d'ajouter un produit du catalogue public d'une supérette à sa Kadhia.
+Permettre au client d'ajouter un produit du catalogue public d'une supérette à une Kadhia existante.
 
 La Kadhia représente le panier de courses du client. Elle est liée à une seule supérette et contient des lignes de produits avec quantités et prix figés au moment de l'ajout.
 
 ## Récit utilisateur
 
 En tant que client connecté,
-je veux ajouter un produit du catalogue à ma Kadhia,
+je veux ajouter un produit du catalogue à une de mes Kadhia,
 afin de préparer ma commande de retrait.
 
 ## Acteurs
@@ -30,25 +40,25 @@ afin de préparer ma commande de retrait.
 ## Préconditions
 
 - Le client est authentifié avec un rôle client `ROLE_USER`.
-- Le client consulte le catalogue public d'une supérette active.
+- Le client a préalablement créé une Kadhia `draft` pour la supérette (voir US-003-A).
 - Le produit sélectionné est un `MerchantProduct` visible et disponible.
 - Le produit appartient à la supérette courante.
 
 ## Parcours nominal
 
-1. Le client recherche ou parcourt le catalogue d'une supérette.
+1. Le client a créé une Kadhia `draft` pour la supérette.
 2. Il clique sur `Ajouter` sur un produit.
-3. Le frontend appelle l'API d'ajout à la Kadhia avec l'identifiant du produit marchand.
-4. Le backend crée une Kadhia `draft` si le client n'en a pas encore pour cette supérette.
-5. Le backend ajoute une ligne avec quantité `1` par défaut.
-6. Le backend fige le prix et les informations produit utiles.
-7. Le client voit la Kadhia mise à jour.
+3. Le frontend appelle l'API d'ajout en précisant l'identifiant de la Kadhia.
+4. Le backend ajoute une ligne avec quantité `1` par défaut.
+5. Le backend fige le prix et les informations produit utiles.
+6. Le client voit la Kadhia mise à jour.
 
 ## Règles métier
 
 - Une Kadhia appartient à un seul client.
 - Une Kadhia `draft` appartient à une seule supérette.
-- Un client peut avoir une Kadhia `draft` active pour une supérette.
+- Un client peut avoir **plusieurs** Kadhia `draft` pour une même supérette.
+- La création d'une Kadhia est **explicite** — aucune création automatique (voir US-003-A).
 - Un produit ajouté à la Kadhia doit être un produit marchand, pas une référence produit globale.
 - Le prix doit être copié depuis le `MerchantProduct` au moment de l'ajout.
 - Les informations produit utiles doivent être snapshotées pour garder l'historique même si le catalogue change ensuite.
@@ -74,10 +84,12 @@ Chaque ligne de Kadhia doit conserver au minimum :
 
 ## API cible
 
+> Contrat de référence : **US-003-D** dans [`kadhia-multiple-user-stories.md`](./kadhia-multiple-user-stories.md).
+
 Endpoint protégé client :
 
 ```http
-POST /api/kadhia/lines
+POST /api/me/kadhias/{kadhiaId}/lines
 Authorization: Bearer <client_jwt>
 Content-Type: application/json
 ```
@@ -86,7 +98,6 @@ Payload :
 
 ```json
 {
-  "store_id": "store-uuid",
   "merchant_product_id": "merchant-product-uuid",
   "quantity": 1
 }
@@ -117,10 +128,9 @@ Réponse attendue :
 
 ### Ajout simple
 
-Étant donné un client connecté et un produit visible,
-quand le client ajoute le produit à sa Kadhia,
-alors une Kadhia `draft` est créée si nécessaire,
-et une ligne est ajoutée avec quantité `1`.
+Étant donné un client connecté avec une Kadhia `draft` et un produit visible,
+quand le client ajoute le produit à cette Kadhia,
+alors une ligne est ajoutée avec quantité `1`.
 
 ### Incrément d'une ligne existante
 
@@ -149,7 +159,6 @@ alors l'API retourne `401 Unauthorized`.
 ## Tests attendus
 
 - Test ajout d'un produit visible et disponible.
-- Test création automatique d'une Kadhia `draft`.
 - Test incrément si ligne existante.
 - Test refus produit invisible.
 - Test refus produit indisponible.
@@ -159,15 +168,16 @@ alors l'API retourne `401 Unauthorized`.
 
 ## Hors périmètre
 
+- Création automatique de Kadhia (voir US-003-A).
 - Créneau de retrait.
 - Soumission de commande.
 - Paiement en ligne.
 - Gestion de stock temps réel.
 - Substitution produit.
-- Kadhia multi-supérettes.
 
 ## Dépendances
 
+- US-003-A — Créer une Kadhia.
 - US-002 — Consulter le catalogue marchand.
 - US-017 — Rechercher un produit.
 - Authentification client.
@@ -175,4 +185,4 @@ alors l'API retourne `401 Unauthorized`.
 
 ## Définition de fini
 
-La story est terminée lorsque le client connecté peut ajouter un produit vendable du catalogue à une Kadhia `draft`, avec prix snapshoté, sans doublon de ligne, et avec total recalculé.
+La story est terminée lorsque le client connecté peut ajouter un produit vendable à une Kadhia `draft` existante, avec prix snapshoté, sans doublon de ligne, et avec total recalculé.
