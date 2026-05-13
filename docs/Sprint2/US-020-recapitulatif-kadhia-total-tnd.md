@@ -28,8 +28,8 @@ afin de vérifier ma commande avant de choisir un créneau de retrait.
 
 ## Préconditions
 
-- Le client est authentifié.
-- Le client possède une Kadhia `draft` ou une Kadhia consultable.
+- Le client est authentifié avec `ROLE_CUSTOMER`.
+- Le client possède une Kadhia (identifiée par `kadhiaId`) ; elle peut être `draft` ou `submitted`.
 - La Kadhia peut être vide ou contenir une ou plusieurs lignes.
 
 ## Données à afficher
@@ -51,12 +51,12 @@ Le récapitulatif doit afficher au minimum :
 
 ## Parcours nominal
 
-1. Le client ajoute un ou plusieurs produits à la Kadhia.
-2. Il ouvre le panneau ou la page récapitulative.
-3. Le frontend appelle l'API de lecture de Kadhia.
-4. Le backend retourne la Kadhia courante avec lignes et totaux.
+1. Le client sélectionne une Kadhia dans sa liste.
+2. Il ouvre la page de détail.
+3. Le frontend appelle `GET /api/me/kadhias/{kadhiaId}`.
+4. Le backend retourne la Kadhia avec ses lignes et ses totaux calculés côté serveur.
 5. Le client vérifie les produits, quantités et montants.
-6. Le client peut continuer vers le choix du créneau.
+6. Le client peut continuer vers le choix du créneau ou modifier la Kadhia.
 
 ## Règles métier
 
@@ -74,7 +74,7 @@ Le récapitulatif doit afficher au minimum :
 Endpoint protégé client :
 
 ```http
-GET /api/kadhia?storeId={storeId}
+GET /api/me/kadhias/{kadhiaId}
 Authorization: Bearer <client_jwt>
 ```
 
@@ -84,20 +84,23 @@ Réponse attendue :
 {
   "id": "kadhia-uuid",
   "store_id": "store-uuid",
-  "store_name": "Supérette El Amen",
   "status": "draft",
-  "items": [
+  "notes": "Courses pour samedi matin",
+  "lines": [
     {
       "id": "line-uuid",
       "merchant_product_id": "merchant-product-uuid",
       "name_fr": "Lait demi-écrémé Vitalait 1L",
+      "name_ar": null,
       "brand": "Vitalait",
       "quantity": 2,
-      "unit_price_tnd": "1.750",
-      "line_total_tnd": "3.500"
+      "unit_price_tnd": "1.700",
+      "line_total_tnd": "3.400"
     }
   ],
-  "total_tnd": "3.500"
+  "total_tnd": "3.400",
+  "created_at": "2026-05-13T08:00:00+00:00",
+  "updated_at": "2026-05-13T08:10:00+00:00"
 }
 ```
 

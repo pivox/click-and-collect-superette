@@ -34,6 +34,9 @@ QR code ou recherche
 - Un `GET` ne doit jamais créer de Kadhia.
 - Une Kadhia reste en état `draft` jusqu'à la soumission ; elle n'est plus modifiable après.
 - Une Kadhia `submitted` reste listable et consultable par le client.
+- En cas d'acceptation partielle par le marchand, la Kadhia repasse en `draft` avec les lignes acceptées ; le client peut la modifier et la re-soumettre.
+- En cas de refus ou d'annulation, la Kadhia reste `submitted` ; le client peut créer une nouvelle Kadhia.
+- La liste des Kadhia est paginée : 20 items par page par défaut.
 - Les prix sont figés à l'ajout en Kadhia (snapshot) et ne sont pas recalculés à la soumission.
 - La capacité du créneau est décrémentée à la soumission, pas à la sélection.
 - La soumission est transactionnelle : créneau et Kadhia sont revalidés atomiquement.
@@ -60,6 +63,7 @@ QR code ou recherche
 | US-020 | Récapitulatif de la Kadhia avec total TND | EPIC-003 | Ajoutée |
 | US-021-A | Soumettre une Kadhia précise | EPIC-004 | Ajoutée |
 | US-021-B | Lister mes Kadhia soumises | EPIC-004 | Ajoutée |
+| US-022-A | Voir et modifier une Kadhia après acceptation partielle | EPIC-004 | Ajoutée |
 | US-004 | Choisir un créneau de retrait | EPIC-004 | Existante |
 
 Le détail des user stories Kadhia multiple est documenté dans [`kadhia-multiple-user-stories.md`](./kadhia-multiple-user-stories.md).
@@ -134,7 +138,8 @@ order
 - customer_id
 - shop_id
 - pickup_slot_id
-- status          (submitted | accepted | rejected | preparing | ready | pickup_pending | completed | cancelled)
+- status          (submitted | accepted | partially_accepted | rejected | preparing | ready | pickup_pending | completed | cancelled)
+- notes           (optionnel — instructions du client pour le marchand)
 - total_tnd
 - submitted_at
 - created_at
@@ -172,6 +177,7 @@ GET    /api/me/kadhias
 GET    /api/me/kadhias?status=draft
 GET    /api/me/kadhias?status=submitted
 GET    /api/me/kadhias?store_id={storeId}
+GET    /api/me/kadhias?page=2
 GET    /api/me/kadhias/{kadhiaId}
 PATCH  /api/me/kadhias/{kadhiaId}
 PUT    /api/me/kadhias/{kadhiaId}/lines/{merchantProductId}
