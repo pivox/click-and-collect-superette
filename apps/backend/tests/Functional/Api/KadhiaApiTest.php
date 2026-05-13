@@ -184,6 +184,7 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertSame('draft', $payload['status']);
         self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
+        self::assertNull($payload['order_id']);
         self::assertSame([], $payload['lines']);
         self::assertSame('0.000', $payload['total_tnd']);
     }

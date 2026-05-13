@@ -42,6 +42,7 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
         $payload = $this->decodeJson($response);
         self::assertSame('submitted', $payload['status']);
+        self::assertSame($kadhia->getId()->toRfc4122(), $payload['kadhia_id']);
         self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
         self::assertSame($slot->getId()->toRfc4122(), $payload['pickup_slot_id']);
         self::assertNull($payload['notes']);

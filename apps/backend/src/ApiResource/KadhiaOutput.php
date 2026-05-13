@@ -104,6 +104,9 @@ final readonly class KadhiaOutput
         #[Groups(['kadhia:read'])]
         public string $status,
         #[Groups(['kadhia:read'])]
+        #[SerializedName('order_id')]
+        public ?string $orderId,
+        #[Groups(['kadhia:read'])]
         public ?string $notes,
         #[Groups(['kadhia:read'])]
         public array $lines,

@@ -48,6 +48,9 @@ final readonly class OrderOutput
         #[Groups(['order:read'])]
         public string $id,
         #[Groups(['order:read'])]
+        #[SerializedName('kadhia_id')]
+        public ?string $kadhiaId,
+        #[Groups(['order:read'])]
         #[SerializedName('store_id')]
         public string $storeId,
         #[Groups(['order:read'])]
