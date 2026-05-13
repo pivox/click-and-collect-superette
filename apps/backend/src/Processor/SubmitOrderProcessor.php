@@ -202,22 +202,42 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $order->setPickupSlot($slot);
         $order->setNotes($data->notes);
 
+        // Index existing lines by product UUID for in-place reuse.
+        $existingLines = [];
         foreach ($order->getLines() as $line) {
-            $order->removeLine($line);
+            $existingLines[$line->getMerchantProduct()->getId()->toRfc4122()] = $line;
         }
 
+        $kadhiaProductIds = [];
         foreach ($kadhia->getLines() as $kadhiaLine) {
+            $productId = $kadhiaLine->getMerchantProduct()->getId()->toRfc4122();
+            $kadhiaProductIds[$productId] = true;
             $unitPriceTnd = $kadhiaLine->getUnitPriceTnd();
             $lineTotalTnd = bcmul($unitPriceTnd, (string) $kadhiaLine->getQuantity(), 3);
 
-            $orderLine = (new OrderLine())
-                ->setMerchantProduct($kadhiaLine->getMerchantProduct())
-                ->setQuantity($kadhiaLine->getQuantity())
-                ->setUnitPriceTnd($unitPriceTnd)
-                ->setLineTotalTnd($lineTotalTnd);
+            if (isset($existingLines[$productId])) {
+                // Reuse existing row — avoids delete+insert on same (order_id, merchant_product_id).
+                $existingLines[$productId]
+                    ->setQuantity($kadhiaLine->getQuantity())
+                    ->setUnitPriceTnd($unitPriceTnd)
+                    ->setLineTotalTnd($lineTotalTnd);
+            } else {
+                $orderLine = (new OrderLine())
+                    ->setMerchantProduct($kadhiaLine->getMerchantProduct())
+                    ->setQuantity($kadhiaLine->getQuantity())
+                    ->setUnitPriceTnd($unitPriceTnd)
+                    ->setLineTotalTnd($lineTotalTnd);
 
-            $order->addLine($orderLine);
-            $this->entityManager->persist($orderLine);
+                $order->addLine($orderLine);
+                $this->entityManager->persist($orderLine);
+            }
+        }
+
+        // Remove lines whose products are no longer in the Kadhia.
+        foreach ($existingLines as $productId => $line) {
+            if (!isset($kadhiaProductIds[$productId])) {
+                $order->removeLine($line);
+            }
         }
 
         $order->recomputeTotal();
