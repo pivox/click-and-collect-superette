@@ -50,7 +50,7 @@ Exclus du MVP :
 4. Le client ajoute des produits à sa Kadhia.
 5. Le client choisit un créneau de retrait.
 6. Le client soumet la commande.
-7. Le marchand valide ou refuse.
+7. Le marchand valide, refuse ou accepte partiellement.
 8. Le marchand prépare.
 9. La commande passe à prête.
 10. Le client présente le QR code de retrait.
@@ -62,6 +62,7 @@ Exclus du MVP :
 - `draft`
 - `submitted`
 - `accepted`
+- `partially_accepted` — le marchand a accepté une partie des lignes ; la Kadhia repasse en `draft` pour que le client la modifie et la re-soumette
 - `rejected`
 - `preparing`
 - `ready`

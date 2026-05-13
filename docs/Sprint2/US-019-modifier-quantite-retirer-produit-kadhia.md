@@ -28,8 +28,8 @@ afin d'ajuster ma commande avant de la soumettre.
 
 ## Préconditions
 
-- Le client est authentifié.
-- Le client possède une Kadhia au statut `draft`.
+- Le client est authentifié avec `ROLE_CUSTOMER`.
+- Le client possède une Kadhia au statut `draft` (identifiée par `kadhiaId`).
 - La Kadhia contient au moins une ligne.
 - La ligne appartient bien à la Kadhia du client courant.
 
@@ -55,11 +55,11 @@ afin d'ajuster ma commande avant de la soumettre.
 ## Règles métier
 
 - Seule une Kadhia au statut `draft` est modifiable.
-- Une Kadhia `submitted`, `accepted`, `rejected`, `ready` ou `completed` ne doit pas être modifiée par le client.
+- Une Kadhia `submitted` ou dans tout autre statut non-`draft` ne peut pas être modifiée ; l'API retourne `KADHIA_NOT_EDITABLE`.
 - La quantité minimale d'une ligne active est `1`.
-- Une quantité `0` peut être interprétée comme une suppression de ligne.
 - Une quantité négative est toujours refusée.
 - Une ligne ne peut être modifiée que par le propriétaire de la Kadhia.
+- L'endpoint `PUT .../lines/{merchantProductId}` est un upsert : il crée ou remplace la ligne ciblée par son `merchantProductId`.
 - Après chaque modification, le total de la Kadhia doit être recalculé côté serveur.
 - Le prix unitaire snapshoté ne doit pas être recalculé depuis le catalogue lors d'une simple modification de quantité.
 
@@ -68,14 +68,14 @@ afin d'ajuster ma commande avant de la soumettre.
 Consulter la Kadhia :
 
 ```http
-GET /api/kadhia?storeId={storeId}
+GET /api/me/kadhias/{kadhiaId}
 Authorization: Bearer <client_jwt>
 ```
 
-Modifier une ligne :
+Modifier la quantité d'un produit (upsert) :
 
 ```http
-PATCH /api/kadhia/lines/{lineId}
+PUT /api/me/kadhias/{kadhiaId}/lines/{merchantProductId}
 Authorization: Bearer <client_jwt>
 Content-Type: application/json
 ```
@@ -91,7 +91,7 @@ Payload :
 Supprimer une ligne :
 
 ```http
-DELETE /api/kadhia/lines/{lineId}
+DELETE /api/me/kadhias/{kadhiaId}/lines/{merchantProductId}
 Authorization: Bearer <client_jwt>
 ```
 
@@ -134,7 +134,7 @@ alors l'API retourne une erreur de validation.
 
 Étant donné une Kadhia déjà soumise,
 quand le client tente de modifier une ligne,
-alors l'API refuse la modification.
+alors l'API refuse la modification avec l'erreur `KADHIA_NOT_EDITABLE`.
 
 ### Sécurité propriétaire
 
@@ -170,4 +170,4 @@ alors l'API retourne une erreur d'accès.
 
 ## Définition de fini
 
-La story est terminée lorsque le client peut modifier les quantités, retirer des produits et voir une Kadhia cohérente, uniquement tant qu'elle est au statut `draft`.
+La story est terminée lorsque le client peut modifier les quantités ou retirer des produits d'une Kadhia `draft` identifiée par `kadhiaId`, avec recalcul des totaux côté serveur et refus clair si la Kadhia n'est plus en `draft`.
