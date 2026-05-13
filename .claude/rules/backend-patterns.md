@@ -4,18 +4,25 @@ Patterns découverts pendant les sprints #20–#47. À appliquer systématiqueme
 
 ## 1. API Platform — IRI generation avec un DTO comme ApiResource
 
-Quand la classe annotée `#[ApiResource]` est un **DTO de sortie** (ex. `KadhiaOutput`) et non l'entité Doctrine, tous les `uriVariables` `Link` de ce resource doivent utiliser `fromClass: KadhiaOutput::class` et non `fromClass: Kadhia::class`.
+Quand la classe annotée `#[ApiResource]` est un **DTO de sortie** (ex. `KadhiaOutput`), la variable URI qui identifie **ce DTO lui-même** doit utiliser `fromClass: KadhiaOutput::class`. Les autres variables URI de la même opération (qui identifient d'autres ressources) continuent d'utiliser leur propre classe.
 
-Utiliser l'entité provoque `InvalidArgumentException: Unable to generate an IRI` → HTTP 400.
+Utiliser l'entité pour l'identifiant du DTO provoque `InvalidArgumentException: Unable to generate an IRI` → HTTP 400.
 
 ```php
-// Correct
-new Get(
-    uriTemplate: '/me/kadhias/{kadhiaId}',
-    uriVariables: ['kadhiaId' => new Link(fromClass: KadhiaOutput::class, identifiers: ['id'])],
+// Correct — kadhiaId identifie le DTO, storeId et merchantProductId identifient d'autres ressources
+new Put(
+    uriTemplate: '/me/kadhias/{kadhiaId}/lines/{merchantProductId}',
+    uriVariables: [
+        'kadhiaId'          => new Link(fromClass: KadhiaOutput::class, identifiers: ['id']),
+        'merchantProductId' => new Link(fromClass: MerchantProduct::class, identifiers: ['id']),
+    ],
+)
+new Post(
+    uriTemplate: '/me/stores/{storeId}/kadhias',
+    uriVariables: ['storeId' => new Link(fromClass: Shop::class, identifiers: ['id'])],
 )
 
-// Incorrect — cause HTTP 400
+// Incorrect — kadhiaId doit pointer vers le DTO, pas l'entité
 new Get(
     uriTemplate: '/me/kadhias/{kadhiaId}',
     uriVariables: ['kadhiaId' => new Link(fromClass: Kadhia::class, identifiers: ['id'])],
@@ -99,6 +106,21 @@ $page   = max(1, (int) ($request?->query->get('page') ?? 1));
 $status = $context['filters']['status'] ?? null;
 ```
 
-## 6. Extension bcmath absente dans l'environnement de test
+## 6. Extension bcmath et environnement de test
 
-L'extension PHP `bcmath` n'est pas disponible dans l'environnement de test de ce projet. Un polyfill est défini dans `tests/bootstrap.php`. Ne pas ajouter de dépendance `ext-bcmath` dans `composer.json` sans vérifier la compatibilité CI.
+`ext-bcmath` est déclarée dans `apps/backend/composer.json` et utilisée en production (`bcadd`, `bcmul`). Ne pas la retirer.
+
+Si des tests échouent avec `Call to undefined function bcadd()`, c'est que l'environnement CI n'a pas l'extension installée malgré la déclaration composer. Solution : ajouter un polyfill dans `tests/bootstrap.php` (pas en production) :
+
+```php
+if (!function_exists('bcadd')) {
+    function bcadd(string $num1, string $num2, int $scale = 0): string
+    {
+        return number_format((float) $num1 + (float) $num2, $scale, '.', '');
+    }
+    function bcmul(string $num1, string $num2, int $scale = 0): string
+    {
+        return number_format((float) $num1 * (float) $num2, $scale, '.', '');
+    }
+}
+```
