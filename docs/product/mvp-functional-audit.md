@@ -47,12 +47,12 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 | Recherche store | Oui | Oui | Oui | Oui | OK | Garder `GET /api/stores/search`. |
 | Relation client/store | Oui | Oui | Oui | Oui | OK | Garder `/api/me/stores/*`. |
 | Catalogue public store | Oui | Oui | Oui | Oui | OK | Garder `/api/stores/{storeId}/catalog`. |
-| Référentiel produit marchand | Oui | Oui | Oui | A_ALIGNER | PARTIEL | Contrat à aligner sur `/merchant/stores/{storeId}/product-references`. |
-| Catalogue marchand | Oui | Oui | Oui | A_ALIGNER | OK | Contrat à aligner sur endpoints réels. |
-| Kadhia multiple | Oui | Oui | Oui | A_ALIGNER | OK | Contrat global à aligner sur `/api/me/kadhias`. |
-| Soumission Kadhia | Oui | Oui | Oui | A_ALIGNER | OK | Garder `POST /api/me/kadhias/{kadhiaId}/submit`. |
-| Historique commandes client | Oui | Partiel / à vérifier | Partiel / à vérifier | A_ALIGNER | PARTIEL | Vérifier `GET /api/me/orders`. |
-| Commandes marchand | Oui | Oui | Oui | A_ALIGNER | OK | Contrat à aligner avec routes contenant `storeId`. |
+| Référentiel produit marchand | Oui | Oui | Oui | Oui | OK | Garder `/merchant/stores/{storeId}/product-references`. |
+| Catalogue marchand | Oui | Oui | Oui | Oui | OK | Garder endpoints catalogue marchand réels. |
+| Kadhia multiple | Oui | Oui | Oui | Oui | OK | Garder `/api/me/kadhias`. |
+| Soumission Kadhia | Oui | Oui | Oui | Oui | OK | Garder `POST /api/me/kadhias/{kadhiaId}/submit`. |
+| Historique commandes client | Oui | Oui | Oui | Oui | OK | `GET /api/me/orders` et `GET /api/me/orders/{id}` présents et testés. |
+| Commandes marchand | Oui | Oui | Oui | Oui | OK | Garder routes contenant `storeId`. |
 | Acceptation partielle | Oui | Domaine partiel | Partiel | Non | PARTIEL | Ajouter endpoint marchand dédié. |
 | Préparation ligne par ligne | Oui | Non | Non | Non | MANQUANT | À cadrer avant Sprint préparation avancée. |
 | Créneaux marchand CRUD | Oui | Non / à vérifier | Non / à vérifier | Partiel | MANQUANT | Ajouter endpoints marchand pickup-slots. |
@@ -82,9 +82,9 @@ PATCH /api/me/profile
 
 Pour les marchands, le MVP doit privilégier un onboarding contrôlé par l'admin plutôt qu'une inscription publique non validée.
 
-### 2. Contrat API Kadhia obsolète
+### 2. Ancien contrat API Kadhia remplacé
 
-Le contrat API global décrivait encore un ancien modèle où la commande servait de panier.
+Le contrat API global décrivait auparavant un ancien modèle où la commande servait de panier.
 
 Le modèle actuel est :
 
@@ -98,7 +98,7 @@ DELETE /api/me/kadhias/{kadhiaId}/lines/{merchantProductId}
 POST   /api/me/kadhias/{kadhiaId}/submit
 ```
 
-### 3. Contrat API marchand partiellement obsolète
+### 3. Contrat API marchand aligné sur le `storeId`
 
 Les routes réelles côté marchand incluent le `storeId` pour vérifier le propriétaire de la supérette.
 
@@ -158,7 +158,7 @@ MVP recommandé : notifications persistées en base + endpoints de lecture, sans
 
 ### P0 — Stabiliser les sources de vérité
 
-- Aligner `docs/architecture/api-contract.md` sur les endpoints réels.
+- Garder `docs/architecture/api-contract.md` aligné sur les endpoints réels.
 - Corriger ou marquer comme obsolètes les anciennes US Kadhia/QR contradictoires.
 - Conserver `docs/roadmap/mvp-roadmap.md` comme roadmap principale.
 
