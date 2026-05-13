@@ -6,6 +6,7 @@ Ce dossier contient un prototype statique pour conceptualiser l'application Clic
 
 - `index.html` : page d'entrée du prototype
 - `user-client-flow.html` : nouvelle maquette du parcours client mobile complet
+- `user-web-flow.html` : nouvelle maquette du parcours client web desktop
 - `client-mobile.html` : parcours client mobile initial
 - `merchant-mobile.html` : parcours marchand mobile
 - `merchant-web.html` : espace marchand web
@@ -25,6 +26,21 @@ La page `user-client-flow.html` couvre les écrans principaux côté utilisateur
 8. QR code de retrait.
 
 Le style dédié est dans `user-client-flow.css`.
+
+## Parcours client web
+
+La page `user-web-flow.html` propose une version desktop du même parcours avec :
+
+- navigation latérale ;
+- recherche globale ;
+- fiche store reconnue ;
+- catalogue en grille ;
+- panier latéral ;
+- sélection du créneau ;
+- suivi de commande ;
+- QR code de retrait.
+
+Le style dédié est dans `user-web-flow.css`.
 
 ## Utilisation
 
