@@ -14,7 +14,7 @@ QR code ou recherche
 → fiche publique de la supérette
 → relation client/supérette si client connecté
 → catalogue (navigation, recherche, filtrage)
-→ Kadhia (ajout, modification des quantités, récapitulatif)
+→ Kadhia (création explicite, ajout, modification des quantités, récapitulatif)
 → créneau de retrait
 → soumission de commande
 → confirmation
@@ -29,7 +29,11 @@ QR code ou recherche
 - La source de découverte (`qr_code`, `search`, `order`) est conservée à la création et ne change plus.
 - `last_seen_at` est mis à jour à chaque consultation reconnue.
 - Les données publiques du store ne doivent pas exposer les données privées du marchand.
-- La Kadhia reste en état `draft` jusqu'à la soumission ; elle n'est plus modifiable après.
+- Un client peut créer plusieurs Kadhia pour une même supérette.
+- La création d'une Kadhia est explicite et se fait par `POST`.
+- Un `GET` ne doit jamais créer de Kadhia.
+- Une Kadhia reste en état `draft` jusqu'à la soumission ; elle n'est plus modifiable après.
+- Une Kadhia `submitted` reste listable et consultable par le client.
 - Les prix sont figés à l'ajout en Kadhia (snapshot) et ne sont pas recalculés à la soumission.
 - La capacité du créneau est décrémentée à la soumission, pas à la sélection.
 - La soumission est transactionnelle : créneau et Kadhia sont revalidés atomiquement.
@@ -46,11 +50,19 @@ QR code ou recherche
 | US-002 | Consulter le catalogue marchand | EPIC-002 | Existante |
 | US-017 | Rechercher un produit par nom ou marque | EPIC-002 | Ajoutée |
 | US-018 | Filtrer le catalogue par catégorie | EPIC-002 | Ajoutée |
-| US-003 | Ajouter un produit à la Kadhia | EPIC-003 | Existante |
-| US-019 | Modifier la quantité ou retirer un produit de la Kadhia | EPIC-003 | Ajoutée |
+| US-003-A | Créer une Kadhia | EPIC-003 | Ajoutée |
+| US-003-B | Lister mes Kadhia | EPIC-003 | Ajoutée |
+| US-003-C | Consulter le détail d'une Kadhia | EPIC-003 | Ajoutée |
+| US-003-D | Ajouter un produit à une Kadhia draft | EPIC-003 | Ajoutée |
+| US-019-A | Modifier les notes d'une Kadhia draft | EPIC-003 | Ajoutée |
+| US-019-B | Modifier la quantité d'un produit dans une Kadhia draft | EPIC-003 | Ajoutée |
+| US-019-C | Retirer un produit d'une Kadhia draft | EPIC-003 | Ajoutée |
 | US-020 | Récapitulatif de la Kadhia avec total TND | EPIC-003 | Ajoutée |
+| US-021-A | Soumettre une Kadhia précise | EPIC-004 | Ajoutée |
+| US-021-B | Lister mes Kadhia soumises | EPIC-004 | Ajoutée |
 | US-004 | Choisir un créneau de retrait | EPIC-004 | Existante |
-| US-021 | Soumettre la commande | EPIC-004 | Ajoutée |
+
+Le détail des user stories Kadhia multiple est documenté dans [`kadhia-multiple-user-stories.md`](./kadhia-multiple-user-stories.md).
 
 ## Modèle métier à prévoir
 
@@ -81,11 +93,18 @@ UNIQUE(customer_id, shop_id)
 ### Kadhia et commande
 
 ```text
+Client 1..n Kadhia n..1 Shop
+Kadhia 1..n KadhiaLine
+Kadhia 0..1 Order
+```
+
+```text
 kadhia
 - id
 - customer_id
 - shop_id
 - status          (draft | submitted)
+- notes
 - created_at
 - updated_at
 
@@ -148,17 +167,22 @@ GET /api/stores/{storeId}/catalog?query=vitalait&category=lait
 ### Kadhia
 
 ```http
-GET    /api/kadhia?storeId={storeId}
-POST   /api/kadhia/lines
-PATCH  /api/kadhia/lines/{lineId}
-DELETE /api/kadhia/lines/{lineId}
+POST   /api/me/stores/{storeId}/kadhias
+GET    /api/me/kadhias
+GET    /api/me/kadhias?status=draft
+GET    /api/me/kadhias?status=submitted
+GET    /api/me/kadhias?store_id={storeId}
+GET    /api/me/kadhias/{kadhiaId}
+PATCH  /api/me/kadhias/{kadhiaId}
+PUT    /api/me/kadhias/{kadhiaId}/lines/{merchantProductId}
+DELETE /api/me/kadhias/{kadhiaId}/lines/{merchantProductId}
 ```
 
 ### Créneau et commande
 
 ```http
 GET  /api/stores/{storeId}/pickup-slots?from=today&available=true
-POST /api/orders
+POST /api/me/kadhias/{kadhiaId}/submit
 ```
 
 ## Hors périmètre Sprint 2
@@ -181,6 +205,8 @@ Le Sprint 2 est cohérent lorsque le client peut :
 2. voir la fiche publique du store ;
 3. créer ou mettre à jour sa relation avec le store s'il est connecté ;
 4. consulter le catalogue, rechercher un produit et filtrer par catégorie ;
-5. ajouter des produits à sa Kadhia, modifier les quantités et voir le total en TND ;
-6. choisir un créneau de retrait disponible ;
-7. soumettre sa commande et recevoir une confirmation avec le numéro de commande.
+5. créer explicitement une ou plusieurs Kadhia pour une supérette ;
+6. lister ses Kadhia en cours ou soumises ;
+7. ajouter des produits à une Kadhia `draft`, modifier les quantités et voir le total en TND ;
+8. choisir un créneau de retrait disponible ;
+9. soumettre une Kadhia précise et recevoir une confirmation avec le numéro de commande.
