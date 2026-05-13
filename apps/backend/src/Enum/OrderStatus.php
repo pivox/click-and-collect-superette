@@ -9,6 +9,7 @@ enum OrderStatus: string
     case Draft = 'draft';
     case Submitted = 'submitted';
     case Accepted = 'accepted';
+    case PartiallyAccepted = 'partially_accepted';
     case Rejected = 'rejected';
     case Preparing = 'preparing';
     case Ready = 'ready';

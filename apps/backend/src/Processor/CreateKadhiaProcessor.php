@@ -7,25 +7,24 @@ namespace App\Processor;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\KadhiaOutput;
-use App\Dto\KadhiaPatchInput;
+use App\Dto\CreateKadhiaInput;
+use App\Entity\Kadhia;
 use App\Entity\User;
-use App\Enum\KadhiaStatus;
 use App\Factory\KadhiaOutputFactory;
-use App\Repository\KadhiaRepository;
+use App\Repository\ShopRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * @implements ProcessorInterface<KadhiaPatchInput, KadhiaOutput>
+ * @implements ProcessorInterface<CreateKadhiaInput, KadhiaOutput>
  */
-final readonly class PatchKadhiaNotesProcessor implements ProcessorInterface
+final readonly class CreateKadhiaProcessor implements ProcessorInterface
 {
     public function __construct(
-        private KadhiaRepository $kadhiaRepository,
+        private ShopRepository $shopRepository,
         private EntityManagerInterface $entityManager,
         private KadhiaOutputFactory $kadhiaOutputFactory,
         private Security $security,
@@ -38,8 +37,8 @@ final readonly class PatchKadhiaNotesProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): KadhiaOutput
     {
-        if (!$data instanceof KadhiaPatchInput) {
-            throw new \InvalidArgumentException('KadhiaPatchInput expected.');
+        if (!$data instanceof CreateKadhiaInput) {
+            throw new \InvalidArgumentException('CreateKadhiaInput expected.');
         }
 
         $user = $this->security->getUser();
@@ -47,21 +46,22 @@ final readonly class PatchKadhiaNotesProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('CUSTOMER_ACCESS_REQUIRED');
         }
 
-        $kadhiaId = (string) ($uriVariables['kadhiaId'] ?? '');
-        if (!Uuid::isValid($kadhiaId)) {
-            throw new NotFoundHttpException('KADHIA_NOT_FOUND');
+        $storeId = (string) ($uriVariables['storeId'] ?? '');
+        if (!Uuid::isValid($storeId)) {
+            throw new NotFoundHttpException('STORE_NOT_FOUND');
         }
 
-        $kadhia = $this->kadhiaRepository->findByIdAndCustomer($kadhiaId, $user);
-        if (null === $kadhia) {
-            throw new NotFoundHttpException('KADHIA_NOT_FOUND');
+        $shop = $this->shopRepository->find($storeId);
+        if (null === $shop || !$shop->isActive()) {
+            throw new NotFoundHttpException('STORE_NOT_FOUND');
         }
 
-        if (KadhiaStatus::Draft !== $kadhia->getStatus()) {
-            throw new UnprocessableEntityHttpException('KADHIA_NOT_EDITABLE');
-        }
+        $kadhia = (new Kadhia())
+            ->setCustomer($user)
+            ->setShop($shop)
+            ->setNotes($data->notes);
 
-        $kadhia->setNotes($data->notes);
+        $this->entityManager->persist($kadhia);
         $this->entityManager->flush();
 
         return $this->kadhiaOutputFactory->toOutput($kadhia);

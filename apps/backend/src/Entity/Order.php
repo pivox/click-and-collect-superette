@@ -206,6 +206,22 @@ class Order
         $this->status = OrderStatus::Accepted;
     }
 
+    public function partiallyAccept(): void
+    {
+        if (OrderStatus::Submitted !== $this->status) {
+            throw new \LogicException('ORDER_NOT_SUBMITTED');
+        }
+        $this->status = OrderStatus::PartiallyAccepted;
+    }
+
+    public function resubmit(): void
+    {
+        if (OrderStatus::PartiallyAccepted !== $this->status) {
+            throw new \LogicException('ORDER_NOT_PARTIALLY_ACCEPTED');
+        }
+        $this->status = OrderStatus::Submitted;
+    }
+
     public function getRejectionReason(): ?string
     {
         return $this->rejectionReason;
