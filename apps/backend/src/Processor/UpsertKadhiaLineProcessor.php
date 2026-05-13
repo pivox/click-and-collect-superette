@@ -8,18 +8,18 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\KadhiaOutput;
 use App\Dto\KadhiaLineUpsertInput;
-use App\Entity\Kadhia;
 use App\Entity\KadhiaLine;
 use App\Entity\User;
+use App\Enum\KadhiaStatus;
 use App\Factory\KadhiaOutputFactory;
 use App\Repository\KadhiaLineRepository;
 use App\Repository\KadhiaRepository;
 use App\Repository\MerchantProductRepository;
-use App\Repository\ShopRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -28,7 +28,6 @@ use Symfony\Component\Uid\Uuid;
 final readonly class UpsertKadhiaLineProcessor implements ProcessorInterface
 {
     public function __construct(
-        private ShopRepository $shopRepository,
         private MerchantProductRepository $merchantProductRepository,
         private KadhiaRepository $kadhiaRepository,
         private KadhiaLineRepository $kadhiaLineRepository,
@@ -53,14 +52,18 @@ final readonly class UpsertKadhiaLineProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('CUSTOMER_ACCESS_REQUIRED');
         }
 
-        $storeId = (string) ($uriVariables['storeId'] ?? '');
-        if (!Uuid::isValid($storeId)) {
-            throw new NotFoundHttpException('STORE_NOT_FOUND');
+        $kadhiaId = (string) ($uriVariables['kadhiaId'] ?? '');
+        if (!Uuid::isValid($kadhiaId)) {
+            throw new NotFoundHttpException('KADHIA_NOT_FOUND');
         }
 
-        $shop = $this->shopRepository->find($storeId);
-        if (null === $shop || !$shop->isActive()) {
-            throw new NotFoundHttpException('STORE_NOT_FOUND');
+        $kadhia = $this->kadhiaRepository->findByIdAndCustomer($kadhiaId, $user);
+        if (null === $kadhia) {
+            throw new NotFoundHttpException('KADHIA_NOT_FOUND');
+        }
+
+        if (KadhiaStatus::Draft !== $kadhia->getStatus()) {
+            throw new UnprocessableEntityHttpException('KADHIA_NOT_EDITABLE');
         }
 
         $merchantProductId = (string) ($uriVariables['merchantProductId'] ?? '');
@@ -70,16 +73,10 @@ final readonly class UpsertKadhiaLineProcessor implements ProcessorInterface
 
         $merchantProduct = $this->merchantProductRepository->find($merchantProductId);
         if (null === $merchantProduct
-            || !$merchantProduct->getShop()->getId()->equals($shop->getId())
+            || !$merchantProduct->getShop()->getId()->equals($kadhia->getShop()->getId())
             || !$merchantProduct->isAvailable()
             || !$merchantProduct->isVisible()) {
             throw new NotFoundHttpException('MERCHANT_PRODUCT_NOT_FOUND');
-        }
-
-        $kadhia = $this->kadhiaRepository->findDraftByCustomerAndShop($user, $shop);
-        if (null === $kadhia) {
-            $kadhia = (new Kadhia())->setCustomer($user)->setShop($shop);
-            $this->entityManager->persist($kadhia);
         }
 
         $line = $this->kadhiaLineRepository->findOneByKadhiaAndProduct($kadhia, $merchantProduct);

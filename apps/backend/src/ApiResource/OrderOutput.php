@@ -10,7 +10,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use App\Dto\SubmitOrderInput;
-use App\Entity\Shop;
+use App\Entity\Kadhia;
 use App\Processor\SubmitOrderProcessor;
 use App\Provider\OrderItemProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -26,8 +26,8 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             security: "is_granted('ROLE_CUSTOMER')",
         ),
         new Post(
-            uriTemplate: '/me/stores/{storeId}/orders',
-            uriVariables: ['storeId' => new Link(fromClass: Shop::class, identifiers: ['id'])],
+            uriTemplate: '/me/kadhias/{kadhiaId}/submit',
+            uriVariables: ['kadhiaId' => new Link(fromClass: Kadhia::class, identifiers: ['id'])],
             formats: ['json' => ['application/json']],
             input: SubmitOrderInput::class,
             normalizationContext: ['groups' => ['order:read']],
@@ -47,6 +47,9 @@ final readonly class OrderOutput
         #[ApiProperty(identifier: true)]
         #[Groups(['order:read'])]
         public string $id,
+        #[Groups(['order:read'])]
+        #[SerializedName('kadhia_id')]
+        public ?string $kadhiaId,
         #[Groups(['order:read'])]
         #[SerializedName('store_id')]
         public string $storeId,

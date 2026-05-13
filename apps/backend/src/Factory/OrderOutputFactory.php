@@ -27,6 +27,7 @@ final readonly class OrderOutputFactory
 
         return new OrderOutput(
             id: $order->getId()->toRfc4122(),
+            kadhiaId: $order->getKadhia()?->getId()->toRfc4122(),
             storeId: $order->getShop()->getId()->toRfc4122(),
             status: $order->getStatus()->value,
             totalTnd: $order->getTotalTnd(),

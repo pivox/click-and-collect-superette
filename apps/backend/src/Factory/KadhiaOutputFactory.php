@@ -11,7 +11,7 @@ use App\Entity\KadhiaLine;
 
 final readonly class KadhiaOutputFactory
 {
-    public function toOutput(Kadhia $kadhia): KadhiaOutput
+    public function toOutput(Kadhia $kadhia, ?string $orderId = null): KadhiaOutput
     {
         $lines = array_map(
             static fn (KadhiaLine $l): KadhiaLineOutput => new KadhiaLineOutput(
@@ -35,6 +35,7 @@ final readonly class KadhiaOutputFactory
             id: $kadhia->getId()->toRfc4122(),
             storeId: $kadhia->getShop()->getId()->toRfc4122(),
             status: $kadhia->getStatus()->value,
+            orderId: $orderId,
             notes: $kadhia->getNotes(),
             lines: $lines,
             totalTnd: $totalTnd,

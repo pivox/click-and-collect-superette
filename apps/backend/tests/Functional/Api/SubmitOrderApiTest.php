@@ -15,12 +15,13 @@ use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\KadhiaStatus;
+use App\Enum\OrderStatus;
 use App\Enum\ProductReferenceStatus;
 use Symfony\Component\Uid\Uuid;
 
 final class SubmitOrderApiTest extends FunctionalApiTestCase
 {
-    // POST /api/me/stores/{storeId}/orders
+    // POST /api/me/kadhias/{kadhiaId}/submit
 
     public function testSubmitOrderHappyPath(): void
     {
@@ -32,7 +33,7 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
             ['pickup_slot_id' => $slot->getId()->toRfc4122()],
             $customer,
         );
@@ -41,6 +42,7 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
         $payload = $this->decodeJson($response);
         self::assertSame('submitted', $payload['status']);
+        self::assertSame($kadhia->getId()->toRfc4122(), $payload['kadhia_id']);
         self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
         self::assertSame($slot->getId()->toRfc4122(), $payload['pickup_slot_id']);
         self::assertNull($payload['notes']);
@@ -70,11 +72,11 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         $shop = $this->createShop();
         $slot = $this->createPickupSlot($shop, capacity: 3);
         $product = $this->createMerchantProduct($shop, '1.500');
-        $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '1.500');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '1.500');
 
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
             ['pickup_slot_id' => $slot->getId()->toRfc4122(), 'notes' => 'Sans sel svp'],
             $customer,
         );
@@ -93,11 +95,11 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         $product = $this->createMerchantProduct($shop, '2.000');
-        $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
 
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
             ['pickup_slot_id' => $slot->getId()->toRfc4122()],
             $customer,
         );
@@ -106,20 +108,18 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('PICKUP_SLOT_FULL', (string) $response->getContent());
     }
 
-    public function testSubmitOrderNoKadhiaDraftReturns422(): void
+    public function testSubmitOrderKadhiaNotFoundReturns404(): void
     {
         $customer = $this->createUser('submit-no-kadhia@example.test', ['ROLE_CUSTOMER']);
-        $shop = $this->createShop();
-        $slot = $this->createPickupSlot($shop, capacity: 5);
 
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
-            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            '/api/me/kadhias/00000000-0000-0000-0000-000000000099/submit',
+            ['pickup_slot_id' => Uuid::v4()->toRfc4122()],
             $customer,
         );
 
-        self::assertSame(422, $response->getStatusCode());
+        self::assertSame(404, $response->getStatusCode());
         self::assertStringContainsString('KADHIA_NOT_FOUND', (string) $response->getContent());
     }
 
@@ -135,7 +135,7 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
             ['pickup_slot_id' => $slot->getId()->toRfc4122()],
             $customer,
         );
@@ -150,11 +150,11 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         $shop = $this->createShop();
         $slot = $this->createPickupSlot($shop, capacity: 5);
         $product = $this->createMerchantProduct($shop, '2.000', available: false);
-        $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
 
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
             ['pickup_slot_id' => $slot->getId()->toRfc4122()],
             $customer,
         );
@@ -169,11 +169,11 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         $shop = $this->createShop();
         $slot = $this->createPickupSlot($shop, capacity: 5);
         $product = $this->createMerchantProduct($shop, '2.000', visible: false);
-        $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
 
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
             ['pickup_slot_id' => $slot->getId()->toRfc4122()],
             $customer,
         );
@@ -184,11 +184,9 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
     public function testSubmitOrderUnauthenticatedReturns401(): void
     {
-        $shop = $this->createShop();
-
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
+            '/api/me/kadhias/00000000-0000-0000-0000-000000000001/submit',
             ['pickup_slot_id' => Uuid::v4()->toRfc4122()],
         );
 
@@ -198,31 +196,15 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
     public function testSubmitOrderMerchantRoleReturns403(): void
     {
         $merchant = $this->createUser('submit-merchant@example.test', ['ROLE_MERCHANT']);
-        $shop = $this->createShop();
 
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
+            '/api/me/kadhias/00000000-0000-0000-0000-000000000001/submit',
             ['pickup_slot_id' => Uuid::v4()->toRfc4122()],
             $merchant,
         );
 
         self::assertSame(403, $response->getStatusCode());
-    }
-
-    public function testSubmitOrderShopNotFoundReturns404(): void
-    {
-        $customer = $this->createUser('submit-no-shop@example.test', ['ROLE_CUSTOMER']);
-
-        $response = $this->requestJson(
-            'POST',
-            '/api/me/stores/00000000-0000-0000-0000-000000000099/orders',
-            ['pickup_slot_id' => Uuid::v4()->toRfc4122()],
-            $customer,
-        );
-
-        self::assertSame(404, $response->getStatusCode());
-        self::assertStringContainsString('STORE_NOT_FOUND', (string) $response->getContent());
     }
 
     public function testSubmitOrderExpiredSlotReturns422(): void
@@ -231,11 +213,11 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         $shop = $this->createShop();
         $slot = $this->createPickupSlot($shop, capacity: 5, startsAtModifier: '-3 hours', endsAtModifier: '-1 hour');
         $product = $this->createMerchantProduct($shop, '1.000');
-        $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '1.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '1.000');
 
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop->getId()),
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
             ['pickup_slot_id' => $slot->getId()->toRfc4122()],
             $customer,
         );
@@ -251,17 +233,60 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         $shop2 = $this->createShop();
         $slotOtherShop = $this->createPickupSlot($shop2, capacity: 5);
         $product = $this->createMerchantProduct($shop1, '1.000');
-        $this->createKadhiaWithLine($customer, $shop1, $product, quantity: 1, unitPriceTnd: '1.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop1, $product, quantity: 1, unitPriceTnd: '1.000');
 
         $response = $this->requestJson(
             'POST',
-            \sprintf('/api/me/stores/%s/orders', $shop1->getId()),
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
             ['pickup_slot_id' => $slotOtherShop->getId()->toRfc4122()],
             $customer,
         );
 
         self::assertSame(404, $response->getStatusCode());
         self::assertStringContainsString('PICKUP_SLOT_NOT_FOUND', (string) $response->getContent());
+    }
+
+    public function testSubmitOrderResubmitAfterPartialAcceptanceReturns201(): void
+    {
+        $customer = $this->createUser('submit-resubmit@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop, capacity: 5);
+        $product = $this->createMerchantProduct($shop, '2.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
+
+        // Simulate existing partially_accepted order linked to this kadhia
+        $existingOrder = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop)
+            ->setKadhia($kadhia)
+            ->setPickupSlot($slot);
+        $this->entityManager->persist($existingOrder);
+        $existingOrder->submit();
+        $existingOrder->accept();
+        // Force status to partially_accepted via reflection to bypass transition guard
+        $ref = new \ReflectionProperty(Order::class, 'status');
+        $ref->setValue($existingOrder, OrderStatus::PartiallyAccepted);
+        // Kadhia back to draft (as merchant would have done)
+        $kadhia->setStatus(KadhiaStatus::Draft);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('submitted', $payload['status']);
+
+        $this->entityManager->clear();
+
+        // Must still be only one order (re-submission, not new order)
+        $orders = $this->entityManager->getRepository(Order::class)->findAll();
+        self::assertCount(1, $orders);
+        self::assertSame(OrderStatus::Submitted, $orders[0]->getStatus());
     }
 
     // Helpers
