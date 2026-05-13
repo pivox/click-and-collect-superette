@@ -10,15 +10,15 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 final readonly class OrderLineOutput
 {
     public function __construct(
-        #[Groups(['order:read'])]
+        #[Groups(['order:read', 'merchant_order:read'])]
         #[SerializedName('merchant_product_id')]
         public string $merchantProductId,
-        #[Groups(['order:read'])]
+        #[Groups(['order:read', 'merchant_order:read'])]
         public int $quantity,
-        #[Groups(['order:read'])]
+        #[Groups(['order:read', 'merchant_order:read'])]
         #[SerializedName('unit_price_tnd')]
         public string $unitPriceTnd,
-        #[Groups(['order:read'])]
+        #[Groups(['order:read', 'merchant_order:read'])]
         #[SerializedName('line_total_tnd')]
         public string $lineTotalTnd,
     ) {
