@@ -1,90 +1,29 @@
-# MVP Roadmap
+# MVP Roadmap — index
 
-## Sprint 0 — Foundations
+La roadmap MVP de référence est désormais :
 
-### Goals
+```text
+docs/roadmap/mvp-roadmap.md
+```
 
-- architecture
-- CI/CD
-- environments
-- translations
-- QR strategy
+L'audit fonctionnel courant est disponible ici :
 
-### Deliverables
+```text
+docs/product/mvp-functional-audit.md
+```
 
-- repository bootstrap
-- docker
-- coding standards
-- quality pipeline
+## Pourquoi ce fichier devient un index
 
----
+Ce fichier contenait une ancienne roadmap courte qui ne reflétait plus fidèlement l'état réel du produit ni les sprints déjà implémentés.
 
-## Sprint 1 — Shop Access
+Pour éviter les contradictions entre plusieurs roadmaps, les prochains agents IA et contributeurs doivent utiliser :
 
-### Goals
+1. `docs/roadmap/mvp-roadmap.md` pour la vision sprint par sprint ;
+2. `docs/product/mvp-functional-audit.md` pour l'état Documenté / Codé / Testé / Manquant ;
+3. `docs/architecture/api-contract.md` pour les endpoints de référence.
 
-- QR code scan
-- shop landing page
-- catalog browsing
+## Règle de contribution
 
----
+Ne pas recréer une roadmap parallèle dans ce fichier.
 
-## Sprint 2 — Kadhia
-
-### Goals
-
-- add products
-- remove products
-- totals in TND
-
----
-
-## Sprint 3 — Booking
-
-### Goals
-
-- pickup slots
-- capacity management
-- validations
-
----
-
-## Sprint 4 — Merchant Backoffice
-
-### Goals
-
-- accept order
-- reject order
-- preparation workflow
-
----
-
-## Sprint 5 — Pickup
-
-### Goals
-
-- pickup QR code
-- double validation
-- order completion
-
----
-
-## Sprint 6 — Personnalisation visuelle
-
-### Goals
-
-- PlatformTheme (admin, singleton)
-- ShopTheme (marchand, onboarding)
-- GET /api/stores/{storeId}/theme (public)
-- CSS variables injection in PWA
-
----
-
-## Sprint 7 — Production
-
-### Goals
-
-- observability
-- audit logs
-- analytics
-- support tools
+Toute évolution de roadmap doit être faite dans `docs/roadmap/mvp-roadmap.md`, puis reportée si nécessaire dans l'audit fonctionnel.
