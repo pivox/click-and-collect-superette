@@ -56,7 +56,8 @@ Le récapitulatif doit afficher au minimum :
 3. Le frontend appelle `GET /api/me/kadhias/{kadhiaId}`.
 4. Le backend retourne la Kadhia avec ses lignes et ses totaux calculés côté serveur.
 5. Le client vérifie les produits, quantités et montants.
-6. Le client peut continuer vers le choix du créneau ou modifier la Kadhia.
+6. Si la Kadhia est en `draft` : le client peut modifier les lignes ou continuer vers le choix du créneau.
+   Si la Kadhia est en `submitted` : la Kadhia est consultable en lecture seule ; toute tentative de modification retourne `KADHIA_NOT_EDITABLE`.
 
 ## Règles métier
 

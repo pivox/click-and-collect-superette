@@ -556,6 +556,7 @@ POST   /api/me/kadhias/{kadhiaId}/submit
 - Le client voit les lignes restantes (celles acceptées) avec les quantités éventuellement ajustées.
 - Le client peut modifier les quantités ou retirer des produits.
 - Le client peut re-soumettre la Kadhia avec `POST /api/me/kadhias/{kadhiaId}/submit`.
+- La re-soumission **met à jour** la commande existante (statut `partially_accepted` → `submitted`) ; elle ne crée pas une nouvelle commande. La relation `Kadhia 0..1 Order` est préservée.
 - Le client peut aussi créer une nouvelle Kadhia s'il souhaite repartir de zéro.
 - La re-soumission suit les mêmes règles que la soumission initiale (créneau valide, Kadhia non vide).
 

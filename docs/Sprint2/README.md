@@ -102,6 +102,8 @@ Kadhia 1..n KadhiaLine
 Kadhia 0..1 Order
 ```
 
+La relation `Kadhia 0..1 Order` est maintenue même après re-soumission : si une Kadhia repasse en `draft` suite à une acceptation partielle, la re-soumission **met à jour** l'ordre existant (statut `partially_accepted` → `submitted`) plutôt que d'en créer un nouveau. L'historique des changements de statut de la commande suffit à tracer les cycles.
+
 ```text
 kadhia
 - id
