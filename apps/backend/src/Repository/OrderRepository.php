@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Kadhia;
 use App\Entity\Order;
 use App\Entity\Shop;
 use App\Entity\User;
@@ -131,6 +132,14 @@ class OrderRepository extends ServiceEntityRepository
         return $this->findOneBy([
             'shop' => $shop,
             'id' => $orderId,
+        ]);
+    }
+
+    public function findPartiallyAcceptedByKadhia(Kadhia $kadhia): ?Order
+    {
+        return $this->findOneBy([
+            'kadhia' => $kadhia,
+            'status' => OrderStatus::PartiallyAccepted,
         ]);
     }
 }

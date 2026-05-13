@@ -16,16 +16,167 @@ use Symfony\Component\Uid\Uuid;
 
 final class KadhiaApiTest extends FunctionalApiTestCase
 {
-    // GET /api/me/stores/{storeId}/kadhia
+    // POST /api/me/stores/{storeId}/kadhias
 
-    public function testGetKadhiaAutoCreatesEmptyDraft(): void
+    public function testCreateKadhiaReturns201(): void
     {
-        $customer = $this->createUser('kadhia-get@example.test', ['ROLE_CUSTOMER']);
+        $customer = $this->createUser('kadhia-create@example.test', ['ROLE_CUSTOMER']);
         $shop = $this->createShop();
 
         $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+            [],
+            $customer,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('draft', $payload['status']);
+        self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
+        self::assertSame([], $payload['lines']);
+        self::assertSame('0.000', $payload['total_tnd']);
+        self::assertNull($payload['notes']);
+        self::assertArrayHasKey('id', $payload);
+    }
+
+    public function testCreateKadhiaWithNotesReturns201(): void
+    {
+        $customer = $this->createUser('kadhia-create-notes@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+            ['notes' => 'Sacs séparés SVP'],
+            $customer,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('Sacs séparés SVP', $payload['notes']);
+    }
+
+    public function testCreateKadhiaAllowsMultiplePerShop(): void
+    {
+        $customer = $this->createUser('kadhia-multi@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $this->requestJson('POST', \sprintf('/api/me/stores/%s/kadhias', $shop->getId()), [], $customer);
+        $this->requestJson('POST', \sprintf('/api/me/stores/%s/kadhias', $shop->getId()), [], $customer);
+
+        $repo = $this->entityManager->getRepository(Kadhia::class);
+        self::assertCount(2, $repo->findAll());
+    }
+
+    public function testCreateKadhiaInactiveShopReturns404(): void
+    {
+        $customer = $this->createUser('kadhia-create-inactive@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop(active: false);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+            [],
+            $customer,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testCreateKadhiaShopNotFoundReturns404(): void
+    {
+        $customer = $this->createUser('kadhia-create-404@example.test', ['ROLE_CUSTOMER']);
+
+        $response = $this->requestJson(
+            'POST',
+            '/api/me/stores/00000000-0000-0000-0000-000000000099/kadhias',
+            [],
+            $customer,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testCreateKadhiaUnauthenticatedReturns401(): void
+    {
+        $shop = $this->createShop();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+            [],
+        );
+
+        self::assertSame(401, $response->getStatusCode());
+    }
+
+    // GET /api/me/kadhias
+
+    public function testListKadhiasReturnsPagedResult(): void
+    {
+        $customer = $this->createUser('kadhia-list@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        // Create via POST so the kadhia is committed in the same request cycle
+        $createResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+            [],
+            $customer,
+        );
+        self::assertSame(201, $createResponse->getStatusCode());
+        $created = $this->decodeJson($createResponse);
+
+        $response = $this->requestJson('GET', '/api/me/kadhias', user: $customer);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(1, $payload['total']);
+        self::assertSame(1, $payload['page']);
+        self::assertSame(20, $payload['per_page']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($created['id'], $payload['items'][0]['id']);
+    }
+
+    public function testListKadhiasDoesNotReturnOtherCustomerKadhias(): void
+    {
+        $customer1 = $this->createUser('kadhia-list-c1@example.test', ['ROLE_CUSTOMER']);
+        $customer2 = $this->createUser('kadhia-list-c2@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())->setCustomer($customer2)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', '/api/me/kadhias', user: $customer1);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(0, $payload['total']);
+        self::assertCount(0, $payload['items']);
+    }
+
+    public function testListKadhiasUnauthenticatedReturns401(): void
+    {
+        $response = $this->requestJson('GET', '/api/me/kadhias');
+        self::assertSame(401, $response->getStatusCode());
+    }
+
+    // GET /api/me/kadhias/{kadhiaId}
+
+    public function testGetKadhiaByIdReturns200(): void
+    {
+        $customer = $this->createUser('kadhia-get-id@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
             'GET',
-            \sprintf('/api/me/stores/%s/kadhia', $shop->getId()),
+            \sprintf('/api/me/kadhias/%s', $kadhia->getId()),
             user: $customer,
         );
 
@@ -35,74 +186,134 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
         self::assertSame([], $payload['lines']);
         self::assertSame('0.000', $payload['total_tnd']);
-        self::assertNull($payload['notes']);
-
-        $repo = $this->entityManager->getRepository(Kadhia::class);
-        self::assertCount(1, $repo->findAll());
     }
 
-    public function testGetKadhiaReturnsSameDraftOnSecondCall(): void
+    public function testGetKadhiaByIdNotFoundReturns404(): void
     {
-        $customer = $this->createUser('kadhia-get-idempotent@example.test', ['ROLE_CUSTOMER']);
-        $shop = $this->createShop();
-
-        $this->requestJson('GET', \sprintf('/api/me/stores/%s/kadhia', $shop->getId()), user: $customer);
-        $this->requestJson('GET', \sprintf('/api/me/stores/%s/kadhia', $shop->getId()), user: $customer);
-
-        $repo = $this->entityManager->getRepository(Kadhia::class);
-        self::assertCount(1, $repo->findAll());
-    }
-
-    public function testGetKadhiaShopNotFoundReturns404(): void
-    {
-        $customer = $this->createUser('kadhia-get-404@example.test', ['ROLE_CUSTOMER']);
+        $customer = $this->createUser('kadhia-get-id-404@example.test', ['ROLE_CUSTOMER']);
 
         $response = $this->requestJson(
             'GET',
-            '/api/me/stores/00000000-0000-0000-0000-000000000099/kadhia',
+            '/api/me/kadhias/00000000-0000-0000-0000-000000000099',
             user: $customer,
         );
 
         self::assertSame(404, $response->getStatusCode());
     }
 
-    public function testGetKadhiaInactiveShopReturns404(): void
+    public function testGetKadhiaByIdAnotherUserReturns404(): void
     {
-        $customer = $this->createUser('kadhia-get-inactive@example.test', ['ROLE_CUSTOMER']);
-        $shop = $this->createShop(active: false);
+        $customer1 = $this->createUser('kadhia-get-id-own1@example.test', ['ROLE_CUSTOMER']);
+        $customer2 = $this->createUser('kadhia-get-id-own2@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())->setCustomer($customer1)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
 
         $response = $this->requestJson(
             'GET',
-            \sprintf('/api/me/stores/%s/kadhia', $shop->getId()),
-            user: $customer,
+            \sprintf('/api/me/kadhias/%s', $kadhia->getId()),
+            user: $customer2,
         );
 
         self::assertSame(404, $response->getStatusCode());
     }
 
-    public function testGetKadhiaUnauthenticatedReturns401(): void
+    public function testGetKadhiaByIdUnauthenticatedReturns401(): void
     {
-        $shop = $this->createShop();
-
         $response = $this->requestJson(
             'GET',
-            \sprintf('/api/me/stores/%s/kadhia', $shop->getId()),
+            '/api/me/kadhias/00000000-0000-0000-0000-000000000001',
         );
 
         self::assertSame(401, $response->getStatusCode());
     }
 
-    // PUT /api/me/stores/{storeId}/kadhia/lines/{merchantProductId}
+    // PATCH /api/me/kadhias/{kadhiaId}
 
-    public function testUpsertLineCreatesKadhiaAndLine(): void
+    public function testPatchNotesUpdatesNote(): void
+    {
+        $customer = $this->createUser('kadhia-notes@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/me/kadhias/%s', $kadhia->getId()),
+            ['notes' => 'Sacs séparés SVP'],
+            $customer,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('Sacs séparés SVP', $payload['notes']);
+    }
+
+    public function testPatchNotesClearsNote(): void
+    {
+        $customer = $this->createUser('kadhia-notes-clear@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop)->setNotes('old note');
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/me/kadhias/%s', $kadhia->getId()),
+            ['notes' => null],
+            $customer,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertNull($payload['notes']);
+    }
+
+    public function testPatchNotesNoKadhiaReturns404(): void
+    {
+        $customer = $this->createUser('kadhia-notes-404@example.test', ['ROLE_CUSTOMER']);
+
+        $response = $this->requestJson(
+            'PATCH',
+            '/api/me/kadhias/00000000-0000-0000-0000-000000000099',
+            ['notes' => 'test'],
+            $customer,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testPatchNotesUnauthenticatedReturns401(): void
+    {
+        $response = $this->requestJson(
+            'PATCH',
+            '/api/me/kadhias/00000000-0000-0000-0000-000000000001',
+            ['notes' => 'test'],
+        );
+
+        self::assertSame(401, $response->getStatusCode());
+    }
+
+    // PUT /api/me/kadhias/{kadhiaId}/lines/{merchantProductId}
+
+    public function testUpsertLineCreatesLine(): void
     {
         $customer = $this->createUser('kadhia-upsert@example.test', ['ROLE_CUSTOMER']);
         $shop = $this->createShop();
         $product = $this->createMerchantProduct($shop, '2.500');
 
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
         $response = $this->requestJson(
             'PUT',
-            \sprintf('/api/me/stores/%s/kadhia/lines/%s', $shop->getId(), $product->getId()),
+            \sprintf('/api/me/kadhias/%s/lines/%s', $kadhia->getId(), $product->getId()),
             ['quantity' => 3],
             $customer,
         );
@@ -122,16 +333,20 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         $shop = $this->createShop();
         $product = $this->createMerchantProduct($shop, '1.000');
 
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
         $this->requestJson(
             'PUT',
-            \sprintf('/api/me/stores/%s/kadhia/lines/%s', $shop->getId(), $product->getId()),
+            \sprintf('/api/me/kadhias/%s/lines/%s', $kadhia->getId(), $product->getId()),
             ['quantity' => 2],
             $customer,
         );
 
         $response = $this->requestJson(
             'PUT',
-            \sprintf('/api/me/stores/%s/kadhia/lines/%s', $shop->getId(), $product->getId()),
+            \sprintf('/api/me/kadhias/%s/lines/%s', $kadhia->getId(), $product->getId()),
             ['quantity' => 5],
             $customer,
         );
@@ -145,14 +360,34 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         self::assertCount(1, $repo->findAll());
     }
 
+    public function testUpsertLineKadhiaNotFoundReturns404(): void
+    {
+        $customer = $this->createUser('kadhia-upsert-nok@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $product = $this->createMerchantProduct($shop, '1.000');
+
+        $response = $this->requestJson(
+            'PUT',
+            \sprintf('/api/me/kadhias/00000000-0000-0000-0000-000000000099/lines/%s', $product->getId()),
+            ['quantity' => 1],
+            $customer,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
     public function testUpsertLineProductNotFoundReturns404(): void
     {
         $customer = $this->createUser('kadhia-upsert-404@example.test', ['ROLE_CUSTOMER']);
         $shop = $this->createShop();
 
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
         $response = $this->requestJson(
             'PUT',
-            \sprintf('/api/me/stores/%s/kadhia/lines/00000000-0000-0000-0000-000000000099', $shop->getId()),
+            \sprintf('/api/me/kadhias/%s/lines/00000000-0000-0000-0000-000000000099', $kadhia->getId()),
             ['quantity' => 1],
             $customer,
         );
@@ -167,9 +402,13 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         $shop2 = $this->createShop();
         $product = $this->createMerchantProduct($shop2, '1.000');
 
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop1);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
         $response = $this->requestJson(
             'PUT',
-            \sprintf('/api/me/stores/%s/kadhia/lines/%s', $shop1->getId(), $product->getId()),
+            \sprintf('/api/me/kadhias/%s/lines/%s', $kadhia->getId(), $product->getId()),
             ['quantity' => 1],
             $customer,
         );
@@ -183,9 +422,13 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         $shop = $this->createShop();
         $product = $this->createMerchantProduct($shop, '1.000', available: false);
 
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
         $response = $this->requestJson(
             'PUT',
-            \sprintf('/api/me/stores/%s/kadhia/lines/%s', $shop->getId(), $product->getId()),
+            \sprintf('/api/me/kadhias/%s/lines/%s', $kadhia->getId(), $product->getId()),
             ['quantity' => 1],
             $customer,
         );
@@ -195,19 +438,16 @@ final class KadhiaApiTest extends FunctionalApiTestCase
 
     public function testUpsertLineUnauthenticatedReturns401(): void
     {
-        $shop = $this->createShop();
-        $product = $this->createMerchantProduct($shop, '1.000');
-
         $response = $this->requestJson(
             'PUT',
-            \sprintf('/api/me/stores/%s/kadhia/lines/%s', $shop->getId(), $product->getId()),
+            '/api/me/kadhias/00000000-0000-0000-0000-000000000001/lines/00000000-0000-0000-0000-000000000002',
             ['quantity' => 1],
         );
 
         self::assertSame(401, $response->getStatusCode());
     }
 
-    // DELETE /api/me/stores/{storeId}/kadhia/lines/{merchantProductId}
+    // DELETE /api/me/kadhias/{kadhiaId}/lines/{merchantProductId}
 
     public function testRemoveLineReturns204(): void
     {
@@ -227,7 +467,7 @@ final class KadhiaApiTest extends FunctionalApiTestCase
 
         $response = $this->requestJson(
             'DELETE',
-            \sprintf('/api/me/stores/%s/kadhia/lines/%s', $shop->getId(), $product->getId()),
+            \sprintf('/api/me/kadhias/%s/lines/%s', $kadhia->getId(), $product->getId()),
             user: $customer,
         );
 
@@ -249,7 +489,7 @@ final class KadhiaApiTest extends FunctionalApiTestCase
 
         $response = $this->requestJson(
             'DELETE',
-            \sprintf('/api/me/stores/%s/kadhia/lines/%s', $shop->getId(), $product->getId()),
+            \sprintf('/api/me/kadhias/%s/lines/%s', $kadhia->getId(), $product->getId()),
             user: $customer,
         );
 
@@ -264,7 +504,7 @@ final class KadhiaApiTest extends FunctionalApiTestCase
 
         $response = $this->requestJson(
             'DELETE',
-            \sprintf('/api/me/stores/%s/kadhia/lines/%s', $shop->getId(), $product->getId()),
+            \sprintf('/api/me/kadhias/00000000-0000-0000-0000-000000000099/lines/%s', $product->getId()),
             user: $customer,
         );
 
@@ -273,84 +513,9 @@ final class KadhiaApiTest extends FunctionalApiTestCase
 
     public function testRemoveLineUnauthenticatedReturns401(): void
     {
-        $shop = $this->createShop();
-        $product = $this->createMerchantProduct($shop, '1.000');
-
         $response = $this->requestJson(
             'DELETE',
-            \sprintf('/api/me/stores/%s/kadhia/lines/%s', $shop->getId(), $product->getId()),
-        );
-
-        self::assertSame(401, $response->getStatusCode());
-    }
-
-    // PATCH /api/me/stores/{storeId}/kadhia
-
-    public function testPatchNotesUpdatesNote(): void
-    {
-        $customer = $this->createUser('kadhia-notes@example.test', ['ROLE_CUSTOMER']);
-        $shop = $this->createShop();
-
-        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
-        $this->entityManager->persist($kadhia);
-        $this->entityManager->flush();
-
-        $response = $this->requestJson(
-            'PATCH',
-            \sprintf('/api/me/stores/%s/kadhia', $shop->getId()),
-            ['notes' => 'Sacs séparés SVP'],
-            $customer,
-        );
-
-        self::assertSame(200, $response->getStatusCode());
-        $payload = $this->decodeJson($response);
-        self::assertSame('Sacs séparés SVP', $payload['notes']);
-    }
-
-    public function testPatchNotesClearsNote(): void
-    {
-        $customer = $this->createUser('kadhia-notes-clear@example.test', ['ROLE_CUSTOMER']);
-        $shop = $this->createShop();
-
-        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop)->setNotes('old note');
-        $this->entityManager->persist($kadhia);
-        $this->entityManager->flush();
-
-        $response = $this->requestJson(
-            'PATCH',
-            \sprintf('/api/me/stores/%s/kadhia', $shop->getId()),
-            ['notes' => null],
-            $customer,
-        );
-
-        self::assertSame(200, $response->getStatusCode());
-        $payload = $this->decodeJson($response);
-        self::assertNull($payload['notes']);
-    }
-
-    public function testPatchNotesNoKadhiaReturns404(): void
-    {
-        $customer = $this->createUser('kadhia-notes-404@example.test', ['ROLE_CUSTOMER']);
-        $shop = $this->createShop();
-
-        $response = $this->requestJson(
-            'PATCH',
-            \sprintf('/api/me/stores/%s/kadhia', $shop->getId()),
-            ['notes' => 'test'],
-            $customer,
-        );
-
-        self::assertSame(404, $response->getStatusCode());
-    }
-
-    public function testPatchNotesUnauthenticatedReturns401(): void
-    {
-        $shop = $this->createShop();
-
-        $response = $this->requestJson(
-            'PATCH',
-            \sprintf('/api/me/stores/%s/kadhia', $shop->getId()),
-            ['notes' => 'test'],
+            '/api/me/kadhias/00000000-0000-0000-0000-000000000001/lines/00000000-0000-0000-0000-000000000002',
         );
 
         self::assertSame(401, $response->getStatusCode());

@@ -14,8 +14,8 @@ use App\Entity\User;
 use App\Enum\KadhiaStatus;
 use App\Factory\OrderOutputFactory;
 use App\Repository\KadhiaRepository;
+use App\Repository\OrderRepository;
 use App\Repository\PickupSlotRepository;
-use App\Repository\ShopRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -29,9 +29,9 @@ use Symfony\Component\Uid\Uuid;
 final readonly class SubmitOrderProcessor implements ProcessorInterface
 {
     public function __construct(
-        private ShopRepository $shopRepository,
         private PickupSlotRepository $pickupSlotRepository,
         private KadhiaRepository $kadhiaRepository,
+        private OrderRepository $orderRepository,
         private EntityManagerInterface $entityManager,
         private OrderOutputFactory $orderOutputFactory,
         private Security $security,
@@ -53,13 +53,22 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('CUSTOMER_ACCESS_REQUIRED');
         }
 
-        $storeId = (string) ($uriVariables['storeId'] ?? '');
-        if (!Uuid::isValid($storeId)) {
-            throw new NotFoundHttpException('STORE_NOT_FOUND');
+        $kadhiaId = (string) ($uriVariables['kadhiaId'] ?? '');
+        if (!Uuid::isValid($kadhiaId)) {
+            throw new NotFoundHttpException('KADHIA_NOT_FOUND');
         }
 
-        $shop = $this->shopRepository->find($storeId);
-        if (null === $shop || !$shop->isActive()) {
+        $kadhia = $this->kadhiaRepository->findByIdAndCustomer($kadhiaId, $user);
+        if (null === $kadhia) {
+            throw new NotFoundHttpException('KADHIA_NOT_FOUND');
+        }
+
+        if (KadhiaStatus::Draft !== $kadhia->getStatus()) {
+            throw new UnprocessableEntityHttpException('KADHIA_NOT_DRAFT');
+        }
+
+        $shop = $kadhia->getShop();
+        if (!$shop->isActive()) {
             throw new NotFoundHttpException('STORE_NOT_FOUND');
         }
 
@@ -80,11 +89,6 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             throw new UnprocessableEntityHttpException('PICKUP_SLOT_EXPIRED');
         }
 
-        $kadhia = $this->kadhiaRepository->findDraftByCustomerAndShop($user, $shop);
-        if (null === $kadhia) {
-            throw new UnprocessableEntityHttpException('KADHIA_NOT_FOUND');
-        }
-
         if ($kadhia->getLines()->isEmpty()) {
             throw new UnprocessableEntityHttpException('KADHIA_EMPTY');
         }
@@ -96,52 +100,19 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             }
         }
 
+        $existingOrder = $this->orderRepository->findPartiallyAcceptedByKadhia($kadhia);
+
         try {
             /** @var OrderOutput $result */
-            $result = $this->entityManager->wrapInTransaction(function () use ($data, $user, $shop, $slot, $kadhia): OrderOutput {
-                $order = (new Order())
-                    ->setCustomer($user)
-                    ->setShop($shop)
-                    ->setKadhia($kadhia)
-                    ->setPickupSlot($slot)
-                    ->setNotes($data->notes);
+            $result = $this->entityManager->wrapInTransaction(
+                function () use ($data, $user, $shop, $slot, $kadhia, $existingOrder): OrderOutput {
+                    if (null !== $existingOrder) {
+                        return $this->resubmit($data, $slot, $kadhia, $existingOrder);
+                    }
 
-                $this->entityManager->persist($order);
-
-                foreach ($kadhia->getLines() as $kadhiaLine) {
-                    $unitPriceTnd = $kadhiaLine->getUnitPriceTnd();
-                    $lineTotalTnd = bcmul($unitPriceTnd, (string) $kadhiaLine->getQuantity(), 3);
-
-                    $orderLine = (new OrderLine())
-                        ->setMerchantProduct($kadhiaLine->getMerchantProduct())
-                        ->setQuantity($kadhiaLine->getQuantity())
-                        ->setUnitPriceTnd($unitPriceTnd)
-                        ->setLineTotalTnd($lineTotalTnd);
-
-                    $order->addLine($orderLine);
-                    $this->entityManager->persist($orderLine);
+                    return $this->firstSubmit($data, $user, $shop, $slot, $kadhia);
                 }
-
-                $order->recomputeTotal();
-                $order->submit();
-
-                // Atomic conditional UPDATE prevents concurrent over-booking: only
-                // increments booked_count if it is still below capacity at the DB level.
-                $booked = $this->entityManager->getConnection()->executeStatement(
-                    'UPDATE pickup_slots SET booked_count = booked_count + 1 WHERE id = :id AND booked_count < capacity',
-                    ['id' => $slot->getId()->toBinary()],
-                );
-
-                if (0 === $booked) {
-                    throw new \RuntimeException('PICKUP_SLOT_FULL');
-                }
-
-                $kadhia->setStatus(KadhiaStatus::Submitted);
-
-                $this->entityManager->flush();
-
-                return $this->orderOutputFactory->toOutput($order);
-            });
+            );
         } catch (\RuntimeException $e) {
             if ('PICKUP_SLOT_FULL' === $e->getMessage()) {
                 throw new UnprocessableEntityHttpException('PICKUP_SLOT_FULL');
@@ -150,5 +121,111 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         }
 
         return $result;
+    }
+
+    private function firstSubmit(
+        SubmitOrderInput $data,
+        User $user,
+        \App\Entity\Shop $shop,
+        \App\Entity\PickupSlot $slot,
+        \App\Entity\Kadhia $kadhia,
+    ): OrderOutput {
+        $order = (new Order())
+            ->setCustomer($user)
+            ->setShop($shop)
+            ->setKadhia($kadhia)
+            ->setPickupSlot($slot)
+            ->setNotes($data->notes);
+
+        $this->entityManager->persist($order);
+
+        foreach ($kadhia->getLines() as $kadhiaLine) {
+            $unitPriceTnd = $kadhiaLine->getUnitPriceTnd();
+            $lineTotalTnd = bcmul($unitPriceTnd, (string) $kadhiaLine->getQuantity(), 3);
+
+            $orderLine = (new OrderLine())
+                ->setMerchantProduct($kadhiaLine->getMerchantProduct())
+                ->setQuantity($kadhiaLine->getQuantity())
+                ->setUnitPriceTnd($unitPriceTnd)
+                ->setLineTotalTnd($lineTotalTnd);
+
+            $order->addLine($orderLine);
+            $this->entityManager->persist($orderLine);
+        }
+
+        $order->recomputeTotal();
+        $order->submit();
+
+        // Atomic conditional UPDATE prevents concurrent over-booking.
+        $booked = $this->entityManager->getConnection()->executeStatement(
+            'UPDATE pickup_slots SET booked_count = booked_count + 1 WHERE id = :id AND booked_count < capacity',
+            ['id' => $slot->getId()->toBinary()],
+        );
+
+        if (0 === $booked) {
+            throw new \RuntimeException('PICKUP_SLOT_FULL');
+        }
+
+        $kadhia->setStatus(KadhiaStatus::Submitted);
+        $this->entityManager->flush();
+
+        return $this->orderOutputFactory->toOutput($order);
+    }
+
+    private function resubmit(
+        SubmitOrderInput $data,
+        \App\Entity\PickupSlot $slot,
+        \App\Entity\Kadhia $kadhia,
+        Order $order,
+    ): OrderOutput {
+        $oldSlot = $order->getPickupSlot();
+        $sameSlot = null !== $oldSlot && $oldSlot->getId()->equals($slot->getId());
+
+        if (!$sameSlot) {
+            if (null !== $oldSlot) {
+                $this->entityManager->getConnection()->executeStatement(
+                    'UPDATE pickup_slots SET booked_count = GREATEST(booked_count - 1, 0) WHERE id = :id',
+                    ['id' => $oldSlot->getId()->toBinary()],
+                );
+            }
+
+            $booked = $this->entityManager->getConnection()->executeStatement(
+                'UPDATE pickup_slots SET booked_count = booked_count + 1 WHERE id = :id AND booked_count < capacity',
+                ['id' => $slot->getId()->toBinary()],
+            );
+
+            if (0 === $booked) {
+                throw new \RuntimeException('PICKUP_SLOT_FULL');
+            }
+        }
+
+        $order->setPickupSlot($slot);
+        $order->setNotes($data->notes);
+
+        foreach ($order->getLines() as $line) {
+            $order->removeLine($line);
+        }
+
+        foreach ($kadhia->getLines() as $kadhiaLine) {
+            $unitPriceTnd = $kadhiaLine->getUnitPriceTnd();
+            $lineTotalTnd = bcmul($unitPriceTnd, (string) $kadhiaLine->getQuantity(), 3);
+
+            $orderLine = (new OrderLine())
+                ->setMerchantProduct($kadhiaLine->getMerchantProduct())
+                ->setQuantity($kadhiaLine->getQuantity())
+                ->setUnitPriceTnd($unitPriceTnd)
+                ->setLineTotalTnd($lineTotalTnd);
+
+            $order->addLine($orderLine);
+            $this->entityManager->persist($orderLine);
+        }
+
+        $order->recomputeTotal();
+        $order->resubmit();
+
+        $kadhia->setStatus(KadhiaStatus::Submitted);
+        $this->entityManager->flush();
+
+        return $this->orderOutputFactory->toOutput($order);
     }
 }
