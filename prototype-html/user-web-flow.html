@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parcours client web — Click & Collect</title>
+  <link rel="stylesheet" href="user-web-flow.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="logo">K</div><div><strong>Kadhia</strong><span>Click & Collect Supérette</span></div></div>
+      <nav class="nav">
+        <a class="active" href="#home">Accueil</a>
+        <a href="#catalog">Catalogue</a>
+        <a href="#cart">Ma Kadhia</a>
+        <a href="#slot">Créneau</a>
+        <a href="#tracking">Commande</a>
+        <a href="#pickup">QR retrait</a>
+      </nav>
+      <div class="sidebar-card"><strong>Superette El Amel</strong><span>Ouverte aujourd’hui jusqu’à 22:00 · retrait dès 18:30</span></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="search">🔎 Rechercher produit, marque, format ou supérette</div>
+        <div class="user-actions"><span class="badge">🇹🇳 TND</span><a class="btn btn-ghost" href="index.html">Retour prototype</a></div>
+      </header>
+
+      <section class="hero" id="home">
+        <div class="hero-panel">
+          <span class="badge">Parcours client web</span>
+          <h1>Préparer sa Kadhia depuis un grand écran</h1>
+          <p>Le client peut retrouver une supérette, consulter le catalogue, composer son panier, réserver un créneau et suivre sa commande.</p>
+          <a class="btn btn-secondary" href="#catalog">Commencer les courses</a>
+        </div>
+        <aside class="store-card">
+          <span class="badge">Store reconnu</span>
+          <h2>Superette El Amel</h2>
+          <p class="muted">Rue de Carthage, Tunis · paiement sur place · retrait magasin.</p>
+          <div class="kpis"><div class="kpi"><strong>1,2 km</strong><span>distance</span></div><div class="kpi"><strong>18:30</strong><span>prochain retrait</span></div><div class="kpi"><strong>4.8</strong><span>note</span></div></div>
+        </aside>
+      </section>
+
+      <section class="layout">
+        <div>
+          <section class="panel" id="catalog">
+            <div class="section-title"><h2>Catalogue</h2><span class="muted">Produits populaires</span></div>
+            <div class="chips"><span class="chip active">Tous</span><span class="chip">Lait & frais</span><span class="chip">Boissons</span><span class="chip">Épicerie</span><span class="chip">Hygiène</span></div>
+            <div class="product-grid">
+              <article class="product"><div class="product-img">🥛</div><strong>Lait demi-écrémé Vitalait</strong><span>1 litre · Disponible</span><div class="product-bottom"><span class="price">3.000 TND</span><button class="add">+</button></div></article>
+              <article class="product"><div class="product-img">🍝</div><strong>Pâtes Randa Spaghetti</strong><span>500 g · Disponible</span><div class="product-bottom"><span class="price">1.850 TND</span><button class="add">+</button></div></article>
+              <article class="product"><div class="product-img">🧃</div><strong>Jus Boga Cidre</strong><span>1 litre · Disponible</span><div class="product-bottom"><span class="price">2.700 TND</span><button class="add">+</button></div></article>
+              <article class="product"><div class="product-img">🥫</div><strong>Thon El Manar</strong><span>160 g · Stock faible</span><div class="product-bottom"><span class="price">4.900 TND</span><button class="add">+</button></div></article>
+              <article class="product"><div class="product-img">🍪</div><strong>Biscuits chocolat</strong><span>Paquet familial</span><div class="product-bottom"><span class="price">2.250 TND</span><button class="add">+</button></div></article>
+              <article class="product"><div class="product-img">🧼</div><strong>Liquide vaisselle</strong><span>750 ml</span><div class="product-bottom"><span class="price">4.300 TND</span><button class="add">+</button></div></article>
+            </div>
+          </section>
+
+          <section class="panel" id="slot" style="margin-top:20px">
+            <div class="section-title"><h2>Choisir un créneau</h2><span class="muted">Aujourd’hui</span></div>
+            <div class="slot-grid"><div class="slot"><strong>18:00</strong><span>Complet bientôt</span></div><div class="slot active"><strong>18:30</strong><span>Disponible</span></div><div class="slot"><strong>19:00</strong><span>Disponible</span></div><div class="slot"><strong>20:00</strong><span>Disponible</span></div></div>
+          </section>
+        </div>
+
+        <aside class="summary-card cart" id="cart">
+          <div class="section-title"><h2>Ma Kadhia</h2><span class="badge">3 lignes</span></div>
+          <div class="line"><div class="line-icon">L</div><div><strong>Lait Vitalait 1L</strong><span>3.000 TND · x2</span></div><div class="qty"><button>-</button><strong>2</strong><button>+</button></div></div>
+          <div class="line"><div class="line-icon">P</div><div><strong>Pâtes Randa</strong><span>1.850 TND · x1</span></div><div class="qty"><button>-</button><strong>1</strong><button>+</button></div></div>
+          <div class="line"><div class="line-icon">J</div><div><strong>Jus Boga</strong><span>2.700 TND · x1</span></div><div class="qty"><button>-</button><strong>1</strong><button>+</button></div></div>
+          <div class="summary"><div class="row"><span>Sous-total</span><strong>10.550 TND</strong></div><div class="row"><span>Service</span><strong>0.000 TND</strong></div><div class="row total"><span>Total estimé</span><strong>10.550 TND</strong></div></div>
+          <a class="btn btn-primary" href="#tracking">Soumettre la commande</a>
+          <p class="muted">Les prix sont figés au moment de la soumission.</p>
+        </aside>
+      </section>
+
+      <section class="tracking" id="tracking" style="margin-top:20px">
+        <article class="panel">
+          <div class="section-title"><h2>Suivi commande CMD-4821</h2><span class="badge">Commande prête</span></div>
+          <div class="timeline">
+            <div class="step done"><div class="dot">✓</div><div><strong>Commande soumise</strong><span>Prix et créneau verrouillés</span></div></div>
+            <div class="step done"><div class="dot">✓</div><div><strong>Acceptée par le marchand</strong><span>Préparation lancée</span></div></div>
+            <div class="step done"><div class="dot">✓</div><div><strong>En préparation</strong><span>Commande préparée par le marchand</span></div></div>
+            <div class="step current"><div class="dot">•</div><div><strong>Prête à retirer</strong><span>QR code activé uniquement à cette étape</span></div></div>
+          </div>
+        </article>
+
+        <article class="panel" id="pickup">
+          <div class="section-title"><h2>QR code retrait</h2><span class="badge">Commande prête</span></div>
+          <div class="qr"></div>
+          <div style="text-align:center"><span class="code">CMD-4821</span><p class="muted">À présenter au comptoir pour valider la récupération.</p></div>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
