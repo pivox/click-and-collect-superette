@@ -47,6 +47,9 @@ class Order
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $notes = null;
 
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $rejectionReason = null;
+
     /** @var Collection<int, OrderLine> */
     #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'order', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $lines;
@@ -203,12 +206,18 @@ class Order
         $this->status = OrderStatus::Accepted;
     }
 
-    public function reject(): void
+    public function getRejectionReason(): ?string
+    {
+        return $this->rejectionReason;
+    }
+
+    public function reject(?string $reason = null): void
     {
         if (OrderStatus::Submitted !== $this->status) {
             throw new \LogicException('ORDER_NOT_SUBMITTED');
         }
         $this->status = OrderStatus::Rejected;
+        $this->rejectionReason = $reason;
     }
 
     public function startPreparing(): void

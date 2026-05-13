@@ -103,6 +103,9 @@ final readonly class MerchantOrderOutput
         #[Groups(['merchant_order:read'])]
         public array $lines,
         #[Groups(['merchant_order:read'])]
+        #[SerializedName('rejection_reason')]
+        public ?string $rejectionReason,
+        #[Groups(['merchant_order:read'])]
         #[SerializedName('created_at')]
         public string $createdAt,
         #[Groups(['merchant_order:read'])]

@@ -93,6 +93,7 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
             pickupSlotId: $slot?->getId()->toRfc4122(),
             notes: $order->getNotes(),
             lines: $lines,
+            rejectionReason: $order->getRejectionReason(),
             createdAt: $order->getCreatedAt()->format(\DateTimeInterface::ATOM),
             updatedAt: $order->getUpdatedAt()->format(\DateTimeInterface::ATOM),
         );

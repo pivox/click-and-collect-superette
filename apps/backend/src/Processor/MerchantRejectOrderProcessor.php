@@ -63,7 +63,7 @@ final readonly class MerchantRejectOrderProcessor implements ProcessorInterface
         }
 
         try {
-            $order->reject();
+            $order->reject($data->reason);
         } catch (\LogicException $e) {
             throw new ConflictHttpException($e->getMessage());
         }
