@@ -31,8 +31,8 @@ afin que le marchand reçoive ma commande à préparer.
 
 ## Préconditions
 
-- Le client est authentifié.
-- Le client possède une Kadhia `draft`.
+- Le client est authentifié avec `ROLE_CUSTOMER`.
+- Le client possède une Kadhia `draft` identifiée par `kadhiaId`.
 - La Kadhia contient au moins une ligne.
 - La Kadhia appartient à une seule supérette.
 - Le créneau sélectionné appartient à cette même supérette.
@@ -72,7 +72,7 @@ afin que le marchand reçoive ma commande à préparer.
 Endpoint protégé client :
 
 ```http
-POST /api/orders
+POST /api/me/kadhias/{kadhiaId}/submit
 Authorization: Bearer <client_jwt>
 Content-Type: application/json
 ```
@@ -81,26 +81,23 @@ Payload :
 
 ```json
 {
-  "kadhia_id": "kadhia-uuid",
-  "pickup_slot_id": "pickup-slot-uuid"
+  "pickup_slot_id": "pickup-slot-uuid",
+  "notes": "Instructions optionnelles pour le marchand"
 }
 ```
+
+Le champ `notes` est optionnel. Il s'agit de notes au niveau de la commande (visibles par le marchand), distinctes des notes de la Kadhia.
 
 Réponse attendue :
 
 ```json
 {
   "id": "order-uuid",
-  "status": "submitted",
-  "store_id": "store-uuid",
   "kadhia_id": "kadhia-uuid",
-  "pickup_slot": {
-    "id": "pickup-slot-uuid",
-    "starts_at": "2026-05-11T10:00:00+01:00",
-    "ends_at": "2026-05-11T10:30:00+01:00",
-    "timezone": "Africa/Tunis"
-  },
-  "total_tnd": "3.500"
+  "store_id": "store-uuid",
+  "status": "submitted",
+  "total_tnd": "3.500",
+  "pickup_slot_id": "pickup-slot-uuid"
 }
 ```
 
@@ -156,9 +153,21 @@ alors une seule commande est acceptée si la capacité restante est `1`.
 - Test conservation des prix snapshotés.
 - Test statut initial `submitted`.
 
+## Après soumission — suites possibles
+
+Le traitement de la commande par le marchand est couvert au Sprint 3. Les cas à prévoir :
+
+| Statut commande | Impact sur la Kadhia | Action client |
+| --- | --- | --- |
+| `accepted` | Kadhia reste `submitted` | Attendre la préparation |
+| `partially_accepted` | Kadhia revient à `draft` avec lignes acceptées | Modifier et re-soumettre (US-022-A) |
+| `rejected` | Kadhia reste `submitted` | Créer une nouvelle Kadhia |
+| `cancelled` | Kadhia reste `submitted` | Créer une nouvelle Kadhia |
+
 ## Hors périmètre
 
-- Acceptation ou refus marchand.
+- Acceptation ou refus marchand (Sprint 3).
+- Acceptation partielle côté marchand (Sprint 3).
 - Préparation de commande.
 - QR code de retrait.
 - Paiement en ligne.
@@ -175,4 +184,4 @@ alors une seule commande est acceptée si la capacité restante est `1`.
 
 ## Définition de fini
 
-La story est terminée lorsque le client peut soumettre une Kadhia non vide avec un créneau valide, créer une commande au statut `submitted`, et empêcher les doubles soumissions ou les dépassements de capacité.
+La story est terminée lorsque le client peut soumettre une Kadhia `draft` non vide via `POST /api/me/kadhias/{kadhiaId}/submit`, créer une commande au statut `submitted`, et empêcher les doubles soumissions ou les dépassements de capacité.
