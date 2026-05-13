@@ -316,20 +316,28 @@ Règles :
 
 ## Commandes côté client
 
+### Lister mes commandes
+
+```http
+GET /api/me/orders
+GET /api/me/orders?page=1&limit=20
+```
+
+Réponse :
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "page": 1,
+  "limit": 20
+}
+```
+
 ### Consulter une commande
 
 ```http
 GET /api/me/orders/{id}
-```
-
-### Lister mes commandes
-
-Statut : **à vérifier / réaligner**.
-
-La PR historique SP2-011 indiquait `GET /api/me/orders`, mais l'endpoint collection doit être vérifié dans le code courant avant usage frontend.
-
-```http
-GET /api/me/orders
 ```
 
 ---
