@@ -1,8 +1,8 @@
 # US-040 — Consulter l'historique des transitions de statut d'une commande
 
-**Epic** : EPIC-007 — Retrait sécurisé
-**Sprint** : Sprint 4 — Retrait sécurisé
-**Priorité** : Should Have
+**Epic** : EPIC-005 — Validation marchand
+**Sprint** : Sprint 3 — Parcours marchand core
+**Priorité** : Must Have
 
 ---
 

@@ -39,7 +39,7 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 | Login JWT | Oui | Oui | Oui | Oui | OK | Garder `/api/auth/login`. |
 | Inscription client | **Oui (US-034)** | Non | Non | **Oui** | MANQUANT | `POST /api/auth/register/customer` — US-034 documentée. |
 | Profil client | **Oui (US-035)** | Non | Non | **Oui** | MANQUANT | `GET/PATCH /api/me/profile` — US-035 documentée. |
-| Mot de passe oublié | Non | Non | Non | Non | A_DECIDER | Post-MVP — hors périmètre Sprint Auth. |
+| Mot de passe oublié | **Oui (US-046)** | Non | **Oui** | **Oui** | MANQUANT | `POST /api/auth/forgot-password` + `POST /api/auth/reset-password` — US-046 documentée. Sprint Auth / P0. Entité `PasswordResetToken` à créer. |
 | Inscription marchand publique | Non | Non | Non | Non | A_DECIDER | Créé par admin uniquement dans le MVP (US-028). |
 | Création marchand par admin | **Oui (US-028)** | Non | Non | Oui | MANQUANT | US-028 complète. Endpoints admin marchands à coder (Sprint 5). |
 | Création / gestion supérette admin | **Oui (US-009)** | Non | Non | **Oui** | MANQUANT | US-009 complétée. Endpoints admin stores à coder (Sprint 5). |

@@ -215,8 +215,9 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 **User stories** :
 - US-034 — S'inscrire en tant que client
 - US-035 — Consulter et modifier son profil client
+- US-046 — Réinitialiser son mot de passe oublié
 
-**Critère de sortie** : Un visiteur peut créer un compte, se connecter avec un JWT valide et consulter/modifier ses informations personnelles.
+**Critère de sortie** : Un visiteur peut créer un compte, se connecter avec un JWT valide, consulter/modifier ses informations personnelles et retrouver l'accès à son compte après un mot de passe oublié.
 
 ---
 
@@ -231,5 +232,6 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 **User stories** :
 - US-038 — Recevoir des notifications sur l'évolution de sa commande (client)
 - US-039 — Recevoir des notifications pour les nouvelles commandes (marchand)
+- US-064 — Rappel de retrait avant expiration du créneau
 
-**Critère de sortie** : Une notification est créée à chaque transition de statut clé. Le client et le marchand peuvent lister leurs notifications et les marquer comme lues.
+**Critère de sortie** : Une notification est créée à chaque transition de statut clé. Le client et le marchand peuvent lister leurs notifications et les marquer comme lues. Le client reçoit un rappel automatique 1 heure avant son créneau de retrait si sa commande est `ready`.

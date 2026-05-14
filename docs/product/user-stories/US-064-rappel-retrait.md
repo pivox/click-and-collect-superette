@@ -1,6 +1,6 @@
 # US-064 — Rappel de retrait avant expiration du créneau
 
-**Epic** : EPIC-013 — Compte client
+**Epic** : EPIC-014 — Notifications MVP
 **Sprint** : Sprint 4 — Retrait sécurisé
 **Priorité** : Could Have
 

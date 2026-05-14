@@ -32,8 +32,6 @@ Admin crée une supérette
 
 | US | Sujet | Epic | Statut |
 |---|---|---|---|
-| US-034 | Inscription client | EPIC-013 | Ajoutée (Auth) |
-| US-035 | Profil client | EPIC-013 | Ajoutée (Auth) |
 | US-009 | Créer et gérer les supérettes (admin) | EPIC-009 | Complétée |
 | US-028 | Gérer les comptes marchands | EPIC-009 | Existante |
 | US-029 | Superviser le référentiel produit global | EPIC-009 | Existante |
@@ -89,20 +87,13 @@ PATCH  /api/admin/merchants/{id}/suspend
 PATCH  /api/admin/merchants/{id}/activate
 ```
 
-### Auth Client (Sprint Auth — avant Sprint 2 idéalement)
-
-```http
-POST /api/auth/register/customer
-GET  /api/me/profile
-PATCH /api/me/profile
-```
-
 ## Hors périmètre Sprint 5
 
+- Inscription et authentification client (Sprint Auth — US-034, US-035, US-046).
 - Inscription publique marchands (admin only dans le MVP).
-- Réinitialisation de mot de passe (post-MVP).
 - Analytics et reporting commandes (Sprint 7).
 - Observabilité et audit logs (Sprint 7).
+- Fermeture définitive supérette, export CSV, audit trail admin (Sprint 7).
 
 ## Définition de fini globale
 
