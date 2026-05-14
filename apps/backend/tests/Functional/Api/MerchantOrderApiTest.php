@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\Brand;
+use App\Entity\Category;
+use App\Entity\MerchantProduct;
 use App\Entity\Order;
+use App\Entity\OrderLine;
 use App\Entity\OrderStatusLog;
 use App\Entity\PickupSlot;
+use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\OrderStatus;
+use App\Enum\ProductReferenceStatus;
 use Symfony\Component\Uid\Uuid;
 
 final class MerchantOrderApiTest extends FunctionalApiTestCase
@@ -24,7 +30,8 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $shop = $this->createShop($merchant);
         $customer = $this->createUser('customer-list@example.test', ['ROLE_CUSTOMER']);
 
-        $this->createSubmittedOrder($customer, $shop);
+        $slot = $this->createPickupSlot($shop);
+        $this->createSubmittedOrderWithSlot($customer, $shop, $slot);
         $this->createSubmittedOrder($customer, $shop);
 
         $response = $this->requestJson(
@@ -41,6 +48,45 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertSame(1, $payload['page']);
         self::assertCount(2, $payload['items']);
         self::assertSame('submitted', $payload['items'][0]['status']);
+        self::assertArrayHasKey('line_count', $payload['items'][0]);
+        self::assertArrayNotHasKey('lines', $payload['items'][0]);
+        $itemWithSlot = array_values(array_filter(
+            $payload['items'],
+            static fn (array $item): bool => isset($item['pickup_slot']['id']),
+        ));
+        self::assertCount(1, $itemWithSlot);
+        self::assertSame($slot->getId()->toRfc4122(), $itemWithSlot[0]['pickup_slot']['id']);
+    }
+
+    public function testListOrdersDoesNotExposeCustomerContactOrSensitiveUserData(): void
+    {
+        $merchant = $this->createUser('merchant-list-private@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-list-private@example.test', ['ROLE_CUSTOMER']);
+        $customer->setName('Client Privé')->setPhone('+21622123456');
+        $this->entityManager->flush();
+
+        $this->createSubmittedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders', $shop->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertCount(1, $payload['items']);
+        $item = $payload['items'][0];
+
+        self::assertArrayNotHasKey('customer_name', $item);
+        self::assertArrayNotHasKey('customer_phone', $item);
+        self::assertArrayNotHasKey('customer_email', $item);
+        self::assertArrayNotHasKey('password', $item);
+        self::assertArrayNotHasKey('roles', $item);
+        self::assertArrayNotHasKey('token', $item);
     }
 
     public function testListOrdersFilterByStatus(): void
@@ -108,6 +154,157 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         );
 
         self::assertSame(403, $response->getStatusCode());
+    }
+
+    // ---------------------------------------------------------------------------
+    // GET /api/merchant/stores/{storeId}/orders/{orderId}
+    // ---------------------------------------------------------------------------
+
+    public function testGetOrderDetailHappyPathIncludesLinesAndCustomerContact(): void
+    {
+        $merchant = $this->createUser('merchant-detail@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-detail@example.test', ['ROLE_CUSTOMER']);
+        $customer->setName('Amira Ben Salah')->setPhone('+21622111222');
+        $this->entityManager->flush();
+        $product = $this->createMerchantProduct($shop, '2.500', 'Lait Vitalait 1L');
+        $order = $this->createSubmittedOrderWithSlot($customer, $shop, $slot);
+        $this->addOrderLine($order, $product, quantity: 2, unitPriceTnd: '2.500');
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame($order->getId()->toRfc4122(), $payload['id']);
+        self::assertSame('submitted', $payload['status']);
+        self::assertSame('5.000', $payload['total_tnd']);
+        self::assertSame($slot->getId()->toRfc4122(), $payload['pickup_slot']['id']);
+        self::assertSame('Amira Ben Salah', $payload['customer_name']);
+        self::assertSame('+21622111222', $payload['customer_phone']);
+        self::assertSame('customer-detail@example.test', $payload['customer_email']);
+        self::assertCount(1, $payload['lines']);
+        self::assertSame($product->getId()->toRfc4122(), $payload['lines'][0]['merchant_product_id']);
+        self::assertSame('Lait Vitalait 1L', $payload['lines'][0]['product_name']);
+        self::assertSame(2, $payload['lines'][0]['quantity']);
+        self::assertSame('2.500', $payload['lines'][0]['unit_price_tnd']);
+        self::assertSame('5.000', $payload['lines'][0]['line_total_tnd']);
+    }
+
+    public function testGetOrderDetailAllowsNullableCustomerPhone(): void
+    {
+        $merchant = $this->createUser('merchant-detail-phone-null@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-detail-phone-null@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createSubmittedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertArrayHasKey('customer_phone', $payload);
+        self::assertNull($payload['customer_phone']);
+    }
+
+    public function testGetOrderDetailWrongMerchantReturns403(): void
+    {
+        $merchantA = $this->createUser('merchant-a-detail@example.test', ['ROLE_MERCHANT']);
+        $merchantB = $this->createUser('merchant-b-detail@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchantB);
+        $customer = $this->createUser('customer-detail-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createSubmittedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop->getId(), $order->getId()),
+            null,
+            $merchantA,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    public function testGetOrderDetailFromAnotherShopReturns404(): void
+    {
+        $merchant = $this->createUser('merchant-detail-404@example.test', ['ROLE_MERCHANT']);
+        $shop1 = $this->createShop($merchant);
+        $shop2 = $this->createShop();
+        $customer = $this->createUser('customer-detail-404@example.test', ['ROLE_CUSTOMER']);
+        $orderInShop2 = $this->createSubmittedOrder($customer, $shop2);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop1->getId(), $orderInShop2->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testGetOrderDetailUnauthenticatedReturns401(): void
+    {
+        $shop = $this->createShop();
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop->getId(), Uuid::v4()->toRfc4122()),
+        );
+
+        self::assertSame(401, $response->getStatusCode());
+    }
+
+    public function testGetOrderDetailCustomerRoleReturns403(): void
+    {
+        $customer = $this->createUser('customer-role-detail@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop->getId(), Uuid::v4()->toRfc4122()),
+            null,
+            $customer,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    public function testGetOrderDetailDoesNotExposeSensitiveUserData(): void
+    {
+        $merchant = $this->createUser('merchant-detail-private@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-detail-private@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createSubmittedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $content = (string) $response->getContent();
+        $payload = $this->decodeJson($response);
+
+        self::assertArrayNotHasKey('password', $payload);
+        self::assertArrayNotHasKey('roles', $payload);
+        self::assertArrayNotHasKey('token', $payload);
+        self::assertStringNotContainsString('test-password', $content);
+        self::assertStringNotContainsString('ROLE_CUSTOMER', $content);
     }
 
     // ---------------------------------------------------------------------------
@@ -563,6 +760,50 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $slot;
+    }
+
+    private function createMerchantProduct(Shop $shop, string $priceTnd, string $nameFr = 'Produit test'): MerchantProduct
+    {
+        $id = Uuid::v4()->toRfc4122();
+        $brand = (new Brand())
+            ->setCanonicalName('Brand '.$id)
+            ->setSlug('brand-merchant-order-'.$id);
+        $category = (new Category())
+            ->setNameFr('Catégorie '.$id)
+            ->setSlug('categorie-merchant-order-'.$id);
+        $productReference = (new ProductReference())
+            ->setBrand($brand)
+            ->setCategory($category)
+            ->setNameFr($nameFr)
+            ->setStatus(ProductReferenceStatus::Approved);
+        $merchantProduct = (new MerchantProduct())
+            ->setShop($shop)
+            ->setProductReference($productReference)
+            ->setPriceTnd($priceTnd);
+
+        $this->entityManager->persist($brand);
+        $this->entityManager->persist($category);
+        $this->entityManager->persist($productReference);
+        $this->entityManager->persist($merchantProduct);
+        $this->entityManager->flush();
+
+        return $merchantProduct;
+    }
+
+    private function addOrderLine(Order $order, MerchantProduct $product, int $quantity, string $unitPriceTnd): OrderLine
+    {
+        $line = (new OrderLine())
+            ->setMerchantProduct($product)
+            ->setQuantity($quantity)
+            ->setUnitPriceTnd($unitPriceTnd)
+            ->setLineTotalTnd(bcmul((string) $quantity, $unitPriceTnd, 3));
+
+        $order->addLine($line);
+        $order->recomputeTotal();
+        $this->entityManager->persist($line);
+        $this->entityManager->flush();
+
+        return $line;
     }
 
     /**

@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\MerchantOrderListOutput;
 use App\ApiResource\MerchantOrderOutput;
+use App\ApiResource\MerchantOrderSummaryOutput;
 use App\Entity\Order;
 use App\Entity\OrderLine;
 use App\Repository\OrderRepository;
@@ -58,7 +59,7 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
         $total = $this->orderRepository->countByShop($shop, $status);
 
         $items = array_map(
-            static fn (Order $order): MerchantOrderOutput => self::toOutput($order),
+            static fn (Order $order): MerchantOrderSummaryOutput => self::toSummaryOutput($order),
             $orders,
         );
 
@@ -68,6 +69,27 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
             total: $total,
             page: $page,
             limit: $limit,
+        );
+    }
+
+    public static function toSummaryOutput(Order $order): MerchantOrderSummaryOutput
+    {
+        $slot = $order->getPickupSlot();
+
+        return new MerchantOrderSummaryOutput(
+            id: $order->getId()->toRfc4122(),
+            storeId: $order->getShop()->getId()->toRfc4122(),
+            status: $order->getStatus()->value,
+            totalTnd: $order->getTotalTnd(),
+            pickupSlotId: $slot?->getId()->toRfc4122(),
+            pickupSlot: null === $slot ? null : [
+                'id' => $slot->getId()->toRfc4122(),
+                'starts_at' => $slot->getStartsAt()->format(\DateTimeInterface::ATOM),
+                'ends_at' => $slot->getEndsAt()->format(\DateTimeInterface::ATOM),
+            ],
+            lineCount: $order->getLines()->count(),
+            createdAt: $order->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            updatedAt: $order->getUpdatedAt()->format(\DateTimeInterface::ATOM),
         );
     }
 
