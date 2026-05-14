@@ -12,10 +12,12 @@ use App\Entity\Order;
 use App\Entity\OrderLine;
 use App\Entity\User;
 use App\Enum\KadhiaStatus;
+use App\Enum\OrderStatus;
 use App\Factory\OrderOutputFactory;
 use App\Repository\KadhiaRepository;
 use App\Repository\OrderRepository;
 use App\Repository\PickupSlotRepository;
+use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -33,6 +35,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         private KadhiaRepository $kadhiaRepository,
         private OrderRepository $orderRepository,
         private EntityManagerInterface $entityManager,
+        private OrderStatusLogRecorder $orderStatusLogRecorder,
         private OrderOutputFactory $orderOutputFactory,
         private Security $security,
     ) {
@@ -155,6 +158,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
 
         $order->recomputeTotal();
         $order->submit();
+        $this->orderStatusLogRecorder->record($order, OrderStatus::Submitted);
 
         // Atomic conditional UPDATE prevents concurrent over-booking.
         $booked = $this->entityManager->getConnection()->executeStatement(
@@ -242,6 +246,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
 
         $order->recomputeTotal();
         $order->resubmit();
+        $this->orderStatusLogRecorder->record($order, OrderStatus::Submitted);
 
         $kadhia->setStatus(KadhiaStatus::Submitted);
         $this->entityManager->flush();

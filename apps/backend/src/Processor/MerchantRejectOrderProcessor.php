@@ -8,10 +8,12 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\MerchantOrderOutput;
 use App\Dto\RejectOrderInput;
+use App\Enum\OrderStatus;
 use App\Provider\MerchantOrderCollectionProvider;
 use App\Repository\OrderRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -27,6 +29,7 @@ final readonly class MerchantRejectOrderProcessor implements ProcessorInterface
         private OrderRepository $orderRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
+        private OrderStatusLogRecorder $orderStatusLogRecorder,
     ) {
     }
 
@@ -64,6 +67,7 @@ final readonly class MerchantRejectOrderProcessor implements ProcessorInterface
 
         try {
             $order->reject($data->reason);
+            $this->orderStatusLogRecorder->record($order, OrderStatus::Rejected, $data->reason);
         } catch (\LogicException $e) {
             throw new ConflictHttpException($e->getMessage());
         }

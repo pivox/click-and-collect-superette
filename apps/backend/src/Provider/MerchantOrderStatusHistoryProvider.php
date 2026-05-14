@@ -2,33 +2,29 @@
 
 declare(strict_types=1);
 
-namespace App\Processor;
+namespace App\Provider;
 
 use ApiPlatform\Metadata\Operation;
-use ApiPlatform\State\ProcessorInterface;
-use App\ApiResource\MerchantOrderOutput;
-use App\Enum\OrderStatus;
-use App\Provider\MerchantOrderCollectionProvider;
+use ApiPlatform\State\ProviderInterface;
+use App\ApiResource\OrderStatusHistoryOutput;
+use App\ApiResource\OrderStatusTransitionOutput;
 use App\Repository\OrderRepository;
+use App\Repository\OrderStatusLogRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
-use App\Service\OrderStatusLogRecorder;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * @implements ProcessorInterface<null, MerchantOrderOutput>
+ * @implements ProviderInterface<OrderStatusHistoryOutput>
  */
-final readonly class MerchantStartPreparationProcessor implements ProcessorInterface
+final readonly class MerchantOrderStatusHistoryProvider implements ProviderInterface
 {
     public function __construct(
         private ShopRepository $shopRepository,
         private OrderRepository $orderRepository,
+        private OrderStatusLogRepository $orderStatusLogRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
-        private EntityManagerInterface $entityManager,
-        private OrderStatusLogRecorder $orderStatusLogRecorder,
     ) {
     }
 
@@ -36,7 +32,7 @@ final readonly class MerchantStartPreparationProcessor implements ProcessorInter
      * @param array<string, mixed> $uriVariables
      * @param array<string, mixed> $context
      */
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): MerchantOrderOutput
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): OrderStatusHistoryOutput
     {
         $storeId = (string) ($uriVariables['storeId'] ?? '');
         if (!Uuid::isValid($storeId)) {
@@ -60,15 +56,16 @@ final readonly class MerchantStartPreparationProcessor implements ProcessorInter
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
 
-        try {
-            $order->startPreparing();
-            $this->orderStatusLogRecorder->record($order, OrderStatus::Preparing);
-        } catch (\LogicException $e) {
-            throw new ConflictHttpException($e->getMessage());
-        }
-
-        $this->entityManager->flush();
-
-        return MerchantOrderCollectionProvider::toOutput($order);
+        return new OrderStatusHistoryOutput(
+            orderId: $order->getId()->toRfc4122(),
+            transitions: array_map(
+                static fn ($log): OrderStatusTransitionOutput => new OrderStatusTransitionOutput(
+                    status: $log->getStatus()->value,
+                    note: $log->getNote(),
+                    at: $log->getCreatedAt()->format(\DateTimeInterface::ATOM),
+                ),
+                $this->orderStatusLogRepository->findChronologicalForOrder($order),
+            ),
+        );
     }
 }

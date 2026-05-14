@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Api;
 
 use App\Entity\Order;
+use App\Entity\OrderStatusLog;
 use App\Entity\PickupSlot;
 use App\Entity\Shop;
 use App\Entity\User;
+use App\Enum\OrderStatus;
 use Symfony\Component\Uid\Uuid;
 
 final class MerchantOrderApiTest extends FunctionalApiTestCase
@@ -132,6 +134,11 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertSame('accepted', $payload['status']);
         self::assertSame($order->getId()->toRfc4122(), $payload['id']);
 
+        $logs = $this->findStatusLogs($order);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Accepted, $logs[0]->getStatus());
+        self::assertNull($logs[0]->getNote());
+
         $this->entityManager->clear();
         $updated = $this->entityManager->getRepository(Order::class)->find($order->getId());
         self::assertNotNull($updated);
@@ -230,6 +237,11 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertSame('rejected', $payload['status']);
 
+        $logs = $this->findStatusLogs($order);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Rejected, $logs[0]->getStatus());
+        self::assertSame('Rupture de stock', $logs[0]->getNote());
+
         $this->entityManager->clear();
         $updatedSlot = $this->entityManager->getRepository(PickupSlot::class)->find($slot->getId());
         self::assertNotNull($updatedSlot);
@@ -322,6 +334,10 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
 
         $payload = $this->decodeJson($response);
         self::assertSame('preparing', $payload['status']);
+
+        $logs = $this->findStatusLogs($order);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Preparing, $logs[0]->getStatus());
     }
 
     public function testStartPreparationInvalidTransitionReturns409(): void
@@ -409,6 +425,10 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
 
         $payload = $this->decodeJson($response);
         self::assertSame('ready', $payload['status']);
+
+        $logs = $this->findStatusLogs($order);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Ready, $logs[0]->getStatus());
     }
 
     public function testMarkReadyInvalidTransitionReturns409(): void
@@ -543,5 +563,13 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $slot;
+    }
+
+    /**
+     * @return list<OrderStatusLog>
+     */
+    private function findStatusLogs(Order $order): array
+    {
+        return $this->entityManager->getRepository(OrderStatusLog::class)->findBy(['order' => $order], ['createdAt' => 'ASC']);
     }
 }
