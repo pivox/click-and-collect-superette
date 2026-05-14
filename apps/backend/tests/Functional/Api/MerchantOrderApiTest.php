@@ -412,6 +412,37 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertSame('accepted', $updated->getStatus()->value);
     }
 
+    public function testAcceptOrderLogIsVisibleInMerchantStatusHistory(): void
+    {
+        $merchant = $this->createUser('merchant-accept-history@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-accept-history@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createSubmittedOrder($customer, $shop);
+
+        $acceptResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/accept', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $acceptResponse->getStatusCode());
+
+        $historyResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s/status-history', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $historyResponse->getStatusCode());
+
+        $payload = $this->decodeJson($historyResponse);
+        self::assertCount(1, $payload['transitions']);
+        self::assertSame('accepted', $payload['transitions'][0]['status']);
+        self::assertNull($payload['transitions'][0]['note']);
+    }
+
     public function testAcceptOrderInvalidTransitionReturns409(): void
     {
         $merchant = $this->createUser('merchant-accept-409@example.test', ['ROLE_MERCHANT']);
@@ -447,6 +478,24 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
 
         self::assertSame(404, $response->getStatusCode());
         self::assertStringContainsString('ORDER_NOT_FOUND', (string) $response->getContent());
+    }
+
+    public function testAcceptOrderWrongMerchantReturns403(): void
+    {
+        $merchantA = $this->createUser('merchant-a-accept@example.test', ['ROLE_MERCHANT']);
+        $merchantB = $this->createUser('merchant-b-accept@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchantB);
+        $customer = $this->createUser('customer-accept-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createSubmittedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/accept', $shop->getId(), $order->getId()),
+            null,
+            $merchantA,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
     }
 
     public function testAcceptOrderUnauthenticatedReturns401(): void
@@ -503,6 +552,7 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
 
         $payload = $this->decodeJson($response);
         self::assertSame('rejected', $payload['status']);
+        self::assertSame('Rupture de stock', $payload['rejection_reason']);
 
         $logs = $this->findStatusLogs($order);
         self::assertCount(1, $logs);
@@ -513,6 +563,93 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $updatedSlot = $this->entityManager->getRepository(PickupSlot::class)->find($slot->getId());
         self::assertNotNull($updatedSlot);
         self::assertSame($bookedBefore - 1, $updatedSlot->getBookedCount());
+
+        $updatedOrder = $this->entityManager->getRepository(Order::class)->find($order->getId());
+        self::assertNotNull($updatedOrder);
+        self::assertSame('Rupture de stock', $updatedOrder->getRejectionReason());
+    }
+
+    public function testRejectOrderWithoutReasonStoresNullReasonAndLogNote(): void
+    {
+        $merchant = $this->createUser('merchant-reject-null-reason@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-reject-null-reason@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createSubmittedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/reject', $shop->getId(), $order->getId()),
+            [],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame('rejected', $payload['status']);
+        self::assertNull($payload['rejection_reason']);
+
+        $logs = $this->findStatusLogs($order);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Rejected, $logs[0]->getStatus());
+        self::assertNull($logs[0]->getNote());
+    }
+
+    public function testRejectOrderWithWhitespaceOnlyReasonStoresNullReasonAndLogNote(): void
+    {
+        $merchant = $this->createUser('merchant-reject-blank-reason@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-reject-blank-reason@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createSubmittedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/reject', $shop->getId(), $order->getId()),
+            ['reason' => '   '],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame('rejected', $payload['status']);
+        self::assertNull($payload['rejection_reason']);
+
+        $logs = $this->findStatusLogs($order);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Rejected, $logs[0]->getStatus());
+        self::assertNull($logs[0]->getNote());
+    }
+
+    public function testRejectOrderLogNoteIsVisibleInMerchantStatusHistory(): void
+    {
+        $merchant = $this->createUser('merchant-reject-history@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-reject-history@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createSubmittedOrder($customer, $shop);
+
+        $rejectResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/reject', $shop->getId(), $order->getId()),
+            ['reason' => 'Créneau non disponible'],
+            $merchant,
+        );
+
+        self::assertSame(200, $rejectResponse->getStatusCode());
+
+        $historyResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s/status-history', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $historyResponse->getStatusCode());
+
+        $payload = $this->decodeJson($historyResponse);
+        self::assertCount(1, $payload['transitions']);
+        self::assertSame('rejected', $payload['transitions'][0]['status']);
+        self::assertSame('Créneau non disponible', $payload['transitions'][0]['note']);
     }
 
     public function testRejectOrderInvalidTransitionReturns409(): void
@@ -549,6 +686,24 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         );
 
         self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testRejectOrderWrongMerchantReturns403(): void
+    {
+        $merchantA = $this->createUser('merchant-a-reject@example.test', ['ROLE_MERCHANT']);
+        $merchantB = $this->createUser('merchant-b-reject@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchantB);
+        $customer = $this->createUser('customer-reject-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createSubmittedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/reject', $shop->getId(), $order->getId()),
+            ['reason' => 'Test'],
+            $merchantA,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
     }
 
     public function testRejectOrderUnauthenticatedReturns401(): void
