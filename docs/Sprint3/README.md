@@ -6,6 +6,10 @@ Sprint 3 couvre l'intégralité du parcours marchand depuis la réception d'une 
 
 Le marchand peut désormais traiter les commandes de ses clients, gérer partiellement les acceptations et configurer ses créneaux horaires.
 
+## Rapport technique
+
+- [Rapport technique de préparation Sprint 3](technical-readiness-report.md) — état du backend, endpoints existants, gaps exacts, ordre recommandé des PRs et tests à prévoir.
+
 ## Parcours cible
 
 ```text
@@ -13,7 +17,7 @@ Nouvelle commande soumise (notification)
 → consultation de la liste des commandes
 → consultation du détail d'une commande
 → décision : accepter / refuser / accepter partiellement
-→ (si partiellement accepté) le client resoumets → recommencer depuis la décision
+→ (si partiellement accepté) le client resoumet → recommencer depuis la décision
 → passage en préparation
 → déclaration prête
 → commande prête pour le retrait (Sprint 4)

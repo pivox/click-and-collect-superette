@@ -8,6 +8,31 @@ Le Sprint 3 reste aligné MVP : pas de paiement en ligne, pas de livraison, pas 
 
 Objectif Sprint 3 : permettre au marchand de traiter les commandes de sa supérette depuis la réception jusqu'à la commande prête, avec acceptation, refus, acceptation partielle, annulation client, préparation ligne par ligne, historique de statuts et dashboard journalier.
 
+## Portée et sources analysées
+
+Ce document est un rapport de préparation technique, pas un contrat API définitif. Les endpoints proposés doivent rester validés par les user stories Sprint 3 et par le design API Platform au moment de l'implémentation.
+
+Sources relues pour cette analyse :
+
+- `AGENTS.md` ;
+- `AI_CONTEXT.md` ;
+- `README.md` ;
+- `docs/roadmap/mvp-roadmap.md` ;
+- `docs/Sprint3/README.md` ;
+- `docs/product/mvp-functional-audit.md` ;
+- user stories Sprint 3 liées aux commandes marchand, à l'annulation client, à l'acceptation partielle, à l'historique, au dashboard et à la préparation ;
+- `apps/backend/src/` ;
+- `apps/backend/tests/`.
+
+Vérifications réalisées lors de l'analyse :
+
+- lecture des ressources produit et Sprint 3 ;
+- inventaire des fichiers backend avec `find` ;
+- recherche des ApiResource, processors et providers avec `rg` ;
+- lecture ciblée des entités, repositories, processors et tests existants.
+
+Aucun test applicatif Symfony/PHPUnit n'a été lancé pour ce rapport documentaire.
+
 ## État actuel du code
 
 ### Entités existantes
@@ -367,6 +392,17 @@ Tests nécessaires :
 - L'annulation client doit être limitée à `submitted`, même si la méthode domaine `cancel()` autorise plus de statuts.
 - `mark-ready` est actuellement trop permissif tant que `OrderLine.prepared` n'existe pas.
 - Il faut éviter un gros refactor de transitions pour Sprint 3 ; un service léger de logging suffit.
+
+## Vérification avant chaque PR Sprint 3
+
+Avant de coder une PR Sprint 3, vérifier systématiquement :
+
+- que le changement reste limité à une supérette, une Kadhia et un marchand propriétaire ;
+- que la sécurité sépare bien client, marchand et administrateur ;
+- qu'aucune donnée privée client n'est exposée dans une collection marchand ;
+- que toute transition de statut crée un `OrderStatusLog` ;
+- que les migrations Doctrine accompagnent tout changement de schéma ;
+- que les tests fonctionnels couvrent au minimum le succès, le mauvais rôle, le mauvais propriétaire et la transition invalide.
 
 ## Recommandation finale
 
