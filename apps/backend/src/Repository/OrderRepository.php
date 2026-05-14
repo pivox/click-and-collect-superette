@@ -10,6 +10,7 @@ use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\OrderStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 
@@ -157,5 +158,56 @@ class OrderRepository extends ServiceEntityRepository
             'kadhia' => $kadhia,
             'status' => OrderStatus::PartiallyAccepted,
         ]);
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function countByStatusForShopBetweenPickupSlotStarts(
+        Shop $shop,
+        \DateTimeImmutable $startsAtInclusive,
+        \DateTimeImmutable $startsAtExclusive,
+    ): array {
+        /** @var list<array{status: OrderStatus|string, count: int|string}> $rows */
+        $rows = $this->createQueryBuilder('o')
+            ->select('o.status AS status, COUNT(o.id) AS count')
+            ->innerJoin('o.pickupSlot', 'pickupSlot')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->andWhere('pickupSlot.startsAt >= :startsAtInclusive')
+            ->andWhere('pickupSlot.startsAt < :startsAtExclusive')
+            ->groupBy('o.status')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('startsAtInclusive', $startsAtInclusive, Types::DATETIME_IMMUTABLE)
+            ->setParameter('startsAtExclusive', $startsAtExclusive, Types::DATETIME_IMMUTABLE)
+            ->getQuery()
+            ->getArrayResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $status = $row['status'] instanceof OrderStatus ? $row['status']->value : (string) $row['status'];
+            $counts[$status] = (int) $row['count'];
+        }
+
+        return $counts;
+    }
+
+    public function countUrgentSubmittedForShopBetweenPickupSlotStarts(
+        Shop $shop,
+        \DateTimeImmutable $startsAtInclusive,
+        \DateTimeImmutable $startsAtExclusive,
+    ): int {
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->innerJoin('o.pickupSlot', 'pickupSlot')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->andWhere('o.status = :status')
+            ->andWhere('pickupSlot.startsAt >= :startsAtInclusive')
+            ->andWhere('pickupSlot.startsAt < :startsAtExclusive')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('status', OrderStatus::Submitted)
+            ->setParameter('startsAtInclusive', $startsAtInclusive, Types::DATETIME_IMMUTABLE)
+            ->setParameter('startsAtExclusive', $startsAtExclusive, Types::DATETIME_IMMUTABLE)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 }

@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\PickupSlot;
 use App\Entity\Shop;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -38,6 +39,26 @@ class PickupSlotRepository extends ServiceEntityRepository
             'id' => $slotId,
             'shop' => $shop,
         ]);
+    }
+
+    /**
+     * @return list<PickupSlot>
+     */
+    public function findForShopBetweenStartsAt(
+        Shop $shop,
+        \DateTimeImmutable $startsAtInclusive,
+        \DateTimeImmutable $startsAtExclusive,
+    ): array {
+        return $this->createQueryBuilder('slot')
+            ->andWhere('IDENTITY(slot.shop) = :shopId')
+            ->andWhere('slot.startsAt >= :startsAtInclusive')
+            ->andWhere('slot.startsAt < :startsAtExclusive')
+            ->orderBy('slot.startsAt', 'ASC')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('startsAtInclusive', $startsAtInclusive, Types::DATETIME_IMMUTABLE)
+            ->setParameter('startsAtExclusive', $startsAtExclusive, Types::DATETIME_IMMUTABLE)
+            ->getQuery()
+            ->getResult();
     }
 
     public function hasActiveOverlapForShop(
