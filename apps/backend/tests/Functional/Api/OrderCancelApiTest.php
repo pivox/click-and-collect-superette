@@ -36,7 +36,7 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
         $response = $this->requestJson(
             'POST',
             \sprintf('/api/me/orders/%s/cancel', $order->getId()->toRfc4122()),
-            null,
+            [],
             $customer,
         );
 
@@ -73,7 +73,7 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
         $cancelResponse = $this->requestJson(
             'POST',
             \sprintf('/api/me/orders/%s/cancel', $order->getId()->toRfc4122()),
-            null,
+            [],
             $customer,
         );
         self::assertSame(200, $cancelResponse->getStatusCode());
@@ -102,7 +102,7 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
         $cancelResponse = $this->requestJson(
             'POST',
             \sprintf('/api/me/orders/%s/cancel', $order->getId()->toRfc4122()),
-            null,
+            [],
             $customer,
         );
         self::assertSame(200, $cancelResponse->getStatusCode());
@@ -134,7 +134,7 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
         $response = $this->requestJson(
             'POST',
             \sprintf('/api/me/orders/%s/cancel', $order->getId()->toRfc4122()),
-            null,
+            [],
             $other,
         );
 
@@ -150,7 +150,7 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
         $response = $this->requestJson(
             'POST',
             \sprintf('/api/me/orders/%s/cancel', Uuid::v4()->toRfc4122()),
-            null,
+            [],
             $merchant,
         );
 
@@ -162,6 +162,7 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
         $response = $this->requestJson(
             'POST',
             \sprintf('/api/me/orders/%s/cancel', Uuid::v4()->toRfc4122()),
+            [],
         );
 
         self::assertSame(401, $response->getStatusCode());
@@ -180,7 +181,7 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
         $response = $this->requestJson(
             'POST',
             \sprintf('/api/me/orders/%s/cancel', $order->getId()->toRfc4122()),
-            null,
+            [],
             $customer,
         );
 
@@ -199,10 +200,13 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
      */
     public static function nonSubmittedStatusProvider(): iterable
     {
+        yield 'draft' => [OrderStatus::Draft];
         yield 'accepted' => [OrderStatus::Accepted];
+        yield 'partially_accepted' => [OrderStatus::PartiallyAccepted];
         yield 'rejected' => [OrderStatus::Rejected];
         yield 'preparing' => [OrderStatus::Preparing];
         yield 'ready' => [OrderStatus::Ready];
+        yield 'pickup_pending' => [OrderStatus::PickupPending];
         yield 'completed' => [OrderStatus::Completed];
         yield 'cancelled' => [OrderStatus::Cancelled];
     }
@@ -261,15 +265,17 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
         $this->entityManager->persist($line);
 
         $order->recomputeTotal();
-        $order->submit();
         match ($status) {
-            OrderStatus::Submitted => null,
-            OrderStatus::Accepted => $order->accept(),
-            OrderStatus::Rejected => $order->reject('Rupture de stock'),
+            OrderStatus::Draft => null,
+            OrderStatus::Submitted => $order->submit(),
+            OrderStatus::Accepted => $this->moveToAccepted($order),
+            OrderStatus::PartiallyAccepted => $this->moveToPartiallyAccepted($order),
+            OrderStatus::Rejected => $this->moveToRejected($order),
             OrderStatus::Preparing => $this->moveToPreparing($order),
             OrderStatus::Ready => $this->moveToReady($order),
+            OrderStatus::PickupPending => $this->moveToPickupPending($order),
             OrderStatus::Completed => $this->moveToCompleted($order),
-            OrderStatus::Cancelled => $order->cancel(),
+            OrderStatus::Cancelled => $this->moveToCancelled($order),
             default => throw new \InvalidArgumentException('Unsupported order status for cancel test.'),
         };
 
@@ -278,9 +284,33 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
         return $order;
     }
 
+    private function moveToAccepted(Order $order): void
+    {
+        $order->submit();
+        $order->accept();
+    }
+
+    private function moveToCancelled(Order $order): void
+    {
+        $order->submit();
+        $order->cancel();
+    }
+
+    private function moveToPartiallyAccepted(Order $order): void
+    {
+        $order->submit();
+        $order->partiallyAccept();
+    }
+
+    private function moveToRejected(Order $order): void
+    {
+        $order->submit();
+        $order->reject('Rupture de stock');
+    }
+
     private function moveToPreparing(Order $order): void
     {
-        $order->accept();
+        $this->moveToAccepted($order);
         $order->startPreparing();
     }
 
@@ -292,9 +322,14 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
 
     private function moveToCompleted(Order $order): void
     {
+        $this->moveToPickupPending($order);
+        $order->complete();
+    }
+
+    private function moveToPickupPending(Order $order): void
+    {
         $this->moveToReady($order);
         $order->startPickup();
-        $order->complete();
     }
 
     private function createMerchantProduct(Shop $shop): MerchantProduct

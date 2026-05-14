@@ -11,7 +11,6 @@ use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use App\Dto\SubmitOrderInput;
 use App\Entity\Kadhia;
-use App\Entity\Order;
 use App\Processor\CancelOrderProcessor;
 use App\Processor\SubmitOrderProcessor;
 use App\Provider\OrderItemProvider;
@@ -29,7 +28,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         ),
         new Post(
             uriTemplate: '/me/orders/{orderId}/cancel',
-            uriVariables: ['orderId' => new Link(fromClass: Order::class, identifiers: ['id'])],
+            uriVariables: ['orderId' => new Link(fromClass: OrderOutput::class, identifiers: ['id'])],
             formats: ['json' => ['application/json']],
             input: false,
             normalizationContext: ['groups' => ['order:read']],
