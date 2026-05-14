@@ -10,6 +10,7 @@ use App\Entity\Kadhia;
 use App\Entity\KadhiaLine;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
+use App\Entity\OrderStatusLog;
 use App\Entity\PickupSlot;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
@@ -64,6 +65,11 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
         $orders = $this->entityManager->getRepository(Order::class)->findAll();
         self::assertCount(1, $orders);
+
+        $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findAll();
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Submitted, $logs[0]->getStatus());
+        self::assertNull($logs[0]->getNote());
     }
 
     public function testSubmitOrderWithNotes(): void
@@ -286,6 +292,11 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         // Must still be only one order (re-submission, not new order)
         $orders = $this->entityManager->getRepository(Order::class)->findAll();
         self::assertCount(1, $orders);
+
+        $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findAll();
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Submitted, $logs[0]->getStatus());
+        self::assertNull($logs[0]->getNote());
         self::assertSame(OrderStatus::Submitted, $orders[0]->getStatus());
     }
 
