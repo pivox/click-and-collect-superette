@@ -29,6 +29,11 @@ final class SeedDemoStoreCommandTest extends FunctionalApiTestCase
 
         $commandTester = $this->runCommand();
 
+        $customer = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'client.demo@kadhia.local']);
+        self::assertInstanceOf(User::class, $customer);
+        self::assertContains('ROLE_CUSTOMER', $customer->getRoles());
+        self::assertTrue($customer->isActive());
+
         $merchant = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'merchant@test.com']);
         self::assertInstanceOf(User::class, $merchant);
         self::assertContains('ROLE_MERCHANT', $merchant->getRoles());
@@ -50,6 +55,7 @@ final class SeedDemoStoreCommandTest extends FunctionalApiTestCase
         }
 
         self::assertStringContainsString('products_added', $commandTester->getDisplay());
+        self::assertStringContainsString('customer_email', $commandTester->getDisplay());
         self::assertStringContainsString('/api/stores/'.$shop->getId()->toRfc4122().'/catalog', $commandTester->getDisplay());
     }
 

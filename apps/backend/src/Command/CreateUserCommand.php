@@ -33,7 +33,7 @@ final class CreateUserCommand extends Command
             ->addOption('email', null, InputOption::VALUE_OPTIONAL, 'User email', 'dev@example.com')
             ->addOption('password', null, InputOption::VALUE_OPTIONAL, 'Plain-text password', 'password')
             ->addOption('name', null, InputOption::VALUE_OPTIONAL, 'Display name', 'Dev User')
-            ->addOption('role', null, InputOption::VALUE_OPTIONAL, 'Extra role: ROLE_USER, ROLE_MERCHANT, ROLE_ADMIN', 'ROLE_MERCHANT');
+            ->addOption('role', null, InputOption::VALUE_OPTIONAL, 'Extra role: ROLE_USER, ROLE_CUSTOMER, ROLE_MERCHANT, ROLE_ADMIN', 'ROLE_MERCHANT');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -53,7 +53,7 @@ final class CreateUserCommand extends Command
             return Command::SUCCESS;
         }
 
-        $allowedRoles = ['ROLE_USER', 'ROLE_MERCHANT', 'ROLE_ADMIN'];
+        $allowedRoles = ['ROLE_USER', 'ROLE_CUSTOMER', 'ROLE_MERCHANT', 'ROLE_ADMIN'];
         if (!\in_array($role, $allowedRoles, true)) {
             $io->error(\sprintf('Invalid role "%s". Allowed: %s', $role, implode(', ', $allowedRoles)));
 
