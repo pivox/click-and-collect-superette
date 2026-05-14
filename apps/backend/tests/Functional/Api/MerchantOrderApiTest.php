@@ -1411,11 +1411,19 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $order->submit();
         $order->accept();
         $order->startPreparing();
-        $this->entityManager->persist($order);
-        $this->entityManager->flush();
-        $line = $this->addOrderLine($order, $product, quantity: 1, unitPriceTnd: '1.000');
-        $line->markPrepared(true);
+
+        $line = (new OrderLine())
+            ->setMerchantProduct($product)
+            ->setQuantity(1)
+            ->setUnitPriceTnd('1.000')
+            ->setLineTotalTnd('1.000')
+            ->markPrepared(true);
+        $order->addLine($line);
+        $order->recomputeTotal();
         $order->markReady();
+
+        $this->entityManager->persist($order);
+        $this->entityManager->persist($line);
         $this->entityManager->flush();
 
         return $order;

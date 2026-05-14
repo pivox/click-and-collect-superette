@@ -255,7 +255,7 @@ class Order
         $this->status = OrderStatus::Ready;
     }
 
-    public function areAllLinesPrepared(): bool
+    private function areAllLinesPrepared(): bool
     {
         if ($this->lines->isEmpty()) {
             return false;
