@@ -15,7 +15,9 @@ Le MVP doit permettre à une supérette tunisienne de proposer un parcours click
 - Le paiement en ligne et la livraison sont exclus du MVP initial.
 - Le catalogue marchand s'appuie sur un référentiel produit global.
 
-## Sprint 0 — Cadrage produit et socle documentaire
+---
+
+## Sprint 0 — Cadrage produit et socle documentaire ✅
 
 ### Objectif
 
@@ -38,7 +40,39 @@ Transformer la vision produit en documentation opérationnelle pour commencer le
 
 Le développement peut commencer lorsque les entités principales, les parcours MVP, les règles de commande et le modèle produit sont compréhensibles sans discussion orale supplémentaire.
 
-## Sprint 1 — Référentiel produit et catalogue marchand
+---
+
+## Sprint Auth — Authentification et compte client 🔴 P0
+
+### Objectif
+
+Permettre à un client de créer un compte, se connecter et récupérer son mot de passe. Prérequis absolu de tout parcours client.
+
+### Fonctionnalités
+
+- Inscription client (`POST /api/auth/register/customer`).
+- Connexion JWT (existant).
+- Profil client : consultation et modification (`GET/PATCH /api/me/profile`).
+- Réinitialisation de mot de passe par email.
+
+### User stories
+
+- **US-034** — S'inscrire en tant que client
+- **US-035** — Consulter et modifier son profil client
+- **US-046** — Réinitialiser son mot de passe oublié
+
+### Entités / migrations
+
+- Aucun champ manquant sur `User` pour l'inscription.
+- Nouvelle entité `PasswordResetToken`.
+
+### Critère de sortie
+
+Un visiteur peut créer un compte, se connecter et retrouver l'accès à son compte après un mot de passe oublié.
+
+---
+
+## Sprint 1 — Référentiel produit et catalogue marchand ✅ (partiel)
 
 ### Objectif
 
@@ -54,22 +88,32 @@ Permettre au marchand de retrouver des produits existants et de construire son c
 - Définir le prix marchand.
 - Définir la disponibilité produit.
 - Importer un seed CSV initial.
+- **[NEW] Photos des produits** — champ `imageUrl` sur `ProductReference`, upload admin.
+
+### User stories
+
+- US-013 — Rechercher un produit dans le référentiel global
+- US-014 — Ajouter un produit du référentiel à son catalogue
+- US-015 — Définir le prix et la disponibilité d'un produit
+- US-016 — Proposer un nouveau produit au référentiel
+- **US-041** — Afficher les photos des produits dans le catalogue *(NEW)*
 
 ### Entités principales
 
-- ProductReference.
+- ProductReference (+ `imageUrl`).
 - Brand.
 - Category.
-- ProductUnit.
+- ProductUnit (enum).
 - MerchantProduct.
-- Merchant.
-- Store.
+- Shop.
 
 ### Critère de sortie
 
-Un marchand peut rechercher un produit comme `Lait demi-écrémé Vitalait 1L`, l'ajouter à sa supérette, définir son prix et le rendre visible aux clients.
+Un marchand peut rechercher « Lait Vitalait 1L », voir sa photo, l'ajouter, fixer son prix à 2,800 TND et le rendre visible aux clients.
 
-## Sprint 2 — Parcours client
+---
+
+## Sprint 2 — Parcours client ✅ (partiel)
 
 ### Objectif
 
@@ -78,6 +122,7 @@ Permettre au client de scanner un QR code, consulter les produits d'une supéret
 ### Fonctionnalités
 
 - Accès à la supérette via QR code.
+- **[NEW] Parcours client non connecté** — affichage catalogue sans login, invite à la connexion au moment de l'ajout à la Kadhia.
 - Affichage des informations de la supérette.
 - Consultation du catalogue marchand.
 - Recherche produit.
@@ -86,141 +131,219 @@ Permettre au client de scanner un QR code, consulter les produits d'une supéret
 - Modification des quantités.
 - Suppression d'un produit du panier.
 - Choix d'un créneau de retrait.
+- **[NEW] Message explicite si aucun créneau disponible.**
 - Soumission de la commande.
+- **[NEW] Numéro de commande lisible** (#0042).
+
+### User stories
+
+- US-001 — Scanner le QR code d'une supérette
+- US-031 — Voir les informations de la supérette
+- US-032 — Associer un client à une supérette
+- US-033 — Rechercher une supérette
+- US-002 — Consulter le catalogue marchand
+- US-017 — Rechercher un produit par nom ou marque
+- US-018 — Filtrer le catalogue par catégorie
+- US-003 — Ajouter un produit à la Kadhia
+- US-019 — Modifier la quantité ou retirer un produit
+- US-020 — Récapitulatif de la Kadhia avec total TND
+- US-004 — Choisir un créneau de retrait
+- US-021 — Soumettre la commande
+- **US-042** — Numéro de commande lisible *(NEW)*
+- **US-044** — Parcours client non connecté *(NEW)*
+- **US-048** — Message si aucun créneau disponible *(NEW)*
+
+### Entités / migrations
+
+- `Order` : ajouter `order_number` (séquentiel par supérette, UNIQUE).
+- `Order` : ajouter `submitted_at`.
+- `PickupSlot` : ajouter `timezone` (défaut `Africa/Tunis`).
+- `KadhiaLine` : ajouter `name_fr`, `name_ar`, `brand` (snapshots).
 
 ### Critère de sortie
 
-Un client peut scanner un QR code, composer une Kadhia et envoyer une demande de commande au marchand.
+Un client peut scanner un QR code, voir les produits avec photos, composer une Kadhia et envoyer une demande de commande identifiée `#0042` au marchand — qu'il soit connecté dès le départ ou après.
 
-## Sprint 3 — Parcours marchand
+---
+
+## Sprint 3 — Parcours marchand 🔴 P0
 
 ### Objectif
 
-Permettre au marchand de traiter les demandes de commande.
+Permettre au marchand de traiter les commandes et de gérer ses créneaux de retrait.
 
 ### Fonctionnalités
 
-- Liste des commandes soumises.
-- Consultation du détail d'une Kadhia.
+- **Dashboard journalier** — vue synthétique des commandes du jour par statut.
+- Liste des commandes avec filtres et historique complet.
+- Consultation du détail d'une commande avec coordonnées client.
 - Acceptation d'une commande.
 - Refus d'une commande avec raison.
+- **Acceptation partielle** — sélection des lignes honorées.
+- **Annulation par le client** — statut `submitted` uniquement.
 - Passage en préparation.
 - Passage en prêt à retirer.
-- Suivi des statuts.
+- **Délai de réponse marchand** — annulation automatique si non traité avant 2h du créneau.
+- **Expiration d'une acceptation partielle** — annulation si le client ne resoumets pas avant 2h du créneau.
+- CRUD créneaux de retrait.
+- **Créneaux récurrents** — génération automatique sur 4 semaines.
+- **Ruptures de stock en masse** — action groupée sur le catalogue.
+- Traçabilité — entité `OrderStatusLog` avec horodatage à chaque transition.
+
+### User stories
+
+- US-022 — Consulter la liste des commandes soumises
+- US-005 — Accepter ou refuser une commande
+- US-037 — Accepter partiellement une commande *(NEW)*
+- US-036 — Annuler une commande (client) *(NEW)*
+- US-006 — Préparer une commande
+- US-023 — Déclarer une commande prête
+- US-024 — Configurer les créneaux de retrait
+- US-040 — Historique des transitions de statut *(NEW)*
+- **US-043** — Délai de réponse marchand *(NEW)*
+- **US-045** — Coordonnées client dans la commande marchand *(NEW)*
+- **US-047** — Créneaux récurrents *(NEW)*
+- **US-049** — Expiration d'une acceptation partielle *(NEW)*
+- **US-051** — Dashboard journalier marchand *(NEW)*
+- **US-052** — Ruptures de stock en masse *(NEW)*
+- **US-053** — Historique complet marchand *(NEW)*
+
+### Entités / migrations
+
+- `OrderStatusLog` (nouvelle entité).
+- `PickupSlotRule` (nouvelle entité — créneaux récurrents).
+- `Order` : ajouter `order_number` si non fait en Sprint 2.
 
 ### Critère de sortie
 
-Le marchand peut accepter ou refuser une commande, puis suivre sa préparation jusqu'au statut prêt.
-
-## Sprint 4 — Retrait sécurisé
-
-### Objectif
-
-Finaliser la remise de la commande avec un QR code de retrait et une double validation.
-
-### Fonctionnalités
-
-- Génération d'un QR code de retrait.
-- Présentation du QR code par le client.
-- Contrôle du QR code côté marchand.
-- Passage en retrait en cours.
-- Double validation client + marchand.
-- Finalisation de la commande.
-
-### Critère de sortie
-
-Une commande acceptée peut être préparée, retirée et finalisée avec une preuve de retrait simple.
-
-## Sprint 5 — Administration minimale
-
-### Objectif
-
-Permettre à la plateforme de gérer les supérettes, les marchands et les données structurantes.
-
-### Fonctionnalités
-
-- Créer une supérette.
-- Gérer les comptes marchands.
-- Consulter les commandes.
-- Gérer les catégories.
-- Gérer les marques.
-- Corriger les produits du référentiel.
-- Valider les demandes d'ajout produit.
-
-### Critère de sortie
-
-L'administrateur peut maintenir les données nécessaires au bon fonctionnement du MVP.
+Le marchand reçoit une notification de nouvelle commande, la traite depuis son dashboard, configure ses créneaux récurrents, et le client peut annuler avant acceptation. Chaque transition est tracée.
 
 ---
 
-## Sprint 6 — Personnalisation visuelle
+## Sprint 4 — Retrait sécurisé 🟠 P1
 
 ### Objectif
 
-Permettre à l'administrateur de définir le thème visuel par défaut de la plateforme, et à chaque marchand de personnaliser l'identité visuelle de sa supérette une fois lors de son onboarding.
-
-### Contexte de décision
-
-- Le thème global (admin) s'applique à toutes les interfaces comme valeur par défaut.
-- Chaque supérette peut surcharger ce thème avec ses propres couleurs et police.
-- Le marchand configure son thème **une seule fois** lors de l'onboarding ; il peut le modifier ultérieurement depuis ses paramètres.
-- Les valeurs du thème sont stockées en base et injectées comme variables CSS (`--color-primary`, `--font-family`, etc.) via l'API.
-- L'upload d'image de fond est **hors périmètre MVP** (voir ADR-0004).
-- Décision d'architecture documentée dans `docs/adr/0004-theme-customization-mvp.md`.
+Finaliser la remise avec un QR code de retrait, une double validation et des notifications aux deux parties.
 
 ### Fonctionnalités
 
-**Côté administration :**
-- Définir le thème global par défaut (5 couleurs + police).
-- Avertissement contraste WCAG 2.1 AA (ratio 4.5:1) lors de la saisie.
+- Génération du QR code de retrait (token `PickupSession`) lors du passage en `ready`.
+- Affichage du QR code côté client (grande taille, luminosité max).
+- Scan marchand → passage en `pickup_pending`.
+- Double validation client + marchand → `completed`.
+- Force complétion marchand si le client ne répond pas dans les 5 minutes.
+- **Notifications client** — transitions clés (acceptée, prête, etc.).
+- **Notifications marchand** — nouvelle commande soumise.
+- Suivi statut commande côté client (polling 30s).
 
-**Côté onboarding marchand :**
-- Configurer le thème de la supérette lors de l'onboarding (étape dédiée, optionnelle).
-- Conserver le thème global ou personnaliser manuellement les 5 couleurs, la police et la taille de base.
-- Aperçu du rendu avant validation.
+### User stories
 
-**Côté API :**
-- `GET /api/stores/{storeId}/theme` — retourne les variables CSS du thème actif (thème supérette ou thème global par défaut). Public.
-- `GET /api/merchant/stores/{storeId}/theme` — lit le thème côté backoffice marchand. `ROLE_MERCHANT` propriétaire.
-- `PUT /api/merchant/stores/{storeId}/theme` — crée ou met à jour le thème d'une supérette par upsert. `ROLE_MERCHANT` propriétaire.
-- `GET /api/admin/theme` — lit le thème global. `ROLE_ADMIN`.
-- `PUT /api/admin/theme` — met à jour le thème global. `ROLE_ADMIN`.
+- US-025 — Afficher le QR code de retrait (client)
+- US-007 — Double validation retrait
+- US-026 — Suivre le statut de sa commande
+- US-038 — Notifications client *(NEW)*
+- US-039 — Notifications marchand *(NEW)*
 
-### Entités principales
+### Entités / migrations
 
-- `PlatformTheme` (singleton — thème global par défaut).
-- `ShopTheme` (lié à `Store`, optionnel — surcharge entièrement le thème global pour cette supérette).
-
-### Hors périmètre MVP (post-Sprint 6)
-
-- Upload et gestion d'image de fond.
-- Prévisualisation temps réel desktop + mobile.
-- Réinitialisation aux valeurs d'usine.
-- Export de configuration de thème.
-- Versioning / cache-busting du thème.
+- `PickupSession` (nouvelle entité).
+- `Notification` (nouvelle entité).
 
 ### Critère de sortie
 
-L'administrateur a configuré un thème global cohérent. Chaque supérette onboardée dispose de son propre thème ou hérite du thème par défaut. La PWA client reflète le thème de la supérette via `GET /api/stores/{storeId}/theme`.
+Une commande `ready` peut être retirée avec un QR code, validée des deux côtés et finalisée. Les notifications sont envoyées à chaque transition clé.
 
 ---
 
-## Sprint 7 — Production
+## Sprint 5 — Administration minimale 🟠 P1
 
 ### Objectif
 
-Préparer la mise en production avec observabilité, traçabilité et outils de support.
+Permettre à l'opérateur de créer et gérer supérettes et marchands, et maintenir le référentiel produit.
 
 ### Fonctionnalités
 
-- Observabilité (logs, métriques, alertes).
-- Audit logs des transitions de statut.
-- Analytics MVP (commandes, taux d'acceptation, créneaux utilisés).
-- Outils de support opérateur.
+- CRUD supérettes (admin) avec génération et téléchargement du QR code.
+- **Photo et logo de la supérette** (admin et marchand).
+- CRUD comptes marchands (admin) — création, suspension, activation.
+- CRUD Brand et Category (admin).
+- CRUD ProductReference (admin) — création directe, correction, archivage.
+- Validation des propositions de produits des marchands (existant).
+- **QR code téléchargeable par le marchand** depuis son backoffice.
+- **Onboarding guidé** à la première connexion du marchand (thème → catalogue → créneaux → QR).
+
+### User stories
+
+- US-034 — Inscription client *(documentée, Sprint Auth)*
+- US-035 — Profil client *(documentée, Sprint Auth)*
+- US-009 — Créer et gérer les supérettes (admin) *(complétée)*
+- US-028 — Gérer les comptes marchands
+- US-029 — Superviser le référentiel produit global
+- US-030 — Valider les propositions de nouveaux produits
+- **US-050** — Photo et logo de la supérette *(NEW)*
+- **US-054** — Onboarding marchand guidé *(NEW)*
+- **US-055** — QR code téléchargeable par le marchand *(NEW)*
+
+### Entités / migrations
+
+- `Shop` : ajouter `logoUrl`, `coverUrl`.
+- `User` : ajouter `onboardingCompletedAt`.
 
 ### Critère de sortie
 
-La plateforme peut être opérée et supervisée en production par une équipe réduite.
+L'admin crée une supérette avec son QR code et son logo, active un marchand. Le marchand se connecte, complète l'onboarding et télécharge son QR code pour l'imprimer.
+
+---
+
+## Sprint 6 — Personnalisation visuelle ✅ (implémenté)
+
+### Objectif
+
+Permettre à l'administrateur de définir le thème visuel par défaut, et à chaque marchand de personnaliser l'identité visuelle de sa supérette.
+
+### Fonctionnalités
+
+- Thème global admin (5 couleurs + police).
+- Thème supérette marchand (surcharge du thème global).
+- Variables CSS exposées via API publique.
+- Avertissement contraste WCAG 2.1 AA.
+
+### User stories
+
+- US-010 — Configurer le thème global (admin)
+- US-011 — Personnaliser le thème de la supérette
+- US-012 — Afficher le storefront avec le thème actif
+
+### Critère de sortie ✅
+
+La PWA client reflète le thème de la supérette via `GET /api/stores/{storeId}/theme`.
+
+---
+
+## Sprint 7 — Production et localisation 🟡 P2
+
+### Objectif
+
+Préparer la mise en production avec observabilité, localisation FR/AR et outils de support.
+
+### Fonctionnalités
+
+- **Localisation FR/AR/RTL** — sélecteur de langue, support RTL, persistance préférence.
+- Observabilité (logs structurés, métriques, alertes).
+- Analytics MVP (commandes/jour, taux d'acceptation, créneaux utilisés).
+- Outils de support opérateur (recherche commande admin, log d'activité).
+- Audit logs des transitions de statut (lecture côté admin).
+
+### User stories
+
+- **US-008** — Basculer la langue de l'interface FR/AR *(complétée)*
+
+### Critère de sortie
+
+La plateforme peut être opérée et supervisée en production par une équipe réduite. L'interface bascule entre français et arabe avec support RTL complet.
+
+---
 
 ## Hors périmètre MVP
 
@@ -230,18 +353,23 @@ La plateforme peut être opérée et supervisée en production par une équipe r
 - Gestion multi-entrepôts.
 - Marketplace multi-marchands avec panier partagé.
 - Géolocalisation obligatoire.
-- Application mobile native obligatoire.
+- Application mobile native.
+- Notation / avis sur les supérettes.
+- Push mobile / SMS (notifications via polling dans le MVP).
+- Réouverture d'une session de retrait expirée (admin).
 
-## Décision géolocalisation
+---
 
-La géolocalisation n'est pas obligatoire pour le MVP. Le parcours prioritaire repose sur le QR code magasin. La géolocalisation pourra être ajoutée ensuite pour trouver les supérettes proches.
+## Synthèse des user stories par sprint
 
-## Priorités immédiates
-
-1. Référentiel produit.
-2. Modèle catalogue marchand.
-3. Taxonomie produit.
-4. Modèle de données.
-5. Contrat API.
-6. Parcours client QR code -> Kadhia -> rendez-vous.
-7. Parcours marchand validation -> préparation -> retrait.
+| Sprint | US | Statut |
+|---|---|---|
+| Sprint 0 | Documentation | ✅ Complet |
+| Sprint Auth | US-034, US-035, US-046 | 🔴 À coder |
+| Sprint 1 | US-013 à US-016, **US-041** | ✅ Partiel (US-041 manquante) |
+| Sprint 2 | US-001 à US-004, US-017 à US-021, US-031 à US-033, **US-042, US-044, US-048** | ✅ Partiel (3 US manquantes) |
+| Sprint 3 | US-005 à US-006, US-022 à US-024, US-036 à US-037, US-040, **US-043, US-045, US-047, US-049, US-051 à US-053** | 🔴 À coder |
+| Sprint 4 | US-007, US-025 à US-026, US-038 à US-039 | 🔴 À coder |
+| Sprint 5 | US-009, US-028 à US-030, US-034 à US-035, **US-050, US-054, US-055** | 🔴 À coder |
+| Sprint 6 | US-010 à US-012 | ✅ Complet |
+| Sprint 7 | US-008 | 🟡 À implémenter (frontend) |
