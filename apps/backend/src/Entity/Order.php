@@ -206,12 +206,13 @@ class Order
         $this->status = OrderStatus::Accepted;
     }
 
-    public function partiallyAccept(): void
+    public function partiallyAccept(?string $reason = null): void
     {
         if (OrderStatus::Submitted !== $this->status) {
             throw new \LogicException('ORDER_NOT_SUBMITTED');
         }
         $this->status = OrderStatus::PartiallyAccepted;
+        $this->rejectionReason = $reason;
     }
 
     public function resubmit(): void
@@ -220,6 +221,7 @@ class Order
             throw new \LogicException('ORDER_NOT_PARTIALLY_ACCEPTED');
         }
         $this->status = OrderStatus::Submitted;
+        $this->rejectionReason = null;
     }
 
     public function getRejectionReason(): ?string
