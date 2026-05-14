@@ -59,12 +59,17 @@ final readonly class UpdateMerchantPickupSlotProcessor implements ProcessorInter
 
         $startsAt = $data->startsAt ?? $slot->getStartsAt();
         $endsAt = $data->endsAt ?? $slot->getEndsAt();
+        $isActive = $data->isActive ?? $slot->isActive();
         if ($startsAt >= $endsAt) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_STARTS_AT_MUST_BE_BEFORE_ENDS_AT');
         }
 
         if (null !== $data->capacity && $data->capacity < $slot->getBookedCount()) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_CAPACITY_BELOW_BOOKED_COUNT');
+        }
+
+        if ($isActive && $this->pickupSlotRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt, $slot)) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXISTING_SLOT');
         }
 
         if (null !== $data->startsAt) {

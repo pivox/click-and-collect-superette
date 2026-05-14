@@ -8,9 +8,12 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\MerchantPickupSlotCreateInput;
 use App\Entity\PickupSlot;
+use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -21,6 +24,7 @@ final readonly class CreateMerchantPickupSlotProcessor implements ProcessorInter
 {
     public function __construct(
         private ShopRepository $shopRepository,
+        private PickupSlotRepository $pickupSlotRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
     ) {
@@ -50,6 +54,10 @@ final readonly class CreateMerchantPickupSlotProcessor implements ProcessorInter
         }
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
+
+        if ($this->pickupSlotRepository->hasActiveOverlapForShop($shop, $data->startsAt, $data->endsAt)) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXISTING_SLOT');
+        }
 
         $slot = (new PickupSlot())
             ->setShop($shop)

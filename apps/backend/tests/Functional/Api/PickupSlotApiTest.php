@@ -346,6 +346,25 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         self::assertSame(0, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
     }
 
+    public function testMerchantPickupSlotCreateRejectsOverlappingActiveSlot(): void
+    {
+        $merchant = $this->createUser('merchant-slots-create-overlap@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $existingStart = new \DateTimeImmutable('+1 day 10:00');
+        $this->createPickupSlot($shop, $existingStart, $existingStart->modify('+1 hour'), 4);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()),
+            $this->validMerchantPickupSlotPayload($existingStart->modify('+30 minutes'), $existingStart->modify('+90 minutes'), 6),
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_OVERLAPS_EXISTING_SLOT', (string) $response->getContent());
+        self::assertSame(1, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
     public function testMerchantOwnerPatchesPickupSlot(): void
     {
         $merchant = $this->createUser('merchant-slots-patch-owner@example.test', ['ROLE_MERCHANT']);
@@ -411,6 +430,32 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
         $this->entityManager->refresh($slot);
         self::assertSame(3, $slot->getCapacity());
+    }
+
+    public function testMerchantPickupSlotPatchRejectsOverlapWithAnotherActiveSlot(): void
+    {
+        $merchant = $this->createUser('merchant-slots-patch-overlap@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $baseStart = new \DateTimeImmutable('+1 day 10:00');
+        $slot = $this->createPickupSlot($shop, $baseStart, $baseStart->modify('+30 minutes'), 3);
+        $otherSlot = $this->createPickupSlot($shop, $baseStart->modify('+1 hour'), $baseStart->modify('+2 hours'), 3);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()),
+            [
+                'starts_at' => $baseStart->modify('+90 minutes')->format(\DateTimeInterface::ATOM),
+                'ends_at' => $baseStart->modify('+150 minutes')->format(\DateTimeInterface::ATOM),
+            ],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_OVERLAPS_EXISTING_SLOT', (string) $response->getContent());
+        $this->entityManager->refresh($slot);
+        $this->entityManager->refresh($otherSlot);
+        self::assertSame($baseStart->getTimestamp(), $slot->getStartsAt()->getTimestamp());
+        self::assertSame($baseStart->modify('+1 hour')->getTimestamp(), $otherSlot->getStartsAt()->getTimestamp());
     }
 
     public function testMerchantOwnerCanDeactivatePickupSlot(): void

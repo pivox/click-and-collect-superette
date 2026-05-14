@@ -40,6 +40,30 @@ class PickupSlotRepository extends ServiceEntityRepository
         ]);
     }
 
+    public function hasActiveOverlapForShop(
+        Shop $shop,
+        \DateTimeImmutable $startsAt,
+        \DateTimeImmutable $endsAt,
+        ?PickupSlot $excludeSlot = null,
+    ): bool {
+        $slots = $this->findBy(
+            ['shop' => $shop, 'isActive' => true],
+            ['startsAt' => 'ASC'],
+        );
+
+        foreach ($slots as $slot) {
+            if (null !== $excludeSlot && $slot->getId()->equals($excludeSlot->getId())) {
+                continue;
+            }
+
+            if ($slot->getStartsAt() < $endsAt && $slot->getEndsAt() > $startsAt) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Returns active, non-full, future slots for a shop, ordered by start time.
      *
