@@ -218,4 +218,318 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
 
         self::assertSame(404, $response->getStatusCode());
     }
+
+    // Merchant CRUD /api/merchant/stores/{storeId}/pickup-slots
+
+    public function testMerchantOwnerListsPickupSlotsForOwnStore(): void
+    {
+        $merchant = $this->createUser('merchant-slots-owner@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $now = new \DateTimeImmutable();
+        $active = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 4);
+        $inactive = $this->createPickupSlot($shop, $now->modify('+3 hours'), $now->modify('+4 hours'), 2, false);
+
+        $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()), user: $merchant);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(2, $payload);
+        self::assertSame($active->getId()->toRfc4122(), $payload[0]['id']);
+        self::assertSame(4, $payload[0]['capacity']);
+        self::assertSame(0, $payload[0]['booked_count']);
+        self::assertTrue($payload[0]['is_active']);
+        self::assertSame($inactive->getId()->toRfc4122(), $payload[1]['id']);
+        self::assertFalse($payload[1]['is_active']);
+    }
+
+    public function testMerchantPickupSlotCollectionRejectsOtherMerchantClientAndAnonymous(): void
+    {
+        $owner = $this->createUser('merchant-slots-list-owner@example.test', ['ROLE_MERCHANT']);
+        $otherMerchant = $this->createUser('merchant-slots-list-other@example.test', ['ROLE_MERCHANT']);
+        $client = $this->createUser('client-slots-list@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop($owner);
+
+        $otherMerchantResponse = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()), user: $otherMerchant);
+        $clientResponse = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()), user: $client);
+        $anonymousResponse = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()));
+
+        self::assertSame(403, $otherMerchantResponse->getStatusCode());
+        self::assertSame(403, $clientResponse->getStatusCode());
+        self::assertContains($anonymousResponse->getStatusCode(), [401, 403]);
+    }
+
+    public function testMerchantOwnerCreatesValidPickupSlot(): void
+    {
+        $merchant = $this->createUser('merchant-slots-create-owner@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $startsAt = new \DateTimeImmutable('+1 day 10:00');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()),
+            $this->validMerchantPickupSlotPayload($startsAt, $startsAt->modify('+30 minutes'), 6),
+            $merchant,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+        $slots = $this->entityManager->getRepository(PickupSlot::class)->findBy(['shop' => $shop]);
+        self::assertCount(1, $slots);
+        self::assertSame(6, $slots[0]->getCapacity());
+        self::assertTrue($slots[0]->isActive());
+    }
+
+    public function testMerchantPickupSlotCreateRejectsOtherMerchant(): void
+    {
+        $owner = $this->createUser('merchant-slots-create-forbidden-owner@example.test', ['ROLE_MERCHANT']);
+        $otherMerchant = $this->createUser('merchant-slots-create-forbidden-other@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($owner);
+        $startsAt = new \DateTimeImmutable('+1 day 10:00');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()),
+            $this->validMerchantPickupSlotPayload($startsAt, $startsAt->modify('+30 minutes'), 6),
+            $otherMerchant,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame(0, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
+    public function testMerchantPickupSlotCreateRejectsInvalidPayload(): void
+    {
+        $merchant = $this->createUser('merchant-slots-create-invalid@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()),
+            ['starts_at' => (new \DateTimeImmutable('+1 day'))->format(\DateTimeInterface::ATOM)],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame(0, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
+    public function testMerchantPickupSlotCreateRejectsStartsAtAfterEndsAt(): void
+    {
+        $merchant = $this->createUser('merchant-slots-create-dates@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $startsAt = new \DateTimeImmutable('+1 day 11:00');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()),
+            $this->validMerchantPickupSlotPayload($startsAt, $startsAt->modify('-30 minutes'), 6),
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame(0, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
+    public function testMerchantPickupSlotCreateRejectsNonPositiveCapacity(): void
+    {
+        $merchant = $this->createUser('merchant-slots-create-capacity@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $startsAt = new \DateTimeImmutable('+1 day 10:00');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()),
+            $this->validMerchantPickupSlotPayload($startsAt, $startsAt->modify('+30 minutes'), 0),
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame(0, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
+    public function testMerchantOwnerPatchesPickupSlot(): void
+    {
+        $merchant = $this->createUser('merchant-slots-patch-owner@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $now = new \DateTimeImmutable();
+        $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 4);
+        $newStartsAt = $now->modify('+3 hours');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()),
+            [
+                'starts_at' => $newStartsAt->format(\DateTimeInterface::ATOM),
+                'ends_at' => $newStartsAt->modify('+45 minutes')->format(\DateTimeInterface::ATOM),
+                'capacity' => 8,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $this->entityManager->refresh($slot);
+        self::assertSame(8, $slot->getCapacity());
+        self::assertSame($newStartsAt->getTimestamp(), $slot->getStartsAt()->getTimestamp());
+    }
+
+    public function testMerchantPickupSlotPatchRejectsOtherMerchant(): void
+    {
+        $owner = $this->createUser('merchant-slots-patch-forbidden-owner@example.test', ['ROLE_MERCHANT']);
+        $otherMerchant = $this->createUser('merchant-slots-patch-forbidden-other@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($owner);
+        $now = new \DateTimeImmutable();
+        $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 4);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()),
+            ['capacity' => 8],
+            $otherMerchant,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+        $this->entityManager->refresh($slot);
+        self::assertSame(4, $slot->getCapacity());
+    }
+
+    public function testMerchantPickupSlotPatchRejectsCapacityBelowBookedCount(): void
+    {
+        $merchant = $this->createUser('merchant-slots-patch-booked@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $now = new \DateTimeImmutable();
+        $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 3);
+        $slot->book();
+        $slot->book();
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()),
+            ['capacity' => 1],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        $this->entityManager->refresh($slot);
+        self::assertSame(3, $slot->getCapacity());
+    }
+
+    public function testMerchantOwnerCanDeactivatePickupSlot(): void
+    {
+        $merchant = $this->createUser('merchant-slots-patch-deactivate@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $now = new \DateTimeImmutable();
+        $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 3);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()),
+            ['is_active' => false],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $this->entityManager->refresh($slot);
+        self::assertFalse($slot->isActive());
+    }
+
+    public function testMerchantPickupSlotDeleteSoftDisablesSlot(): void
+    {
+        $merchant = $this->createUser('merchant-slots-delete-owner@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $now = new \DateTimeImmutable();
+        $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 3);
+
+        $response = $this->requestJson('DELETE', \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()), user: $merchant);
+
+        self::assertSame(204, $response->getStatusCode());
+        $this->entityManager->refresh($slot);
+        self::assertFalse($slot->isActive());
+        self::assertSame(1, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
+    public function testMerchantPickupSlotDeleteRejectsOtherMerchantClientAndAnonymous(): void
+    {
+        $owner = $this->createUser('merchant-slots-delete-forbidden-owner@example.test', ['ROLE_MERCHANT']);
+        $otherMerchant = $this->createUser('merchant-slots-delete-forbidden-other@example.test', ['ROLE_MERCHANT']);
+        $client = $this->createUser('client-slots-delete@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop($owner);
+        $now = new \DateTimeImmutable();
+        $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 3);
+        $path = \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId());
+
+        $otherMerchantResponse = $this->requestJson('DELETE', $path, user: $otherMerchant);
+        $clientResponse = $this->requestJson('DELETE', $path, user: $client);
+        $anonymousResponse = $this->requestJson('DELETE', $path);
+
+        self::assertSame(403, $otherMerchantResponse->getStatusCode());
+        self::assertSame(403, $clientResponse->getStatusCode());
+        self::assertContains($anonymousResponse->getStatusCode(), [401, 403]);
+        $storedSlot = $this->entityManager->getRepository(PickupSlot::class)->find($slot->getId());
+        self::assertNotNull($storedSlot);
+        self::assertTrue($storedSlot->isActive());
+    }
+
+    public function testSoftDeletedPickupSlotIsHiddenFromPublicCollection(): void
+    {
+        $merchant = $this->createUser('merchant-slots-public-hidden@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $now = new \DateTimeImmutable();
+        $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 3);
+
+        $this->requestJson('DELETE', \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()), user: $merchant);
+        $response = $this->requestJson('GET', \sprintf('/api/stores/%s/pickup-slots', $shop->getId()));
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(0, $payload['items']);
+    }
+
+    public function testPickupSlotRoutesExposePublicAndMerchantContracts(): void
+    {
+        $router = self::getContainer()->get(\Symfony\Component\Routing\RouterInterface::class);
+        $pickupSlotRoutes = [];
+
+        foreach ($router->getRouteCollection() as $route) {
+            if (str_contains($route->getPath(), 'pickup-slots')) {
+                $pickupSlotRoutes[] = implode(' ', $route->getMethods()).' '.$route->getPath();
+            }
+        }
+
+        sort($pickupSlotRoutes);
+
+        self::assertSame([
+            'DELETE /api/merchant/stores/{storeId}/pickup-slots/{slotId}',
+            'GET /api/merchant/stores/{storeId}/pickup-slots',
+            'GET /api/stores/{storeId}/pickup-slots',
+            'PATCH /api/merchant/stores/{storeId}/pickup-slots/{slotId}',
+            'POST /api/merchant/stores/{storeId}/pickup-slots',
+        ], $pickupSlotRoutes);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validMerchantPickupSlotPayload(\DateTimeImmutable $startsAt, \DateTimeImmutable $endsAt, int $capacity): array
+    {
+        return [
+            'starts_at' => $startsAt->format(\DateTimeInterface::ATOM),
+            'ends_at' => $endsAt->format(\DateTimeInterface::ATOM),
+            'capacity' => $capacity,
+        ];
+    }
+
+    private function createPickupSlot(\App\Entity\Shop $shop, \DateTimeImmutable $startsAt, \DateTimeImmutable $endsAt, int $capacity, bool $active = true): PickupSlot
+    {
+        $slot = (new PickupSlot())
+            ->setShop($shop)
+            ->setStartsAt($startsAt)
+            ->setEndsAt($endsAt)
+            ->setCapacity($capacity)
+            ->setActive($active);
+
+        $this->entityManager->persist($slot);
+        $this->entityManager->flush();
+
+        return $slot;
+    }
 }
