@@ -73,9 +73,10 @@ final readonly class MerchantPrepareOrderLineProcessor implements ProcessorInter
             throw new NotFoundHttpException('ORDER_LINE_NOT_FOUND');
         }
 
+        $merchantProductUuid = Uuid::fromString($merchantProductId);
         $line = null;
         foreach ($order->getLines() as $orderLine) {
-            if ($orderLine->getMerchantProduct()->getId()->equals(Uuid::fromString($merchantProductId))) {
+            if ($orderLine->getMerchantProduct()->getId()->equals($merchantProductUuid)) {
                 $line = $orderLine;
                 break;
             }

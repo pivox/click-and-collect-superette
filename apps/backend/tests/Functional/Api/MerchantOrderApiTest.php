@@ -1089,6 +1089,31 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertSame(401, $response->getStatusCode());
     }
 
+    public function testPrepareOrderLineMissingPreparedFieldReturns422(): void
+    {
+        $merchant = $this->createUser('merchant-line-prep-missing-field@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-line-prep-missing-field@example.test', ['ROLE_CUSTOMER']);
+        $product = $this->createMerchantProduct($shop, '2.000');
+        $order = $this->createPreparingOrder($customer, $shop);
+        $this->addOrderLine($order, $product, quantity: 1, unitPriceTnd: '2.000');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop->getId(),
+                $order->getId(),
+                $product->getId(),
+            ),
+            [],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('prepared', (string) $response->getContent());
+    }
+
     #[DataProvider('nonPreparingStatusProvider')]
     public function testPrepareOrderLineRejectsNonPreparingOrders(OrderStatus $status): void
     {
