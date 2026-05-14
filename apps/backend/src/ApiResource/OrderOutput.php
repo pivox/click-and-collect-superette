@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use App\Dto\SubmitOrderInput;
 use App\Entity\Kadhia;
+use App\Processor\CancelOrderProcessor;
 use App\Processor\SubmitOrderProcessor;
 use App\Provider\OrderItemProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -23,6 +24,17 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['order:read']],
             provider: OrderItemProvider::class,
+            security: "is_granted('ROLE_CUSTOMER')",
+        ),
+        new Post(
+            uriTemplate: '/me/orders/{orderId}/cancel',
+            uriVariables: ['orderId' => new Link(fromClass: OrderOutput::class, identifiers: ['id'])],
+            formats: ['json' => ['application/json']],
+            input: false,
+            normalizationContext: ['groups' => ['order:read']],
+            status: 200,
+            read: false,
+            processor: CancelOrderProcessor::class,
             security: "is_granted('ROLE_CUSTOMER')",
         ),
         new Post(
