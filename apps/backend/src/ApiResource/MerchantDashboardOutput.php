@@ -71,6 +71,9 @@ final readonly class MerchantDashboardOutput
         #[SerializedName('completed_count')]
         public int $completedCount,
         #[Groups(['merchant_dashboard:read'])]
+        #[SerializedName('pickup_pending_count')]
+        public int $pickupPendingCount,
+        #[Groups(['merchant_dashboard:read'])]
         #[SerializedName('urgent_submitted_count')]
         public int $urgentSubmittedCount,
         #[Groups(['merchant_dashboard:read'])]

@@ -9,6 +9,7 @@ use App\Entity\PickupSlot;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\OrderStatus;
+use Symfony\Component\Uid\Uuid;
 
 final class MerchantDashboardApiTest extends FunctionalApiTestCase
 {
@@ -87,6 +88,20 @@ final class MerchantDashboardApiTest extends FunctionalApiTestCase
         self::assertSame(401, $response->getStatusCode());
     }
 
+    public function testDashboardReturns404ForNonExistentStore(): void
+    {
+        $merchant = $this->createUser('merchant-dashboard-404@example.test', ['ROLE_MERCHANT']);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/dashboard/today', Uuid::v4()->toRfc4122()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
     public function testDashboardCountsOnlyTodayOrdersForTargetShopByStatus(): void
     {
         $merchant = $this->createUser('merchant-dashboard-counts@example.test', ['ROLE_MERCHANT']);
@@ -108,6 +123,8 @@ final class MerchantDashboardApiTest extends FunctionalApiTestCase
         $this->createOrder($customer, $shop, $todaySecondSlot, OrderStatus::Cancelled);
         $this->createOrder($customer, $shop, $todaySecondSlot, OrderStatus::Rejected);
         $this->createOrder($customer, $shop, $todaySecondSlot, OrderStatus::Completed);
+        $this->createOrder($customer, $shop, $todaySecondSlot, OrderStatus::PickupPending);
+        $this->createOrder($customer, $shop, $todaySecondSlot, OrderStatus::Draft);
         $this->createOrder($customer, $shop, $yesterdaySlot, OrderStatus::Submitted);
         $this->createOrder($customer, $otherShop, $otherShopSlot, OrderStatus::Submitted);
 
@@ -121,7 +138,7 @@ final class MerchantDashboardApiTest extends FunctionalApiTestCase
         self::assertSame(200, $response->getStatusCode());
 
         $payload = $this->decodeJson($response);
-        self::assertSame(9, $payload['total_orders_today']);
+        self::assertSame(10, $payload['total_orders_today']);
         self::assertSame(2, $payload['submitted_count']);
         self::assertSame(1, $payload['accepted_count']);
         self::assertSame(1, $payload['partially_accepted_count']);
@@ -130,8 +147,11 @@ final class MerchantDashboardApiTest extends FunctionalApiTestCase
         self::assertSame(1, $payload['cancelled_count']);
         self::assertSame(1, $payload['rejected_count']);
         self::assertSame(1, $payload['completed_count']);
+        self::assertSame(1, $payload['pickup_pending_count']);
         self::assertSame(2, $payload['orders_by_status']['submitted']);
         self::assertSame(1, $payload['orders_by_status']['completed']);
+        self::assertSame(1, $payload['orders_by_status']['pickup_pending']);
+        self::assertSame(1, $payload['orders_by_status']['draft']);
     }
 
     public function testDashboardReturnsOnlyTargetShopPickupSlotsForToday(): void

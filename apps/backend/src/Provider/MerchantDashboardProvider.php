@@ -61,10 +61,15 @@ final readonly class MerchantDashboardProvider implements ProviderInterface
         }
         ksort($ordersByStatus);
 
+        $urgentUpperBound = $now->modify('+3 hours');
+        if ($urgentUpperBound > $dayEnd) {
+            $urgentUpperBound = $dayEnd;
+        }
+
         $urgentSubmittedCount = $this->orderRepository->countUrgentSubmittedForShopBetweenPickupSlotStarts(
             $shop,
             $now,
-            $now->modify('+3 hours'),
+            $urgentUpperBound,
         );
 
         $slots = array_map(
@@ -75,7 +80,7 @@ final readonly class MerchantDashboardProvider implements ProviderInterface
         return new MerchantDashboardOutput(
             storeId: $shop->getId()->toRfc4122(),
             date: $dayStart->format('Y-m-d'),
-            totalOrdersToday: array_sum($ordersByStatus),
+            totalOrdersToday: $this->sumNonDraftOrders($ordersByStatus),
             ordersByStatus: $ordersByStatus,
             submittedCount: $ordersByStatus[OrderStatus::Submitted->value],
             acceptedCount: $ordersByStatus[OrderStatus::Accepted->value],
@@ -85,9 +90,20 @@ final readonly class MerchantDashboardProvider implements ProviderInterface
             cancelledCount: $ordersByStatus[OrderStatus::Cancelled->value],
             rejectedCount: $ordersByStatus[OrderStatus::Rejected->value],
             completedCount: $ordersByStatus[OrderStatus::Completed->value],
+            pickupPendingCount: $ordersByStatus[OrderStatus::PickupPending->value],
             urgentSubmittedCount: $urgentSubmittedCount,
             pickupSlotsToday: $slots,
         );
+    }
+
+    /**
+     * @param array<string, int> $ordersByStatus
+     */
+    private function sumNonDraftOrders(array $ordersByStatus): int
+    {
+        unset($ordersByStatus[OrderStatus::Draft->value]);
+
+        return array_sum($ordersByStatus);
     }
 
     private function toPickupSlotOutput(PickupSlot $slot): MerchantDashboardPickupSlotOutput
