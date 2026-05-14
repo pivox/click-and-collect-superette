@@ -19,7 +19,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
             uriTemplate: '/merchant/stores/{storeId}/orders',
             uriVariables: ['storeId' => new Link(fromClass: Shop::class, identifiers: ['id'])],
             formats: ['json' => ['application/json']],
-            normalizationContext: ['groups' => ['merchant_order:read']],
+            normalizationContext: ['groups' => ['merchant_order_summary:read']],
             provider: MerchantOrderCollectionProvider::class,
             security: "is_granted('ROLE_MERCHANT')",
             parameters: [
@@ -42,18 +42,18 @@ use Symfony\Component\Serializer\Attribute\Groups;
 final readonly class MerchantOrderListOutput
 {
     /**
-     * @param list<MerchantOrderOutput> $items
+     * @param list<MerchantOrderSummaryOutput> $items
      */
     public function __construct(
         #[ApiProperty(identifier: true)]
         public string $id,
-        #[Groups(['merchant_order:read'])]
+        #[Groups(['merchant_order_summary:read'])]
         public array $items,
-        #[Groups(['merchant_order:read'])]
+        #[Groups(['merchant_order_summary:read'])]
         public int $total,
-        #[Groups(['merchant_order:read'])]
+        #[Groups(['merchant_order_summary:read'])]
         public int $page,
-        #[Groups(['merchant_order:read'])]
+        #[Groups(['merchant_order_summary:read'])]
         public int $limit,
     ) {
     }
