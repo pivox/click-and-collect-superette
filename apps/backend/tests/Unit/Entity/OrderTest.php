@@ -39,6 +39,20 @@ final class OrderTest extends TestCase
         return $slot;
     }
 
+    private function addOrderLine(Order $order, bool $prepared): OrderLine
+    {
+        $line = (new OrderLine())
+            ->setMerchantProduct($this->makeProductForShop($order->getShop()))
+            ->setQuantity(1)
+            ->setUnitPriceTnd('1.000')
+            ->setLineTotalTnd('1.000')
+            ->markPrepared($prepared);
+
+        $order->addLine($line);
+
+        return $line;
+    }
+
     public function testOrderDefaultsToDraftStatus(): void
     {
         self::assertSame(OrderStatus::Draft, (new Order())->getStatus());
@@ -115,20 +129,54 @@ final class OrderTest extends TestCase
 
     public function testMarkReadyTransitionsPreparingToReady(): void
     {
-        $order = new Order();
+        $shop = $this->makeShop();
+        $order = (new Order())->setShop($shop);
         $order->submit();
         $order->accept();
         $order->startPreparing();
+        $this->addOrderLine($order, true);
         $order->markReady();
         self::assertSame(OrderStatus::Ready, $order->getStatus());
     }
 
-    public function testStartPickupTransitionsReadyToPickupPending(): void
+    public function testMarkReadyThrowsWhenALineIsNotPrepared(): void
     {
-        $order = new Order();
+        $shop = $this->makeShop();
+        $order = (new Order())->setShop($shop);
         $order->submit();
         $order->accept();
         $order->startPreparing();
+        $this->addOrderLine($order, true);
+        $this->addOrderLine($order, false);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ORDER_LINES_NOT_FULLY_PREPARED');
+
+        $order->markReady();
+    }
+
+    public function testMarkReadyThrowsWhenOrderHasNoLines(): void
+    {
+        $shop = $this->makeShop();
+        $order = (new Order())->setShop($shop);
+        $order->submit();
+        $order->accept();
+        $order->startPreparing();
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ORDER_LINES_NOT_FULLY_PREPARED');
+
+        $order->markReady();
+    }
+
+    public function testStartPickupTransitionsReadyToPickupPending(): void
+    {
+        $shop = $this->makeShop();
+        $order = (new Order())->setShop($shop);
+        $order->submit();
+        $order->accept();
+        $order->startPreparing();
+        $this->addOrderLine($order, true);
         $order->markReady();
         $order->startPickup();
         self::assertSame(OrderStatus::PickupPending, $order->getStatus());
@@ -136,10 +184,12 @@ final class OrderTest extends TestCase
 
     public function testCompleteTransitionsPickupPendingToCompleted(): void
     {
-        $order = new Order();
+        $shop = $this->makeShop();
+        $order = (new Order())->setShop($shop);
         $order->submit();
         $order->accept();
         $order->startPreparing();
+        $this->addOrderLine($order, true);
         $order->markReady();
         $order->startPickup();
         $order->complete();
@@ -182,10 +232,12 @@ final class OrderTest extends TestCase
 
     public function testCancelThrowsWhenCompleted(): void
     {
-        $order = new Order();
+        $shop = $this->makeShop();
+        $order = (new Order())->setShop($shop);
         $order->submit();
         $order->accept();
         $order->startPreparing();
+        $this->addOrderLine($order, true);
         $order->markReady();
         $order->startPickup();
         $order->complete();
