@@ -47,12 +47,12 @@ final readonly class MerchantOrderItemProvider implements ProviderInterface
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
 
-        $orderId = (string) ($uriVariables['orderId'] ?? '');
+        $orderId = (string) ($uriVariables['id'] ?? $uriVariables['orderId'] ?? '');
         if (!Uuid::isValid($orderId)) {
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
 
-        $order = $this->orderRepository->findOneByShopAndId($shop, $orderId);
+        $order = $this->orderRepository->findOneByShopAndIdWithDetail($shop, $orderId);
         if (null === $order) {
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
@@ -64,7 +64,11 @@ final readonly class MerchantOrderItemProvider implements ProviderInterface
     {
         $slot = $order->getPickupSlot();
         $customer = $order->getCustomer();
-        $canExposeCustomerContact = !\in_array($order->getStatus(), [OrderStatus::Completed, OrderStatus::Cancelled], true);
+        $canExposeCustomerContact = !\in_array(
+            $order->getStatus(),
+            [OrderStatus::Rejected, OrderStatus::Completed, OrderStatus::Cancelled],
+            true,
+        );
 
         $lines = array_map(
             static fn (OrderLine $line): MerchantOrderLineOutput => new MerchantOrderLineOutput(
@@ -91,7 +95,6 @@ final readonly class MerchantOrderItemProvider implements ProviderInterface
             lines: $lines,
             customerName: $canExposeCustomerContact ? $customer->getName() : null,
             customerPhone: $canExposeCustomerContact ? $customer->getPhone() : null,
-            customerEmail: $canExposeCustomerContact ? $customer->getEmail() : null,
             rejectionReason: $order->getRejectionReason(),
             createdAt: $order->getCreatedAt()->format(\DateTimeInterface::ATOM),
             updatedAt: $order->getUpdatedAt()->format(\DateTimeInterface::ATOM),

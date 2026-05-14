@@ -72,7 +72,7 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
         );
     }
 
-    public static function toSummaryOutput(Order $order): MerchantOrderSummaryOutput
+    private static function toSummaryOutput(Order $order): MerchantOrderSummaryOutput
     {
         $slot = $order->getPickupSlot();
 
@@ -81,7 +81,6 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
             storeId: $order->getShop()->getId()->toRfc4122(),
             status: $order->getStatus()->value,
             totalTnd: $order->getTotalTnd(),
-            pickupSlotId: $slot?->getId()->toRfc4122(),
             pickupSlot: null === $slot ? null : [
                 'id' => $slot->getId()->toRfc4122(),
                 'starts_at' => $slot->getStartsAt()->format(\DateTimeInterface::ATOM),

@@ -24,9 +24,6 @@ final readonly class MerchantOrderSummaryOutput
         #[SerializedName('total_tnd')]
         public string $totalTnd,
         #[Groups(['merchant_order_summary:read'])]
-        #[SerializedName('pickup_slot_id')]
-        public ?string $pickupSlotId,
-        #[Groups(['merchant_order_summary:read'])]
         #[SerializedName('pickup_slot')]
         public ?array $pickupSlot,
         #[Groups(['merchant_order_summary:read'])]

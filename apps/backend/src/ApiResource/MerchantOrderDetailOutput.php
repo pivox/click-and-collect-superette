@@ -8,7 +8,6 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
-use App\Entity\Order;
 use App\Entity\Shop;
 use App\Provider\MerchantOrderItemProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -20,7 +19,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             uriTemplate: '/merchant/stores/{storeId}/orders/{orderId}',
             uriVariables: [
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
-                'orderId' => new Link(fromClass: Order::class, identifiers: ['id']),
+                'orderId' => new Link(fromClass: MerchantOrderDetailOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['merchant_order_detail:read'], 'skip_null_values' => false],
@@ -60,9 +59,6 @@ final readonly class MerchantOrderDetailOutput
         #[Groups(['merchant_order_detail:read'])]
         #[SerializedName('customer_phone')]
         public ?string $customerPhone,
-        #[Groups(['merchant_order_detail:read'])]
-        #[SerializedName('customer_email')]
-        public ?string $customerEmail,
         #[Groups(['merchant_order_detail:read'])]
         #[SerializedName('rejection_reason')]
         public ?string $rejectionReason,

@@ -50,6 +50,7 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertSame('submitted', $payload['items'][0]['status']);
         self::assertArrayHasKey('line_count', $payload['items'][0]);
         self::assertArrayNotHasKey('lines', $payload['items'][0]);
+        self::assertArrayNotHasKey('pickup_slot_id', $payload['items'][0]);
         $itemWithSlot = array_values(array_filter(
             $payload['items'],
             static fn (array $item): bool => isset($item['pickup_slot']['id']),
@@ -188,7 +189,7 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertSame($slot->getId()->toRfc4122(), $payload['pickup_slot']['id']);
         self::assertSame('Amira Ben Salah', $payload['customer_name']);
         self::assertSame('+21622111222', $payload['customer_phone']);
-        self::assertSame('customer-detail@example.test', $payload['customer_email']);
+        self::assertArrayNotHasKey('customer_email', $payload);
         self::assertCount(1, $payload['lines']);
         self::assertSame($product->getId()->toRfc4122(), $payload['lines'][0]['merchant_product_id']);
         self::assertSame('Lait Vitalait 1L', $payload['lines'][0]['product_name']);
@@ -305,6 +306,75 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertArrayNotHasKey('token', $payload);
         self::assertStringNotContainsString('test-password', $content);
         self::assertStringNotContainsString('ROLE_CUSTOMER', $content);
+    }
+
+    public function testGetOrderDetailDoesNotExposeCustomerContactOnRejectedOrder(): void
+    {
+        $merchant = $this->createUser('merchant-detail-rejected-private@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-detail-rejected-private@example.test', ['ROLE_CUSTOMER']);
+        $customer->setName('Client Refusé')->setPhone('+21622999000');
+        $order = $this->createRejectedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertNull($payload['customer_name']);
+        self::assertNull($payload['customer_phone']);
+        self::assertArrayNotHasKey('customer_email', $payload);
+    }
+
+    public function testGetOrderDetailDoesNotExposeCustomerContactOnCompletedOrder(): void
+    {
+        $merchant = $this->createUser('merchant-detail-completed-private@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-detail-completed-private@example.test', ['ROLE_CUSTOMER']);
+        $customer->setName('Client Terminé')->setPhone('+21622999111');
+        $order = $this->createCompletedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertNull($payload['customer_name']);
+        self::assertNull($payload['customer_phone']);
+        self::assertArrayNotHasKey('customer_email', $payload);
+    }
+
+    public function testGetOrderDetailDoesNotExposeCustomerContactOnCancelledOrder(): void
+    {
+        $merchant = $this->createUser('merchant-detail-cancelled-private@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-detail-cancelled-private@example.test', ['ROLE_CUSTOMER']);
+        $customer->setName('Client Annulé')->setPhone('+21622999222');
+        $order = $this->createCancelledOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertNull($payload['customer_name']);
+        self::assertNull($payload['customer_phone']);
+        self::assertArrayNotHasKey('customer_email', $payload);
     }
 
     // ---------------------------------------------------------------------------
@@ -741,6 +811,49 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $order->submit();
         $order->accept();
         $order->startPreparing();
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
+    private function createRejectedOrder(User $customer, Shop $shop): Order
+    {
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop);
+        $order->submit();
+        $order->reject('Rupture de stock');
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
+    private function createCompletedOrder(User $customer, Shop $shop): Order
+    {
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop);
+        $order->submit();
+        $order->accept();
+        $order->startPreparing();
+        $order->markReady();
+        $order->startPickup();
+        $order->complete();
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
+    private function createCancelledOrder(User $customer, Shop $shop): Order
+    {
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop);
+        $order->submit();
+        $order->cancel();
         $this->entityManager->persist($order);
         $this->entityManager->flush();
 

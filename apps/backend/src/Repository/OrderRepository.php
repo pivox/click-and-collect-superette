@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Enum\OrderStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<Order>
@@ -133,6 +134,21 @@ class OrderRepository extends ServiceEntityRepository
             'shop' => $shop,
             'id' => $orderId,
         ]);
+    }
+
+    public function findOneByShopAndIdWithDetail(Shop $shop, string $orderId): ?Order
+    {
+        return $this->createQueryBuilder('o')
+            ->leftJoin('o.lines', 'line')
+            ->leftJoin('line.merchantProduct', 'merchantProduct')
+            ->leftJoin('merchantProduct.productReference', 'productReference')
+            ->addSelect('line', 'merchantProduct', 'productReference')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->andWhere('o.id = :orderId')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('orderId', Uuid::fromString($orderId), 'uuid')
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     public function findPartiallyAcceptedByKadhia(Kadhia $kadhia): ?Order
