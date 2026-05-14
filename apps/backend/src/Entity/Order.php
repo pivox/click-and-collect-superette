@@ -221,6 +221,7 @@ class Order
             throw new \LogicException('ORDER_NOT_PARTIALLY_ACCEPTED');
         }
         $this->status = OrderStatus::Submitted;
+        $this->rejectionReason = null;
     }
 
     public function getRejectionReason(): ?string

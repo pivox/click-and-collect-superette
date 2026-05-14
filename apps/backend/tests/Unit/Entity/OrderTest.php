@@ -118,6 +118,44 @@ final class OrderTest extends TestCase
         (new Order())->reject();
     }
 
+    public function testPartiallyAcceptTransitionsSubmittedToPartiallyAcceptedWithReason(): void
+    {
+        $order = new Order();
+        $order->submit();
+        $order->partiallyAccept('Produit indisponible');
+
+        self::assertSame(OrderStatus::PartiallyAccepted, $order->getStatus());
+        self::assertSame('Produit indisponible', $order->getRejectionReason());
+    }
+
+    public function testPartiallyAcceptStoresNullReasonWhenNoReasonIsProvided(): void
+    {
+        $order = new Order();
+        $order->submit();
+        $order->partiallyAccept();
+
+        self::assertSame(OrderStatus::PartiallyAccepted, $order->getStatus());
+        self::assertNull($order->getRejectionReason());
+    }
+
+    public function testPartiallyAcceptThrowsWhenNotSubmitted(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ORDER_NOT_SUBMITTED');
+        (new Order())->partiallyAccept('Produit indisponible');
+    }
+
+    public function testResubmitClearsPartialRejectionReason(): void
+    {
+        $order = new Order();
+        $order->submit();
+        $order->partiallyAccept('Produit indisponible');
+        $order->resubmit();
+
+        self::assertSame(OrderStatus::Submitted, $order->getStatus());
+        self::assertNull($order->getRejectionReason());
+    }
+
     public function testStartPreparingTransitionsAcceptedToPreparing(): void
     {
         $order = new Order();

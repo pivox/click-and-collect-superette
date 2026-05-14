@@ -10,6 +10,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 final readonly class PartiallyAcceptOrderInput
 {
     /** @var list<string> */
+    #[Assert\Count(min: 1, minMessage: 'NO_LINES_REJECTED')]
     #[Assert\All([new Assert\Uuid()])]
     #[SerializedName('rejected_merchant_product_ids')]
     public array $rejectedMerchantProductIds;

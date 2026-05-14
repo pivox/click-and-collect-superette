@@ -10,7 +10,6 @@ use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use App\Dto\PartiallyAcceptOrderInput;
 use App\Dto\RejectOrderInput;
-use App\Entity\Order;
 use App\Entity\Shop;
 use App\Processor\MerchantAcceptOrderProcessor;
 use App\Processor\MerchantMarkReadyProcessor;
@@ -26,7 +25,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             uriTemplate: '/merchant/stores/{storeId}/orders/{orderId}/accept',
             uriVariables: [
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
-                'orderId' => new Link(fromClass: Order::class, identifiers: ['id']),
+                'orderId' => new Link(fromClass: MerchantOrderOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['merchant_order:read']],
@@ -40,7 +39,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             uriTemplate: '/merchant/stores/{storeId}/orders/{orderId}/reject',
             uriVariables: [
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
-                'orderId' => new Link(fromClass: Order::class, identifiers: ['id']),
+                'orderId' => new Link(fromClass: MerchantOrderOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['merchant_order:read']],
@@ -54,7 +53,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             uriTemplate: '/merchant/stores/{storeId}/orders/{orderId}/partially-accept',
             uriVariables: [
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
-                'orderId' => new Link(fromClass: Order::class, identifiers: ['id']),
+                'orderId' => new Link(fromClass: MerchantOrderOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['merchant_order:read']],
@@ -68,7 +67,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             uriTemplate: '/merchant/stores/{storeId}/orders/{orderId}/start-preparation',
             uriVariables: [
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
-                'orderId' => new Link(fromClass: Order::class, identifiers: ['id']),
+                'orderId' => new Link(fromClass: MerchantOrderOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['merchant_order:read']],
@@ -82,7 +81,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             uriTemplate: '/merchant/stores/{storeId}/orders/{orderId}/mark-ready',
             uriVariables: [
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
-                'orderId' => new Link(fromClass: Order::class, identifiers: ['id']),
+                'orderId' => new Link(fromClass: MerchantOrderOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['merchant_order:read']],

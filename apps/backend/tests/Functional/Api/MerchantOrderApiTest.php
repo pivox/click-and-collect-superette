@@ -856,7 +856,10 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $partialResponse = $this->requestJson(
             'POST',
             \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
-            ['rejected_merchant_product_ids' => [$productB->getId()->toRfc4122()]],
+            [
+                'rejected_merchant_product_ids' => [$productB->getId()->toRfc4122()],
+                'notes' => 'Produit indisponible',
+            ],
             $merchant,
         );
 
@@ -880,6 +883,7 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
 
         $orders = $this->entityManager->getRepository(Order::class)->findAll();
         self::assertCount(1, $orders);
+        self::assertNull($orders[0]->getRejectionReason());
         self::assertCount(1, $orders[0]->getLines());
         self::assertSame(
             $productA->getId()->toRfc4122(),
@@ -982,17 +986,48 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('ORDER_LINE_NOT_FOUND', (string) $response->getContent());
     }
 
-    public function testPartiallyAcceptOrderInvalidTransitionReturns409(): void
+    public function testPartiallyAcceptOrderRejectsDesynchronizedKadhiaLine(): void
     {
-        $merchant = $this->createUser('merchant-partial-409@example.test', ['ROLE_MERCHANT']);
+        $merchant = $this->createUser('merchant-partial-desync@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
         $slot = $this->createPickupSlot($shop);
-        $customer = $this->createUser('customer-partial-409@example.test', ['ROLE_CUSTOMER']);
+        $customer = $this->createUser('customer-partial-desync@example.test', ['ROLE_CUSTOMER']);
         $productA = $this->createMerchantProduct($shop, '2.000');
         $productB = $this->createMerchantProduct($shop, '1.500');
         $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB]);
         $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
-        $order->accept();
+
+        foreach ($kadhia->getLines() as $line) {
+            if ($line->getMerchantProduct()->getId()->equals($productB->getId())) {
+                $kadhia->removeLine($line);
+                break;
+            }
+        }
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            ['rejected_merchant_product_ids' => [$productB->getId()->toRfc4122()]],
+            $merchant,
+        );
+
+        self::assertSame(409, $response->getStatusCode());
+        self::assertStringContainsString('KADHIA_LINE_NOT_FOUND', (string) $response->getContent());
+    }
+
+    #[DataProvider('nonSubmittedStatusProvider')]
+    public function testPartiallyAcceptOrderInvalidTransitionReturns409(OrderStatus $status): void
+    {
+        $merchant = $this->createUser('merchant-partial-409-'.$status->value.'@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-partial-409-'.$status->value.'@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000');
+        $productB = $this->createMerchantProduct($shop, '1.500');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+        $this->forceOrderStatus($order, $status);
         $this->entityManager->flush();
 
         $response = $this->requestJson(
@@ -1639,6 +1674,22 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         yield 'cancelled' => [OrderStatus::Cancelled];
     }
 
+    /**
+     * @return iterable<string, array{OrderStatus}>
+     */
+    public static function nonSubmittedStatusProvider(): iterable
+    {
+        yield 'draft' => [OrderStatus::Draft];
+        yield 'accepted' => [OrderStatus::Accepted];
+        yield 'partially_accepted' => [OrderStatus::PartiallyAccepted];
+        yield 'rejected' => [OrderStatus::Rejected];
+        yield 'preparing' => [OrderStatus::Preparing];
+        yield 'ready' => [OrderStatus::Ready];
+        yield 'pickup_pending' => [OrderStatus::PickupPending];
+        yield 'completed' => [OrderStatus::Completed];
+        yield 'cancelled' => [OrderStatus::Cancelled];
+    }
+
     private function createOrderWithStatus(User $customer, Shop $shop, OrderStatus $status): Order
     {
         return match ($status) {
@@ -1866,6 +1917,12 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $order;
+    }
+
+    private function forceOrderStatus(Order $order, OrderStatus $status): void
+    {
+        $reflection = new \ReflectionProperty(Order::class, 'status');
+        $reflection->setValue($order, $status);
     }
 
     private function createMerchantProduct(Shop $shop, string $priceTnd, string $nameFr = 'Produit test'): MerchantProduct

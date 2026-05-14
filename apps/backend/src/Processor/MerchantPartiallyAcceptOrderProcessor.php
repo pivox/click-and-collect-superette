@@ -93,6 +93,17 @@ final readonly class MerchantPartiallyAcceptOrderProcessor implements ProcessorI
             throw new ConflictHttpException('ORDER_KADHIA_REQUIRED');
         }
 
+        $kadhiaLineProductIds = [];
+        foreach ($kadhia->getLines() as $line) {
+            $kadhiaLineProductIds[$line->getMerchantProduct()->getId()->toRfc4122()] = true;
+        }
+
+        foreach ($rejectedProductIds as $productId) {
+            if (!isset($kadhiaLineProductIds[$productId])) {
+                throw new ConflictHttpException('KADHIA_LINE_NOT_FOUND');
+            }
+        }
+
         try {
             $this->entityManager->wrapInTransaction(function () use ($order, $kadhia, $rejectedProductIds, $data): void {
                 $order->partiallyAccept($data->notes);
