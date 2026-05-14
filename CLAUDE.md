@@ -30,6 +30,38 @@ Tu dois aider à produire :
 5. Préserver le vocabulaire métier : **Kadhia**, supérette, marchand, client, rendez-vous, retrait.
 6. Pour chaque changement, expliquer : fichiers modifiés, raison, risque, test ou vérification.
 
+## Contexte pour les reviews automatiques GitHub Actions
+
+### Stack technique
+
+- **Backend** : PHP 8.2, Symfony 7, API Platform 3
+- **ORM** : Doctrine ORM, PostgreSQL
+- **Asynchrone** : Symfony Messenger
+- **Tests** : PHPUnit, base SQLite en mémoire pour les tests fonctionnels
+- **Qualité** : PHPStan, PHP-CS-Fixer
+
+### Architecture
+
+- API REST via API Platform avec séparation lecture/écriture (DTOs pour les opérations d'écriture).
+- Sécurité JWT RS256 stateless — trois rôles séparés : `ROLE_CUSTOMER`, `ROLE_MERCHANT`, `ROLE_ADMIN`.
+- Logique métier dans des services dédiés, jamais dans les contrôleurs.
+- Référentiel produit partagé (`ProductReference`) séparé de l'offre marchand (`MerchantProductOffer`).
+- Snapshots de prix gelés à la création des lignes de Kadhia — ne jamais re-fetcher le prix live.
+
+### Ce que Claude doit particulièrement surveiller dans les reviews
+
+- Transitions de statut de commande incohérentes (voir les statuts dans `AI_CONTEXT.md`).
+- Mélange de rôles client/marchand/admin dans le même endpoint.
+- Exposition d'IDs internes au lieu d'UUIDs dans les routes publiques.
+- Requêtes N+1 Doctrine (jointures manquantes dans les QueryBuilder, lazy loading en boucle).
+- Changements de schéma Doctrine sans migration accompagnante.
+- DTOs absents pour les opérations d'écriture (couplage entité/API).
+- Logique métier dans les contrôleurs ou processors au lieu des services.
+- Absence de `#[IsGranted]` sur les opérations API Platform.
+- Prix ou montants non exprimés en TND.
+- Terme "panier" utilisé à la place de **Kadhia** dans le code ou les messages.
+- Introduction de paiement en ligne, livraison ou marketplace sans décision explicite.
+
 ## Commandes projet
 
 Le backend Symfony se trouve dans `apps/backend/`.

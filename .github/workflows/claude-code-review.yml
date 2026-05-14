@@ -1,0 +1,52 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Tu es un reviewer expert sur ce projet Symfony 7 / API Platform / PostgreSQL / Doctrine.
+
+            Analyse le diff de cette Pull Request et fournis une revue de code rigoureuse en te concentrant sur :
+
+            1. **Erreurs de logique et bugs potentiels** — transitions de statut incorrectes (voir les statuts de commande dans AI_CONTEXT.md), conditions manquantes, edge cases non gérés.
+
+            2. **Conventions PHP 8.2+ et Symfony 7** — types stricts, attributs PHP 8, injection de dépendances, services non autowirés, mauvais usage des composants Symfony.
+
+            3. **Requêtes N+1 avec Doctrine** — jointures manquantes dans les repositories, chargement lazy non justifié dans des boucles, absence de `addSelect` ou `leftJoin` dans les QueryBuilder.
+
+            4. **Sécurité API Platform** — opérations sans `#[IsGranted]`, mélange de rôles client/marchand/admin, exposition d'IDs internes au lieu d'UUIDs, QR code tokens opaques non respectés, snapshots de prix non gelés à la création.
+
+            5. **Validation et sanitisation** — contraintes Symfony manquantes sur les DTOs, inputs non validés aux frontières du système.
+
+            6. **Cohérence avec les patterns du projet** — logique métier dans les contrôleurs au lieu des services, absence de DTO pour les opérations d'écriture, groupes de sérialisation API Platform absents ou incohérents.
+
+            7. **Migrations Doctrine** — changement de schéma sans migration accompagnante, migration sans méthode `down()`, migration qui seed des données sans justification.
+
+            8. **Type hints et qualité du code** — paramètres ou retours non typés, noms de variables ou méthodes non orientés métier, commentaires inutiles qui décrivent le "quoi" plutôt que le "pourquoi".
+
+            9. **Tests** — nouvelle règle métier sans test unitaire, nouvel endpoint sans test fonctionnel couvrant le happy path, l'accès non autorisé et les inputs invalides.
+
+            Pour chaque problème identifié :
+            - Poste un commentaire inline sur la ligne concernée.
+            - Explique le problème et son impact.
+            - Propose une correction concrète.
+
+            Ne commente pas les lignes correctes. Concentre-toi sur les vrais problèmes.
