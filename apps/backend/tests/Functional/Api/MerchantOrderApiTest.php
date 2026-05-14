@@ -1204,6 +1204,24 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertSame(403, $response->getStatusCode());
     }
 
+    public function testStartPreparationWrongMerchantReturns403(): void
+    {
+        $merchantA = $this->createUser('merchant-a-prep-403@example.test', ['ROLE_MERCHANT']);
+        $merchantB = $this->createUser('merchant-b-prep-403@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchantB);
+        $customer = $this->createUser('customer-prep-403@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createAcceptedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/start-preparation', $shop->getId(), $order->getId()),
+            null,
+            $merchantA,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
     // ---------------------------------------------------------------------------
     // POST /api/merchant/stores/{storeId}/orders/{orderId}/mark-ready
     // ---------------------------------------------------------------------------
@@ -1374,6 +1392,28 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
             \sprintf('/api/merchant/stores/%s/orders/%s/mark-ready', $shop->getId(), Uuid::v4()->toRfc4122()),
             null,
             $customer,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    public function testMarkReadyWrongMerchantReturns403(): void
+    {
+        $merchantA = $this->createUser('merchant-a-ready-403@example.test', ['ROLE_MERCHANT']);
+        $merchantB = $this->createUser('merchant-b-ready-403@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchantB);
+        $customer = $this->createUser('customer-ready-403@example.test', ['ROLE_CUSTOMER']);
+        $product = $this->createMerchantProduct($shop, '1.000');
+        $order = $this->createPreparingOrder($customer, $shop);
+        $line = $this->addOrderLine($order, $product, quantity: 1, unitPriceTnd: '1.000');
+        $line->markPrepared(true);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/mark-ready', $shop->getId(), $order->getId()),
+            null,
+            $merchantA,
         );
 
         self::assertSame(403, $response->getStatusCode());
