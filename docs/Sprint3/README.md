@@ -2,61 +2,61 @@
 
 ## Statut global
 
-**Statut backend : termine.**
+**Statut backend : terminé.**
 
-Sprint 3 livre le parcours marchand core depuis la reception d'une commande soumise jusqu'a la commande prete a retirer, avec gestion manuelle des creneaux de retrait, annulation client avant traitement, acceptation partielle, preparation ligne par ligne, historique de statuts et dashboard journalier.
+Sprint 3 livre le parcours marchand core depuis la réception d'une commande soumise jusqu'à la commande prête à retirer, avec gestion manuelle des créneaux de retrait, annulation client avant traitement, acceptation partielle, préparation ligne par ligne, historique de statuts et dashboard journalier.
 
 Le sprint reste strictement MVP : pas de paiement en ligne, pas de livraison, pas de notifications, pas de retrait QR, pas de double validation de retrait.
 
 ## Rapport technique
 
-- [Rapport technique de preparation Sprint 3](technical-readiness-report.md) — rapport historique de readiness, mis a jour avec l'etat livre.
-- [Rapport de cloture Sprint 3](completion-report.md) — synthese de cloture, endpoints livres, tests et limites restantes.
+- [Rapport technique de préparation Sprint 3](technical-readiness-report.md) — rapport historique de readiness, mis à jour avec l'état livré.
+- [Rapport de clôture Sprint 3](completion-report.md) — synthèse de clôture, endpoints livrés, tests et limites restantes.
 
 ## Parcours livre
 
 ```text
 Nouvelle commande soumise
 -> consultation liste marchand
--> consultation detail avec lignes, creneau et coordonnees client autorisees
+-> consultation détail avec lignes, créneau et coordonnées client autorisées
 -> decision : accepter / refuser / accepter partiellement
--> (si partiellement accepte) Kadhia repassee en draft puis resoumission possible
--> passage en preparation
+-> (si partiellement accepté) Kadhia repassée en draft puis resoumission possible
+-> passage en préparation
 -> preparation ligne par ligne
--> declaration prete si toutes les lignes sont preparees
--> commande prete pour le retrait (Sprint 4)
+-> déclaration prête si toutes les lignes sont préparées
+-> commande prête pour le retrait (Sprint 4)
 ```
 
 ## Decisions produit livrees
 
 - Un marchand ne voit que les commandes de la supérette dont il est propriétaire (`Shop.owner`).
-- Les routes marchandes portent le `storeId` pour verifier la coherence supérette / commande.
-- L'acceptation et le refus complet sont autorises uniquement depuis `submitted`.
-- L'acceptation partielle est autorisee uniquement depuis `submitted`.
-- L'acceptation partielle remet la Kadhia en `draft` avec les lignes acceptees ; les lignes refusees sont retirees de la Kadhia.
-- La re-soumission apres acceptation partielle met a jour la commande existante.
-- L'annulation client est autorisee uniquement depuis `submitted`.
-- Le refus complet et l'annulation client liberent la capacite du creneau de retrait.
-- L'acceptation partielle conserve le creneau reserve.
-- La preparation ligne par ligne est autorisee uniquement sur une commande `preparing`.
-- `mark-ready` est strict : toutes les lignes doivent etre `prepared=true`.
+- Les routes marchandes portent le `storeId` pour vérifier la cohérence supérette / commande.
+- L'acceptation et le refus complet sont autorisés uniquement depuis `submitted`.
+- L'acceptation partielle est autorisée uniquement depuis `submitted`.
+- L'acceptation partielle remet la Kadhia en `draft` avec les lignes acceptées ; les lignes refusées sont retirées de la Kadhia.
+- La re-soumission après acceptation partielle met à jour la commande existante.
+- L'annulation client est autorisée uniquement depuis `submitted`.
+- Le refus complet et l'annulation client libèrent la capacité du créneau de retrait.
+- L'acceptation partielle conserve le créneau réservé.
+- La préparation ligne par ligne est autorisée uniquement sur une commande `preparing`.
+- `mark-ready` est strict : toutes les lignes doivent être `prepared=true`.
 - Chaque transition livree en Sprint 3 ecrit un `OrderStatusLog`.
-- Le dashboard journalier ne retourne pas de donnees client ni de lignes de commande.
+- Le dashboard journalier ne retourne pas de données client ni de lignes de commande.
 
 ## User stories Sprint 3
 
 | US | Sujet | Statut backend | Tests principaux |
 | --- | --- | --- | --- |
-| US-040 | Historique des transitions de statut | Livre | `OrderStatusHistoryApiTest`, `OrderStatusLogDoctrineTest`, tests transitions dans `MerchantOrderApiTest`, `OrderCancelApiTest`, `SubmitOrderApiTest` |
-| US-024 | Configurer les creneaux de retrait | Livre | `PickupSlotApiTest` |
-| US-022 | Consulter la liste des commandes marchand | Livre | `MerchantOrderApiTest` |
-| US-045 | Coordonnees client dans le detail marchand | Livre | `MerchantOrderApiTest` |
-| US-005 | Accepter ou refuser une commande | Livre | `MerchantOrderApiTest` |
-| US-036 | Annuler une commande client | Livre | `OrderCancelApiTest` |
-| US-006 | Preparer une commande ligne par ligne | Livre | `MerchantOrderApiTest`, `OrderLine` via tests fonctionnels |
-| US-023 | Declarer une commande prete | Livre | `MerchantOrderApiTest` |
-| US-037 | Accepter partiellement une commande | Livre | `MerchantOrderApiTest`, `SubmitOrderApiTest` |
-| US-051 | Dashboard journalier marchand | Livre | `MerchantDashboardApiTest` |
+| US-040 | Historique des transitions de statut | Livré | `OrderStatusHistoryApiTest`, `OrderStatusLogDoctrineTest`, tests transitions dans `MerchantOrderApiTest`, `OrderCancelApiTest`, `SubmitOrderApiTest` |
+| US-024 | Configurer les créneaux de retrait | Livré | `PickupSlotApiTest` |
+| US-022 | Consulter la liste des commandes marchand | Livré | `MerchantOrderApiTest` |
+| US-045 | Coordonnées client dans le détail marchand | Livré | `MerchantOrderApiTest` |
+| US-005 | Accepter ou refuser une commande | Livré | `MerchantOrderApiTest` |
+| US-036 | Annuler une commande client | Livré | `OrderCancelApiTest` |
+| US-006 | Préparer une commande ligne par ligne | Livré | `MerchantOrderApiTest`, `OrderLine` via tests fonctionnels |
+| US-023 | Déclarer une commande prête | Livré | `MerchantOrderApiTest` |
+| US-037 | Accepter partiellement une commande | Livré | `MerchantOrderApiTest`, `SubmitOrderApiTest` |
+| US-051 | Dashboard journalier marchand | Livré | `MerchantDashboardApiTest` |
 
 ## Endpoints livres
 
@@ -74,7 +74,7 @@ POST  /api/merchant/stores/{storeId}/orders/{orderId}/mark-ready
 GET   /api/merchant/stores/{storeId}/orders/{orderId}/status-history
 ```
 
-### Marchand — creneaux de retrait
+### Marchand — créneaux de retrait
 
 ```http
 GET    /api/merchant/stores/{storeId}/pickup-slots
@@ -91,7 +91,7 @@ DELETE /api/merchant/stores/{storeId}/pickup-slots/{slotId}
 GET /api/merchant/stores/{storeId}/dashboard/today
 ```
 
-Le dashboard retourne les compteurs du jour, les compteurs par statut, les commandes `submitted` urgentes avec creneau dans moins de 3 heures et les creneaux du jour avec capacite restante.
+Le dashboard retourne les compteurs du jour, les compteurs par statut, les commandes `submitted` urgentes avec créneau dans moins de 3 heures et les créneaux du jour avec capacité restante.
 
 ### Client — commandes
 
@@ -107,13 +107,13 @@ GET  /api/me/orders/{orderId}/status-history
 - Separation stricte client / marchand / anonyme.
 - Ownership marchand via `Shop.owner`.
 - Coherence `storeId` / `order.shop`.
-- Confidentialite : les coordonnees client sont absentes de la liste marchand et visibles uniquement dans le detail autorise.
+- Confidentialité : les coordonnées client sont absentes de la liste marchand et visibles uniquement dans le détail autorisé.
 - Transitions accept/reject/partially-accept/cancel/start-preparation/mark-ready limitees aux statuts attendus.
 - Libération de capacite sur refus complet et annulation client.
 - Conservation de capacite sur acceptation partielle.
 - Kadhia repassee en `draft` apres acceptation partielle, avec uniquement les lignes acceptees.
 - Resoumission apres acceptation partielle sur la meme commande.
-- `OrderLine.prepared` persiste et est expose dans le detail marchand.
+- `OrderLine.prepared` persiste et est exposé dans le détail marchand.
 - `mark-ready` refuse les commandes dont toutes les lignes ne sont pas preparees.
 - Historique chronologique client et marchand avec notes de refus/refus partiel.
 - Dashboard limite a la supérette cible et aux commandes du jour.
@@ -123,7 +123,7 @@ GET  /api/me/orders/{orderId}/status-history
 - Les notifications client/marchand restent hors Sprint 3 et sont prevues Sprint 4.
 - Le QR code de retrait, `PickupSession`, scan marchand et double validation de retrait restent Sprint 4.
 - Le passage metier vers `pickup_pending` et `completed` n'est pas expose par les endpoints Sprint 3.
-- Les creneaux recurrents restent Sprint 3b.
+- Les créneaux récurrents restent Sprint 3b.
 - Les fermetures exceptionnelles restent Sprint 3b.
 - Le delai automatique de reponse marchand reste Sprint 3b.
 - L'expiration automatique d'une acceptation partielle reste Sprint 3b.
@@ -153,16 +153,16 @@ GET  /api/me/orders/{orderId}/status-history
 
 ## Definition de fini Sprint 3
 
-Le backend Sprint 3 est considere termine lorsque :
+Le backend Sprint 3 est considéré terminé lorsque :
 
-1. le marchand consulte ses commandes et leur detail ;
-2. les coordonnees client sont disponibles uniquement dans le detail marchand autorise ;
+1. le marchand consulte ses commandes et leur détail ;
+2. les coordonnées client sont disponibles uniquement dans le détail marchand autorisé ;
 3. le marchand accepte, refuse ou accepte partiellement une commande ;
 4. le client peut annuler une commande `submitted` ;
-5. le marchand gere des creneaux ponctuels ;
+5. le marchand gère des créneaux ponctuels ;
 6. le marchand passe une commande en preparation ;
 7. le marchand prepare les lignes une par une ;
-8. le marchand declare une commande prete uniquement si toutes les lignes sont preparees ;
+8. le marchand déclare une commande prête uniquement si toutes les lignes sont préparées ;
 9. chaque transition Sprint 3 est tracee dans `OrderStatusLog` ;
 10. le dashboard journalier marchand est disponible ;
 11. les suites Sprint 3b et Sprint 4 restent clairement hors perimetre.

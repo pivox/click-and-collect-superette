@@ -1,25 +1,25 @@
-# Rapport de cloture Sprint 3 — backend
+# Rapport de clôture Sprint 3 — backend
 
 ## Synthese
 
-Le backend Sprint 3 est cloture. Les user stories du parcours marchand core sont livrees, testees et alignees sur le perimetre MVP : traitement de commande par le marchand, annulation client avant traitement, gestion ponctuelle des creneaux de retrait, historique de statuts, preparation ligne par ligne, commande prete et dashboard journalier.
+Le backend Sprint 3 est clôturé. Les user stories du parcours marchand core sont livrées, testées et alignées sur le périmètre MVP : traitement de commande par le marchand, annulation client avant traitement, gestion ponctuelle des créneaux de retrait, historique de statuts, préparation ligne par ligne, commande prête et dashboard journalier.
 
-Cette cloture ne couvre pas le retrait securise, les notifications, les creneaux recurrents, les fermetures exceptionnelles ni les automatisations de delai.
+Cette clôture ne couvre pas le retrait sécurisé, les notifications, les créneaux récurrents, les fermetures exceptionnelles ni les automatisations de délai.
 
 ## US verifiees
 
 | US | Resultat | Notes |
 | --- | --- | --- |
-| US-005 | Livre | Acceptation/refus depuis `submitted`, ownership marchand, raison de refus, liberation creneau sur refus, log statut. |
-| US-006 | Livre | `OrderLine.prepared` persistant, endpoint de preparation, detail marchand expose `prepared`. |
-| US-022 | Livre | Liste marchand par `storeId`, filtres de statut, isolation supérette. |
-| US-023 | Livre | `mark-ready` depuis `preparing` uniquement et seulement si toutes les lignes sont preparees. |
-| US-024 | Livre | CRUD marchand de creneaux ponctuels, suppression logique par desactivation. |
-| US-036 | Livre | Annulation client depuis `submitted` uniquement, liberation creneau, commande conservee. |
-| US-037 | Livre | Acceptation partielle, Kadhia en `draft`, lignes refusees retirees, resoumission meme commande. |
-| US-040 | Livre | `OrderStatusLog`, historique client et marchand, notes de refus/refus partiel. |
-| US-045 | Livre | Coordonnees client dans le detail marchand autorise, absentes de la liste. |
-| US-051 | Livre | Dashboard journalier `/dashboard/today`, compteurs, urgence, creneaux du jour, pas de PII. |
+| US-005 | Livré | Acceptation/refus depuis `submitted`, ownership marchand, raison de refus, libération créneau sur refus, log statut. |
+| US-006 | Livré | `OrderLine.prepared` persistant, endpoint de préparation, détail marchand expose `prepared`. |
+| US-022 | Livré | Liste marchand par `storeId`, filtres de statut, isolation supérette. |
+| US-023 | Livré | `mark-ready` depuis `preparing` uniquement et seulement si toutes les lignes sont préparées. |
+| US-024 | Livré | CRUD marchand de créneaux ponctuels, suppression logique par désactivation. |
+| US-036 | Livré | Annulation client depuis `submitted` uniquement, libération créneau, commande conservée. |
+| US-037 | Livré | Acceptation partielle, Kadhia en `draft`, lignes refusées retirées, resoumission même commande. |
+| US-040 | Livré | `OrderStatusLog`, historique client et marchand, notes de refus/refus partiel. |
+| US-045 | Livré | Coordonnées client dans le détail marchand autorisé, absentes de la liste. |
+| US-051 | Livré | Dashboard journalier `/dashboard/today`, compteurs dont `pickup_pending_count`, 404 supérette inconnue testé, urgence, créneaux du jour, pas de PII. |
 
 ## Endpoints verifies
 
@@ -45,11 +45,11 @@ GET    /api/merchant/stores/{storeId}/dashboard/today
 
 | Fichier | Couverture Sprint 3 |
 | --- | --- |
-| `tests/Functional/Api/MerchantOrderApiTest.php` | Liste/detail marchand, accept/reject, acceptation partielle, start-preparation, mark-ready strict, preparation ligne par ligne, securite. |
-| `tests/Functional/Api/OrderCancelApiTest.php` | Annulation client, mauvais statuts, mauvais role, liberation creneau, historique. |
+| `tests/Functional/Api/MerchantOrderApiTest.php` | Liste/détail marchand, accept/reject, acceptation partielle, start-preparation, mark-ready strict, préparation ligne par ligne, sécurité. |
+| `tests/Functional/Api/OrderCancelApiTest.php` | Annulation client, mauvais statuts, mauvais rôle, libération créneau, historique. |
 | `tests/Functional/Api/OrderStatusHistoryApiTest.php` | Historique client/marchand, ownership, ordre chronologique. |
-| `tests/Functional/Api/PickupSlotApiTest.php` | CRUD creneaux marchand, collection publique, capacite, conflits, desactivation. |
-| `tests/Functional/Api/MerchantDashboardApiTest.php` | Dashboard journalier, compteurs, creneaux, urgence, confidentialite. |
+| `tests/Functional/Api/PickupSlotApiTest.php` | CRUD créneaux marchand, collection publique, capacité, conflits, désactivation. |
+| `tests/Functional/Api/MerchantDashboardApiTest.php` | Dashboard journalier, compteurs incluant `pickup_pending_count`, 404 supérette inconnue, créneaux, urgence, confidentialité. |
 | `tests/Functional/Api/SubmitOrderApiTest.php` | Soumission et resoumission apres acceptation partielle. |
 | `tests/Functional/Doctrine/OrderStatusLogDoctrineTest.php` | Persistence de l'historique de statuts. |
 
@@ -57,10 +57,10 @@ GET    /api/merchant/stores/{storeId}/dashboard/today
 
 ### Sprint 3b
 
-- Creneaux recurrents.
+- Créneaux récurrents.
 - Fermetures exceptionnelles.
 - Heures d'ouverture publiques.
-- Delai de reponse marchand automatise.
+- Délai de réponse marchand automatisé.
 - Expiration automatique d'une acceptation partielle.
 - Ruptures de stock en masse.
 - Historique marchand complet avec filtres avances.
@@ -72,16 +72,16 @@ GET    /api/merchant/stores/{storeId}/dashboard/today
 - `PickupSession`.
 - Scan marchand.
 - Double validation client + marchand.
-- Passage operationnel vers `pickup_pending` puis `completed`.
+- Passage opérationnel vers `pickup_pending` puis `completed`.
 
 ### Hors Sprint 3
 
-- Export et statistiques avancees.
+- Export et statistiques avancées.
 - Paiement en ligne.
 - Livraison.
 - Programme de fidelite.
 - Marketplace multi-marchands avec Kadhia partagee.
 
-## Decision de cloture
+## Décision de clôture
 
-Sprint 3 est considere termine cote backend. Les prochaines PR doivent partir de cet etat comme base stable et ne pas reintroduire d'anciens contrats marchands sans `storeId`.
+Sprint 3 est considéré terminé côté backend. Les prochaines PR doivent partir de cet état comme base stable et ne pas réintroduire d'anciens contrats marchands sans `storeId`.

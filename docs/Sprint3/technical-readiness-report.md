@@ -1,12 +1,12 @@
-# Rapport technique Sprint 3 — etat livre
+# Rapport technique Sprint 3 — état livré
 
 ## Contexte
 
-Ce rapport etait le document de preparation technique du Sprint 3. Il est maintenant conserve comme trace de readiness et aligne avec l'etat du backend apres les PR Sprint 3 mergees.
+Ce rapport était le document de préparation technique du Sprint 3. Il est maintenant conservé comme trace de readiness et aligné avec l'état du backend après les PR Sprint 3 mergées.
 
-Sprint 3 reste aligne MVP : pas de paiement en ligne, pas de livraison, pas de programme de fidelite et pas de panier marketplace multi-marchands.
+Sprint 3 reste aligné MVP : pas de paiement en ligne, pas de livraison, pas de programme de fidélité et pas de panier marketplace multi-marchands.
 
-Objectif Sprint 3 : permettre au marchand de traiter les commandes de sa supérette depuis la reception jusqu'a la commande prete, avec acceptation, refus, acceptation partielle, annulation client, preparation ligne par ligne, historique de statuts, gestion ponctuelle des creneaux et dashboard journalier.
+Objectif Sprint 3 : permettre au marchand de traiter les commandes de sa supérette depuis la réception jusqu'à la commande prête, avec acceptation, refus, acceptation partielle, annulation client, préparation ligne par ligne, historique de statuts, gestion ponctuelle des créneaux et dashboard journalier.
 
 ## Sources relues
 
@@ -20,41 +20,41 @@ Objectif Sprint 3 : permettre au marchand de traiter les commandes de sa supére
 - `apps/backend/src/`
 - `apps/backend/tests/`
 
-## Verification d'inventaire
+## Vérification d'inventaire
 
-Inventaire local effectue pour cette mise a jour documentaire :
+Inventaire local effectué pour cette mise à jour documentaire :
 
-- inspection des ApiResource, processors, providers, repositories et entites Sprint 3 ;
-- inspection des tests fonctionnels et Doctrine associes ;
-- verification des routes Symfony avec `php bin/console debug:router --env=test`.
+- inspection des ApiResource, processors, providers, repositories et entités Sprint 3 ;
+- inspection des tests fonctionnels et Doctrine associés ;
+- vérification des routes Symfony avec `php bin/console debug:router --env=test`.
 
-## PRs Sprint 3 realisees
+## PRs Sprint 3 réalisées
 
 | PR | Sujet | Etat |
 | --- | --- | --- |
 | #55 | US-040 OrderStatusLog et endpoints status-history | Merged |
-| #56 | US-024 CRUD creneaux marchand | Merged |
-| #59 | US-022 + US-045 detail commande marchand et coordonnees client | Merged |
+| #56 | US-024 CRUD créneaux marchand | Merged |
+| #59 | US-022 + US-045 détail commande marchand et coordonnées client | Merged |
 | #60 | US-005 accept/reject marchand | Merged |
 | #61 | US-036 annulation commande client | Merged |
-| #62 | US-006 preparation ligne par ligne | Merged |
+| #62 | US-006 préparation ligne par ligne | Merged |
 | #63 | US-023 mark-ready strict | Merged |
 | #64 | US-037 acceptation partielle | Merged |
 | #65 | US-051 dashboard marchand journalier | Merged |
 
-La consultation liste/detail marchand et les coordonnees client (US-022 + US-045) sont presentes dans le backend et couvertes par `MerchantOrderApiTest`.
+La consultation liste/détail marchand et les coordonnées client (US-022 + US-045) sont présentes dans le backend et couvertes par `MerchantOrderApiTest`.
 
 ## Etat actuel du code
 
 ### Entites principales
 
-- `Order` : commande liee a un client, une supérette, une Kadhia optionnelle, un creneau de retrait optionnel, un statut, une raison de refus, des lignes et un total TND.
-- `OrderLine` : ligne de commande avec produit marchand, quantite, prix unitaire snapshot, total de ligne et etat `prepared`.
+- `Order` : commande liée à un client, une supérette, une Kadhia optionnelle, un créneau de retrait optionnel, un statut, une raison de refus, des lignes et un total TND.
+- `OrderLine` : ligne de commande avec produit marchand, quantité, prix unitaire snapshot, total de ligne et état `prepared`.
 - `OrderStatusLog` : historique immuable des transitions avec statut, note optionnelle et horodatage.
-- `Kadhia` : panier metier client lie a une supérette, avec statut `draft` ou `submitted`.
-- `KadhiaLine` : ligne de Kadhia avec produit marchand, quantite et prix unitaire snapshot.
-- `PickupSlot` : creneau de retrait avec capacite, compteur reserve et activation.
-- `Shop` : supérette avec proprietaire marchand (`owner`).
+- `Kadhia` : panier métier client lié à une supérette, avec statut `draft` ou `submitted`.
+- `KadhiaLine` : ligne de Kadhia avec produit marchand, quantité et prix unitaire snapshot.
+- `PickupSlot` : créneau de retrait avec capacité, compteur réservé et activation.
+- `Shop` : supérette avec propriétaire marchand (`owner`).
 - `User` : utilisateur client ou marchand.
 
 ### Transitions commande presentes
@@ -93,9 +93,9 @@ L'enum `OrderStatus` contient les statuts MVP : `draft`, `submitted`, `accepted`
 - `MerchantPickupSlotCollectionProvider`
 - `MerchantDashboardProvider`
 
-## Endpoints Sprint 3 presents
+## Endpoints Sprint 3 présents
 
-Routes confirmees par `debug:router` :
+Routes confirmées par `debug:router` :
 
 ### Client
 
@@ -120,7 +120,7 @@ POST  /api/merchant/stores/{storeId}/orders/{orderId}/mark-ready
 GET   /api/merchant/stores/{storeId}/orders/{orderId}/status-history
 ```
 
-### Marchand — creneaux
+### Marchand — créneaux
 
 ```http
 GET    /api/merchant/stores/{storeId}/pickup-slots
@@ -135,7 +135,7 @@ DELETE /api/merchant/stores/{storeId}/pickup-slots/{slotId}
 GET /api/merchant/stores/{storeId}/dashboard/today
 ```
 
-### Client — creneaux disponibles
+### Client — créneaux disponibles
 
 ```http
 GET /api/stores/{storeId}/pickup-slots
@@ -145,24 +145,24 @@ GET /api/stores/{storeId}/pickup-slots
 
 | Gap initial | Etat actuel |
 | --- | --- |
-| `OrderStatusLog` absent | Livre avec entite, repository, recorder, migration et endpoints client/marchand |
+| `OrderStatusLog` absent | Livré avec entité, repository, recorder, migration et endpoints client/marchand |
 | Detail commande marchand manquant | Livre via `GET /api/merchant/stores/{storeId}/orders/{orderId}` |
-| Coordonnees client non exposees | Livrees dans le detail marchand autorise, absentes de la collection |
+| Coordonnées client non exposées | Livrées dans le détail marchand autorisé, absentes de la collection |
 | Accept/reject sans logs suffisants | Renforce : ownership, statut `submitted`, logs, raison de refus, liberation creneau sur reject |
 | Annulation client absente | Livree : `POST /api/me/orders/{orderId}/cancel`, `submitted` uniquement |
 | Preparation ligne par ligne incomplete | Livree : `OrderLine.prepared` et endpoint de preparation |
 | `mark-ready` trop permissif | Renforce : statut `preparing` et toutes lignes preparees |
 | Acceptation partielle absente | Livree : endpoint, validations, Kadhia `draft`, lignes refusees retirees, resoumission meme commande |
-| Dashboard marchand absent | Livre : `/dashboard/today` avec compteurs, urgence et creneaux |
-| CRUD creneaux marchand absent | Livre : GET/POST/PATCH/DELETE marchand |
+| Dashboard marchand absent | Livré : `/dashboard/today` avec compteurs, urgence et créneaux |
+| CRUD créneaux marchand absent | Livré : GET/POST/PATCH/DELETE marchand |
 
 ## Couverture de tests
 
 Tests Sprint 3 principaux presents :
 
 - `MerchantOrderApiTest`
-  - liste et detail marchand ;
-  - confidentialite des coordonnees ;
+  - liste et détail marchand ;
+  - confidentialité des coordonnées ;
   - accept/reject ;
   - acceptation partielle ;
   - start-preparation ;
@@ -188,10 +188,11 @@ Tests Sprint 3 principaux presents :
 - `MerchantDashboardApiTest`
   - acces marchand proprietaire ;
   - refus autre marchand/client/anonyme ;
-  - 404 supérette inconnue ;
+  - 404 supérette inconnue via `testDashboardReturns404ForNonExistentStore()` ;
   - compteurs du jour ;
   - exclusion hier/autre supérette ;
-  - creneaux du jour ;
+  - créneaux du jour ;
+  - compteur `pickup_pending_count` via `testDashboardCountsOnlyTodayOrdersForTargetShopByStatus()` ;
   - urgent submitted ;
   - absence de donnees client et de lignes.
 - `SubmitOrderApiTest`
@@ -205,7 +206,7 @@ Tests Sprint 3 principaux presents :
 - Les notifications ne sont pas implementees : les transitions changent l'etat et l'historique, mais ne notifient pas encore le client ou le marchand.
 - `PickupSession`, QR code de retrait, scan et double validation restent absents jusqu'au Sprint 4.
 - `pickup_pending` et `completed` existent dans le domaine mais ne sont pas encore exposes par un parcours de retrait.
-- Les creneaux sont ponctuels ; recurrence, fermetures exceptionnelles et heures d'ouverture restent Sprint 3b.
+- Les créneaux sont ponctuels ; récurrence, fermetures exceptionnelles et heures d'ouverture restent Sprint 3b.
 - L'expiration automatique d'une acceptation partielle et le delai de reponse marchand requierent une strategie Messenger/worker et restent Sprint 3b.
 - Les endpoints historiques marchand complets avec filtres avances restent Sprint 3b.
 
