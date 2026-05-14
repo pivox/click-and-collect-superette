@@ -24,6 +24,8 @@ final readonly class MerchantOrderLineOutput
         #[Groups(['merchant_order_detail:read'])]
         #[SerializedName('line_total_tnd')]
         public string $lineTotalTnd,
+        #[Groups(['merchant_order_detail:read'])]
+        public bool $prepared,
     ) {
     }
 }

@@ -40,6 +40,9 @@ class OrderLine
     #[ORM\Column(type: 'decimal', precision: 10, scale: 3)]
     private string $lineTotalTnd;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $prepared = false;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -120,6 +123,18 @@ class OrderLine
     public function setLineTotalTnd(string $lineTotalTnd): static
     {
         $this->lineTotalTnd = $lineTotalTnd;
+
+        return $this;
+    }
+
+    public function isPrepared(): bool
+    {
+        return $this->prepared;
+    }
+
+    public function markPrepared(bool $prepared): static
+    {
+        $this->prepared = $prepared;
 
         return $this;
     }

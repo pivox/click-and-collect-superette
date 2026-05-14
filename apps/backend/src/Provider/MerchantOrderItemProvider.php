@@ -77,6 +77,7 @@ final readonly class MerchantOrderItemProvider implements ProviderInterface
                 quantity: $line->getQuantity(),
                 unitPriceTnd: $line->getUnitPriceTnd(),
                 lineTotalTnd: $line->getLineTotalTnd(),
+                prepared: $line->isPrepared(),
             ),
             $order->getLines()->toArray(),
         );

@@ -8,7 +8,11 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
+use ApiPlatform\Metadata\Patch;
+use App\Dto\PrepareOrderLineInput;
+use App\Entity\MerchantProduct;
 use App\Entity\Shop;
+use App\Processor\MerchantPrepareOrderLineProcessor;
 use App\Provider\MerchantOrderItemProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
@@ -24,6 +28,21 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['merchant_order_detail:read'], 'skip_null_values' => false],
             provider: MerchantOrderItemProvider::class,
+            security: "is_granted('ROLE_MERCHANT')",
+        ),
+        new Patch(
+            uriTemplate: '/merchant/stores/{storeId}/orders/{orderId}/lines/{merchantProductId}/preparation',
+            uriVariables: [
+                'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
+                'orderId' => new Link(fromClass: MerchantOrderDetailOutput::class, identifiers: ['id']),
+                'merchantProductId' => new Link(fromClass: MerchantProduct::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            normalizationContext: ['groups' => ['merchant_order_detail:read'], 'skip_null_values' => false],
+            input: PrepareOrderLineInput::class,
+            status: 200,
+            read: false,
+            processor: MerchantPrepareOrderLineProcessor::class,
             security: "is_granted('ROLE_MERCHANT')",
         ),
     ],
