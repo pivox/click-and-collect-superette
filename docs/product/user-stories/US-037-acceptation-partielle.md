@@ -78,7 +78,7 @@ POST /api/merchant/stores/{storeId}/orders/{orderId}/partially-accept
 **Payload :**
 ```json
 {
-  "rejected_line_ids": ["<merchantProductId1>", "<merchantProductId2>"],
+  "rejected_merchant_product_ids": ["<merchantProductId1>", "<merchantProductId2>"],
   "notes": "Rupture de stock Vitalait 1L."
 }
 ```
@@ -88,11 +88,11 @@ POST /api/merchant/stores/{storeId}/orders/{orderId}/partially-accept
 **Logique métier :**
 1. Appeler `Order::partiallyAccept()` (méthode déjà présente dans le domaine).
 2. Récupérer la Kadhia liée à l'ordre.
-3. Supprimer les `KadhiaLine` dont le `merchant_product_id` est dans `rejected_line_ids`.
+3. Supprimer les `KadhiaLine` dont le `merchant_product_id` est dans `rejected_merchant_product_ids`.
 4. Passer la Kadhia en `draft` : `$kadhia->setStatus(KadhiaStatus::Draft)`.
 5. Stocker les `notes` de refus partiel dans `Order::rejectionReason` (champ existant).
 6. Flush.
 
 - Sécurité : `MerchantShopAccessChecker::denyUnlessMerchantOwnsShop()`.
-- Si `rejected_line_ids` est vide → 422 `NO_LINES_REJECTED`.
-- Si `rejected_line_ids` contient toutes les lignes → 422 `USE_REJECT_ENDPOINT`.
+- Si `rejected_merchant_product_ids` est vide → 422 `NO_LINES_REJECTED`.
+- Si `rejected_merchant_product_ids` contient toutes les lignes → 422 `USE_REJECT_ENDPOINT`.

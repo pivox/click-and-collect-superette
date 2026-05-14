@@ -190,7 +190,7 @@ Attention : `Order::cancel()` autorise aussi `draft` et `accepted`. Le processor
 À prévoir :
 
 - `POST /api/merchant/stores/{storeId}/orders/{orderId}/partially-accept` ;
-- DTO avec `rejected_line_ids` et `notes` optionnelles ;
+- DTO avec `rejected_merchant_product_ids` (identifiants `merchantProductId` déjà exposés dans le détail commande) et `notes` optionnelles ;
 - validation : au moins une ligne refusée, mais pas toutes les lignes ;
 - passage commande en `partially_accepted` ;
 - retour de la Kadhia en `draft` ;
@@ -234,6 +234,9 @@ Fichiers probables :
 - `apps/backend/src/Entity/OrderStatusLog.php`
 - `apps/backend/src/Repository/OrderStatusLogRepository.php`
 - `apps/backend/src/Service/OrderStatusLogRecorder.php`
+- `apps/backend/src/ApiResource/OrderStatusLogOutput.php`
+- `apps/backend/src/Provider/OrderStatusHistoryProvider.php`
+- `apps/backend/src/Provider/MerchantOrderStatusHistoryProvider.php`
 - `apps/backend/src/Processor/SubmitOrderProcessor.php`
 - `apps/backend/src/Processor/MerchantAcceptOrderProcessor.php`
 - `apps/backend/src/Processor/MerchantRejectOrderProcessor.php`
@@ -241,12 +244,23 @@ Fichiers probables :
 - `apps/backend/src/Processor/MerchantMarkReadyProcessor.php`
 - `apps/backend/migrations/Version*.php`
 
+Endpoints introduits dans cette PR :
+
+- `GET /api/me/orders/{orderId}/status-history` — historique du statut d'une commande côté client ;
+- `GET /api/merchant/stores/{storeId}/orders/{orderId}/status-history` — historique côté marchand.
+
+
 Tests nécessaires :
 
 - mapping Doctrine ;
 - log créé pour chaque transition existante ;
 - ordre chronologique ;
-- note de refus dans le log `rejected`.
+- note de refus dans le log `rejected` ;
+- `GET /api/me/orders/{orderId}/status-history` retourne les logs du client propriétaire ;
+- 403 si autre client tente d'accéder à l'historique ;
+- 401 non connecté ;
+- `GET /api/merchant/stores/{storeId}/orders/{orderId}/status-history` retourne les logs pour le marchand propriétaire ;
+- 403 autre marchand.
 
 ### PR 2 — Détail commande marchand et coordonnées client
 
