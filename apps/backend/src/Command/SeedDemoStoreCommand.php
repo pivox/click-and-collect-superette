@@ -26,6 +26,9 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 )]
 final class SeedDemoStoreCommand extends Command
 {
+    private const DEMO_CUSTOMER_EMAIL = 'client.demo@kadhia.local';
+    private const DEMO_CUSTOMER_PASSWORD = 'secret123';
+    private const DEMO_CUSTOMER_NAME = 'Client Demo';
     private const DEMO_MERCHANT_EMAIL = 'merchant@test.com';
     private const DEMO_MERCHANT_PASSWORD = 'secret123';
     private const DEMO_MERCHANT_NAME = 'Marchand Demo';
@@ -96,6 +99,7 @@ final class SeedDemoStoreCommand extends Command
 
         $io->title('Seeding demo store...');
 
+        $customer = $this->createOrUpdateDemoCustomer();
         $merchant = $this->createOrUpdateDemoMerchant();
         $shop = $this->createOrUpdateDemoStore($merchant);
         $productReferences = $this->selectProductReferences($catalogMode);
@@ -116,6 +120,8 @@ final class SeedDemoStoreCommand extends Command
 
         $io->success('Demo store ready.');
         $io->definitionList(
+            ['customer_email' => $customer->getEmail()],
+            ['customer_password' => self::DEMO_CUSTOMER_PASSWORD],
             ['merchant_email' => self::DEMO_MERCHANT_EMAIL],
             ['merchant_password' => self::DEMO_MERCHANT_PASSWORD],
             ['store_id' => $shop->getId()->toRfc4122()],
@@ -129,6 +135,26 @@ final class SeedDemoStoreCommand extends Command
         );
 
         return Command::SUCCESS;
+    }
+
+    private function createOrUpdateDemoCustomer(): User
+    {
+        $userRepository = $this->entityManager->getRepository(User::class);
+        $customer = $userRepository->findOneBy(['email' => self::DEMO_CUSTOMER_EMAIL]);
+
+        if (!$customer instanceof User) {
+            $customer = new User();
+            $customer->setEmail(self::DEMO_CUSTOMER_EMAIL);
+            $this->entityManager->persist($customer);
+        }
+
+        $customer
+            ->setName(self::DEMO_CUSTOMER_NAME)
+            ->setRoles(['ROLE_CUSTOMER'])
+            ->setPassword($this->passwordHasher->hashPassword($customer, self::DEMO_CUSTOMER_PASSWORD))
+            ->setActive(true);
+
+        return $customer;
     }
 
     private function createOrUpdateDemoMerchant(): User
