@@ -16,6 +16,7 @@ use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\OrderStatus;
 use App\Enum\ProductReferenceStatus;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Uid\Uuid;
 
 final class MerchantOrderApiTest extends FunctionalApiTestCase
@@ -196,6 +197,7 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertSame(2, $payload['lines'][0]['quantity']);
         self::assertSame('2.500', $payload['lines'][0]['unit_price_tnd']);
         self::assertSame('5.000', $payload['lines'][0]['line_total_tnd']);
+        self::assertFalse($payload['lines'][0]['prepared']);
     }
 
     public function testGetOrderDetailAllowsNullableCustomerPhone(): void
@@ -917,8 +919,326 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
     }
 
     // ---------------------------------------------------------------------------
+    // PATCH /api/merchant/stores/{storeId}/orders/{orderId}/lines/{merchantProductId}/preparation
+    // ---------------------------------------------------------------------------
+
+    public function testPrepareOrderLineHappyPathPersistsAndIsVisibleInDetail(): void
+    {
+        $merchant = $this->createUser('merchant-line-prep@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-line-prep@example.test', ['ROLE_CUSTOMER']);
+        $product = $this->createMerchantProduct($shop, '3.200', 'Harissa 135g');
+        $order = $this->createPreparingOrder($customer, $shop);
+        $this->addOrderLine($order, $product, quantity: 3, unitPriceTnd: '3.200');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop->getId(),
+                $order->getId(),
+                $product->getId(),
+            ),
+            ['prepared' => true],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame($order->getId()->toRfc4122(), $payload['id']);
+        self::assertSame('preparing', $payload['status']);
+        self::assertCount(1, $payload['lines']);
+        self::assertSame($product->getId()->toRfc4122(), $payload['lines'][0]['merchant_product_id']);
+        self::assertTrue($payload['lines'][0]['prepared']);
+
+        $this->entityManager->clear();
+
+        $detailResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $detailResponse->getStatusCode());
+
+        $detailPayload = $this->decodeJson($detailResponse);
+        self::assertTrue($detailPayload['lines'][0]['prepared']);
+    }
+
+    public function testPrepareOrderLineCanUnsetPrepared(): void
+    {
+        $merchant = $this->createUser('merchant-line-unprep@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-line-unprep@example.test', ['ROLE_CUSTOMER']);
+        $product = $this->createMerchantProduct($shop, '1.400', 'Eau minérale 1.5L');
+        $order = $this->createPreparingOrder($customer, $shop);
+        $line = $this->addOrderLine($order, $product, quantity: 2, unitPriceTnd: '1.400');
+        $line->markPrepared(true);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop->getId(),
+                $order->getId(),
+                $product->getId(),
+            ),
+            ['prepared' => false],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertFalse($payload['lines'][0]['prepared']);
+
+        $this->entityManager->clear();
+        $updated = $this->entityManager->getRepository(OrderLine::class)->find($line->getId());
+        self::assertNotNull($updated);
+        self::assertFalse($updated->isPrepared());
+    }
+
+    public function testPrepareOrderLineWrongMerchantReturns403(): void
+    {
+        $merchantA = $this->createUser('merchant-a-line-prep@example.test', ['ROLE_MERCHANT']);
+        $merchantB = $this->createUser('merchant-b-line-prep@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchantB);
+        $customer = $this->createUser('customer-line-prep-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $product = $this->createMerchantProduct($shop, '4.000');
+        $order = $this->createPreparingOrder($customer, $shop);
+        $this->addOrderLine($order, $product, quantity: 1, unitPriceTnd: '4.000');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop->getId(),
+                $order->getId(),
+                $product->getId(),
+            ),
+            ['prepared' => true],
+            $merchantA,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    public function testPrepareOrderLineFromAnotherShopReturns404(): void
+    {
+        $merchant = $this->createUser('merchant-line-prep-404@example.test', ['ROLE_MERCHANT']);
+        $shop1 = $this->createShop($merchant);
+        $shop2 = $this->createShop();
+        $customer = $this->createUser('customer-line-prep-404@example.test', ['ROLE_CUSTOMER']);
+        $product = $this->createMerchantProduct($shop2, '4.000');
+        $orderInShop2 = $this->createPreparingOrder($customer, $shop2);
+        $this->addOrderLine($orderInShop2, $product, quantity: 1, unitPriceTnd: '4.000');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop1->getId(),
+                $orderInShop2->getId(),
+                $product->getId(),
+            ),
+            ['prepared' => true],
+            $merchant,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testPrepareOrderLineCustomerRoleReturns403(): void
+    {
+        $customer = $this->createUser('customer-role-line-prep@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop->getId(),
+                Uuid::v4()->toRfc4122(),
+                Uuid::v4()->toRfc4122(),
+            ),
+            ['prepared' => true],
+            $customer,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    public function testPrepareOrderLineUnauthenticatedReturns401(): void
+    {
+        $shop = $this->createShop();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop->getId(),
+                Uuid::v4()->toRfc4122(),
+                Uuid::v4()->toRfc4122(),
+            ),
+            ['prepared' => true],
+        );
+
+        self::assertSame(401, $response->getStatusCode());
+    }
+
+    public function testPrepareOrderLineMissingPreparedFieldReturns422(): void
+    {
+        $merchant = $this->createUser('merchant-line-prep-missing-field@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-line-prep-missing-field@example.test', ['ROLE_CUSTOMER']);
+        $product = $this->createMerchantProduct($shop, '2.000');
+        $order = $this->createPreparingOrder($customer, $shop);
+        $this->addOrderLine($order, $product, quantity: 1, unitPriceTnd: '2.000');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop->getId(),
+                $order->getId(),
+                $product->getId(),
+            ),
+            [],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('prepared', (string) $response->getContent());
+    }
+
+    #[DataProvider('nonPreparingStatusProvider')]
+    public function testPrepareOrderLineRejectsNonPreparingOrders(OrderStatus $status): void
+    {
+        $merchant = $this->createUser('merchant-line-prep-status-'.$status->value.'@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-line-prep-status-'.$status->value.'@example.test', ['ROLE_CUSTOMER']);
+        $product = $this->createMerchantProduct($shop, '2.000');
+        $order = $this->createOrderWithStatus($customer, $shop, $status);
+        $this->addOrderLine($order, $product, quantity: 1, unitPriceTnd: '2.000');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop->getId(),
+                $order->getId(),
+                $product->getId(),
+            ),
+            ['prepared' => true],
+            $merchant,
+        );
+
+        self::assertSame(409, $response->getStatusCode());
+        self::assertStringContainsString('ORDER_NOT_PREPARING', (string) $response->getContent());
+    }
+
+    public function testPrepareOrderLineUnknownLineReturns404(): void
+    {
+        $merchant = $this->createUser('merchant-line-prep-unknown@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-line-prep-unknown@example.test', ['ROLE_CUSTOMER']);
+        $product = $this->createMerchantProduct($shop, '2.000');
+        $order = $this->createPreparingOrder($customer, $shop);
+        $this->addOrderLine($order, $product, quantity: 1, unitPriceTnd: '2.000');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop->getId(),
+                $order->getId(),
+                Uuid::v4()->toRfc4122(),
+            ),
+            ['prepared' => true],
+            $merchant,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+        self::assertStringContainsString('ORDER_LINE_NOT_FOUND', (string) $response->getContent());
+    }
+
+    public function testPrepareOrderLineFromAnotherOrderReturns404(): void
+    {
+        $merchant = $this->createUser('merchant-line-prep-other-order@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-line-prep-other-order@example.test', ['ROLE_CUSTOMER']);
+        $product1 = $this->createMerchantProduct($shop, '2.000');
+        $product2 = $this->createMerchantProduct($shop, '3.000');
+        $order1 = $this->createPreparingOrder($customer, $shop);
+        $order2 = $this->createPreparingOrder($customer, $shop);
+        $this->addOrderLine($order1, $product1, quantity: 1, unitPriceTnd: '2.000');
+        $this->addOrderLine($order2, $product2, quantity: 1, unitPriceTnd: '3.000');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf(
+                '/api/merchant/stores/%s/orders/%s/lines/%s/preparation',
+                $shop->getId(),
+                $order1->getId(),
+                $product2->getId(),
+            ),
+            ['prepared' => true],
+            $merchant,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+        self::assertStringContainsString('ORDER_LINE_NOT_FOUND', (string) $response->getContent());
+    }
+
+    // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
+
+    /**
+     * @return iterable<string, array{OrderStatus}>
+     */
+    public static function nonPreparingStatusProvider(): iterable
+    {
+        yield 'draft' => [OrderStatus::Draft];
+        yield 'submitted' => [OrderStatus::Submitted];
+        yield 'accepted' => [OrderStatus::Accepted];
+        yield 'partially_accepted' => [OrderStatus::PartiallyAccepted];
+        yield 'rejected' => [OrderStatus::Rejected];
+        yield 'ready' => [OrderStatus::Ready];
+        yield 'pickup_pending' => [OrderStatus::PickupPending];
+        yield 'completed' => [OrderStatus::Completed];
+        yield 'cancelled' => [OrderStatus::Cancelled];
+    }
+
+    private function createOrderWithStatus(User $customer, Shop $shop, OrderStatus $status): Order
+    {
+        return match ($status) {
+            OrderStatus::Draft => $this->createDraftOrder($customer, $shop),
+            OrderStatus::Submitted => $this->createSubmittedOrder($customer, $shop),
+            OrderStatus::Accepted => $this->createAcceptedOrder($customer, $shop),
+            OrderStatus::PartiallyAccepted => $this->createPartiallyAcceptedOrder($customer, $shop),
+            OrderStatus::Rejected => $this->createRejectedOrder($customer, $shop),
+            OrderStatus::Preparing => $this->createPreparingOrder($customer, $shop),
+            OrderStatus::Ready => $this->createReadyOrder($customer, $shop),
+            OrderStatus::PickupPending => $this->createPickupPendingOrder($customer, $shop),
+            OrderStatus::Completed => $this->createCompletedOrder($customer, $shop),
+            OrderStatus::Cancelled => $this->createCancelledOrder($customer, $shop),
+        };
+    }
+
+    private function createDraftOrder(User $customer, Shop $shop): Order
+    {
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop);
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+
+        return $order;
+    }
 
     private function createSubmittedOrder(User $customer, Shop $shop): Order
     {
@@ -980,6 +1300,43 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $order->submit();
         $order->reject('Rupture de stock');
         $this->entityManager->persist($order);
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
+    private function createPartiallyAcceptedOrder(User $customer, Shop $shop): Order
+    {
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop);
+        $order->submit();
+        $order->partiallyAccept();
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
+    private function createReadyOrder(User $customer, Shop $shop): Order
+    {
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop);
+        $order->submit();
+        $order->accept();
+        $order->startPreparing();
+        $order->markReady();
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
+    private function createPickupPendingOrder(User $customer, Shop $shop): Order
+    {
+        $order = $this->createReadyOrder($customer, $shop);
+        $order->startPickup();
         $this->entityManager->flush();
 
         return $order;
