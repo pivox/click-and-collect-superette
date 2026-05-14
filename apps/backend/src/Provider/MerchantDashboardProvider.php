@@ -62,9 +62,6 @@ final readonly class MerchantDashboardProvider implements ProviderInterface
         ksort($ordersByStatus);
 
         $urgentUpperBound = $now->modify('+3 hours');
-        if ($urgentUpperBound > $dayEnd) {
-            $urgentUpperBound = $dayEnd;
-        }
 
         $urgentSubmittedCount = $this->orderRepository->countUrgentSubmittedForShopBetweenPickupSlotStarts(
             $shop,

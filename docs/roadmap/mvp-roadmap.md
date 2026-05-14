@@ -166,11 +166,11 @@ Un client peut scanner un QR code, voir les produits avec photos, composer une K
 
 ---
 
-## Sprint 3 — Parcours marchand core 🔴 P0
+## Sprint 3 — Parcours marchand core ✅ Backend terminé
 
 ### Objectif
 
-Permettre au marchand de traiter les commandes de bout en bout : réception, décision, préparation, remise. C'est le cœur du flux marchand — rien d'autre ne peut fonctionner sans ce sprint.
+Permettre au marchand de traiter les commandes depuis la réception jusqu'à la commande prête à retirer. Le retrait sécurisé et la finalisation restent Sprint 4.
 
 ### Fonctionnalités
 
@@ -184,6 +184,7 @@ Permettre au marchand de traiter les commandes de bout en bout : réception, dé
 - Passage en préparation.
 - Passage en prêt à retirer.
 - Traçabilité — entité `OrderStatusLog` avec horodatage à chaque transition.
+- CRUD manuel des créneaux de retrait.
 
 ### User stories
 
@@ -199,12 +200,13 @@ Permettre au marchand de traiter les commandes de bout en bout : réception, dé
 
 ### Entités / migrations
 
-- `OrderStatusLog` (nouvelle entité).
-- `Order` : ajouter `order_number` si non fait en Sprint 2.
+- `OrderStatusLog`.
+- `OrderLine.prepared`.
+- `PickupSlot` administrable côté marchand sur des créneaux ponctuels.
 
 ### Critère de sortie
 
-Le marchand reçoit une commande, la traite depuis son dashboard (acceptation, refus, acceptation partielle, préparation, prêt), et le client peut annuler avant acceptation. Chaque transition de statut est horodatée.
+Le marchand reçoit une commande, la traite depuis son dashboard (acceptation, refus, acceptation partielle, préparation, prêt), et le client peut annuler avant acceptation. Chaque transition de statut Sprint 3 est horodatée.
 
 ---
 
@@ -219,7 +221,6 @@ Outiller le marchand pour gérer son activité quotidienne de façon autonome : 
 
 ### Fonctionnalités
 
-- CRUD créneaux de retrait.
 - **Créneaux récurrents** — génération automatique sur 4 semaines.
 - **Délai de réponse marchand** — annulation automatique si non traité avant 2h du créneau.
 - **Expiration d'une acceptation partielle** — annulation si le client ne re-soumet pas avant 2h du créneau.
@@ -230,7 +231,6 @@ Outiller le marchand pour gérer son activité quotidienne de façon autonome : 
 
 ### User stories
 
-- US-024 — Configurer les créneaux de retrait
 - **US-047** — Créneaux récurrents
 - **US-043** — Délai de réponse marchand
 - **US-049** — Expiration d'une acceptation partielle
@@ -251,7 +251,7 @@ US-043 et US-049 reposent sur **Symfony Messenger avec workers persistants** (De
 
 ### Critère de sortie
 
-Le marchand configure ses créneaux (ponctuels et récurrents), déclare une fermeture exceptionnelle, met à jour son catalogue en masse, consulte l'historique complet de ses commandes. Les délais de réponse et d'expiration sont automatisés. Les heures d'ouverture sont visibles sur la vitrine client.
+Le marchand complète la gestion opérationnelle au-delà des créneaux ponctuels déjà livrés : récurrence, fermeture exceptionnelle, catalogue en masse, historique complet. Les délais de réponse et d'expiration sont automatisés. Les heures d'ouverture sont visibles sur la vitrine client.
 
 ---
 

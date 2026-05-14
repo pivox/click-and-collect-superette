@@ -52,11 +52,14 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 | Kadhia multiple | Oui | Oui | Oui | Oui | OK | Garder `/api/me/kadhias`. |
 | Soumission Kadhia | Oui | Oui | Oui | Oui | OK | Garder `POST /api/me/kadhias/{kadhiaId}/submit`. |
 | Historique commandes client | Oui | Oui | Oui | Oui | OK | `GET /api/me/orders` et `GET /api/me/orders/{id}` présents et testés. |
-| Commandes marchand | Oui | Oui | Oui | Oui | OK | Garder routes contenant `storeId`. |
-| Acceptation partielle | **Oui (US-037)** | Domaine OK | Non | **Oui** | PARTIEL | US-037 documentée. Processor + endpoint à coder. |
-| Annulation commande client | **Oui (US-036)** | Domaine OK | Non | **Oui** | MANQUANT | US-036 documentée. `POST /api/me/orders/{id}/cancel` à coder. |
-| Préparation ligne par ligne | Oui (US-006) | Non | Non | Non | MANQUANT | Spécification présente. À implémenter en Sprint 3. |
-| Créneaux marchand CRUD | Oui (US-024) | Non | Non | **Oui (Sprint3)** | MANQUANT | US-024 existante. Endpoints définis dans Sprint3/README.md. |
+| Commandes marchand | Oui | Oui | Oui | Oui | OK | Liste et détail via routes contenant `storeId`; coordonnées client uniquement dans le détail autorisé. |
+| Acceptation / refus marchand | **Oui (US-005)** | Oui | Oui | Oui | OK | Accept/reject depuis `submitted`, ownership marchand, logs et libération du créneau sur refus. |
+| Acceptation partielle | **Oui (US-037)** | Oui | Oui | Oui | OK | Endpoint livré; Kadhia repasse en `draft`, lignes refusées retirées, resoumission même commande. |
+| Annulation commande client | **Oui (US-036)** | Oui | Oui | Oui | OK | `POST /api/me/orders/{orderId}/cancel`, `submitted` uniquement, créneau libéré, log `cancelled`. |
+| Préparation ligne par ligne | Oui (US-006) | Oui | Oui | Oui | OK | `OrderLine.prepared` persistant et endpoint marchand de préparation. |
+| Mark-ready strict | Oui (US-023) | Oui | Oui | Oui | OK | `mark-ready` depuis `preparing` uniquement, toutes les lignes doivent être préparées. |
+| Créneaux marchand CRUD | Oui (US-024) | Oui | Oui | Oui | OK | CRUD marchand ponctuel livré; récurrence et fermetures exceptionnelles restent Sprint 3b. |
+| Dashboard marchand journalier | Oui (US-051) | Oui | Oui | Oui | OK | `/api/merchant/stores/{storeId}/dashboard/today`, sans données client ni lignes. |
 | Thème public store | Oui | Oui | Oui | Oui | OK | Déjà avancé. |
 | Thème marchand | Oui | Oui | Oui | Oui | OK | Déjà avancé. |
 | Thème global admin | Oui | Oui | Oui | Oui | OK | Déjà avancé. |
@@ -64,7 +67,7 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 | Double validation retrait | Oui (US-007) | Non | Non | **Oui (Sprint4)** | MANQUANT | Endpoints scan/confirm définis dans Sprint4/README.md. |
 | Notifications client | **Oui (US-038)** | Non | Non | **Oui** | MANQUANT | US-038 documentée. Entité `Notification` à créer (Sprint 4). |
 | Notifications marchand | **Oui (US-039)** | Non | Non | **Oui** | MANQUANT | US-039 documentée. Mêmes endpoints (Sprint 4). |
-| Historique statuts commande | **Oui (US-040)** | Non | Non | **Oui** | MANQUANT | US-040 documentée. Entité `OrderStatusLog` à créer (Sprint 3). |
+| Historique statuts commande | **Oui (US-040)** | Oui | Oui | Oui | OK | `OrderStatusLog` et endpoints client/marchand livrés. |
 | Admin CRUD Brand/Category | **Oui (US-029)** | Non | Non | **Oui (Sprint5)** | MANQUANT | Endpoints définis dans Sprint5/README.md. |
 | Admin CRUD ProductReference | **Oui (US-029)** | Non | Non | **Oui (Sprint5)** | MANQUANT | Endpoints définis dans Sprint5/README.md. |
 | i18n FR/AR/RTL | **Oui (US-008)** | Non | Non | **Oui** | MANQUANT | US-008 complétée. Implémentation Sprint 7. |
@@ -167,52 +170,52 @@ Les notifications sont maintenant cadrées dans un epic dédié.
 À implémenter (Sprint 4) : entité `Notification`, endpoints `/api/me/notifications` et `/api/merchant/notifications`.
 MVP : notifications persistées en base + polling. Push/SMS post-MVP.
 
-### 7. Acceptation partielle sans endpoint API
+### 7. Sprint 3 backend livré
 
-La méthode de domaine `Order::partiallyAccept()` existe mais aucun processor ni route ne l'expose.
+Le parcours marchand core est maintenant livré côté backend.
 
-**Documenté dans :** US-037.
+**Documenté dans :** `docs/Sprint3/README.md`, `docs/Sprint3/completion-report.md`.
 
-À implémenter (Sprint 3) :
+Endpoints Sprint 3 confirmés :
+
 ```http
-POST /api/merchant/stores/{storeId}/orders/{orderId}/partially-accept
-```
-
-### 8. Annulation commande client absente
-
-La méthode de domaine `Order::cancel()` existe mais aucun processor ni route ne l'expose.
-
-**Documenté dans :** US-036.
-
-À implémenter (Sprint 3) :
-```http
-POST /api/me/orders/{orderId}/cancel
-```
-
-### 9. Créneaux marchand sans CRUD API
-
-L'entité `PickupSlot` existe. Aucun endpoint marchand pour créer/modifier/désactiver un créneau.
-
-**Documenté dans :** US-024, Sprint3/README.md.
-
-À implémenter (Sprint 3) :
-```http
+GET    /api/merchant/stores/{storeId}/orders
+GET    /api/merchant/stores/{storeId}/orders/{orderId}
+POST   /api/merchant/stores/{storeId}/orders/{orderId}/accept
+POST   /api/merchant/stores/{storeId}/orders/{orderId}/reject
+POST   /api/merchant/stores/{storeId}/orders/{orderId}/partially-accept
+POST   /api/merchant/stores/{storeId}/orders/{orderId}/start-preparation
+PATCH  /api/merchant/stores/{storeId}/orders/{orderId}/lines/{merchantProductId}/preparation
+POST   /api/merchant/stores/{storeId}/orders/{orderId}/mark-ready
+GET    /api/merchant/stores/{storeId}/orders/{orderId}/status-history
+GET    /api/merchant/stores/{storeId}/pickup-slots
 POST   /api/merchant/stores/{storeId}/pickup-slots
 PATCH  /api/merchant/stores/{storeId}/pickup-slots/{slotId}
 DELETE /api/merchant/stores/{storeId}/pickup-slots/{slotId}
+GET    /api/merchant/stores/{storeId}/dashboard/today
+POST   /api/me/orders/{orderId}/cancel
+GET    /api/me/orders/{orderId}/status-history
 ```
 
-### 10. Historique statuts commande absent
+### 8. Limites Sprint 3 restantes
 
-Aucune entité `OrderStatusLog`. Les transitions ne sont pas tracées horodatées.
+Ces points ne doivent pas être considérés comme livrés par Sprint 3 :
 
-**Documenté dans :** US-040, Sprint3/README.md.
-
-À implémenter (Sprint 3) : entité `OrderStatusLog`, insertion dans chaque Processor de transition.
+- notifications client/marchand ;
+- QR code de retrait ;
+- `PickupSession` ;
+- scan marchand ;
+- double validation client + marchand ;
+- finalisation opérationnelle `completed` ;
+- créneaux récurrents ;
+- fermetures exceptionnelles ;
+- délai de réponse marchand automatisé ;
+- expiration automatique d'une acceptation partielle ;
+- export et statistiques avancées.
 
 ## Priorités recommandées
 
-### P0 — Sprint Auth (avant Sprint 3)
+### P0 — Sprint Auth
 
 **Documenté :** US-034, US-035.
 
@@ -222,14 +225,11 @@ Aucune entité `OrderStatusLog`. Les transitions ne sont pas tracées horodatée
 
 Sans inscription, aucun client ne peut tester le parcours complet en production.
 
-### P0 — Sprint 3 : compléter le parcours marchand
+### P0 — Sprint 3 : parcours marchand core
 
-**Documenté :** Sprint3/README.md, US-024, US-036, US-037, US-040.
+**Statut : livré côté backend.**
 
-- CRUD créneaux marchand (`POST/PATCH/DELETE /api/merchant/stores/{storeId}/pickup-slots`)
-- Acceptation partielle (`POST .../partially-accept`)
-- Annulation commande client (`POST /api/me/orders/{id}/cancel`)
-- Entité `OrderStatusLog` + insertion dans tous les Processors de transition
+La suite du parcours marchand est maintenant répartie entre Sprint 3b (maturité opérationnelle) et Sprint 4 (retrait sécurisé + notifications).
 
 ### P1 — Sprint 4 : retrait sécurisé et notifications
 
