@@ -39,7 +39,7 @@ Commande en statut ready
 | US-026 | Suivre le statut de sa commande | EPIC-007 | Existante |
 | US-038 | Notifications client | EPIC-014 | Ajoutée |
 | US-039 | Notifications marchand | EPIC-014 | Ajoutée |
-| US-040 | Historique des statuts d'une commande | EPIC-007 | Ajoutée |
+| US-064 | Rappel de retrait avant expiration du créneau | EPIC-014 | Ajoutée |
 
 ## Modèle métier à prévoir
 

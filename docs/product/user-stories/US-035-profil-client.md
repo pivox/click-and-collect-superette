@@ -51,7 +51,7 @@ afin de **maintenir un profil exact et être joignable par le marchand si besoin
 ## Règles métier
 
 - L'email ne peut pas être modifié dans le MVP (identifiant stable).
-- Le mot de passe est géré séparément (hors périmètre MVP — réinitialisation post-MVP).
+- Le mot de passe est géré séparément — la réinitialisation par email est couverte par US-046 (Sprint Auth, Must Have).
 - Un client ne peut consulter et modifier que son propre profil.
 
 ---
