@@ -7,7 +7,7 @@ on:
     types: [created]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
   issues: write
 
@@ -22,6 +22,7 @@ jobs:
           fetch-depth: 0
 
       - name: Claude Response
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@86eb26bf0139bdd75acd15ea5f00f45ee0a284c2  # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
