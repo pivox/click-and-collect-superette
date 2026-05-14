@@ -166,16 +166,16 @@ Un client peut scanner un QR code, voir les produits avec photos, composer une K
 
 ---
 
-## Sprint 3 — Parcours marchand 🔴 P0
+## Sprint 3 — Parcours marchand core 🔴 P0
 
 ### Objectif
 
-Permettre au marchand de traiter les commandes et de gérer ses créneaux de retrait.
+Permettre au marchand de traiter les commandes de bout en bout : réception, décision, préparation, remise. C'est le cœur du flux marchand — rien d'autre ne peut fonctionner sans ce sprint.
 
 ### Fonctionnalités
 
 - **Dashboard journalier** — vue synthétique des commandes du jour par statut.
-- Liste des commandes avec filtres et historique complet.
+- Liste des commandes soumises.
 - Consultation du détail d'une commande avec coordonnées client.
 - Acceptation d'une commande.
 - Refus d'une commande avec raison.
@@ -183,46 +183,75 @@ Permettre au marchand de traiter les commandes et de gérer ses créneaux de ret
 - **Annulation par le client** — statut `submitted` uniquement.
 - Passage en préparation.
 - Passage en prêt à retirer.
-- **Délai de réponse marchand** — annulation automatique si non traité avant 2h du créneau.
-- **Expiration d'une acceptation partielle** — annulation si le client ne resoumets pas avant 2h du créneau.
-- CRUD créneaux de retrait.
-- **Créneaux récurrents** — génération automatique sur 4 semaines.
-- **Fermeture exceptionnelle** — bloquer une supérette sur une plage sans supprimer les créneaux récurrents.
-- **Heures d'ouverture** — affichage hebdomadaire sur la vitrine publique.
-- **Ruptures de stock en masse** — action groupée sur le catalogue.
 - Traçabilité — entité `OrderStatusLog` avec horodatage à chaque transition.
 
 ### User stories
 
+- **US-051** — Dashboard journalier marchand
 - US-022 — Consulter la liste des commandes soumises
 - US-005 — Accepter ou refuser une commande
-- US-037 — Accepter partiellement une commande *(NEW)*
-- US-036 — Annuler une commande (client) *(NEW)*
+- **US-037** — Accepter partiellement une commande
+- **US-036** — Annuler une commande (client)
 - US-006 — Préparer une commande
 - US-023 — Déclarer une commande prête
-- US-024 — Configurer les créneaux de retrait
-- US-040 — Historique des transitions de statut *(NEW)*
-- **US-043** — Délai de réponse marchand *(NEW)*
-- **US-045** — Coordonnées client dans la commande marchand *(NEW)*
-- **US-047** — Créneaux récurrents *(NEW)*
-- **US-049** — Expiration d'une acceptation partielle *(NEW)*
-- **US-051** — Dashboard journalier marchand *(NEW)*
-- **US-052** — Ruptures de stock en masse *(NEW)*
-- **US-053** — Historique complet marchand *(NEW)*
-- **US-056** — Fermeture exceptionnelle de la supérette *(NEW)*
-- **US-057** — Heures d'ouverture de la supérette *(NEW)*
+- **US-045** — Coordonnées client dans la commande marchand
+- **US-040** — Historique des transitions de statut
 
 ### Entités / migrations
 
 - `OrderStatusLog` (nouvelle entité).
-- `PickupSlotRule` (nouvelle entité — créneaux récurrents).
-- `ExceptionalClosure` (nouvelle entité — fermetures exceptionnelles).
 - `Order` : ajouter `order_number` si non fait en Sprint 2.
-- `Shop` : ajouter `openingHours` (JSONB).
 
 ### Critère de sortie
 
-Le marchand reçoit une notification de nouvelle commande, la traite depuis son dashboard, configure ses créneaux récurrents et ses heures d'ouverture, déclare une fermeture exceptionnelle si besoin, et le client peut annuler avant acceptation. Chaque transition est tracée.
+Le marchand reçoit une commande, la traite depuis son dashboard (acceptation, refus, acceptation partielle, préparation, prêt), et le client peut annuler avant acceptation. Chaque transition de statut est horodatée.
+
+---
+
+## Sprint 3b — Maturité opérationnelle marchand 🟠 P1
+
+### Objectif
+
+Outiller le marchand pour gérer son activité quotidienne de façon autonome : créneaux, disponibilité catalogue, historique, gestion des délais automatiques et des fermetures.
+
+> **Prérequis :** Sprint 3 core terminé.
+> Sprint 3b peut être développé en parallèle de Sprint 4 si l'équipe est suffisante — la seule dépendance bloquante pour Sprint 4 est que les créneaux (US-024) soient configurables.
+
+### Fonctionnalités
+
+- CRUD créneaux de retrait.
+- **Créneaux récurrents** — génération automatique sur 4 semaines.
+- **Délai de réponse marchand** — annulation automatique si non traité avant 2h du créneau.
+- **Expiration d'une acceptation partielle** — annulation si le client ne re-soumet pas avant 2h du créneau.
+- **Ruptures de stock en masse** — action groupée sur le catalogue.
+- **Historique complet des commandes** — tous statuts, filtres, pagination.
+- **Fermeture exceptionnelle** — bloquer une plage sans supprimer les créneaux récurrents.
+- **Heures d'ouverture** — affichage hebdomadaire sur la vitrine publique.
+
+### User stories
+
+- US-024 — Configurer les créneaux de retrait
+- **US-047** — Créneaux récurrents
+- **US-043** — Délai de réponse marchand
+- **US-049** — Expiration d'une acceptation partielle
+- **US-052** — Ruptures de stock en masse
+- **US-053** — Historique complet marchand
+- **US-056** — Fermeture exceptionnelle de la supérette
+- **US-057** — Heures d'ouverture de la supérette
+
+### Entités / migrations
+
+- `PickupSlotRule` (nouvelle entité — créneaux récurrents).
+- `ExceptionalClosure` (nouvelle entité — fermetures exceptionnelles).
+- `Shop` : ajouter `openingHours` (JSONB).
+
+### Note infrastructure
+
+US-043 et US-049 reposent sur **Symfony Messenger avec workers persistants** (DelayStamp). Valider que l'infrastructure Messenger (transport, worker supervisé) est opérationnelle en début de sprint — si les workers ne tournent pas, les annulations automatiques échouent silencieusement.
+
+### Critère de sortie
+
+Le marchand configure ses créneaux (ponctuels et récurrents), déclare une fermeture exceptionnelle, met à jour son catalogue en masse, consulte l'historique complet de ses commandes. Les délais de réponse et d'expiration sont automatisés. Les heures d'ouverture sont visibles sur la vitrine client.
 
 ---
 
@@ -274,40 +303,31 @@ Permettre à l'opérateur de créer et gérer supérettes et marchands, et maint
 
 - CRUD supérettes (admin) avec génération et téléchargement du QR code.
 - **Photo et logo de la supérette** (admin et marchand).
-- **Fermeture définitive d'une supérette** — archivage, annulation commandes actives, révocation QR code.
 - CRUD comptes marchands (admin) — création, suspension, activation.
 - CRUD Brand et Category (admin).
 - CRUD ProductReference (admin) — création directe, correction, archivage.
 - Validation des propositions de produits des marchands (existant).
 - **QR code téléchargeable par le marchand** depuis son backoffice.
 - **Onboarding guidé** à la première connexion du marchand (thème → catalogue → créneaux → QR).
-- **Export CSV des commandes** par le marchand.
-- **Audit trail admin** — journal des actions critiques de l'administrateur.
 
 ### User stories
 
-- US-034 — Inscription client *(documentée, Sprint Auth)*
-- US-035 — Profil client *(documentée, Sprint Auth)*
 - US-009 — Créer et gérer les supérettes (admin) *(complétée)*
 - US-028 — Gérer les comptes marchands
 - US-029 — Superviser le référentiel produit global
 - US-030 — Valider les propositions de nouveaux produits
-- **US-050** — Photo et logo de la supérette *(NEW)*
-- **US-054** — Onboarding marchand guidé *(NEW)*
-- **US-055** — QR code téléchargeable par le marchand *(NEW)*
-- **US-058** — Fermeture définitive d'une supérette *(NEW)*
-- **US-061** — Export données commandes marchand (CSV) *(NEW)*
-- **US-063** — Audit trail des actions admin *(NEW)*
+- **US-050** — Photo et logo de la supérette
+- **US-054** — Onboarding marchand guidé
+- **US-055** — QR code téléchargeable par le marchand
 
 ### Entités / migrations
 
-- `Shop` : ajouter `logoUrl`, `coverUrl`, `archivedAt`, `archiveReason`.
-- `User` : ajouter `onboardingCompletedAt`, `deletedAt`, `lastLoginAt`.
-- `AdminAuditLog` (nouvelle entité).
+- `Shop` : ajouter `logoUrl`, `coverUrl`.
+- `User` : ajouter `onboardingCompletedAt`.
 
 ### Critère de sortie
 
-L'admin crée une supérette avec son QR code et son logo, active un marchand, peut archiver définitivement une supérette. Le marchand se connecte, complète l'onboarding, télécharge son QR code et exporte ses commandes en CSV. Chaque action admin sensible est tracée dans le journal d'audit.
+L'admin crée une supérette avec son QR code et son logo, active un marchand. Le marchand se connecte, complète l'onboarding et télécharge son QR code pour l'imprimer.
 
 ---
 
@@ -346,27 +366,34 @@ Préparer la mise en production avec observabilité, localisation FR/AR et outil
 
 - **Localisation FR/AR/RTL** — sélecteur de langue, support RTL, persistance préférence.
 - **PWA installable et mode hors ligne** — manifest, service worker, cache catalogue, Kadhia hors ligne.
-- **Accessibilité WCAG 2.1 AA** — navigation clavier, lecteurs d'écran, contraste, cibles tactiles.
+- **Accessibilité WCAG 2.1 AA** — navigation clavier, lecteurs d'écran, contraste, cibles tactiles. *(contrainte transversale : à intégrer dès le début du développement frontend, pas uniquement en Sprint 7)*
 - **Conservation des données / RGPD** — suppression de compte client, purge automatique, politique de rétention.
+- **Fermeture définitive d'une supérette** — archivage, annulation commandes actives, révocation QR code.
+- **Export CSV des commandes** par le marchand.
+- **Audit trail admin** — journal des actions critiques de l'administrateur.
 - Observabilité (logs structurés, métriques, alertes).
 - Analytics MVP (commandes/jour, taux d'acceptation, créneaux utilisés).
 - Outils de support opérateur (recherche commande admin, log d'activité).
-- Audit logs des transitions de statut (lecture côté admin).
 
 ### User stories
 
 - **US-008** — Basculer la langue de l'interface FR/AR *(complétée)*
-- **US-059** — PWA installable et mode hors ligne *(NEW)*
-- **US-060** — Accessibilité WCAG 2.1 AA *(NEW)*
-- **US-062** — Politique de conservation et suppression des données *(NEW)*
+- **US-058** — Fermeture définitive d'une supérette
+- **US-059** — PWA installable et mode hors ligne
+- **US-060** — Accessibilité WCAG 2.1 AA
+- **US-061** — Export données commandes marchand (CSV)
+- **US-062** — Politique de conservation et suppression des données
+- **US-063** — Audit trail des actions admin
 
 ### Entités / migrations
 
-- `User` : ajouter `deletedAt`, `lastLoginAt` (si non fait en Sprint 5).
+- `Shop` : ajouter `archivedAt`, `archiveReason`.
+- `User` : ajouter `deletedAt`, `lastLoginAt`.
+- `AdminAuditLog` (nouvelle entité).
 
 ### Critère de sortie
 
-La plateforme peut être opérée et supervisée en production par une équipe réduite. L'interface bascule entre français et arabe avec support RTL complet. L'application est installable sur mobile, accessible WCAG 2.1 AA et conforme aux exigences minimales de protection des données.
+La plateforme est opérable et supervisée en production par une équipe réduite. L'interface bascule entre français et arabe avec support RTL complet. L'application est installable sur mobile, accessible WCAG 2.1 AA et conforme aux exigences minimales de protection des données. L'admin peut archiver une supérette, le marchand exporter ses commandes, chaque action admin critique est tracée.
 
 ---
 
@@ -387,14 +414,15 @@ La plateforme peut être opérée et supervisée en production par une équipe r
 
 ## Synthèse des user stories par sprint
 
-| Sprint | US | Statut |
-|---|---|---|
-| Sprint 0 | Documentation | ✅ Complet |
-| Sprint Auth | US-034, US-035, US-046 | 🔴 À coder |
-| Sprint 1 | US-013 à US-016, **US-041** | ✅ Partiel (US-041 manquante) |
-| Sprint 2 | US-001 à US-004, US-017 à US-021, US-031 à US-033, **US-042, US-044, US-048** | ✅ Partiel (3 US manquantes) |
-| Sprint 3 | US-005 à US-006, US-022 à US-024, US-036 à US-037, US-040, **US-043, US-045, US-047, US-049, US-051 à US-053, US-056, US-057** | 🔴 À coder |
-| Sprint 4 | US-007, US-025 à US-026, US-038 à US-039, **US-064** | 🔴 À coder |
-| Sprint 5 | US-009, US-028 à US-030, US-034 à US-035, **US-050, US-054, US-055, US-058, US-061, US-063** | 🔴 À coder |
-| Sprint 6 | US-010 à US-012 | ✅ Complet |
-| Sprint 7 | US-008, **US-059, US-060, US-062** | 🟡 À implémenter |
+| Sprint | US | Priorité | Statut |
+|---|---|---|---|
+| Sprint 0 | Documentation | — | ✅ Complet |
+| Sprint Auth | US-034, US-035, US-046 | P0 | 🔴 À coder |
+| Sprint 1 | US-013 à US-016, US-041 | P0 | ✅ Partiel (US-041 manquante) |
+| Sprint 2 | US-001 à US-004, US-017 à US-021, US-031 à US-033, US-042, US-044, US-048 | P0 | ✅ Partiel (3 US manquantes) |
+| Sprint 3 | US-022, US-023, US-005, US-006, US-036, US-037, US-040, US-045, US-051 | P0 | 🔴 À coder |
+| Sprint 3b | US-024, US-043, US-047, US-049, US-052, US-053, US-056, US-057 | P1 | 🔴 À coder |
+| Sprint 4 | US-007, US-025, US-026, US-038, US-039, US-064 | P1 | 🔴 À coder |
+| Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | 🔴 À coder |
+| Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
+| Sprint 7 | US-008, US-058, US-059, US-060, US-061, US-062, US-063 | P2 | 🟡 À implémenter |
