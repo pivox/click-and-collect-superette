@@ -100,6 +100,7 @@ flowchart TD
 | `draft` | Panier en cours côté client. |
 | `submitted` | Commande envoyée au marchand. |
 | `accepted` | Commande acceptée par le marchand. |
+| `partially_accepted` | Commande acceptée partiellement ; la Kadhia repasse en `draft` pour ajustement client. |
 | `rejected` | Commande refusée par le marchand. |
 | `preparing` | Commande en préparation. |
 | `ready` | Commande prête à être récupérée. |
