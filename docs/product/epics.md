@@ -201,3 +201,37 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 - US-024 — Configurer les créneaux de retrait de la supérette
 
 **Critère de sortie** : Le marchand peut créer des créneaux horaires avec une capacité maximale. Les clients ne voient que les créneaux disponibles.
+
+---
+
+## EPIC-013 — Compte client
+
+**Objectif** : Permettre à un nouveau visiteur de créer un compte client, de se connecter et de gérer son profil.
+
+**Valeur produit** : Sans inscription, aucune Kadhia, aucune commande. C'est le prérequis de tout le parcours client.
+
+**Sprint** : Sprint Auth (avant Sprint 2)
+
+**User stories** :
+- US-034 — S'inscrire en tant que client
+- US-035 — Consulter et modifier son profil client
+- US-046 — Réinitialiser son mot de passe oublié
+
+**Critère de sortie** : Un visiteur peut créer un compte, se connecter avec un JWT valide, consulter/modifier ses informations personnelles et retrouver l'accès à son compte après un mot de passe oublié.
+
+---
+
+## EPIC-014 — Notifications MVP
+
+**Objectif** : Informer le client et le marchand des événements importants (commande acceptée, prête, nouvelle commande soumise) sans push mobile dans le MVP.
+
+**Valeur produit** : Le client sait quand venir chercher sa Kadhia. Le marchand sait quand traiter une commande. Sans notification, les deux doivent recharger l'application manuellement.
+
+**Sprint** : Sprint 4 — Retrait sécurisé
+
+**User stories** :
+- US-038 — Recevoir des notifications sur l'évolution de sa commande (client)
+- US-039 — Recevoir des notifications pour les nouvelles commandes (marchand)
+- US-064 — Rappel de retrait avant expiration du créneau
+
+**Critère de sortie** : Une notification est créée à chaque transition de statut clé. Le client et le marchand peuvent lister leurs notifications et les marquer comme lues. Le client reçoit un rappel automatique 1 heure avant son créneau de retrait si sa commande est `ready`.
