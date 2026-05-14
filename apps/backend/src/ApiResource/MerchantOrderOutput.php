@@ -8,11 +8,13 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
+use App\Dto\PartiallyAcceptOrderInput;
 use App\Dto\RejectOrderInput;
 use App\Entity\Order;
 use App\Entity\Shop;
 use App\Processor\MerchantAcceptOrderProcessor;
 use App\Processor\MerchantMarkReadyProcessor;
+use App\Processor\MerchantPartiallyAcceptOrderProcessor;
 use App\Processor\MerchantRejectOrderProcessor;
 use App\Processor\MerchantStartPreparationProcessor;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -46,6 +48,20 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             status: 200,
             read: false,
             processor: MerchantRejectOrderProcessor::class,
+            security: "is_granted('ROLE_MERCHANT')",
+        ),
+        new Post(
+            uriTemplate: '/merchant/stores/{storeId}/orders/{orderId}/partially-accept',
+            uriVariables: [
+                'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
+                'orderId' => new Link(fromClass: Order::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            normalizationContext: ['groups' => ['merchant_order:read']],
+            input: PartiallyAcceptOrderInput::class,
+            status: 200,
+            read: false,
+            processor: MerchantPartiallyAcceptOrderProcessor::class,
             security: "is_granted('ROLE_MERCHANT')",
         ),
         new Post(

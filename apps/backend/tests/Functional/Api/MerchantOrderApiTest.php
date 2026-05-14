@@ -6,6 +6,8 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\Kadhia;
+use App\Entity\KadhiaLine;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
@@ -14,6 +16,7 @@ use App\Entity\PickupSlot;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
+use App\Enum\KadhiaStatus;
 use App\Enum\OrderStatus;
 use App\Enum\ProductReferenceStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -730,6 +733,345 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
             'POST',
             \sprintf('/api/merchant/stores/%s/orders/%s/reject', $shop->getId(), Uuid::v4()->toRfc4122()),
             ['reason' => 'Test'],
+            $customer,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    // ---------------------------------------------------------------------------
+    // POST /api/merchant/stores/{storeId}/orders/{orderId}/partially-accept
+    // ---------------------------------------------------------------------------
+
+    public function testPartiallyAcceptOrderHappyPathUpdatesKadhiaAndKeepsSlotReserved(): void
+    {
+        $merchant = $this->createUser('merchant-partial@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-partial@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000', 'Lait Vitalait 1L');
+        $productB = $this->createMerchantProduct($shop, '1.500', 'Yaourt nature');
+        $productC = $this->createMerchantProduct($shop, '3.000', 'Café moulu');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB, $productC]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+        $slot->book();
+        $this->entityManager->flush();
+        $bookedBefore = $slot->getBookedCount();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            [
+                'rejected_merchant_product_ids' => [$productB->getId()->toRfc4122()],
+                'notes' => 'Rupture de stock Vitalait 1L.',
+            ],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame('partially_accepted', $payload['status']);
+        self::assertSame('Rupture de stock Vitalait 1L.', $payload['rejection_reason']);
+
+        $logs = $this->findStatusLogs($order);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::PartiallyAccepted, $logs[0]->getStatus());
+        self::assertSame('Rupture de stock Vitalait 1L.', $logs[0]->getNote());
+
+        $historyResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s/status-history', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $historyResponse->getStatusCode());
+        $historyPayload = $this->decodeJson($historyResponse);
+        self::assertCount(1, $historyPayload['transitions']);
+        self::assertSame('partially_accepted', $historyPayload['transitions'][0]['status']);
+        self::assertSame('Rupture de stock Vitalait 1L.', $historyPayload['transitions'][0]['note']);
+
+        $this->entityManager->clear();
+
+        $updatedKadhia = $this->entityManager->getRepository(Kadhia::class)->find($kadhia->getId());
+        self::assertNotNull($updatedKadhia);
+        self::assertSame(KadhiaStatus::Draft, $updatedKadhia->getStatus());
+        self::assertEqualsCanonicalizing(
+            [$productA->getId()->toRfc4122(), $productC->getId()->toRfc4122()],
+            array_map(
+                static fn (KadhiaLine $line): string => $line->getMerchantProduct()->getId()->toRfc4122(),
+                $updatedKadhia->getLines()->toArray(),
+            ),
+        );
+
+        $updatedSlot = $this->entityManager->getRepository(PickupSlot::class)->find($slot->getId());
+        self::assertNotNull($updatedSlot);
+        self::assertSame($bookedBefore, $updatedSlot->getBookedCount());
+    }
+
+    public function testPartiallyAcceptOrderWithoutNotesStoresNullReasonAndLogNote(): void
+    {
+        $merchant = $this->createUser('merchant-partial-null-note@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-partial-null-note@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000');
+        $productB = $this->createMerchantProduct($shop, '1.500');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            ['rejected_merchant_product_ids' => [$productB->getId()->toRfc4122()], 'notes' => '   '],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame('partially_accepted', $payload['status']);
+        self::assertNull($payload['rejection_reason']);
+
+        $logs = $this->findStatusLogs($order);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::PartiallyAccepted, $logs[0]->getStatus());
+        self::assertNull($logs[0]->getNote());
+    }
+
+    public function testPartiallyAcceptedKadhiaCanBeResubmittedOnSameOrder(): void
+    {
+        $merchant = $this->createUser('merchant-partial-resubmit@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-partial-resubmit@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000');
+        $productB = $this->createMerchantProduct($shop, '1.500');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+        $slot->book();
+        $this->entityManager->flush();
+
+        $partialResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            ['rejected_merchant_product_ids' => [$productB->getId()->toRfc4122()]],
+            $merchant,
+        );
+
+        self::assertSame(200, $partialResponse->getStatusCode());
+
+        $submitResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(201, $submitResponse->getStatusCode());
+
+        $payload = $this->decodeJson($submitResponse);
+        self::assertSame($order->getId()->toRfc4122(), $payload['id']);
+        self::assertSame('submitted', $payload['status']);
+        self::assertCount(1, $payload['lines']);
+
+        $this->entityManager->clear();
+
+        $orders = $this->entityManager->getRepository(Order::class)->findAll();
+        self::assertCount(1, $orders);
+        self::assertCount(1, $orders[0]->getLines());
+        self::assertSame(
+            $productA->getId()->toRfc4122(),
+            $orders[0]->getLines()->first()->getMerchantProduct()->getId()->toRfc4122(),
+        );
+
+        $updatedSlot = $this->entityManager->getRepository(PickupSlot::class)->find($slot->getId());
+        self::assertNotNull($updatedSlot);
+        self::assertSame(1, $updatedSlot->getBookedCount());
+    }
+
+    public function testPartiallyAcceptOrderRejectsEmptyRejectedLines(): void
+    {
+        $merchant = $this->createUser('merchant-partial-empty@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-partial-empty@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000');
+        $productB = $this->createMerchantProduct($shop, '1.500');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            ['rejected_merchant_product_ids' => []],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('NO_LINES_REJECTED', (string) $response->getContent());
+    }
+
+    public function testPartiallyAcceptOrderRejectsAllLines(): void
+    {
+        $merchant = $this->createUser('merchant-partial-all@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-partial-all@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000');
+        $productB = $this->createMerchantProduct($shop, '1.500');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            ['rejected_merchant_product_ids' => [$productA->getId()->toRfc4122(), $productB->getId()->toRfc4122()]],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('USE_REJECT_ENDPOINT', (string) $response->getContent());
+    }
+
+    public function testPartiallyAcceptOrderRejectsUnknownLine(): void
+    {
+        $merchant = $this->createUser('merchant-partial-unknown@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-partial-unknown@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000');
+        $productB = $this->createMerchantProduct($shop, '1.500');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            ['rejected_merchant_product_ids' => [Uuid::v4()->toRfc4122()]],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('ORDER_LINE_NOT_FOUND', (string) $response->getContent());
+    }
+
+    public function testPartiallyAcceptOrderRejectsLineFromAnotherOrder(): void
+    {
+        $merchant = $this->createUser('merchant-partial-other-order@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-partial-other-order@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000');
+        $productB = $this->createMerchantProduct($shop, '1.500');
+        $productC = $this->createMerchantProduct($shop, '3.000');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB]);
+        $otherKadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productC]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+        $this->createSubmittedOrderFromKadhia($customer, $shop, $otherKadhia, $slot);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            ['rejected_merchant_product_ids' => [$productC->getId()->toRfc4122()]],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('ORDER_LINE_NOT_FOUND', (string) $response->getContent());
+    }
+
+    public function testPartiallyAcceptOrderInvalidTransitionReturns409(): void
+    {
+        $merchant = $this->createUser('merchant-partial-409@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-partial-409@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000');
+        $productB = $this->createMerchantProduct($shop, '1.500');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+        $order->accept();
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            ['rejected_merchant_product_ids' => [$productB->getId()->toRfc4122()]],
+            $merchant,
+        );
+
+        self::assertSame(409, $response->getStatusCode());
+        self::assertStringContainsString('ORDER_NOT_SUBMITTED', (string) $response->getContent());
+    }
+
+    public function testPartiallyAcceptOrderFromAnotherShopReturns404(): void
+    {
+        $merchant = $this->createUser('merchant-partial-404@example.test', ['ROLE_MERCHANT']);
+        $shop1 = $this->createShop($merchant);
+        $shop2 = $this->createShop();
+        $slot = $this->createPickupSlot($shop2);
+        $customer = $this->createUser('customer-partial-404@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop2, '2.000');
+        $productB = $this->createMerchantProduct($shop2, '1.500');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop2, [$productA, $productB]);
+        $orderInShop2 = $this->createSubmittedOrderFromKadhia($customer, $shop2, $kadhia, $slot);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop1->getId(), $orderInShop2->getId()),
+            ['rejected_merchant_product_ids' => [$productB->getId()->toRfc4122()]],
+            $merchant,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testPartiallyAcceptOrderWrongMerchantReturns403(): void
+    {
+        $merchantA = $this->createUser('merchant-a-partial@example.test', ['ROLE_MERCHANT']);
+        $merchantB = $this->createUser('merchant-b-partial@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchantB);
+        $slot = $this->createPickupSlot($shop);
+        $customer = $this->createUser('customer-partial-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000');
+        $productB = $this->createMerchantProduct($shop, '1.500');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            ['rejected_merchant_product_ids' => [$productB->getId()->toRfc4122()]],
+            $merchantA,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    public function testPartiallyAcceptOrderUnauthenticatedReturns401(): void
+    {
+        $shop = $this->createShop();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), Uuid::v4()->toRfc4122()),
+            ['rejected_merchant_product_ids' => [Uuid::v4()->toRfc4122()]],
+        );
+
+        self::assertSame(401, $response->getStatusCode());
+    }
+
+    public function testPartiallyAcceptOrderCustomerRoleReturns403(): void
+    {
+        $customer = $this->createUser('customer-role-partial@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), Uuid::v4()->toRfc4122()),
+            ['rejected_merchant_product_ids' => [Uuid::v4()->toRfc4122()]],
             $customer,
         );
 
@@ -1476,6 +1818,56 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         return $slot;
     }
 
+    /**
+     * @param list<MerchantProduct> $products
+     */
+    private function createSubmittedKadhiaWithLines(User $customer, Shop $shop, array $products): Kadhia
+    {
+        $kadhia = (new Kadhia())
+            ->setCustomer($customer)
+            ->setShop($shop)
+            ->setStatus(KadhiaStatus::Submitted);
+        $this->entityManager->persist($kadhia);
+
+        foreach ($products as $product) {
+            $line = (new KadhiaLine())
+                ->setMerchantProduct($product)
+                ->setQuantity(1)
+                ->setUnitPriceTnd($product->getPriceTnd());
+            $kadhia->addLine($line);
+            $this->entityManager->persist($line);
+        }
+
+        $this->entityManager->flush();
+
+        return $kadhia;
+    }
+
+    private function createSubmittedOrderFromKadhia(User $customer, Shop $shop, Kadhia $kadhia, PickupSlot $slot): Order
+    {
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop)
+            ->setKadhia($kadhia)
+            ->setPickupSlot($slot);
+        $order->submit();
+        $this->entityManager->persist($order);
+
+        foreach ($kadhia->getLines() as $kadhiaLine) {
+            $this->addOrderLineWithoutFlush(
+                $order,
+                $kadhiaLine->getMerchantProduct(),
+                $kadhiaLine->getQuantity(),
+                $kadhiaLine->getUnitPriceTnd(),
+            );
+        }
+
+        $order->recomputeTotal();
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
     private function createMerchantProduct(Shop $shop, string $priceTnd, string $nameFr = 'Produit test'): MerchantProduct
     {
         $id = Uuid::v4()->toRfc4122();
@@ -1506,6 +1898,15 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
 
     private function addOrderLine(Order $order, MerchantProduct $product, int $quantity, string $unitPriceTnd): OrderLine
     {
+        $line = $this->addOrderLineWithoutFlush($order, $product, $quantity, $unitPriceTnd);
+        $order->recomputeTotal();
+        $this->entityManager->flush();
+
+        return $line;
+    }
+
+    private function addOrderLineWithoutFlush(Order $order, MerchantProduct $product, int $quantity, string $unitPriceTnd): OrderLine
+    {
         $line = (new OrderLine())
             ->setMerchantProduct($product)
             ->setQuantity($quantity)
@@ -1513,9 +1914,7 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
             ->setLineTotalTnd(bcmul((string) $quantity, $unitPriceTnd, 3));
 
         $order->addLine($line);
-        $order->recomputeTotal();
         $this->entityManager->persist($line);
-        $this->entityManager->flush();
 
         return $line;
     }
