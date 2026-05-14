@@ -1,0 +1,90 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Processor;
+
+use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\ProcessorInterface;
+use App\Dto\MerchantPickupSlotPatchInput;
+use App\Repository\PickupSlotRepository;
+use App\Repository\ShopRepository;
+use App\Security\MerchantShopAccessChecker;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Uid\Uuid;
+
+/**
+ * @implements ProcessorInterface<MerchantPickupSlotPatchInput, void>
+ */
+final readonly class UpdateMerchantPickupSlotProcessor implements ProcessorInterface
+{
+    public function __construct(
+        private ShopRepository $shopRepository,
+        private PickupSlotRepository $pickupSlotRepository,
+        private MerchantShopAccessChecker $merchantShopAccessChecker,
+        private EntityManagerInterface $entityManager,
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $uriVariables
+     * @param array<string, mixed> $context
+     */
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): void
+    {
+        if (!$data instanceof MerchantPickupSlotPatchInput) {
+            throw new \InvalidArgumentException('MerchantPickupSlotPatchInput expected.');
+        }
+
+        $storeId = (string) ($uriVariables['storeId'] ?? '');
+        $slotId = (string) ($uriVariables['slotId'] ?? '');
+        if (!Uuid::isValid($storeId) || !Uuid::isValid($slotId)) {
+            throw new NotFoundHttpException('PICKUP_SLOT_NOT_FOUND');
+        }
+
+        $shop = $this->shopRepository->find($storeId);
+        if (null === $shop) {
+            throw new NotFoundHttpException('STORE_NOT_FOUND');
+        }
+
+        $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
+
+        $slot = $this->pickupSlotRepository->findOneForShop($shop, $slotId);
+        if (null === $slot) {
+            throw new NotFoundHttpException('PICKUP_SLOT_NOT_FOUND');
+        }
+
+        $startsAt = $data->startsAt ?? $slot->getStartsAt();
+        $endsAt = $data->endsAt ?? $slot->getEndsAt();
+        $isActive = $data->isActive ?? $slot->isActive();
+        if ($startsAt >= $endsAt) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_STARTS_AT_MUST_BE_BEFORE_ENDS_AT');
+        }
+
+        if (null !== $data->capacity && $data->capacity < $slot->getBookedCount()) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_CAPACITY_BELOW_BOOKED_COUNT');
+        }
+
+        if ($isActive && $this->pickupSlotRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt, $slot)) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXISTING_SLOT');
+        }
+
+        if (null !== $data->startsAt) {
+            $slot->setStartsAt($data->startsAt);
+        }
+        if (null !== $data->endsAt) {
+            $slot->setEndsAt($data->endsAt);
+        }
+        if (null !== $data->capacity) {
+            $slot->setCapacity($data->capacity);
+        }
+        if (null !== $data->isActive) {
+            $slot->setActive($data->isActive);
+        }
+
+        $this->entityManager->flush();
+    }
+}
