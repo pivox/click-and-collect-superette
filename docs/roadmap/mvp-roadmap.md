@@ -187,6 +187,8 @@ Permettre au marchand de traiter les commandes et de gérer ses créneaux de ret
 - **Expiration d'une acceptation partielle** — annulation si le client ne resoumets pas avant 2h du créneau.
 - CRUD créneaux de retrait.
 - **Créneaux récurrents** — génération automatique sur 4 semaines.
+- **Fermeture exceptionnelle** — bloquer une supérette sur une plage sans supprimer les créneaux récurrents.
+- **Heures d'ouverture** — affichage hebdomadaire sur la vitrine publique.
 - **Ruptures de stock en masse** — action groupée sur le catalogue.
 - Traçabilité — entité `OrderStatusLog` avec horodatage à chaque transition.
 
@@ -207,16 +209,20 @@ Permettre au marchand de traiter les commandes et de gérer ses créneaux de ret
 - **US-051** — Dashboard journalier marchand *(NEW)*
 - **US-052** — Ruptures de stock en masse *(NEW)*
 - **US-053** — Historique complet marchand *(NEW)*
+- **US-056** — Fermeture exceptionnelle de la supérette *(NEW)*
+- **US-057** — Heures d'ouverture de la supérette *(NEW)*
 
 ### Entités / migrations
 
 - `OrderStatusLog` (nouvelle entité).
 - `PickupSlotRule` (nouvelle entité — créneaux récurrents).
+- `ExceptionalClosure` (nouvelle entité — fermetures exceptionnelles).
 - `Order` : ajouter `order_number` si non fait en Sprint 2.
+- `Shop` : ajouter `openingHours` (JSONB).
 
 ### Critère de sortie
 
-Le marchand reçoit une notification de nouvelle commande, la traite depuis son dashboard, configure ses créneaux récurrents, et le client peut annuler avant acceptation. Chaque transition est tracée.
+Le marchand reçoit une notification de nouvelle commande, la traite depuis son dashboard, configure ses créneaux récurrents et ses heures d'ouverture, déclare une fermeture exceptionnelle si besoin, et le client peut annuler avant acceptation. Chaque transition est tracée.
 
 ---
 
@@ -235,6 +241,7 @@ Finaliser la remise avec un QR code de retrait, une double validation et des not
 - Force complétion marchand si le client ne répond pas dans les 5 minutes.
 - **Notifications client** — transitions clés (acceptée, prête, etc.).
 - **Notifications marchand** — nouvelle commande soumise.
+- **Rappel de retrait** — notification 1 heure avant le créneau si commande `ready`.
 - Suivi statut commande côté client (polling 30s).
 
 ### User stories
@@ -244,6 +251,7 @@ Finaliser la remise avec un QR code de retrait, une double validation et des not
 - US-026 — Suivre le statut de sa commande
 - US-038 — Notifications client *(NEW)*
 - US-039 — Notifications marchand *(NEW)*
+- **US-064** — Rappel de retrait avant expiration du créneau *(NEW)*
 
 ### Entités / migrations
 
@@ -252,7 +260,7 @@ Finaliser la remise avec un QR code de retrait, une double validation et des not
 
 ### Critère de sortie
 
-Une commande `ready` peut être retirée avec un QR code, validée des deux côtés et finalisée. Les notifications sont envoyées à chaque transition clé.
+Une commande `ready` peut être retirée avec un QR code, validée des deux côtés et finalisée. Le client reçoit un rappel 1 heure avant son créneau. Les notifications sont envoyées à chaque transition clé.
 
 ---
 
@@ -266,12 +274,15 @@ Permettre à l'opérateur de créer et gérer supérettes et marchands, et maint
 
 - CRUD supérettes (admin) avec génération et téléchargement du QR code.
 - **Photo et logo de la supérette** (admin et marchand).
+- **Fermeture définitive d'une supérette** — archivage, annulation commandes actives, révocation QR code.
 - CRUD comptes marchands (admin) — création, suspension, activation.
 - CRUD Brand et Category (admin).
 - CRUD ProductReference (admin) — création directe, correction, archivage.
 - Validation des propositions de produits des marchands (existant).
 - **QR code téléchargeable par le marchand** depuis son backoffice.
 - **Onboarding guidé** à la première connexion du marchand (thème → catalogue → créneaux → QR).
+- **Export CSV des commandes** par le marchand.
+- **Audit trail admin** — journal des actions critiques de l'administrateur.
 
 ### User stories
 
@@ -284,15 +295,19 @@ Permettre à l'opérateur de créer et gérer supérettes et marchands, et maint
 - **US-050** — Photo et logo de la supérette *(NEW)*
 - **US-054** — Onboarding marchand guidé *(NEW)*
 - **US-055** — QR code téléchargeable par le marchand *(NEW)*
+- **US-058** — Fermeture définitive d'une supérette *(NEW)*
+- **US-061** — Export données commandes marchand (CSV) *(NEW)*
+- **US-063** — Audit trail des actions admin *(NEW)*
 
 ### Entités / migrations
 
-- `Shop` : ajouter `logoUrl`, `coverUrl`.
-- `User` : ajouter `onboardingCompletedAt`.
+- `Shop` : ajouter `logoUrl`, `coverUrl`, `archivedAt`, `archiveReason`.
+- `User` : ajouter `onboardingCompletedAt`, `deletedAt`, `lastLoginAt`.
+- `AdminAuditLog` (nouvelle entité).
 
 ### Critère de sortie
 
-L'admin crée une supérette avec son QR code et son logo, active un marchand. Le marchand se connecte, complète l'onboarding et télécharge son QR code pour l'imprimer.
+L'admin crée une supérette avec son QR code et son logo, active un marchand, peut archiver définitivement une supérette. Le marchand se connecte, complète l'onboarding, télécharge son QR code et exporte ses commandes en CSV. Chaque action admin sensible est tracée dans le journal d'audit.
 
 ---
 
@@ -330,6 +345,9 @@ Préparer la mise en production avec observabilité, localisation FR/AR et outil
 ### Fonctionnalités
 
 - **Localisation FR/AR/RTL** — sélecteur de langue, support RTL, persistance préférence.
+- **PWA installable et mode hors ligne** — manifest, service worker, cache catalogue, Kadhia hors ligne.
+- **Accessibilité WCAG 2.1 AA** — navigation clavier, lecteurs d'écran, contraste, cibles tactiles.
+- **Conservation des données / RGPD** — suppression de compte client, purge automatique, politique de rétention.
 - Observabilité (logs structurés, métriques, alertes).
 - Analytics MVP (commandes/jour, taux d'acceptation, créneaux utilisés).
 - Outils de support opérateur (recherche commande admin, log d'activité).
@@ -338,10 +356,17 @@ Préparer la mise en production avec observabilité, localisation FR/AR et outil
 ### User stories
 
 - **US-008** — Basculer la langue de l'interface FR/AR *(complétée)*
+- **US-059** — PWA installable et mode hors ligne *(NEW)*
+- **US-060** — Accessibilité WCAG 2.1 AA *(NEW)*
+- **US-062** — Politique de conservation et suppression des données *(NEW)*
+
+### Entités / migrations
+
+- `User` : ajouter `deletedAt`, `lastLoginAt` (si non fait en Sprint 5).
 
 ### Critère de sortie
 
-La plateforme peut être opérée et supervisée en production par une équipe réduite. L'interface bascule entre français et arabe avec support RTL complet.
+La plateforme peut être opérée et supervisée en production par une équipe réduite. L'interface bascule entre français et arabe avec support RTL complet. L'application est installable sur mobile, accessible WCAG 2.1 AA et conforme aux exigences minimales de protection des données.
 
 ---
 
@@ -368,8 +393,8 @@ La plateforme peut être opérée et supervisée en production par une équipe r
 | Sprint Auth | US-034, US-035, US-046 | 🔴 À coder |
 | Sprint 1 | US-013 à US-016, **US-041** | ✅ Partiel (US-041 manquante) |
 | Sprint 2 | US-001 à US-004, US-017 à US-021, US-031 à US-033, **US-042, US-044, US-048** | ✅ Partiel (3 US manquantes) |
-| Sprint 3 | US-005 à US-006, US-022 à US-024, US-036 à US-037, US-040, **US-043, US-045, US-047, US-049, US-051 à US-053** | 🔴 À coder |
-| Sprint 4 | US-007, US-025 à US-026, US-038 à US-039 | 🔴 À coder |
-| Sprint 5 | US-009, US-028 à US-030, US-034 à US-035, **US-050, US-054, US-055** | 🔴 À coder |
+| Sprint 3 | US-005 à US-006, US-022 à US-024, US-036 à US-037, US-040, **US-043, US-045, US-047, US-049, US-051 à US-053, US-056, US-057** | 🔴 À coder |
+| Sprint 4 | US-007, US-025 à US-026, US-038 à US-039, **US-064** | 🔴 À coder |
+| Sprint 5 | US-009, US-028 à US-030, US-034 à US-035, **US-050, US-054, US-055, US-058, US-061, US-063** | 🔴 À coder |
 | Sprint 6 | US-010 à US-012 | ✅ Complet |
-| Sprint 7 | US-008 | 🟡 À implémenter (frontend) |
+| Sprint 7 | US-008, **US-059, US-060, US-062** | 🟡 À implémenter |
