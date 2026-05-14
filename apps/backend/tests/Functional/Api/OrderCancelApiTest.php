@@ -317,6 +317,9 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
     private function moveToReady(Order $order): void
     {
         $this->moveToPreparing($order);
+        foreach ($order->getLines() as $line) {
+            $line->markPrepared(true);
+        }
         $order->markReady();
     }
 

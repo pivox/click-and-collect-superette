@@ -249,7 +249,25 @@ class Order
         if (OrderStatus::Preparing !== $this->status) {
             throw new \LogicException('ORDER_NOT_PREPARING');
         }
+        if (!$this->areAllLinesPrepared()) {
+            throw new \LogicException('ORDER_LINES_NOT_FULLY_PREPARED');
+        }
         $this->status = OrderStatus::Ready;
+    }
+
+    private function areAllLinesPrepared(): bool
+    {
+        if ($this->lines->isEmpty()) {
+            return false;
+        }
+
+        foreach ($this->lines as $line) {
+            if (!$line->isPrepared()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function startPickup(): void

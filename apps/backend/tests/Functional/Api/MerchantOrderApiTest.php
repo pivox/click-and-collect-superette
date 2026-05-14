@@ -836,7 +836,14 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $merchant = $this->createUser('merchant-ready@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
         $customer = $this->createUser('customer-ready@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000', 'Semoule 1kg');
+        $productB = $this->createMerchantProduct($shop, '1.500', 'Tomates conserve');
         $order = $this->createPreparingOrder($customer, $shop);
+        $lineA = $this->addOrderLine($order, $productA, quantity: 1, unitPriceTnd: '2.000');
+        $lineB = $this->addOrderLine($order, $productB, quantity: 2, unitPriceTnd: '1.500');
+        $lineA->markPrepared(true);
+        $lineB->markPrepared(true);
+        $this->entityManager->flush();
 
         $response = $this->requestJson(
             'POST',
@@ -853,14 +860,91 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $logs = $this->findStatusLogs($order);
         self::assertCount(1, $logs);
         self::assertSame(OrderStatus::Ready, $logs[0]->getStatus());
+
+        $historyResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/%s/status-history', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $historyResponse->getStatusCode());
+
+        $historyPayload = $this->decodeJson($historyResponse);
+        self::assertSame('ready', $historyPayload['transitions'][0]['status']);
     }
 
-    public function testMarkReadyInvalidTransitionReturns409(): void
+    public function testMarkReadyRejectsPartiallyPreparedLines(): void
     {
-        $merchant = $this->createUser('merchant-ready-409@example.test', ['ROLE_MERCHANT']);
+        $merchant = $this->createUser('merchant-ready-partial@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
-        $customer = $this->createUser('customer-ready-409@example.test', ['ROLE_CUSTOMER']);
-        $order = $this->createSubmittedOrder($customer, $shop);
+        $customer = $this->createUser('customer-ready-partial@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000', 'Produit prêt');
+        $productB = $this->createMerchantProduct($shop, '3.000', 'Produit non prêt');
+        $order = $this->createPreparingOrder($customer, $shop);
+        $lineA = $this->addOrderLine($order, $productA, quantity: 1, unitPriceTnd: '2.000');
+        $this->addOrderLine($order, $productB, quantity: 1, unitPriceTnd: '3.000');
+        $lineA->markPrepared(true);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/mark-ready', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(409, $response->getStatusCode());
+        self::assertStringContainsString('ORDER_LINES_NOT_FULLY_PREPARED', (string) $response->getContent());
+    }
+
+    public function testMarkReadyRejectsWhenNoLineIsPrepared(): void
+    {
+        $merchant = $this->createUser('merchant-ready-none-prepared@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-ready-none-prepared@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000', 'Produit A');
+        $productB = $this->createMerchantProduct($shop, '3.000', 'Produit B');
+        $order = $this->createPreparingOrder($customer, $shop);
+        $this->addOrderLine($order, $productA, quantity: 1, unitPriceTnd: '2.000');
+        $this->addOrderLine($order, $productB, quantity: 1, unitPriceTnd: '3.000');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/mark-ready', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(409, $response->getStatusCode());
+        self::assertStringContainsString('ORDER_LINES_NOT_FULLY_PREPARED', (string) $response->getContent());
+    }
+
+    public function testMarkReadyRejectsPreparingOrderWithoutLines(): void
+    {
+        $merchant = $this->createUser('merchant-ready-no-lines@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-ready-no-lines@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createPreparingOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/mark-ready', $shop->getId(), $order->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(409, $response->getStatusCode());
+        self::assertStringContainsString('ORDER_LINES_NOT_FULLY_PREPARED', (string) $response->getContent());
+    }
+
+    #[DataProvider('nonPreparingStatusProvider')]
+    public function testMarkReadyRejectsNonPreparingOrders(OrderStatus $status): void
+    {
+        $merchant = $this->createUser('merchant-ready-status-'.$status->value.'@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-ready-status-'.$status->value.'@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createOrderWithStatus($customer, $shop, $status);
 
         $response = $this->requestJson(
             'POST',
@@ -1320,14 +1404,26 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
 
     private function createReadyOrder(User $customer, Shop $shop): Order
     {
+        $product = $this->createMerchantProduct($shop, '1.000');
         $order = (new Order())
             ->setCustomer($customer)
             ->setShop($shop);
         $order->submit();
         $order->accept();
         $order->startPreparing();
+
+        $line = (new OrderLine())
+            ->setMerchantProduct($product)
+            ->setQuantity(1)
+            ->setUnitPriceTnd('1.000')
+            ->setLineTotalTnd('1.000')
+            ->markPrepared(true);
+        $order->addLine($line);
+        $order->recomputeTotal();
         $order->markReady();
+
         $this->entityManager->persist($order);
+        $this->entityManager->persist($line);
         $this->entityManager->flush();
 
         return $order;
@@ -1344,16 +1440,9 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
 
     private function createCompletedOrder(User $customer, Shop $shop): Order
     {
-        $order = (new Order())
-            ->setCustomer($customer)
-            ->setShop($shop);
-        $order->submit();
-        $order->accept();
-        $order->startPreparing();
-        $order->markReady();
+        $order = $this->createReadyOrder($customer, $shop);
         $order->startPickup();
         $order->complete();
-        $this->entityManager->persist($order);
         $this->entityManager->flush();
 
         return $order;
