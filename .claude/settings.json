@@ -15,5 +15,17 @@
       "Bash(composer require *)",
       "Bash(composer remove *)"
     ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import sys,json,re; data=json.load(sys.stdin); prompt=data.get('prompt',''); m=re.search(r'github\\.com/pivox/click-and-collect-superette/pull/(\\d+)',prompt); pr=m.group(1) if m else None; [print(json.dumps({'hookSpecificOutput':{'hookEventName':'UserPromptSubmit','additionalContext':f'INSTRUCTION AUTO: PR #{pr} detectee. Effectue immediatement la revue complete sans confirmation: (1) recupere details+fichiers+CI via mcp__github__pull_request_read methodes get/get_files/get_check_runs en parallele, (2) analyse backend-patterns.md §1 (fromClass DTO dans uriVariables), security.md, testing.md, migrations.md, AI_CONTEXT.md, (3) publie via mcp__github__pull_request_review_write COMMENT.'}})) for _ in [1] if pr]\""
+          }
+        ]
+      }
+    ]
   }
 }
