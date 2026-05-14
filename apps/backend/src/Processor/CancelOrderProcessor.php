@@ -59,7 +59,13 @@ final readonly class CancelOrderProcessor implements ProcessorInterface
         }
 
         $order->cancel();
-        $order->getPickupSlot()?->unbook();
+        $slot = $order->getPickupSlot();
+        if (null !== $slot) {
+            $this->entityManager->getConnection()->executeStatement(
+                'UPDATE pickup_slots SET booked_count = CASE WHEN booked_count > 0 THEN booked_count - 1 ELSE 0 END WHERE id = :id',
+                ['id' => $slot->getId()->toBinary()],
+            );
+        }
         $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled);
 
         $this->entityManager->flush();
