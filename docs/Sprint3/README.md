@@ -83,7 +83,7 @@ POST /api/merchant/stores/{storeId}/orders/{orderId}/partially-accept
 Payload :
 ```json
 {
-  "rejected_line_ids": ["<merchantProductId1>"],
+  "rejected_merchant_product_ids": ["<merchantProductId1>"],
   "notes": "Rupture de stock."
 }
 ```
