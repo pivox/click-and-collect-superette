@@ -595,6 +595,32 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertNull($logs[0]->getNote());
     }
 
+    public function testRejectOrderWithWhitespaceOnlyReasonStoresNullReasonAndLogNote(): void
+    {
+        $merchant = $this->createUser('merchant-reject-blank-reason@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-reject-blank-reason@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createSubmittedOrder($customer, $shop);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/reject', $shop->getId(), $order->getId()),
+            ['reason' => '   '],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame('rejected', $payload['status']);
+        self::assertNull($payload['rejection_reason']);
+
+        $logs = $this->findStatusLogs($order);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Rejected, $logs[0]->getStatus());
+        self::assertNull($logs[0]->getNote());
+    }
+
     public function testRejectOrderLogNoteIsVisibleInMerchantStatusHistory(): void
     {
         $merchant = $this->createUser('merchant-reject-history@example.test', ['ROLE_MERCHANT']);

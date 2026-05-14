@@ -65,14 +65,9 @@ final readonly class MerchantRejectOrderProcessor implements ProcessorInterface
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
 
-        $reason = null;
-        if (null !== $data->reason && '' !== trim($data->reason)) {
-            $reason = trim($data->reason);
-        }
-
         try {
-            $order->reject($reason);
-            $this->orderStatusLogRecorder->record($order, OrderStatus::Rejected, $reason);
+            $order->reject($data->reason);
+            $this->orderStatusLogRecorder->record($order, OrderStatus::Rejected, $data->reason);
         } catch (\LogicException $e) {
             throw new ConflictHttpException($e->getMessage());
         }
