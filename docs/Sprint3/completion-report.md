@@ -28,10 +28,11 @@ GET    /api/merchant/stores/{storeId}/orders
 GET    /api/merchant/stores/{storeId}/orders/{orderId}
 POST   /api/merchant/stores/{storeId}/orders/{orderId}/accept
 POST   /api/merchant/stores/{storeId}/orders/{orderId}/reject
-POST   /api/me/orders/{orderId}/cancel
+POST   /api/merchant/stores/{storeId}/orders/{orderId}/partially-accept
+POST   /api/merchant/stores/{storeId}/orders/{orderId}/start-preparation
 PATCH  /api/merchant/stores/{storeId}/orders/{orderId}/lines/{merchantProductId}/preparation
 POST   /api/merchant/stores/{storeId}/orders/{orderId}/mark-ready
-POST   /api/merchant/stores/{storeId}/orders/{orderId}/partially-accept
+POST   /api/me/orders/{orderId}/cancel
 GET    /api/me/orders/{orderId}/status-history
 GET    /api/merchant/stores/{storeId}/orders/{orderId}/status-history
 GET    /api/merchant/stores/{storeId}/pickup-slots
