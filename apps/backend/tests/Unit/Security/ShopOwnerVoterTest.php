@@ -109,8 +109,7 @@ final class ShopOwnerVoterTest extends TestCase
 
     private function tokenReturningUser(mixed $user): TokenInterface
     {
-        /** @var TokenInterface&MockObject $token */
-        $token = $this->createMock(TokenInterface::class);
+        $token = $this->createStub(TokenInterface::class);
         $token
             ->method('getUser')
             ->willReturn($user);
