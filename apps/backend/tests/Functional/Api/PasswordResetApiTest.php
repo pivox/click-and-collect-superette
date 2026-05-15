@@ -6,14 +6,21 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\PasswordResetToken;
 use App\Entity\User;
+use App\Processor\PasswordResetRequestProcessor;
 use App\Repository\PasswordResetTokenRepository;
 use App\Service\PasswordResetTokenManager;
+use App\Tests\Support\PasswordReset\TestPasswordResetTokenSender;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class PasswordResetApiTest extends FunctionalApiTestCase
 {
-    private const NEUTRAL_MESSAGE = 'Si un compte existe pour cet email, un lien de réinitialisation sera envoyé.';
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->tokenSender()->reset();
+    }
 
     public function testPasswordResetRequestWithExistingCustomerReturnsNeutral202(): void
     {
@@ -24,8 +31,9 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         ]);
 
         self::assertSame(Response::HTTP_ACCEPTED, $response->getStatusCode());
-        self::assertSame(['message' => self::NEUTRAL_MESSAGE], $this->decodeJson($response));
+        self::assertSame(['message' => PasswordResetRequestProcessor::NEUTRAL_MESSAGE], $this->decodeJson($response));
         self::assertCount(1, $this->allTokens());
+        self::assertIsString($this->tokenSender()->tokenFor('client.reset-request@example.test'));
     }
 
     public function testPasswordResetRequestWithUnknownEmailReturnsSameNeutral202(): void
@@ -35,8 +43,17 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         ]);
 
         self::assertSame(Response::HTTP_ACCEPTED, $response->getStatusCode());
-        self::assertSame(['message' => self::NEUTRAL_MESSAGE], $this->decodeJson($response));
+        self::assertSame(['message' => PasswordResetRequestProcessor::NEUTRAL_MESSAGE], $this->decodeJson($response));
         self::assertCount(0, $this->allTokens());
+    }
+
+    public function testPasswordResetRequestWithInvalidEmailReturns422(): void
+    {
+        $response = $this->requestJson('POST', '/api/auth/password-reset/request', [
+            'email' => 'not-an-email',
+        ]);
+
+        self::assertSame(422, $response->getStatusCode());
     }
 
     public function testPasswordResetRequestDoesNotRevealIfEmailExists(): void
@@ -72,6 +89,40 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         $tokens = $this->allTokens();
         self::assertCount(1, $tokens);
         self::assertSame('client.reset-token@example.test', $tokens[0]->getUser()->getEmail());
+        self::assertIsString($this->tokenSender()->tokenFor('client.reset-token@example.test'));
+        self::assertNull($this->tokenSender()->tokenFor('merchant.reset-token@example.test'));
+    }
+
+    public function testDocumentedForgotPasswordAliasRequestsReset(): void
+    {
+        $this->createCustomer('client.reset-alias@example.test');
+
+        $response = $this->requestJson('POST', '/api/auth/forgot-password', [
+            'email' => 'client.reset-alias@example.test',
+        ]);
+
+        self::assertSame(Response::HTTP_ACCEPTED, $response->getStatusCode());
+        self::assertSame(['message' => PasswordResetRequestProcessor::NEUTRAL_MESSAGE], $this->decodeJson($response));
+        self::assertIsString($this->tokenSender()->tokenFor('client.reset-alias@example.test'));
+    }
+
+    public function testDeliveredResetTokenCanConfirmPasswordReset(): void
+    {
+        $this->createCustomer('client.reset-delivered@example.test', 'secret123');
+
+        $this->requestJson('POST', '/api/auth/password-reset/request', [
+            'email' => 'client.reset-delivered@example.test',
+        ]);
+
+        $rawToken = $this->tokenSender()->tokenFor('client.reset-delivered@example.test');
+        self::assertIsString($rawToken);
+
+        $response = $this->requestJson('POST', '/api/auth/password-reset/confirm', [
+            'token' => $rawToken,
+            'new_password' => 'newSecret123',
+        ]);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
     }
 
     public function testStoredTokenIsHashedAndDifferentFromRawToken(): void
@@ -149,6 +200,19 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         self::assertNotNull($storedToken->getConsumedAt());
     }
 
+    public function testDocumentedResetPasswordAliasConfirmsReset(): void
+    {
+        $customer = $this->createCustomer('client.reset-confirm-alias@example.test');
+        $rawToken = $this->createResetToken($customer);
+
+        $response = $this->requestJson('POST', '/api/auth/reset-password', [
+            'token' => $rawToken,
+            'new_password' => 'newSecret123',
+        ]);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+    }
+
     public function testCustomerCanLoginWithNewPasswordAfterReset(): void
     {
         $customer = $this->createCustomer('client.reset-login@example.test', 'secret123');
@@ -183,11 +247,25 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('AUTH_RESET_TOKEN_INVALID', (string) $response->getContent());
     }
 
+    public function testEmptyTokenReturns422(): void
+    {
+        $response = $this->requestJson('POST', '/api/auth/password-reset/confirm', [
+            'token' => '',
+            'new_password' => 'newSecret123',
+        ]);
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     public function testExpiredTokenReturns400(): void
     {
         $customer = $this->createCustomer('client.reset-expired@example.test');
-        $rawToken = $this->createResetToken($customer);
-        $this->singleToken()->setExpiresAt(new \DateTimeImmutable('-1 minute'));
+        $rawToken = 'expired-reset-token';
+        $this->entityManager->persist(new PasswordResetToken(
+            $customer,
+            PasswordResetTokenManager::hashToken($rawToken),
+            new \DateTimeImmutable('-1 minute'),
+        ));
         $this->entityManager->flush();
 
         $response = $this->requestJson('POST', '/api/auth/password-reset/confirm', [
@@ -250,6 +328,14 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $rawToken;
+    }
+
+    private function tokenSender(): TestPasswordResetTokenSender
+    {
+        $sender = self::getContainer()->get(TestPasswordResetTokenSender::class);
+        self::assertInstanceOf(TestPasswordResetTokenSender::class, $sender);
+
+        return $sender;
     }
 
     private function singleToken(): PasswordResetToken

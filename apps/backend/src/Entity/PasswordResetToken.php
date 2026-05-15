@@ -63,13 +63,6 @@ class PasswordResetToken
         return $this->expiresAt;
     }
 
-    public function setExpiresAt(\DateTimeImmutable $expiresAt): static
-    {
-        $this->expiresAt = $expiresAt;
-
-        return $this;
-    }
-
     public function getConsumedAt(): ?\DateTimeImmutable
     {
         return $this->consumedAt;

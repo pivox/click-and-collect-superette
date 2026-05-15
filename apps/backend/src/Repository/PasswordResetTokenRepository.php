@@ -26,11 +26,7 @@ final class PasswordResetTokenRepository extends ServiceEntityRepository
 
     public function consumeActiveTokensForUser(User $user, \DateTimeImmutable $now): void
     {
-        foreach ($this->findBy(['consumedAt' => null]) as $token) {
-            if ($token->getUser()->getId()->toRfc4122() !== $user->getId()->toRfc4122()) {
-                continue;
-            }
-
+        foreach ($this->findBy(['user' => $user, 'consumedAt' => null]) as $token) {
             $token->consume($now);
         }
     }

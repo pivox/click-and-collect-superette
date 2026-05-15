@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\PasswordResetConfirmInput;
 use App\Service\PasswordResetTokenManager;
+use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * @implements ProcessorInterface<PasswordResetConfirmInput, null>
@@ -16,6 +17,7 @@ final readonly class PasswordResetConfirmProcessor implements ProcessorInterface
 {
     public function __construct(
         private PasswordResetTokenManager $tokenManager,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -30,6 +32,7 @@ final readonly class PasswordResetConfirmProcessor implements ProcessorInterface
         }
 
         $this->tokenManager->confirm($data->token, $data->newPassword);
+        $this->entityManager->flush();
 
         return null;
     }

@@ -10,6 +10,7 @@ use App\ApiResource\PasswordResetOutput;
 use App\Dto\PasswordResetRequestInput;
 use App\Repository\UserRepository;
 use App\Service\PasswordResetTokenManager;
+use App\Service\PasswordResetTokenSenderInterface;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -17,11 +18,12 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final readonly class PasswordResetRequestProcessor implements ProcessorInterface
 {
-    private const NEUTRAL_MESSAGE = 'Si un compte existe pour cet email, un lien de réinitialisation sera envoyé.';
+    public const NEUTRAL_MESSAGE = 'Si un compte existe pour cet email, un lien de réinitialisation sera envoyé.';
 
     public function __construct(
         private UserRepository $userRepository,
         private PasswordResetTokenManager $tokenManager,
+        private PasswordResetTokenSenderInterface $tokenSender,
         private EntityManagerInterface $entityManager,
     ) {
     }
@@ -40,8 +42,9 @@ final readonly class PasswordResetRequestProcessor implements ProcessorInterface
         $user = $this->userRepository->findOneBy(['email' => $email]);
 
         if (null !== $user && \in_array('ROLE_CUSTOMER', $user->getRoles(), true)) {
-            $this->tokenManager->createForUser($user);
+            $rawToken = $this->tokenManager->createForUser($user);
             $this->entityManager->flush();
+            $this->tokenSender->send($user, $rawToken);
         }
 
         return new PasswordResetOutput(self::NEUTRAL_MESSAGE);

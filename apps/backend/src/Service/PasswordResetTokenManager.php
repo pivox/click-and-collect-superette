@@ -56,8 +56,6 @@ final readonly class PasswordResetTokenManager
         $user = $token->getUser();
         $user->setPassword($this->passwordHasher->hashPassword($user, $newPassword));
         $token->consume();
-
-        $this->entityManager->flush();
     }
 
     public static function hashToken(string $rawToken): string
