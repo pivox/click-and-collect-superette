@@ -172,6 +172,20 @@ final class MerchantPickupSessionScanApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('PICKUP_SESSION_NOT_FOUND', (string) $response->getContent());
     }
 
+    public function testScanInvalidTokenFormatReturns422(): void
+    {
+        $merchant = $this->createUser('merchant-scan-invalid-token@example.test', ['ROLE_MERCHANT']);
+
+        $response = $this->requestJson(
+            'POST',
+            '/api/merchant/pickup-sessions/scan',
+            ['token' => 'not-a-uuid'],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     public function testScanExpiredSessionReturns409(): void
     {
         $merchant = $this->createUser('merchant-scan-expired@example.test', ['ROLE_MERCHANT']);
@@ -345,11 +359,5 @@ final class MerchantPickupSessionScanApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $merchantProduct;
-    }
-
-    private function setPrivateProperty(object $object, string $property, mixed $value): void
-    {
-        $reflectionProperty = new \ReflectionProperty($object, $property);
-        $reflectionProperty->setValue($object, $value);
     }
 }

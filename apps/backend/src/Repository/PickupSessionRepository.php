@@ -27,6 +27,17 @@ class PickupSessionRepository extends ServiceEntityRepository
 
     public function findOneByToken(Uuid $token): ?PickupSession
     {
-        return $this->findOneBy(['token' => $token]);
+        return $this->createQueryBuilder('pickupSession')
+            ->select('pickupSession', 'orders', 'shop', 'customer', 'line', 'merchantProduct', 'productReference')
+            ->innerJoin('pickupSession.order', 'orders')
+            ->innerJoin('orders.shop', 'shop')
+            ->innerJoin('orders.customer', 'customer')
+            ->leftJoin('orders.lines', 'line')
+            ->leftJoin('line.merchantProduct', 'merchantProduct')
+            ->leftJoin('merchantProduct.productReference', 'productReference')
+            ->andWhere('pickupSession.token = :token')
+            ->setParameter('token', $token, 'uuid')
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }

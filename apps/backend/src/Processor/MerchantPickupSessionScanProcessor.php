@@ -42,10 +42,6 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
             throw new \InvalidArgumentException('MerchantPickupSessionScanInput expected.');
         }
 
-        if (!Uuid::isValid($data->token)) {
-            throw new NotFoundHttpException('PICKUP_SESSION_NOT_FOUND');
-        }
-
         $pickupSession = $this->pickupSessionRepository->findOneByToken(Uuid::fromString($data->token));
         if (null === $pickupSession) {
             throw new NotFoundHttpException('PICKUP_SESSION_NOT_FOUND');
@@ -54,6 +50,7 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
         $order = $pickupSession->getOrder();
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($order->getShop());
 
+        // A session that was consumed cannot retroactively become an expired scan.
         if ($pickupSession->isUsed() || OrderStatus::Completed === $order->getStatus()) {
             throw new ConflictHttpException('PICKUP_SESSION_ALREADY_USED');
         }
@@ -87,6 +84,10 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
     {
         $order = $pickupSession->getOrder();
         $customer = $order->getCustomer();
+        $scannedAt = $pickupSession->getScannedAt();
+        if (null === $scannedAt) {
+            throw new \LogicException('PICKUP_SESSION_NOT_SCANNED');
+        }
 
         return new MerchantPickupSessionScanOutput(
             id: $pickupSession->getId()->toRfc4122(),
@@ -94,7 +95,7 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
             storeId: $order->getShop()->getId()->toRfc4122(),
             orderNumber: null,
             status: $order->getStatus()->value,
-            scannedAt: $pickupSession->getScannedAt()?->format(\DateTimeInterface::ATOM) ?? '',
+            scannedAt: $scannedAt->format(\DateTimeInterface::ATOM),
             customer: [
                 'first_name' => $customer->getFirstName(),
                 'last_name' => $customer->getLastName(),
