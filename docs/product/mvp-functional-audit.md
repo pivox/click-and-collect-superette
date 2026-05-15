@@ -37,9 +37,9 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 | Bloc fonctionnel | Documenté | Backend | Tests | Contrat API | Statut | Décision / action |
 | --- | --- | --- | --- | --- | --- | --- |
 | Login JWT | Oui | Oui | Oui | Oui | OK | Garder `/api/auth/login`. |
-| Inscription client | **Oui (US-034)** | Non | Non | **Oui** | MANQUANT | `POST /api/auth/register/customer` — US-034 documentée. |
-| Profil client | **Oui (US-035)** | Non | Non | **Oui** | MANQUANT | `GET/PATCH /api/me/profile` — US-035 documentée. |
-| Mot de passe oublié | **Oui (US-046)** | Non | **Oui** | **Oui** | MANQUANT | `POST /api/auth/forgot-password` + `POST /api/auth/reset-password` — US-046 documentée. Sprint Auth / P0. Entité `PasswordResetToken` à créer. |
+| Inscription client | **Oui (US-034)** | Oui | Oui | **Oui** | OK | `POST /api/auth/register/customer` livré; rôle forcé `ROLE_CUSTOMER`, email normalisé, password hashé. |
+| Profil client | **Oui (US-035)** | Oui | Oui | **Oui** | OK | `GET/PATCH /api/me/profile` livré; accès `ROLE_CUSTOMER`, champs sensibles non exposés. |
+| Mot de passe oublié | **Oui (US-046)** | Oui | **Oui** | **Oui** | OK | `POST /api/auth/password-reset/request` + `POST /api/auth/password-reset/confirm` livrés; alias `forgot-password` / `reset-password` exposés; entité `PasswordResetToken` créée. |
 | Inscription marchand publique | Non | Non | Non | Non | A_DECIDER | Créé par admin uniquement dans le MVP (US-028). |
 | Création marchand par admin | **Oui (US-028)** | Non | Non | Oui | MANQUANT | US-028 complète. Endpoints admin marchands à coder (Sprint 5). |
 | Création / gestion supérette admin | **Oui (US-009)** | Non | Non | **Oui** | MANQUANT | US-009 complétée. Endpoints admin stores à coder (Sprint 5). |
@@ -76,21 +76,23 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 
 ## Écarts critiques détectés
 
-### 1. Authentification incomplète
+### 1. Authentification client livrée
 
-Le login existe, mais l'inscription et le profil utilisateur ne sont pas cadrés ni codés.
+Sprint Auth a livré le socle client : inscription, login JWT, profil connecté et reset password.
 
-**Documenté dans :** US-034, US-035 (Sprint Auth).
+**Documenté dans :** US-034, US-035, US-046 (Sprint Auth).
 
-À implémenter :
+Endpoints livrés :
 
 ```http
 POST /api/auth/register/customer
 GET  /api/me/profile
 PATCH /api/me/profile
+POST /api/auth/password-reset/request
+POST /api/auth/password-reset/confirm
 ```
 
-Pour les marchands, le MVP privilégie un onboarding contrôlé par l'admin (US-028).
+Pour les marchands, le MVP privilégie toujours un onboarding contrôlé par l'admin (US-028). L'inscription marchand publique reste hors périmètre.
 
 ### 2. Ancien contrat API Kadhia remplacé
 

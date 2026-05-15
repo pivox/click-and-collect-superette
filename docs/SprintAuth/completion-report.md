@@ -95,10 +95,10 @@ Commandes exécutées pour AUTH-004 :
 | Commande | Résultat |
 | --- | --- |
 | `php bin/console debug:router --env=test \| rg "auth\|profile\|password-reset\|login"` | OK, routes Auth listées |
-| `php bin/phpunit tests/Functional/Api/CustomerRegistrationApiTest.php` | OK, 15 tests, 61 assertions |
-| `php bin/phpunit tests/Functional/Api/CustomerProfileApiTest.php` | OK, 17 tests, 84 assertions |
-| `php bin/phpunit tests/Functional/Api/PasswordResetApiTest.php` | OK, 18 tests, 79 assertions |
-| `php bin/phpunit` | OK, 497 tests, 1918 assertions, 20 notices PHPUnit |
+| `vendor/bin/phpunit tests/Functional/Api/CustomerRegistrationApiTest.php` | OK, 15 tests, 61 assertions |
+| `vendor/bin/phpunit tests/Functional/Api/CustomerProfileApiTest.php` | OK, 17 tests, 84 assertions |
+| `vendor/bin/phpunit tests/Functional/Api/PasswordResetApiTest.php` | OK, 18 tests, 79 assertions |
+| `vendor/bin/phpunit` | OK, 497 tests, 1918 assertions, 20 notices PHPUnit |
 | `vendor/bin/phpstan analyse --memory-limit=512M` | OK, no errors |
 | `vendor/bin/php-cs-fixer fix --dry-run --diff` | OK, no diff ; avertissement local PHP 8.4 vs contrainte projet PHP 8.2 |
 | `git diff --check` | OK |
@@ -108,10 +108,10 @@ Les logs `[error]` visibles pendant PHPUnit correspondent aux cas négatifs atte
 ```bash
 cd apps/backend
 php bin/console debug:router --env=test | rg "auth|profile|password-reset|login"
-php bin/phpunit tests/Functional/Api/CustomerRegistrationApiTest.php
-php bin/phpunit tests/Functional/Api/CustomerProfileApiTest.php
-php bin/phpunit tests/Functional/Api/PasswordResetApiTest.php
-php bin/phpunit
+vendor/bin/phpunit tests/Functional/Api/CustomerRegistrationApiTest.php
+vendor/bin/phpunit tests/Functional/Api/CustomerProfileApiTest.php
+vendor/bin/phpunit tests/Functional/Api/PasswordResetApiTest.php
+vendor/bin/phpunit
 vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/php-cs-fixer fix --dry-run --diff
 git diff --check

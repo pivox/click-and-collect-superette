@@ -85,6 +85,7 @@ Exclus du MVP :
 - `PickupSlot`
 - `Order`
 - `OrderLine`
+- `PasswordResetToken`
 - `PickupSession`
 - `PlatformTheme`
 - `ShopTheme`
