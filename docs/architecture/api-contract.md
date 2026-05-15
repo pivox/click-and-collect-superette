@@ -569,7 +569,7 @@ Règles :
 - statut `preparing` uniquement ;
 - toutes les lignes doivent être `prepared=true` ;
 - écrit un `OrderStatusLog` en statut `ready` ;
-- la génération `PickupSession` reste à implémenter en Sprint 4.
+- crée automatiquement une `PickupSession` (token UUID opaque, TTL 24 h) si elle n'existe pas encore — livré Sprint 4.
 
 ### Consulter l'historique de statuts d'une commande marchand
 
@@ -671,8 +671,25 @@ GET   /api/admin/stores
 POST  /api/admin/stores
 PATCH /api/admin/stores/{storeId}
 PATCH /api/admin/stores/{storeId}/owner
-POST  /api/admin/stores/{storeId}/regenerate-qr
 ```
+
+### Régénérer le QR code d'une supérette
+
+Statut : **à implémenter**.
+
+```http
+POST /api/admin/stores/{storeId}/regenerate-qr
+```
+
+Règles :
+
+- admin connecté uniquement (`ROLE_ADMIN`) ;
+- la supérette doit exister ;
+- génère un nouveau `qrCodeToken` opaque (UUID v4) pour la supérette ;
+- l'ancien token est immédiatement invalidé — tout lien ou QR physique imprimé avec l'ancien token ne fonctionnera plus ;
+- retourne le nouveau token afin que l'admin puisse régénérer le QR physique.
+
+Cas d'usage : QR code compromis, QR physique endommagé ou changement de supérette propriétaire.
 
 ### Valider une proposition produit
 
