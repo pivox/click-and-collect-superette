@@ -42,7 +42,7 @@ Le développement peut commencer lorsque les entités principales, les parcours 
 
 ---
 
-## Sprint Auth — Authentification et compte client 🔴 P0
+## Sprint Auth — Authentification et compte client ✅ Backend terminé
 
 ### Objectif
 
@@ -53,7 +53,7 @@ Permettre à un client de créer un compte, se connecter et récupérer son mot 
 - Inscription client (`POST /api/auth/register/customer`).
 - Connexion JWT (existant).
 - Profil client : consultation et modification (`GET/PATCH /api/me/profile`).
-- Réinitialisation de mot de passe par email.
+- Réinitialisation de mot de passe par token opaque (`POST /api/auth/password-reset/request`, `POST /api/auth/password-reset/confirm`) avec alias documentés `forgot-password` / `reset-password`.
 
 ### User stories
 
@@ -63,12 +63,12 @@ Permettre à un client de créer un compte, se connecter et récupérer son mot 
 
 ### Entités / migrations
 
-- Aucun champ manquant sur `User` pour l'inscription.
+- `User.firstName` et `User.lastName` ajoutés pour le profil client.
 - Nouvelle entité `PasswordResetToken`.
 
 ### Critère de sortie
 
-Un visiteur peut créer un compte, se connecter et retrouver l'accès à son compte après un mot de passe oublié.
+Un visiteur peut créer un compte client, se connecter, consulter et modifier son profil, puis retrouver l'accès à son compte après un mot de passe oublié. Les tokens de reset sont hashés, expirables et à usage unique.
 
 ---
 
@@ -418,7 +418,7 @@ La plateforme est opérable et supervisée en production par une équipe réduit
 | Sprint | US | Priorité | Statut |
 |---|---|---|---|
 | Sprint 0 | Documentation | — | ✅ Complet |
-| Sprint Auth | US-034, US-035, US-046 | P0 | 🔴 À coder |
+| Sprint Auth | US-034, US-035, US-046 | P0 | ✅ Backend terminé |
 | Sprint 1 | US-013 à US-016, US-041 | P0 | ✅ Partiel (US-041 manquante) |
 | Sprint 2 | US-001 à US-004, US-017 à US-021, US-031 à US-033, US-042, US-044, US-048 | P0 | ✅ Partiel (3 US manquantes) |
 | Sprint 3 | US-005, US-006, US-022, US-023, US-024, US-036, US-037, US-040, US-045, US-051 | P0 | ✅ Backend terminé |
