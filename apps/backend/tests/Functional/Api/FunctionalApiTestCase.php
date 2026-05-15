@@ -203,7 +203,10 @@ abstract class FunctionalApiTestCase extends KernelTestCase
         }
     }
 
-    private function setPrivateProperty(object $object, string $property, mixed $value): void
+    /**
+     * Use only for functional fixtures that must simulate immutable timestamps or internal state.
+     */
+    protected function setPrivateProperty(object $object, string $property, mixed $value): void
     {
         $reflectionProperty = new \ReflectionProperty($object, $property);
         $reflectionProperty->setValue($object, $value);
