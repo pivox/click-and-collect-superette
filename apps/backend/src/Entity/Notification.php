@@ -38,7 +38,7 @@ class Notification
     #[ORM\Column(length: 500)]
     private string $bodyAr;
 
-    #[ORM\Column]
+    #[ORM\Column(name: 'is_read')]
     private bool $read = false;
 
     #[ORM\Column]
