@@ -59,20 +59,29 @@ jobs:
       - name: PHPStan
         run: vendor/bin/phpstan analyse --no-progress
 
+      - name: Generate JWT test keys
+        run: |
+          mkdir -p config/jwt
+          openssl genrsa -out config/jwt/private.pem 4096
+          openssl rsa -pubout -in config/jwt/private.pem -out config/jwt/public.pem
+
       - name: Lint container
         run: php bin/console lint:container
         env:
           APP_ENV: test
           DATABASE_URL: postgresql://app:app@localhost:5432/clickcollect?serverVersion=16
+          JWT_PASSPHRASE: changeme_jwt_passphrase
 
       - name: Migrations
         run: php bin/console doctrine:migrations:migrate --no-interaction
         env:
           APP_ENV: test
           DATABASE_URL: postgresql://app:app@localhost:5432/clickcollect?serverVersion=16
+          JWT_PASSPHRASE: changeme_jwt_passphrase
 
       - name: PHPUnit
         run: php bin/phpunit
         env:
           APP_ENV: test
           DATABASE_URL: postgresql://app:app@localhost:5432/clickcollect?serverVersion=16
+          JWT_PASSPHRASE: changeme_jwt_passphrase
