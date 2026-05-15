@@ -31,6 +31,8 @@ security:
     access_control:
         - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/register/customer$, roles: PUBLIC_ACCESS, methods: [POST] }
+        - { path: ^/api/auth/password-reset/request$, roles: PUBLIC_ACCESS, methods: [POST] }
+        - { path: ^/api/auth/password-reset/confirm$, roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/api/docs(?:\..+)?$, roles: PUBLIC_ACCESS }
         - { path: ^/api/stores/by-qr, roles: PUBLIC_ACCESS }
         - { path: ^/api/stores/search$, roles: PUBLIC_ACCESS, methods: [GET] }
