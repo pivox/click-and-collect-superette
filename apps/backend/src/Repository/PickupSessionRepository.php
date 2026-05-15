@@ -40,4 +40,21 @@ class PickupSessionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    public function findOneByIdWithOrder(string $id): ?PickupSession
+    {
+        if (!Uuid::isValid($id)) {
+            return null;
+        }
+
+        return $this->createQueryBuilder('pickupSession')
+            ->select('pickupSession', 'orderEntity', 'shop', 'customer')
+            ->innerJoin('pickupSession.order', 'orderEntity')
+            ->innerJoin('orderEntity.shop', 'shop')
+            ->innerJoin('orderEntity.customer', 'customer')
+            ->andWhere('pickupSession.id = :id')
+            ->setParameter('id', Uuid::fromString($id), 'uuid')
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }
