@@ -38,7 +38,7 @@ final class StoreThemeCacheSubscriberTest extends TestCase
     private function responseEventForThemeRoute(Response $response): ResponseEvent
     {
         return new ResponseEvent(
-            $this->createMock(HttpKernelInterface::class),
+            $this->createStub(HttpKernelInterface::class),
             Request::create('/api/stores/00000000-0000-0000-0000-000000000001/theme', 'GET'),
             HttpKernelInterface::MAIN_REQUEST,
             $response,

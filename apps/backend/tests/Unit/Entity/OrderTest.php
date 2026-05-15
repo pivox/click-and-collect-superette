@@ -25,7 +25,7 @@ final class OrderTest extends TestCase
 
     private function makeProductForShop(Shop $shop): MerchantProduct
     {
-        $product = $this->createMock(MerchantProduct::class);
+        $product = $this->createStub(MerchantProduct::class);
         $product->method('getShop')->willReturn($shop);
 
         return $product;
@@ -33,7 +33,7 @@ final class OrderTest extends TestCase
 
     private function makeSlotForShop(Shop $shop): PickupSlot
     {
-        $slot = $this->createMock(PickupSlot::class);
+        $slot = $this->createStub(PickupSlot::class);
         $slot->method('getShop')->willReturn($shop);
 
         return $slot;
