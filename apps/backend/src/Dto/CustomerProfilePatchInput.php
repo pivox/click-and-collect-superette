@@ -19,6 +19,10 @@ final readonly class CustomerProfilePatchInput
     #[SerializedName('last_name')]
     public ?string $lastName;
 
+    #[Assert\NotBlank(allowNull: true)]
+    #[Assert\Length(max: 200)]
+    public ?string $name;
+
     #[Assert\Length(max: 20)]
     #[Assert\Regex('/^\+216[0-9]{8}$/')]
     public ?string $phone;
@@ -26,21 +30,17 @@ final readonly class CustomerProfilePatchInput
     public function __construct(
         ?string $firstName = null,
         ?string $lastName = null,
+        ?string $name = null,
         ?string $phone = null,
     ) {
-        $this->firstName = $this->blankToNull($firstName);
-        $this->lastName = $this->blankToNull($lastName);
-        $this->phone = $this->blankToNull($phone);
+        $this->firstName = $this->trimNullable($firstName);
+        $this->lastName = $this->trimNullable($lastName);
+        $this->name = $this->trimNullable($name);
+        $this->phone = $this->trimNullable($phone);
     }
 
-    private function blankToNull(?string $value): ?string
+    private function trimNullable(?string $value): ?string
     {
-        if (null === $value) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        return '' !== $value ? $value : null;
+        return null !== $value ? trim($value) : null;
     }
 }

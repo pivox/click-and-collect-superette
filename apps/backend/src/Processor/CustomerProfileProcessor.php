@@ -9,9 +9,9 @@ use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\CustomerProfileOutput;
 use App\Dto\CustomerProfilePatchInput;
 use App\Entity\User;
-use App\Provider\CustomerProfileProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -22,7 +22,7 @@ final readonly class CustomerProfileProcessor implements ProcessorInterface
     public function __construct(
         private Security $security,
         private EntityManagerInterface $entityManager,
-        private CustomerProfileProvider $customerProfileProvider,
+        private RequestStack $requestStack,
     ) {
     }
 
@@ -41,24 +41,51 @@ final readonly class CustomerProfileProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('CUSTOMER_ACCESS_REQUIRED');
         }
 
-        if (null !== $data->firstName) {
+        $payload = $this->currentPayload();
+        $nameProvided = \array_key_exists('name', $payload);
+
+        if (\array_key_exists('first_name', $payload) && null !== $data->firstName) {
             $user->setFirstName($data->firstName);
         }
 
-        if (null !== $data->lastName) {
+        if (\array_key_exists('last_name', $payload) && null !== $data->lastName) {
             $user->setLastName($data->lastName);
         }
 
-        if (null !== $data->phone) {
+        if ($nameProvided && null !== $data->name) {
+            $user->setName($data->name);
+        }
+
+        if (\array_key_exists('phone', $payload)) {
             $user->setPhone($data->phone);
         }
 
-        if (null !== $user->getFirstName() && null !== $user->getLastName()) {
+        if (!$nameProvided && null !== $user->getFirstName() && null !== $user->getLastName()) {
             $user->setName($user->getFirstName().' '.$user->getLastName());
         }
 
         $this->entityManager->flush();
 
-        return $this->customerProfileProvider->toOutput($user);
+        return CustomerProfileOutput::fromUser($user);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function currentPayload(): array
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if (null === $request) {
+            return [];
+        }
+
+        $content = $request->getContent();
+        if ('' === $content) {
+            return [];
+        }
+
+        $payload = json_decode($content, true);
+
+        return \is_array($payload) ? $payload : [];
     }
 }

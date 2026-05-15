@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Uid\Uuid;
@@ -23,9 +24,10 @@ final class CustomerProfileApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertSame($customer->getId()->toRfc4122(), $payload['id']);
         self::assertSame('client.profile@example.test', $payload['email']);
-        self::assertSame(['ROLE_CUSTOMER'], $payload['roles']);
+        self::assertSame(['ROLE_CUSTOMER', 'ROLE_USER'], $payload['roles']);
         self::assertSame('Haythem', $payload['first_name']);
         self::assertSame('Mabrouk', $payload['last_name']);
+        self::assertSame('Haythem Mabrouk', $payload['name']);
         self::assertSame('+21600000000', $payload['phone']);
     }
 
@@ -67,9 +69,10 @@ final class CustomerProfileApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertSame($customer->getId()->toRfc4122(), $payload['id']);
         self::assertSame('client.profile-patch@example.test', $payload['email']);
-        self::assertSame(['ROLE_CUSTOMER'], $payload['roles']);
+        self::assertSame(['ROLE_CUSTOMER', 'ROLE_USER'], $payload['roles']);
         self::assertSame('Amina', $payload['first_name']);
         self::assertSame('Trabelsi', $payload['last_name']);
+        self::assertSame('Amina Trabelsi', $payload['name']);
         self::assertSame('+21611111111', $payload['phone']);
 
         $this->entityManager->clear();
@@ -92,6 +95,88 @@ final class CustomerProfileApiTest extends FunctionalApiTestCase
         self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
+    public function testCustomerCanPatchDocumentedName(): void
+    {
+        $customer = $this->createCustomer('client.profile-name@example.test');
+
+        $response = $this->requestJson('PATCH', '/api/me/profile', [
+            'name' => 'Client Documente',
+        ], $customer);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame('Client Documente', $payload['name']);
+        self::assertSame('Haythem', $payload['first_name']);
+        self::assertSame('Mabrouk', $payload['last_name']);
+
+        $this->entityManager->clear();
+        $stored = $this->findUserByEmail('client.profile-name@example.test');
+        self::assertInstanceOf(User::class, $stored);
+        self::assertSame('Client Documente', $stored->getName());
+        self::assertSame('Haythem', $stored->getFirstName());
+        self::assertSame('Mabrouk', $stored->getLastName());
+    }
+
+    public function testPatchOnlyPhoneDoesNotAffectOtherFields(): void
+    {
+        $customer = $this->createCustomer('client.profile-phone-only@example.test');
+
+        $response = $this->requestJson('PATCH', '/api/me/profile', [
+            'phone' => '+21699999999',
+        ], $customer);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+
+        $this->entityManager->clear();
+        $stored = $this->findUserByEmail('client.profile-phone-only@example.test');
+        self::assertInstanceOf(User::class, $stored);
+        self::assertSame('Haythem', $stored->getFirstName());
+        self::assertSame('Mabrouk', $stored->getLastName());
+        self::assertSame('Haythem Mabrouk', $stored->getName());
+        self::assertSame('+21699999999', $stored->getPhone());
+    }
+
+    public function testPhoneCanBeClearedExplicitly(): void
+    {
+        $customer = $this->createCustomer('client.profile-clear-phone@example.test');
+
+        $response = $this->requestJson('PATCH', '/api/me/profile', [
+            'phone' => null,
+        ], $customer);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertNull($payload['phone']);
+
+        $this->entityManager->clear();
+        $stored = $this->findUserByEmail('client.profile-clear-phone@example.test');
+        self::assertInstanceOf(User::class, $stored);
+        self::assertNull($stored->getPhone());
+    }
+
+    #[DataProvider('blankNamePayloadProvider')]
+    public function testBlankProfileNamesReturn422(array $payload): void
+    {
+        $customer = $this->createCustomer('client.profile-blank-name@example.test');
+
+        $response = $this->requestJson('PATCH', '/api/me/profile', $payload, $customer);
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testInvalidPhoneReturns422(): void
+    {
+        $customer = $this->createCustomer('client.profile-invalid-phone@example.test');
+
+        $response = $this->requestJson('PATCH', '/api/me/profile', [
+            'phone' => 'hello',
+        ], $customer);
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     public function testPatchPayloadCannotChangeRoles(): void
     {
         $customer = $this->createCustomer('client.profile-role@example.test');
@@ -105,7 +190,7 @@ final class CustomerProfileApiTest extends FunctionalApiTestCase
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
 
         $payload = $this->decodeJson($response);
-        self::assertSame(['ROLE_CUSTOMER'], $payload['roles']);
+        self::assertSame(['ROLE_CUSTOMER', 'ROLE_USER'], $payload['roles']);
 
         $this->entityManager->clear();
         $stored = $this->findUserByEmail('client.profile-role@example.test');
@@ -204,5 +289,15 @@ final class CustomerProfileApiTest extends FunctionalApiTestCase
     private function findUserByEmail(string $email): ?User
     {
         return self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);
+    }
+
+    /**
+     * @return iterable<string, array{0: array<string, mixed>}>
+     */
+    public static function blankNamePayloadProvider(): iterable
+    {
+        yield 'blank first name' => [['first_name' => '']];
+        yield 'blank last name' => [['last_name' => '']];
+        yield 'blank name' => [['name' => '']];
     }
 }

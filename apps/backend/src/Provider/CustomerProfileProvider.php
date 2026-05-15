@@ -32,18 +32,6 @@ final readonly class CustomerProfileProvider implements ProviderInterface
             throw new AccessDeniedHttpException('CUSTOMER_ACCESS_REQUIRED');
         }
 
-        return $this->toOutput($user);
-    }
-
-    public function toOutput(User $user): CustomerProfileOutput
-    {
-        return new CustomerProfileOutput(
-            $user->getId()->toRfc4122(),
-            $user->getEmail(),
-            ['ROLE_CUSTOMER'],
-            $user->getFirstName(),
-            $user->getLastName(),
-            $user->getPhone(),
-        );
+        return CustomerProfileOutput::fromUser($user);
     }
 }
