@@ -123,25 +123,27 @@ final class Sprint4FoundationDoctrineTest extends FunctionalApiTestCase
         self::assertSame($foundOrder->getId()->toRfc4122(), $foundPickupSession->getOrder()->getId()->toRfc4122());
     }
 
-    public function testMarkReadyIsIdempotentAndReusesExistingPickupSession(): void
+    public function testMarkReadyReusesPreExistingPickupSession(): void
     {
         $customer = $this->createUser('customer-idempotent-ready@example.test', ['ROLE_CUSTOMER']);
         $shop = $this->createShop();
         $order = $this->createPreparingOrderWithPreparedLine($customer, $shop);
 
+        $preExistingSession = new PickupSession($order);
+        $this->entityManager->persist($preExistingSession);
+        $this->entityManager->flush();
+        $preExistingId = $preExistingSession->getId()->toRfc4122();
+
         $transitionService = self::getContainer()->get(OrderTransitionService::class);
         self::assertInstanceOf(OrderTransitionService::class, $transitionService);
 
-        $firstSession = $transitionService->markReady($order);
-        $this->entityManager->flush();
-
-        $secondSession = $transitionService->markReady($order);
+        $returnedSession = $transitionService->markReady($order);
         $this->entityManager->flush();
 
         self::assertSame(
-            $firstSession->getId()->toRfc4122(),
-            $secondSession->getId()->toRfc4122(),
-            'markReady() must return the existing PickupSession on second call'
+            $preExistingId,
+            $returnedSession->getId()->toRfc4122(),
+            'markReady() must return the pre-existing PickupSession, not create a new one'
         );
 
         $count = $this->entityManager->getRepository(PickupSession::class)
