@@ -32,4 +32,10 @@ final readonly class OrderTransitionService
 
         return $pickupSession;
     }
+
+    public function markPickupPending(Order $order): void
+    {
+        $order->startPickup();
+        $this->orderStatusLogRecorder->record($order, OrderStatus::PickupPending);
+    }
 }
