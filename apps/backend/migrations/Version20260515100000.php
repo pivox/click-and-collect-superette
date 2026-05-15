@@ -33,7 +33,6 @@ final class Version20260515100000 extends AbstractMigration
         )');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_PICKUP_SESSIONS_ORDER ON pickup_sessions (order_id)');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_PICKUP_SESSIONS_TOKEN ON pickup_sessions (token)');
-        $this->addSql('CREATE INDEX IDX_PICKUP_SESSIONS_TOKEN ON pickup_sessions (token)');
         $this->addSql('CREATE INDEX IDX_PICKUP_SESSIONS_EXPIRES_AT ON pickup_sessions (expires_at)');
         $this->addSql('ALTER TABLE pickup_sessions ADD CONSTRAINT FK_PICKUP_SESSIONS_ORDER FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE');
 

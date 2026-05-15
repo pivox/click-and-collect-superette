@@ -16,6 +16,7 @@ use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\OrderStatus;
 use App\Enum\ProductReferenceStatus;
+use App\Repository\NotificationRepository;
 use App\Service\OrderTransitionService;
 use App\Tests\Functional\Api\FunctionalApiTestCase;
 
@@ -120,6 +121,65 @@ final class Sprint4FoundationDoctrineTest extends FunctionalApiTestCase
         self::assertSame(OrderStatus::Ready, $foundOrder->getStatus());
         self::assertInstanceOf(PickupSession::class, $foundPickupSession);
         self::assertSame($foundOrder->getId()->toRfc4122(), $foundPickupSession->getOrder()->getId()->toRfc4122());
+    }
+
+    public function testMarkReadyIsIdempotentAndReusesExistingPickupSession(): void
+    {
+        $customer = $this->createUser('customer-idempotent-ready@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $order = $this->createPreparingOrderWithPreparedLine($customer, $shop);
+
+        $transitionService = self::getContainer()->get(OrderTransitionService::class);
+        self::assertInstanceOf(OrderTransitionService::class, $transitionService);
+
+        $firstSession = $transitionService->markReady($order);
+        $this->entityManager->flush();
+
+        $secondSession = $transitionService->markReady($order);
+        $this->entityManager->flush();
+
+        self::assertSame(
+            $firstSession->getId()->toRfc4122(),
+            $secondSession->getId()->toRfc4122(),
+            'markReady() must return the existing PickupSession on second call'
+        );
+
+        $count = $this->entityManager->getRepository(PickupSession::class)
+            ->count(['order' => $order]);
+        self::assertSame(1, $count, 'Only one PickupSession must exist for the order');
+    }
+
+    public function testFindLatestForUserWithUnreadOnlyFilter(): void
+    {
+        $customer = $this->createUser('customer-notifications-filter@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop);
+        $this->entityManager->persist($order);
+
+        $notifA = new Notification($customer, 'A fr', 'A ar', 'Body A fr', 'Body A ar', $order);
+        $notifB = new Notification($customer, 'B fr', 'B ar', 'Body B fr', 'Body B ar', $order);
+        $notifC = new Notification($customer, 'C fr', 'C ar', 'Body C fr', 'Body C ar', $order);
+        $notifB->markRead();
+
+        $this->entityManager->persist($notifA);
+        $this->entityManager->persist($notifB);
+        $this->entityManager->persist($notifC);
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        /** @var NotificationRepository $repo */
+        $repo = $this->entityManager->getRepository(Notification::class);
+
+        $allNotifs = $repo->findLatestForUser($customer);
+        self::assertCount(3, $allNotifs);
+
+        $unreadOnly = $repo->findLatestForUser($customer, true);
+        self::assertCount(2, $unreadOnly);
+        foreach ($unreadOnly as $notif) {
+            self::assertFalse($notif->isRead());
+        }
     }
 
     private function createPreparingOrderWithPreparedLine(User $customer, Shop $shop): Order

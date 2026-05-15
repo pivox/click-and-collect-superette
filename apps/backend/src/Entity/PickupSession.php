@@ -12,7 +12,6 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'pickup_sessions')]
 #[ORM\UniqueConstraint(name: 'UNIQ_PICKUP_SESSIONS_ORDER', columns: ['order_id'])]
 #[ORM\UniqueConstraint(name: 'UNIQ_PICKUP_SESSIONS_TOKEN', columns: ['token'])]
-#[ORM\Index(name: 'IDX_PICKUP_SESSIONS_TOKEN', columns: ['token'])]
 #[ORM\Index(name: 'IDX_PICKUP_SESSIONS_EXPIRES_AT', columns: ['expires_at'])]
 class PickupSession
 {
