@@ -69,7 +69,9 @@ Client oublie son mot de passe
 - L'inscription publique crée uniquement des comptes `ROLE_CUSTOMER`.
 - Aucun endpoint public ne permet de créer un marchand ou un administrateur.
 - L'email est l'identifiant de connexion.
-- L'email doit être unique et normalisé en minuscules.
+- L'email doit être unique, trimé et normalisé en minuscules avant persistance et authentification.
+- La règle MVP de mot de passe est identique pour l'inscription et le reset : minimum 8 caractères.
+- Les contrats JSON de ce sprint utilisent les noms publics déjà documentés (`name`, `phone`, `new_password`). Si une propriété PHP nécessite un nom JSON différent, l'implémentation doit utiliser `#[SerializedName]` explicitement plutôt que compter sur un `NameConverter` global implicite.
 - La réponse de demande de reset password ne doit jamais révéler si un email existe.
 - Le profil client appartient strictement à l'utilisateur connecté.
 - Le client ne peut pas modifier son rôle, son identifiant technique, son email de façon implicite, ni ses états internes.
@@ -84,10 +86,10 @@ Client oublie son mot de passe
 
 ```http
 POST /api/auth/register/customer
-POST /api/login_check
+POST /api/auth/login
 ```
 
-`POST /api/login_check` est considéré comme existant si la configuration JWT actuelle est déjà opérationnelle. Sprint Auth doit surtout garantir que le compte créé par `register/customer` peut se connecter avec ce mécanisme.
+`POST /api/auth/login` est la route JWT configurée dans le backend actuel. Sprint Auth doit garantir que le compte créé par `register/customer` peut se connecter avec ce mécanisme.
 
 ### Profil client connecté
 
@@ -99,8 +101,8 @@ PATCH /api/me/profile
 ### Mot de passe oublié
 
 ```http
-POST /api/auth/password-reset/request
-POST /api/auth/password-reset/confirm
+POST /api/auth/forgot-password
+POST /api/auth/reset-password
 ```
 
 ---
@@ -115,8 +117,7 @@ Body :
 {
   "email": "client@example.com",
   "password": "secret123",
-  "first_name": "Haythem",
-  "last_name": "Mabrouk",
+  "name": "Haythem Mabrouk",
   "phone": "+21600000000"
 }
 ```
@@ -125,12 +126,13 @@ Réponse `201` :
 
 ```json
 {
-  "id": "user-uuid",
-  "email": "client@example.com",
-  "roles": ["ROLE_CUSTOMER"],
-  "first_name": "Haythem",
-  "last_name": "Mabrouk",
-  "phone": "+21600000000"
+  "token": "<jwt>",
+  "user": {
+    "id": "user-uuid",
+    "email": "client@example.com",
+    "name": "Haythem Mabrouk",
+    "phone": "+21600000000"
+  }
 }
 ```
 
@@ -153,9 +155,7 @@ Réponse `200` :
 {
   "id": "user-uuid",
   "email": "client@example.com",
-  "roles": ["ROLE_CUSTOMER"],
-  "first_name": "Haythem",
-  "last_name": "Mabrouk",
+  "name": "Haythem Mabrouk",
   "phone": "+21600000000"
 }
 ```
@@ -174,8 +174,7 @@ Body :
 
 ```json
 {
-  "first_name": "Haythem",
-  "last_name": "Mabrouk",
+  "name": "Haythem Mabrouk",
   "phone": "+21611111111"
 }
 ```
@@ -186,17 +185,14 @@ Réponse `200` :
 {
   "id": "user-uuid",
   "email": "client@example.com",
-  "roles": ["ROLE_CUSTOMER"],
-  "first_name": "Haythem",
-  "last_name": "Mabrouk",
+  "name": "Haythem Mabrouk",
   "phone": "+21611111111"
 }
 ```
 
 Champs modifiables MVP :
 
-- `first_name` ;
-- `last_name` ;
+- `name` ;
 - `phone`.
 
 Champs non modifiables dans ce sprint :
@@ -209,7 +205,7 @@ Champs non modifiables dans ce sprint :
 
 ---
 
-### POST /api/auth/password-reset/request
+### POST /api/auth/forgot-password
 
 Body :
 
@@ -237,7 +233,7 @@ Règles :
 
 ---
 
-### POST /api/auth/password-reset/confirm
+### POST /api/auth/reset-password
 
 Body :
 
@@ -273,13 +269,12 @@ Champs attendus côté profil client :
 - `email` ;
 - `roles` ;
 - `password` / hash interne ;
-- `firstName` ;
-- `lastName` ;
+- `name` ;
 - `phone` ;
 - `createdAt` ;
-- `updatedAt` si déjà présent ou à ajouter proprement.
+- `updatedAt`.
 
-Aucun champ supplémentaire n'est requis pour l'inscription client si ces champs existent déjà.
+L'entité `User` actuelle possède déjà `name`, `phone`, `createdAt` et `updatedAt`. AUTH-001 ne doit donc pas introduire `firstName` / `lastName` ni migrationner le profil client sans décision produit explicite.
 
 ### PasswordResetToken
 
@@ -297,6 +292,8 @@ Champs :
 | `createdAt` | datetime immutable | Création du token |
 
 Décision sécurité : le token brut est envoyé uniquement par email et n'est jamais stocké en clair en base.
+
+La durée d'expiration doit être configurable par environnement, par exemple via un paramètre Symfony `app.password_reset_token_ttl` exprimé en secondes, avec une valeur MVP par défaut de 3600 secondes.
 
 ---
 
@@ -347,10 +344,10 @@ Commandes de vérification attendues :
 
 ```bash
 cd apps/backend
-php bin/phpunit tests/Functional/Api/CustomerRegistrationApiTest.php
-php bin/phpunit tests/Functional/Api/CustomerProfileApiTest.php
-php bin/phpunit tests/Functional/Api/PasswordResetApiTest.php
-php bin/phpunit
+vendor/bin/phpunit tests/Functional/Api/CustomerRegistrationApiTest.php
+vendor/bin/phpunit tests/Functional/Api/CustomerProfileApiTest.php
+vendor/bin/phpunit tests/Functional/Api/PasswordResetApiTest.php
+vendor/bin/phpunit
 vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/php-cs-fixer fix --dry-run --diff
 ```
@@ -388,6 +385,8 @@ Périmètre :
 - processor de mise à jour ;
 - tests sécurité et sérialisation.
 
+Note implémentation API Platform : si `CustomerProfileOutput` est le `#[ApiResource]`, utiliser `fromClass: CustomerProfileOutput::class` dans `uriVariables`. Ne pas pointer vers `User::class`, afin d'éviter les erreurs de génération d'IRI sur un DTO.
+
 Hors périmètre : changement email, changement mot de passe, suppression compte.
 
 ---
@@ -405,8 +404,10 @@ Périmètre :
 - stockage hashé ;
 - expiration ;
 - consommation unique ;
-- endpoints request/confirm ;
+- endpoints `POST /api/auth/forgot-password` et `POST /api/auth/reset-password` ;
 - tests fonctionnels et domaine.
+
+Migration : suivre le protocole projet Doctrine. Générer le diff, relire la migration avant commit, valider le schéma, implémenter `up()` et `down()`, et prévoir les index nécessaires sur `user_id` et `expires_at` pour les recherches de tokens actifs ou expirés.
 
 Hors périmètre : templates email avancés, SMS, push, 2FA.
 
@@ -421,6 +422,7 @@ Périmètre :
 - aligner `docs/roadmap/mvp-roadmap.md` si nécessaire ;
 - compléter `docs/architecture/api-contract.md` ;
 - rapport de clôture `docs/SprintAuth/completion-report.md` ;
+- mettre à jour `AI_CONTEXT.md` avec `PasswordResetToken` dans les entités métier de référence ;
 - vérifier les routes ;
 - vérifier la non-régression des parcours Sprint 2/3/4 déjà présents.
 
