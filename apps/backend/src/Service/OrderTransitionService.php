@@ -38,4 +38,10 @@ final readonly class OrderTransitionService
         $order->startPickup();
         $this->orderStatusLogRecorder->record($order, OrderStatus::PickupPending);
     }
+
+    public function markCompleted(Order $order): void
+    {
+        $order->complete();
+        $this->orderStatusLogRecorder->record($order, OrderStatus::Completed);
+    }
 }
