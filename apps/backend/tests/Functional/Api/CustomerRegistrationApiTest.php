@@ -24,7 +24,7 @@ final class CustomerRegistrationApiTest extends FunctionalApiTestCase
         self::assertNotSame('', $payload['token']);
         self::assertIsString($payload['user']['id']);
         self::assertSame('client.registration@example.test', $payload['user']['email']);
-        self::assertSame(['ROLE_CUSTOMER'], $payload['user']['roles']);
+        self::assertSame(['ROLE_CUSTOMER', 'ROLE_USER'], $payload['user']['roles']);
         self::assertSame('Haythem', $payload['user']['first_name']);
         self::assertSame('Mabrouk', $payload['user']['last_name']);
         self::assertSame('Haythem Mabrouk', $payload['user']['name']);
@@ -147,7 +147,7 @@ final class CustomerRegistrationApiTest extends FunctionalApiTestCase
         self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
 
         $payload = $this->decodeJson($response);
-        self::assertSame(['ROLE_CUSTOMER'], $payload['user']['roles']);
+        self::assertSame(['ROLE_CUSTOMER', 'ROLE_USER'], $payload['user']['roles']);
 
         $user = $this->findUserByEmail('client.role-injection@example.test');
         self::assertInstanceOf(User::class, $user);

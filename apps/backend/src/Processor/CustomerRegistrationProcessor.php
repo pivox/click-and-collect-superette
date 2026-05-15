@@ -70,7 +70,7 @@ final readonly class CustomerRegistrationProcessor implements ProcessorInterface
             [
                 'id' => $user->getId()->toRfc4122(),
                 'email' => $user->getEmail(),
-                'roles' => ['ROLE_CUSTOMER'],
+                'roles' => $user->getRoles(),
                 'first_name' => $user->getFirstName(),
                 'last_name' => $user->getLastName(),
                 'name' => $user->getName(),
