@@ -12,7 +12,6 @@ use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use App\Repository\PickupSessionRepository;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -35,10 +34,8 @@ final readonly class CustomerPickupSessionProvider implements ProviderInterface
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): PickupSessionOutput
     {
+        /** @var User $user */
         $user = $this->security->getUser();
-        if (!$user instanceof User) {
-            throw new AccessDeniedHttpException('CUSTOMER_ACCESS_REQUIRED');
-        }
 
         $orderId = (string) ($uriVariables['orderId'] ?? '');
         if (!Uuid::isValid($orderId)) {
