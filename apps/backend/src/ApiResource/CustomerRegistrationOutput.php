@@ -10,7 +10,6 @@ use ApiPlatform\Metadata\Post;
 use App\Dto\CustomerRegistrationInput;
 use App\Processor\CustomerRegistrationProcessor;
 use Symfony\Component\Serializer\Attribute\Groups;
-use Symfony\Component\Serializer\Attribute\SerializedName;
 
 #[ApiResource(
     operations: [
@@ -22,31 +21,21 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             status: 201,
             read: false,
             processor: CustomerRegistrationProcessor::class,
-            security: "is_granted('PUBLIC_ACCESS')",
         ),
     ],
 )]
 final readonly class CustomerRegistrationOutput
 {
     /**
-     * @param list<string> $roles
+     * @param array<string, mixed> $user
      */
     public function __construct(
         #[ApiProperty(identifier: true)]
-        #[Groups(['customer_registration:read'])]
         public string $id,
         #[Groups(['customer_registration:read'])]
-        public string $email,
+        public string $token,
         #[Groups(['customer_registration:read'])]
-        public array $roles,
-        #[Groups(['customer_registration:read'])]
-        #[SerializedName('first_name')]
-        public string $firstName,
-        #[Groups(['customer_registration:read'])]
-        #[SerializedName('last_name')]
-        public string $lastName,
-        #[Groups(['customer_registration:read'])]
-        public ?string $phone,
+        public array $user,
     ) {
     }
 }

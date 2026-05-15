@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -18,12 +19,16 @@ final class CustomerRegistrationApiTest extends FunctionalApiTestCase
         self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
 
         $payload = $this->decodeJson($response);
-        self::assertIsString($payload['id']);
-        self::assertSame('client.registration@example.test', $payload['email']);
-        self::assertSame(['ROLE_CUSTOMER'], $payload['roles']);
-        self::assertSame('Haythem', $payload['first_name']);
-        self::assertSame('Mabrouk', $payload['last_name']);
-        self::assertSame('+21600000000', $payload['phone']);
+        self::assertArrayHasKey('token', $payload);
+        self::assertIsString($payload['token']);
+        self::assertNotSame('', $payload['token']);
+        self::assertIsString($payload['user']['id']);
+        self::assertSame('client.registration@example.test', $payload['user']['email']);
+        self::assertSame(['ROLE_CUSTOMER'], $payload['user']['roles']);
+        self::assertSame('Haythem', $payload['user']['first_name']);
+        self::assertSame('Mabrouk', $payload['user']['last_name']);
+        self::assertSame('Haythem Mabrouk', $payload['user']['name']);
+        self::assertSame('+21600000000', $payload['user']['phone']);
 
         $user = $this->findUserByEmail('client.registration@example.test');
         self::assertInstanceOf(User::class, $user);
@@ -48,6 +53,27 @@ final class CustomerRegistrationApiTest extends FunctionalApiTestCase
         self::assertStringNotContainsString('active', $content);
     }
 
+    public function testVisitorCanRegisterWithDocumentedNameField(): void
+    {
+        $response = $this->requestJson('POST', '/api/auth/register/customer', [
+            'email' => 'client.documented-name@example.test',
+            'password' => 'secret123',
+            'name' => 'Client Documente',
+            'phone' => '+21600000000',
+        ]);
+
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame('Client Documente', $payload['user']['name']);
+        self::assertNull($payload['user']['first_name']);
+        self::assertNull($payload['user']['last_name']);
+
+        $user = $this->findUserByEmail('client.documented-name@example.test');
+        self::assertInstanceOf(User::class, $user);
+        self::assertSame('Client Documente', $user->getName());
+    }
+
     public function testRegistrationNormalizesEmailToLowercase(): void
     {
         $response = $this->requestJson('POST', '/api/auth/register/customer', $this->validRegistrationPayload([
@@ -57,7 +83,7 @@ final class CustomerRegistrationApiTest extends FunctionalApiTestCase
         self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
 
         $payload = $this->decodeJson($response);
-        self::assertSame('client.mixedcase@example.test', $payload['email']);
+        self::assertSame('client.mixedcase@example.test', $payload['user']['email']);
         self::assertInstanceOf(User::class, $this->findUserByEmail('client.mixedcase@example.test'));
     }
 
@@ -82,19 +108,33 @@ final class CustomerRegistrationApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
     }
 
-    public function testWeakOrEmptyPasswordReturns422(): void
+    #[DataProvider('weakPasswordProvider')]
+    public function testWeakPasswordReturns422(string $password, string $email): void
     {
-        $weakPasswordResponse = $this->requestJson('POST', '/api/auth/register/customer', $this->validRegistrationPayload([
-            'email' => 'client.weak-password@example.test',
-            'password' => 'short',
-        ]));
-        $emptyPasswordResponse = $this->requestJson('POST', '/api/auth/register/customer', $this->validRegistrationPayload([
-            'email' => 'client.empty-password@example.test',
-            'password' => '',
+        $response = $this->requestJson('POST', '/api/auth/register/customer', $this->validRegistrationPayload([
+            'email' => $email,
+            'password' => $password,
         ]));
 
-        self::assertSame(422, $weakPasswordResponse->getStatusCode());
-        self::assertSame(422, $emptyPasswordResponse->getStatusCode());
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testInvalidPhoneReturns422(): void
+    {
+        $response = $this->requestJson('POST', '/api/auth/register/customer', $this->validRegistrationPayload([
+            'email' => 'client.invalid-phone@example.test',
+            'phone' => '12345',
+        ]));
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    #[DataProvider('missingNameProvider')]
+    public function testMissingFirstOrLastNameReturns422(array $overrides): void
+    {
+        $response = $this->requestJson('POST', '/api/auth/register/customer', $this->validRegistrationPayload($overrides));
+
+        self::assertSame(422, $response->getStatusCode());
     }
 
     public function testPayloadCannotCreateAdminRole(): void
@@ -107,7 +147,7 @@ final class CustomerRegistrationApiTest extends FunctionalApiTestCase
         self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
 
         $payload = $this->decodeJson($response);
-        self::assertSame(['ROLE_CUSTOMER'], $payload['roles']);
+        self::assertSame(['ROLE_CUSTOMER'], $payload['user']['roles']);
 
         $user = $this->findUserByEmail('client.role-injection@example.test');
         self::assertInstanceOf(User::class, $user);
@@ -187,5 +227,29 @@ final class CustomerRegistrationApiTest extends FunctionalApiTestCase
     private function findUserByEmail(string $email): ?User
     {
         return self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);
+    }
+
+    /**
+     * @return iterable<string, array{0: string, 1: string}>
+     */
+    public static function weakPasswordProvider(): iterable
+    {
+        yield 'too short' => ['short', 'client.weak-password@example.test'];
+        yield 'empty' => ['', 'client.empty-password@example.test'];
+    }
+
+    /**
+     * @return iterable<string, array{0: array<string, mixed>}>
+     */
+    public static function missingNameProvider(): iterable
+    {
+        yield 'missing first name' => [[
+            'email' => 'client.no-first-name@example.test',
+            'first_name' => '',
+        ]];
+        yield 'missing last name' => [[
+            'email' => 'client.no-last-name@example.test',
+            'last_name' => '',
+        ]];
     }
 }

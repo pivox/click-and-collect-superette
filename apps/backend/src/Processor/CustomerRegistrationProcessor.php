@@ -12,6 +12,7 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -24,6 +25,7 @@ final readonly class CustomerRegistrationProcessor implements ProcessorInterface
         private UserRepository $userRepository,
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
+        private JWTTokenManagerInterface $jwtTokenManager,
     ) {
     }
 
@@ -37,25 +39,20 @@ final readonly class CustomerRegistrationProcessor implements ProcessorInterface
             throw new \InvalidArgumentException('CustomerRegistrationInput expected.');
         }
 
-        $email = strtolower(trim($data->email));
+        $email = strtolower($data->email);
         if (null !== $this->userRepository->findOneBy(['email' => $email])) {
             throw new ConflictHttpException('AUTH_EMAIL_ALREADY_EXISTS');
         }
 
-        $firstName = trim($data->firstName);
-        $lastName = trim($data->lastName);
-        $phone = null !== $data->phone ? trim($data->phone) : null;
-        if ('' === $phone) {
-            $phone = null;
-        }
+        [$firstName, $lastName, $name] = $this->resolveCustomerName($data);
 
         $user = (new User())
             ->setEmail($email)
             ->setRoles(['ROLE_CUSTOMER'])
             ->setFirstName($firstName)
             ->setLastName($lastName)
-            ->setName(trim($firstName.' '.$lastName))
-            ->setPhone($phone)
+            ->setName($name)
+            ->setPhone($data->phone)
             ->setActive(true);
 
         $user->setPassword($this->passwordHasher->hashPassword($user, $data->password));
@@ -69,11 +66,32 @@ final readonly class CustomerRegistrationProcessor implements ProcessorInterface
 
         return new CustomerRegistrationOutput(
             $user->getId()->toRfc4122(),
-            $user->getEmail(),
-            ['ROLE_CUSTOMER'],
-            $user->getFirstName() ?? '',
-            $user->getLastName() ?? '',
-            $user->getPhone(),
+            $this->jwtTokenManager->create($user),
+            [
+                'id' => $user->getId()->toRfc4122(),
+                'email' => $user->getEmail(),
+                'roles' => ['ROLE_CUSTOMER'],
+                'first_name' => $user->getFirstName(),
+                'last_name' => $user->getLastName(),
+                'name' => $user->getName(),
+                'phone' => $user->getPhone(),
+            ],
         );
+    }
+
+    /**
+     * @return array{0: string|null, 1: string|null, 2: string}
+     */
+    private function resolveCustomerName(CustomerRegistrationInput $data): array
+    {
+        if (null !== $data->name) {
+            return [$data->firstName, $data->lastName, $data->name];
+        }
+
+        if (null === $data->firstName || null === $data->lastName) {
+            throw new \InvalidArgumentException('Customer first and last names are required when name is not provided.');
+        }
+
+        return [$data->firstName, $data->lastName, $data->firstName.' '.$data->lastName];
     }
 }
