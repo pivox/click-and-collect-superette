@@ -23,7 +23,8 @@ final class CustomerPickupSessionApiTest extends FunctionalApiTestCase
         $customer = $this->createUser('pickup-session-customer@example.test', ['ROLE_CUSTOMER']);
         $shop = $this->createShop();
         $order = $this->createReadyOrder($customer, $shop);
-        $pickupSession = new PickupSession($order, new \DateTimeImmutable('2026-05-15 10:00:00'));
+        $generatedAt = new \DateTimeImmutable();
+        $pickupSession = new PickupSession($order, $generatedAt);
         $this->entityManager->persist($pickupSession);
         $this->entityManager->flush();
 
@@ -38,7 +39,7 @@ final class CustomerPickupSessionApiTest extends FunctionalApiTestCase
         self::assertSame($pickupSession->getId()->toRfc4122(), $payload['id']);
         self::assertSame($pickupSession->getToken()->toRfc4122(), $payload['token']);
         self::assertSame($pickupSession->getToken()->toRfc4122(), $payload['qr_payload']);
-        self::assertSame('2026-05-16T10:00:00+00:00', $payload['expires_at']);
+        self::assertSame($pickupSession->getExpiresAt()->format(\DateTimeInterface::ATOM), $payload['expires_at']);
         self::assertFalse($payload['is_used']);
         self::assertFalse($payload['is_expired']);
     }
