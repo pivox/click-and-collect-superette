@@ -9,6 +9,7 @@ use App\Entity\Category;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
+use App\Entity\OrderStatusLog;
 use App\Entity\PickupSession;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
@@ -89,6 +90,46 @@ final class MerchantPickupSessionConfirmApiTest extends FunctionalApiTestCase
         self::assertSame($firstPayload['merchant_confirmed_at'], $secondPayload['merchant_confirmed_at']);
         self::assertSame('pickup_pending', $secondPayload['order_status']);
         self::assertFalse($secondPayload['is_used']);
+    }
+
+    public function testMerchantConfirmationCompletesOrderWhenCustomerAlreadyConfirmed(): void
+    {
+        $merchant = $this->createUser('merchant-confirm-after-customer@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-confirm-before-merchant@example.test', ['ROLE_CUSTOMER']);
+        $product = $this->createMerchantProduct($shop);
+        [$order, $pickupSession] = $this->createScannedPickupPendingSession($customer, $shop, $product);
+        $pickupSession->confirmByCustomer(new \DateTimeImmutable('-10 minutes'));
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/pickup-sessions/%s/confirm', $pickupSession->getId()->toRfc4122()),
+            [],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame('completed', $payload['order_status']);
+        self::assertNotEmpty($payload['merchant_confirmed_at']);
+        self::assertNotEmpty($payload['customer_confirmed_at']);
+        self::assertTrue($payload['is_used']);
+        self::assertTrue($payload['is_completed']);
+
+        $this->entityManager->clear();
+        $updatedOrder = $this->entityManager->getRepository(Order::class)->find($order->getId());
+        self::assertNotNull($updatedOrder);
+        self::assertSame(OrderStatus::Completed, $updatedOrder->getStatus());
+
+        $updatedSession = $this->entityManager->getRepository(PickupSession::class)->find($pickupSession->getId());
+        self::assertNotNull($updatedSession);
+        self::assertTrue($updatedSession->isUsed());
+
+        $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findBy(['order' => $updatedOrder]);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Completed, $logs[0]->getStatus());
     }
 
     public function testMerchantConfirmationUnauthenticatedReturns401(): void
@@ -266,7 +307,7 @@ final class MerchantPickupSessionConfirmApiTest extends FunctionalApiTestCase
     {
         $order = $this->createReadyOrder($customer, $shop, $product);
         $pickupSession = new PickupSession($order);
-        $pickupSession->scan(new \DateTimeImmutable('2026-05-15 14:00:00'));
+        $pickupSession->scan(new \DateTimeImmutable('-30 minutes'));
         $order->startPickup();
 
         $this->entityManager->persist($pickupSession);

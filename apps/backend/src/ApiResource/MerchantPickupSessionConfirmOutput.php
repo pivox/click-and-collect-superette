@@ -8,7 +8,6 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
-use App\Entity\PickupSession;
 use App\Processor\MerchantPickupSessionConfirmProcessor;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
@@ -18,7 +17,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         new Patch(
             uriTemplate: '/merchant/pickup-sessions/{id}/confirm',
             uriVariables: [
-                'id' => new Link(fromClass: PickupSession::class, identifiers: ['id']),
+                'id' => new Link(fromClass: MerchantPickupSessionConfirmOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['merchant_pickup_session_confirm:read'], 'skip_null_values' => false],

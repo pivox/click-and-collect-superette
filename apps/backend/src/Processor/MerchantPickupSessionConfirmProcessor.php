@@ -11,6 +11,7 @@ use App\Entity\PickupSession;
 use App\Enum\OrderStatus;
 use App\Repository\PickupSessionRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\OrderTransitionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -23,6 +24,7 @@ final readonly class MerchantPickupSessionConfirmProcessor implements ProcessorI
     public function __construct(
         private PickupSessionRepository $pickupSessionRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
+        private OrderTransitionService $orderTransitionService,
         private EntityManagerInterface $entityManager,
     ) {
     }
@@ -61,6 +63,9 @@ final readonly class MerchantPickupSessionConfirmProcessor implements ProcessorI
 
         try {
             $pickupSession->confirmByMerchant();
+            if ($pickupSession->isUsed()) {
+                $this->orderTransitionService->markCompleted($order);
+            }
         } catch (\LogicException $e) {
             throw new ConflictHttpException($e->getMessage());
         }

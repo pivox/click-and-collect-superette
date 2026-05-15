@@ -48,10 +48,10 @@ class PickupSessionRepository extends ServiceEntityRepository
         }
 
         return $this->createQueryBuilder('pickupSession')
-            ->select('pickupSession', 'orders', 'shop', 'customer')
-            ->innerJoin('pickupSession.order', 'orders')
-            ->innerJoin('orders.shop', 'shop')
-            ->innerJoin('orders.customer', 'customer')
+            ->select('pickupSession', 'orderEntity', 'shop', 'customer')
+            ->innerJoin('pickupSession.order', 'orderEntity')
+            ->innerJoin('orderEntity.shop', 'shop')
+            ->innerJoin('orderEntity.customer', 'customer')
             ->andWhere('pickupSession.id = :id')
             ->setParameter('id', Uuid::fromString($id), 'uuid')
             ->getQuery()
