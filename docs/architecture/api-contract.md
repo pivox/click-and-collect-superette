@@ -340,6 +340,30 @@ Réponse :
 GET /api/me/orders/{id}
 ```
 
+### Annuler une commande
+
+Statut : **livré Sprint 3**.
+
+```http
+POST /api/me/orders/{orderId}/cancel
+```
+
+Règles :
+
+- client connecté uniquement ;
+- commande appartenant au client ;
+- statut `submitted` uniquement ;
+- libère la capacité réservée du créneau ;
+- écrit un `OrderStatusLog` en statut `cancelled`.
+
+### Consulter l'historique de statuts d'une commande
+
+Statut : **livré Sprint 3**.
+
+```http
+GET /api/me/orders/{orderId}/status-history
+```
+
 ---
 
 ## Référentiel produit et catalogue marchand
@@ -406,19 +430,51 @@ DELETE /api/merchant/catalog/{merchantProductId}
 
 ### Lister les commandes d'une supérette
 
+Statut : **livré Sprint 3**.
+
 ```http
 GET /api/merchant/stores/{storeId}/orders
 GET /api/merchant/stores/{storeId}/orders?status=submitted
 GET /api/merchant/stores/{storeId}/orders?page=1&limit=20
 ```
 
+Règles :
+
+- marchand connecté uniquement ;
+- le marchand doit être propriétaire de la supérette ;
+- la liste ne doit pas exposer les coordonnées client.
+
+### Consulter le détail d'une commande marchand
+
+Statut : **livré Sprint 3**.
+
+```http
+GET /api/merchant/stores/{storeId}/orders/{orderId}
+```
+
+Règles :
+
+- marchand connecté uniquement ;
+- le marchand doit être propriétaire de la supérette ;
+- la commande doit appartenir à la supérette ciblée ;
+- les coordonnées client sont exposées uniquement dans ce détail autorisé.
+
 ### Accepter une commande
+
+Statut : **livré Sprint 3**.
 
 ```http
 POST /api/merchant/stores/{storeId}/orders/{orderId}/accept
 ```
 
+Règles :
+
+- statut `submitted` uniquement ;
+- écrit un `OrderStatusLog` en statut `accepted`.
+
 ### Refuser une commande
+
+Statut : **livré Sprint 3**.
 
 ```http
 POST /api/merchant/stores/{storeId}/orders/{orderId}/reject
@@ -432,39 +488,131 @@ Payload :
 }
 ```
 
+Règles :
+
+- statut `submitted` uniquement ;
+- libère la capacité réservée du créneau ;
+- écrit un `OrderStatusLog` en statut `rejected`.
+
+### Accepter partiellement une commande
+
+Statut : **livré Sprint 3**.
+
+```http
+POST /api/merchant/stores/{storeId}/orders/{orderId}/partially-accept
+```
+
+Payload :
+
+```json
+{
+  "rejected_merchant_product_ids": ["<merchantProductId1>"],
+  "notes": "Rupture de stock."
+}
+```
+
+Règles :
+
+- statut `submitted` uniquement ;
+- au moins une ligne refusée ;
+- impossible de refuser toutes les lignes via cet endpoint : utiliser `reject` ;
+- les lignes refusées sont retirées de la Kadhia ;
+- la Kadhia repasse en `draft` ;
+- la re-soumission client met à jour la commande existante ;
+- écrit un `OrderStatusLog` en statut `partially_accepted`.
+
 ### Passer en préparation
+
+Statut : **livré Sprint 3**.
 
 ```http
 POST /api/merchant/stores/{storeId}/orders/{orderId}/start-preparation
 ```
 
+Règles :
+
+- statut `accepted` uniquement ;
+- écrit un `OrderStatusLog` en statut `preparing`.
+
+### Préparer une ligne de commande
+
+Statut : **livré Sprint 3**.
+
+```http
+PATCH /api/merchant/stores/{storeId}/orders/{orderId}/lines/{merchantProductId}/preparation
+```
+
+Payload :
+
+```json
+{
+  "prepared": true
+}
+```
+
+Règles :
+
+- commande en statut `preparing` uniquement ;
+- ligne appartenant à la commande ;
+- `prepared` peut être `true` ou `false`.
+
 ### Marquer comme prête
+
+Statut : **livré Sprint 3**.
 
 ```http
 POST /api/merchant/stores/{storeId}/orders/{orderId}/mark-ready
 ```
 
-### Accepter partiellement une commande
+Règles :
 
-Statut : **à implémenter**.
+- statut `preparing` uniquement ;
+- toutes les lignes doivent être `prepared=true` ;
+- écrit un `OrderStatusLog` en statut `ready` ;
+- crée automatiquement une `PickupSession` (token UUID opaque, TTL 24 h) si elle n'existe pas encore — livré Sprint 4.
+
+### Consulter l'historique de statuts d'une commande marchand
+
+Statut : **livré Sprint 3**.
 
 ```http
-POST /api/merchant/stores/{storeId}/orders/{orderId}/partial-accept
+GET /api/merchant/stores/{storeId}/orders/{orderId}/status-history
 ```
 
-Objectif : permettre au marchand d'accepter certaines lignes, de repasser la Kadhia en `draft` avec les lignes acceptées, puis de laisser le client re-soumettre.
+### Dashboard marchand journalier
+
+Statut : **livré Sprint 3**.
+
+```http
+GET /api/merchant/stores/{storeId}/dashboard/today
+```
+
+Règles :
+
+- marchand connecté uniquement ;
+- le marchand doit être propriétaire de la supérette ;
+- retourne les compteurs du jour, les compteurs par statut, les créneaux du jour et les commandes `submitted` urgentes ;
+- n'expose pas de données client ni de lignes de commande.
 
 ---
 
 ## Créneaux marchand
 
-Statut : **à implémenter / vérifier**.
+Statut : **livré Sprint 3 pour les créneaux ponctuels**.
 
 ```http
-GET   /api/merchant/stores/{storeId}/pickup-slots
-POST  /api/merchant/stores/{storeId}/pickup-slots
-PATCH /api/merchant/stores/{storeId}/pickup-slots/{slotId}
+GET    /api/merchant/stores/{storeId}/pickup-slots
+POST   /api/merchant/stores/{storeId}/pickup-slots
+PATCH  /api/merchant/stores/{storeId}/pickup-slots/{slotId}
+DELETE /api/merchant/stores/{storeId}/pickup-slots/{slotId}
 ```
+
+Règles :
+
+- marchand connecté uniquement ;
+- le marchand doit être propriétaire de la supérette ;
+- `DELETE` désactive le créneau plutôt que de le supprimer physiquement ;
+- les créneaux récurrents et fermetures exceptionnelles restent Sprint 3b.
 
 ---
 
@@ -524,6 +672,24 @@ POST  /api/admin/stores
 PATCH /api/admin/stores/{storeId}
 PATCH /api/admin/stores/{storeId}/owner
 ```
+
+### Régénérer le QR code d'une supérette
+
+Statut : **à implémenter**.
+
+```http
+POST /api/admin/stores/{storeId}/regenerate-qr
+```
+
+Règles :
+
+- admin connecté uniquement (`ROLE_ADMIN`) ;
+- la supérette doit exister ;
+- génère un nouveau `qrCodeToken` opaque (UUID v4) pour la supérette ;
+- l'ancien token est immédiatement invalidé — tout lien ou QR physique imprimé avec l'ancien token ne fonctionnera plus ;
+- retourne le nouveau token afin que l'admin puisse régénérer le QR physique.
+
+Cas d'usage : QR code compromis, QR physique endommagé ou changement de supérette propriétaire.
 
 ### Valider une proposition produit
 
@@ -610,7 +776,7 @@ PUT /api/admin/theme
 
 ## Retrait sécurisé
 
-Statut : **à implémenter**.
+Statut : **à implémenter Sprint 4**.
 
 ### Générer / lire la session de retrait côté client
 
@@ -649,23 +815,27 @@ Règles :
 - token opaque ;
 - unique par commande ;
 - usage unique ;
-- expiration à cadrer, cible 24h après passage en `ready` ;
+- expiration cible 24h après passage en `ready` ;
 - passage `ready` → `pickup_pending` après scan ;
-- passage `pickup_pending` → `completed` après double validation.
+- passage `pickup_pending` → `completed` après double validation ;
+- un QR expiré laisse la commande en `ready` et peut être régénéré par l'admin plus tard.
 
 ---
 
 ## Notifications
 
-Statut : **à cadrer / implémenter**.
+Statut : **à implémenter Sprint 4**.
 
 MVP recommandé : notifications persistées en base, lecture par API, sans push/SMS obligatoire au départ.
 
 ```http
-GET   /api/me/notifications
+GET   /api/me/notifications?page=1&unread=true
 PATCH /api/me/notifications/{id}/read
-GET   /api/merchant/notifications
+PATCH /api/me/notifications/read-all
+
+GET   /api/merchant/notifications?page=1&unread=true
 PATCH /api/merchant/notifications/{id}/read
+PATCH /api/merchant/notifications/read-all
 ```
 
 Événements minimaux :
@@ -673,7 +843,9 @@ PATCH /api/merchant/notifications/{id}/read
 - commande soumise : notifier marchand ;
 - commande acceptée : notifier client ;
 - commande refusée : notifier client ;
+- commande acceptée partiellement : notifier client ;
 - commande prête : notifier client ;
+- rappel de retrait 1h avant créneau si commande `ready` ;
 - retrait finalisé : notifier client et marchand.
 
 ---
@@ -696,8 +868,12 @@ PATCH /api/merchant/notifications/{id}/read
 | `PICKUP_SLOT_FULL` | Créneau complet. |
 | `PICKUP_SLOT_EXPIRED` | Créneau expiré ou déjà commencé. |
 | `ORDER_INVALID_STATUS` | Transition de statut interdite. |
+| `ORDER_NOT_SUBMITTED` | La commande n'est pas dans un statut soumis attendu. |
+| `ORDER_NOT_PREPARING` | La commande n'est pas en préparation. |
+| `ORDER_LINE_NOT_FOUND` | Ligne de commande introuvable. |
 | `PICKUP_TOKEN_INVALID` | QR code de retrait invalide. |
 | `PICKUP_TOKEN_ALREADY_USED` | QR code déjà utilisé. |
+| `PICKUP_TOKEN_EXPIRED` | QR code expiré. |
 | `PRODUCT_REFERENCE_DUPLICATE` | Produit de référence probablement déjà existant. |
 
 ---
