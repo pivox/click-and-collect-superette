@@ -58,12 +58,12 @@ final readonly class CustomerPickupSessionConfirmProcessor implements ProcessorI
             throw new ConflictHttpException('PICKUP_SESSION_NOT_SCANNED');
         }
 
-        if ($pickupSession->isExpired()) {
-            throw new ConflictHttpException('PICKUP_SESSION_EXPIRED');
-        }
-
         if (OrderStatus::PickupPending !== $order->getStatus()) {
             throw new ConflictHttpException('ORDER_NOT_PICKUP_PENDING');
+        }
+
+        if ($pickupSession->isExpired()) {
+            throw new ConflictHttpException('PICKUP_SESSION_EXPIRED');
         }
 
         try {
@@ -84,9 +84,7 @@ final readonly class CustomerPickupSessionConfirmProcessor implements ProcessorI
     {
         $order = $pickupSession->getOrder();
         $scannedAt = $pickupSession->getScannedAt();
-        if (null === $scannedAt) {
-            throw new \LogicException('PICKUP_SESSION_NOT_SCANNED');
-        }
+        \assert(null !== $scannedAt, 'scannedAt must be set after guard check');
 
         return new CustomerPickupSessionConfirmOutput(
             id: $pickupSession->getId()->toRfc4122(),

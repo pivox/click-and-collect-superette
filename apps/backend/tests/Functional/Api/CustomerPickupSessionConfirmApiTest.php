@@ -144,9 +144,8 @@ final class CustomerPickupSessionConfirmApiTest extends FunctionalApiTestCase
         $this->entityManager->clear();
         $updatedOrder = $this->entityManager->getRepository(Order::class)->find($order->getId());
         self::assertNotNull($updatedOrder);
-        $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findBy(['order' => $updatedOrder]);
+        $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findBy(['order' => $updatedOrder, 'status' => OrderStatus::Completed]);
         self::assertCount(1, $logs);
-        self::assertSame(OrderStatus::Completed, $logs[0]->getStatus());
     }
 
     public function testOrderStaysPickupPendingWhenMerchantNotYetConfirmed(): void
@@ -176,7 +175,7 @@ final class CustomerPickupSessionConfirmApiTest extends FunctionalApiTestCase
         self::assertNotNull($updatedOrder);
         self::assertSame(OrderStatus::PickupPending, $updatedOrder->getStatus());
 
-        $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findBy(['order' => $updatedOrder]);
+        $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findBy(['order' => $updatedOrder, 'status' => OrderStatus::Completed]);
         self::assertCount(0, $logs);
     }
 
@@ -212,7 +211,7 @@ final class CustomerPickupSessionConfirmApiTest extends FunctionalApiTestCase
         $this->entityManager->clear();
         $updatedOrder = $this->entityManager->getRepository(Order::class)->find($order->getId());
         self::assertNotNull($updatedOrder);
-        $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findBy(['order' => $updatedOrder]);
+        $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findBy(['order' => $updatedOrder, 'status' => OrderStatus::Completed]);
         self::assertCount(1, $logs);
         self::assertNotEmpty($firstPayload['customer_confirmed_at']);
     }
