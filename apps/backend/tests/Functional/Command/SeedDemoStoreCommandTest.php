@@ -96,8 +96,8 @@ final class SeedDemoStoreCommandTest extends FunctionalApiTestCase
     public function testSeedDemoStoreFailsCleanlyOutsideDevAndTestEnvironment(): void
     {
         $command = new SeedDemoStoreCommand(
-            $this->createMock(EntityManagerInterface::class),
-            $this->createMock(UserPasswordHasherInterface::class),
+            $this->createStub(EntityManagerInterface::class),
+            $this->createStub(UserPasswordHasherInterface::class),
             'staging',
         );
         $commandTester = new CommandTester($command);

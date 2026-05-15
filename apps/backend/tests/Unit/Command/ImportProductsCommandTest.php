@@ -16,8 +16,8 @@ final class ImportProductsCommandTest extends TestCase
     public function testMapFieldsKeepsExistingProductActivationOnRefresh(): void
     {
         $command = new ImportProductsCommand(
-            $this->createMock(EntityManagerInterface::class),
-            $this->createMock(HttpClientInterface::class),
+            $this->createStub(EntityManagerInterface::class),
+            $this->createStub(HttpClientInterface::class),
             new NullLogger(),
         );
         $product = (new OpenDataProduct())
@@ -45,8 +45,8 @@ final class ImportProductsCommandTest extends TestCase
     public function testMapFieldsInitializesNewProductsAsInactive(): void
     {
         $command = new ImportProductsCommand(
-            $this->createMock(EntityManagerInterface::class),
-            $this->createMock(HttpClientInterface::class),
+            $this->createStub(EntityManagerInterface::class),
+            $this->createStub(HttpClientInterface::class),
             new NullLogger(),
         );
         $product = new OpenDataProduct();
