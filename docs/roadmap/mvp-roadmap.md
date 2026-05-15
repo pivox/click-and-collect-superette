@@ -195,6 +195,7 @@ Permettre au marchand de traiter les commandes depuis la réception jusqu'à la 
 - **US-036** — Annuler une commande (client)
 - US-006 — Préparer une commande
 - US-023 — Déclarer une commande prête
+- **US-024** — Configurer les créneaux de retrait ponctuels
 - **US-045** — Coordonnées client dans la commande marchand
 - **US-040** — Historique des transitions de statut
 
@@ -217,7 +218,7 @@ Le marchand reçoit une commande, la traite depuis son dashboard (acceptation, r
 Outiller le marchand pour gérer son activité quotidienne de façon autonome : créneaux, disponibilité catalogue, historique, gestion des délais automatiques et des fermetures.
 
 > **Prérequis :** Sprint 3 core terminé.
-> Sprint 3b peut être développé en parallèle de Sprint 4 si l'équipe est suffisante — la seule dépendance bloquante pour Sprint 4 est que les créneaux (US-024) soient configurables.
+> Sprint 3b peut être développé en parallèle de Sprint 4 si l'équipe est suffisante — la seule dépendance bloquante pour Sprint 4 est que les créneaux ponctuels (US-024) soient configurables, ce qui est déjà livré par Sprint 3.
 
 ### Fonctionnalités
 
@@ -420,8 +421,8 @@ La plateforme est opérable et supervisée en production par une équipe réduit
 | Sprint Auth | US-034, US-035, US-046 | P0 | 🔴 À coder |
 | Sprint 1 | US-013 à US-016, US-041 | P0 | ✅ Partiel (US-041 manquante) |
 | Sprint 2 | US-001 à US-004, US-017 à US-021, US-031 à US-033, US-042, US-044, US-048 | P0 | ✅ Partiel (3 US manquantes) |
-| Sprint 3 | US-022, US-023, US-005, US-006, US-036, US-037, US-040, US-045, US-051 | P0 | 🔴 À coder |
-| Sprint 3b | US-024, US-043, US-047, US-049, US-052, US-053, US-056, US-057 | P1 | 🔴 À coder |
+| Sprint 3 | US-005, US-006, US-022, US-023, US-024, US-036, US-037, US-040, US-045, US-051 | P0 | ✅ Backend terminé |
+| Sprint 3b | US-043, US-047, US-049, US-052, US-053, US-056, US-057 | P1 | 🔴 À coder |
 | Sprint 4 | US-007, US-025, US-026, US-038, US-039, US-064 | P1 | 🔴 À coder |
 | Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | 🔴 À coder |
 | Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
