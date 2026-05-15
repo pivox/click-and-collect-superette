@@ -42,20 +42,38 @@ Réponse : JWT selon LexikJWTAuthenticationBundle.
 
 ### Inscription client
 
-Statut : **à implémenter**.
+Statut : **livré**.
 
 ```http
 POST /api/auth/register/customer
 ```
 
-Payload cible :
+Payload :
 
 ```json
 {
   "email": "client@example.com",
-  "password": "password",
-  "name": "Client Test",
+  "password": "secret123",
+  "first_name": "Haythem",
+  "last_name": "Mabrouk",
   "phone": "+21600000000"
+}
+```
+
+Réponse `201` :
+
+```json
+{
+  "token": "<jwt>",
+  "user": {
+    "id": "user-uuid",
+    "email": "client@example.com",
+    "roles": ["ROLE_CUSTOMER", "ROLE_USER"],
+    "first_name": "Haythem",
+    "last_name": "Mabrouk",
+    "name": "Haythem Mabrouk",
+    "phone": "+21600000000"
+  }
 }
 ```
 
@@ -63,17 +81,116 @@ Règles :
 
 - crée un utilisateur actif ;
 - rôle attribué automatiquement : `ROLE_CUSTOMER` ;
+- `ROLE_USER` peut être présent comme rôle Symfony de base ;
 - email unique ;
-- ne permet jamais de choisir un rôle.
+- email trimé et normalisé en minuscules ;
+- mot de passe hashé ;
+- ne permet jamais de choisir un rôle ;
+- ne retourne jamais le mot de passe ni son hash.
 
 ### Profil client
 
-Statut : **à implémenter**.
+Statut : **livré**.
 
 ```http
 GET   /api/me/profile
 PATCH /api/me/profile
 ```
+
+Réponse `GET 200` :
+
+```json
+{
+  "id": "user-uuid",
+  "email": "client@example.com",
+  "roles": ["ROLE_CUSTOMER", "ROLE_USER"],
+  "first_name": "Haythem",
+  "last_name": "Mabrouk",
+  "name": "Haythem Mabrouk",
+  "phone": "+21600000000"
+}
+```
+
+Payload `PATCH` :
+
+```json
+{
+  "first_name": "Haythem",
+  "last_name": "Mabrouk",
+  "phone": "+21611111111"
+}
+```
+
+Champs modifiables :
+
+- `first_name` ;
+- `last_name` ;
+- `name` pour compatibilité ;
+- `phone`.
+
+Champs non modifiables :
+
+- `id` ;
+- `email` ;
+- `roles` ;
+- `password`.
+
+### Réinitialisation de mot de passe
+
+Statut : **livré**.
+
+Routes canoniques :
+
+```http
+POST /api/auth/password-reset/request
+POST /api/auth/password-reset/confirm
+```
+
+Alias documentés :
+
+```http
+POST /api/auth/forgot-password
+POST /api/auth/reset-password
+```
+
+Payload request :
+
+```json
+{
+  "email": "client@example.com"
+}
+```
+
+Réponse `202` neutre :
+
+```json
+{
+  "message": "Si un compte existe pour cet email, un lien de réinitialisation sera envoyé."
+}
+```
+
+Payload confirm :
+
+```json
+{
+  "token": "reset-token-opaque",
+  "new_password": "newSecret123"
+}
+```
+
+Réponse confirm : `204 No Content`.
+
+Règles :
+
+- la demande retourne toujours `202`, email connu ou inconnu ;
+- le token est créé uniquement pour un compte client existant ;
+- le token brut n'est jamais stocké en base ;
+- seul le hash du token est persisté ;
+- le token expire après 1 heure par défaut ;
+- le token est à usage unique ;
+- un nouveau reset invalide les anciens tokens actifs du même utilisateur ;
+- le nouveau mot de passe est hashé ;
+- l'ancien mot de passe ne permet plus la connexion après reset.
 
 ---
 
