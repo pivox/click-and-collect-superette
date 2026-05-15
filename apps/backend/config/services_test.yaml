@@ -2,3 +2,9 @@ services:
     App\Tests\Support\Security\TestAuthenticator:
         autowire: true
         autoconfigure: true
+
+    App\Tests\Support\PasswordReset\TestPasswordResetTokenSender: ~
+
+    App\Service\PasswordResetTokenSenderInterface:
+        alias: App\Tests\Support\PasswordReset\TestPasswordResetTokenSender
+        public: true
