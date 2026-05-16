@@ -62,10 +62,12 @@ Exclus du MVP :
 - Sprint Auth : terminé côté backend (inscription client, login JWT, profil client, reset password).
 - Sprint 3 : terminé côté backend (traitement marchand core, créneaux ponctuels, historique de statuts, dashboard journalier).
 - Sprint 4 : terminé côté backend (QR de retrait, `PickupSession`, scan marchand, `pickup_pending`, double validation, force completion, notifications in-app, suivi statut client, rappel retrait 1h).
-- Sprint 3b : à faire (créneaux récurrents, fermetures exceptionnelles, délais automatiques, historique complet marchand).
+- Sprint 3b : fondation documentaire prête, backend à démarrer (créneaux récurrents, fermetures exceptionnelles, heures d'ouverture, ruptures de stock en masse, délais automatiques, historique complet marchand).
 - Sprint 5 : à faire (administration minimale des supérettes, marchands et référentiel produit).
 
 Limites Sprint 4 : le rappel de retrait 1h utilise Symfony Messenger et `DelayStamp`. Un vrai différé en production nécessite un transport async persistant et un worker actif ; les notifications restent in-app, sans push mobile, SMS, email ni Mercure/WebSocket dans le MVP backend actuel. Le contenu du rappel US-064 reste générique et doit encore intégrer le nom de la supérette, l'heure du créneau et le numéro de commande. Après scan, la confirmation client et la force completion ne bloquent plus sur le TTL, mais la confirmation marchand conserve encore un contrôle d'expiration côté processor. Le MVP ne prévoit pas de réouverture admin d'une session expirée et les confirmations simultanées ne sont pas sérialisées par un `SELECT FOR UPDATE` dédié.
+
+Suite recommandée : démarrer Sprint 3b par **S3B-001 — Créneaux récurrents foundation** (`PickupSlotRule`, CRUD marchand, génération de `PickupSlot` sur 4 semaines), puis traiter les fermetures exceptionnelles avant les automatisations Messenger.
 
 ## Statuts de commande
 
@@ -93,6 +95,8 @@ Limites Sprint 4 : le rappel de retrait 1h utilise Symfony Messenger et `DelaySt
 - `Kadhia`
 - `KadhiaLine`
 - `PickupSlot`
+- `PickupSlotRule` (Sprint 3b prévu)
+- `ExceptionalClosure` (Sprint 3b prévu)
 - `Order`
 - `OrderLine`
 - `PasswordResetToken`
