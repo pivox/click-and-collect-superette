@@ -6,12 +6,16 @@ namespace App\Service;
 
 use App\Entity\Notification;
 use App\Entity\Order;
+use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class NotificationService
 {
+    public const TYPE_PICKUP_REMINDER = 'pickup_reminder';
+
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private NotificationRepository $notificationRepository,
     ) {
     }
 
@@ -81,6 +85,22 @@ final readonly class NotificationService
         );
     }
 
+    public function notifyCustomerPickupReminder(Order $order): void
+    {
+        if ($this->notificationRepository->existsForOrderAndType($order, self::TYPE_PICKUP_REMINDER)) {
+            return;
+        }
+
+        $this->persistForCustomer(
+            $order,
+            'Rappel de retrait',
+            'تذكير بالاستلام',
+            'Votre Kadhia est prête. Pensez à la retirer pendant votre créneau.',
+            'القاضية واجدة. تذكروا استلامها خلال الموعد المحدد.',
+            self::TYPE_PICKUP_REMINDER,
+        );
+    }
+
     public function notifyMerchantOrderSubmitted(Order $order): void
     {
         $this->persistForMerchant(
@@ -120,6 +140,7 @@ final readonly class NotificationService
         string $titleAr,
         string $bodyFr,
         string $bodyAr,
+        ?string $type = null,
     ): void {
         $notification = new Notification(
             user: $order->getCustomer(),
@@ -128,6 +149,7 @@ final readonly class NotificationService
             bodyFr: $bodyFr,
             bodyAr: $bodyAr,
             order: $order,
+            type: $type,
         );
         $this->entityManager->persist($notification);
     }
