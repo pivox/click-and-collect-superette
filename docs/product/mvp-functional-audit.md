@@ -63,10 +63,12 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 | Thème public store | Oui | Oui | Oui | Oui | OK | Déjà avancé. |
 | Thème marchand | Oui | Oui | Oui | Oui | OK | Déjà avancé. |
 | Thème global admin | Oui | Oui | Oui | Oui | OK | Déjà avancé. |
-| QR code retrait | Oui (US-025) | Non | Non | **Oui (Sprint4)** | MANQUANT | `PickupSession` définie dans Sprint4/README.md. |
-| Double validation retrait | Oui (US-007) | Non | Non | **Oui (Sprint4)** | MANQUANT | Endpoints scan/confirm définis dans Sprint4/README.md. |
-| Notifications client | **Oui (US-038)** | Non | Non | **Oui** | MANQUANT | US-038 documentée. Entité `Notification` à créer (Sprint 4). |
-| Notifications marchand | **Oui (US-039)** | Non | Non | **Oui** | MANQUANT | US-039 documentée. Mêmes endpoints (Sprint 4). |
+| QR code retrait | Oui (US-025) | Oui | Oui | **Oui (Sprint4)** | OK | `PickupSession` créée au passage `ready`; QR token exposé côté client. |
+| Double validation retrait | Oui (US-007) | Oui | Oui | **Oui (Sprint4)** | OK | Scan marchand, confirmations client/marchand, `completed` et force completion livrés. |
+| Notifications client | **Oui (US-038)** | Oui | Oui | **Oui** | OK | Notifications in-app persistées, lecture et marquage comme lu côté client. |
+| Notifications marchand | **Oui (US-039)** | Oui | Oui | **Oui** | OK | Notifications in-app persistées, lecture et marquage comme lu côté marchand. |
+| Suivi statut client | Oui (US-026) | Oui | Oui | Oui | OK | `GET /api/me/orders/{orderId}/status`, prévu pour polling simple. |
+| Rappel retrait 1h | Oui (US-064) | Oui | Oui | Oui | OK | Planification Messenger avec `DelayStamp`; production dépend d'un transport async persistant et d'un worker actif. |
 | Historique statuts commande | **Oui (US-040)** | Oui | Oui | Oui | OK | `OrderStatusLog` et endpoints client/marchand livrés. |
 | Admin CRUD Brand/Category | **Oui (US-029)** | Non | Non | **Oui (Sprint5)** | MANQUANT | Endpoints définis dans Sprint5/README.md. |
 | Admin CRUD ProductReference | **Oui (US-029)** | Non | Non | **Oui (Sprint5)** | MANQUANT | Endpoints définis dans Sprint5/README.md. |
@@ -124,22 +126,24 @@ POST /api/merchant/stores/{storeId}/orders/{orderId}/start-preparation
 POST /api/merchant/stores/{storeId}/orders/{orderId}/mark-ready
 ```
 
-### 4. Retrait sécurisé non codé
+### 4. Retrait sécurisé livré
 
 Les US prévoient un QR code de retrait, un token opaque, un scan marchand et une double validation.
 
 **Documenté dans :** Sprint4/README.md, US-025, US-007.
 
-À implémenter (Sprint 4) :
+Livré (Sprint 4) :
 
 ```http
 GET   /api/me/orders/{orderId}/pickup-session
 POST  /api/merchant/pickup-sessions/scan
 PATCH /api/merchant/pickup-sessions/{id}/confirm
 PATCH /api/me/pickup-sessions/{id}/confirm
+PATCH /api/merchant/pickup-sessions/{id}/force-complete
+GET   /api/me/orders/{orderId}/status
 ```
 
-Nouvelle entité `PickupSession` définie dans Sprint4/README.md.
+`PickupSession` porte le token QR opaque, les dates de scan/confirmation, l'usage unique et la force completion. `OrderStatusLog` trace les transitions `ready`, `pickup_pending` et `completed`.
 
 ### 5. Admin incomplet
 
@@ -163,14 +167,14 @@ GET   /api/admin/brands + POST + PATCH
 GET   /api/admin/categories + POST + PATCH
 ```
 
-### 6. Notifications absentes
+### 6. Notifications Sprint 4 livrées
 
 Les notifications sont maintenant cadrées dans un epic dédié.
 
 **Documenté dans :** EPIC-014, US-038 (client), US-039 (marchand), Sprint4/README.md.
 
-À implémenter (Sprint 4) : entité `Notification`, endpoints `/api/me/notifications` et `/api/merchant/notifications`.
-MVP : notifications persistées en base + polling. Push/SMS post-MVP.
+Livré (Sprint 4) : entité `Notification`, endpoints `/api/me/notifications` et `/api/merchant/notifications`.
+MVP : notifications persistées en base + polling. Push/SMS/email/Mercure restent hors périmètre.
 
 ### 7. Sprint 3 backend livré
 
@@ -199,20 +203,16 @@ POST   /api/me/orders/{orderId}/cancel
 GET    /api/me/orders/{orderId}/status-history
 ```
 
-### 8. Limites Sprint 3 restantes
+### 8. Limites restantes après Sprint 4
 
-Ces points ne doivent pas être considérés comme livrés par Sprint 3 :
+Ces points ne doivent pas être considérés comme livrés par Sprint 3/Sprint 4 :
 
-- notifications client/marchand ;
-- QR code de retrait ;
-- `PickupSession` ;
-- scan marchand ;
-- double validation client + marchand ;
-- finalisation opérationnelle `completed` ;
 - créneaux récurrents ;
 - fermetures exceptionnelles ;
 - délai de réponse marchand automatisé ;
 - expiration automatique d'une acceptation partielle ;
+- push mobile, SMS, email et realtime Mercure/WebSocket ;
+- réouverture admin d'une session de retrait expirée ;
 - export et statistiques avancées.
 
 ## Priorités recommandées
@@ -231,15 +231,13 @@ Sans inscription, aucun client ne peut tester le parcours complet en production.
 
 **Statut : livré côté backend.**
 
-La suite du parcours marchand est maintenant répartie entre Sprint 3b (maturité opérationnelle) et Sprint 4 (retrait sécurisé + notifications).
+La suite opérationnelle restante relève de Sprint 3b : récurrence des créneaux, fermetures exceptionnelles, délais automatiques, historique complet.
 
 ### P1 — Sprint 4 : retrait sécurisé et notifications
 
-**Documenté :** Sprint4/README.md, US-007, US-025, US-038, US-039, US-040.
+**Statut : livré côté backend.**
 
-- Entité `PickupSession` (QR code retrait)
-- Endpoints scan/confirm (`POST .../scan`, `PATCH .../confirm`)
-- Entité `Notification` + endpoints client + marchand
+Points à surveiller avant production : transport Messenger async persistant, worker actif, absence de push/SMS/email/Mercure, et verrouillage éventuel des confirmations simultanées si le trafic augmente.
 
 ### P1 — Sprint 5 : administration minimale
 
