@@ -13,6 +13,7 @@ use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\NotificationService;
 use App\Service\OrderTransitionService;
+use App\Service\PickupReminderScheduler;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -30,6 +31,7 @@ final readonly class MerchantMarkReadyProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private OrderTransitionService $orderTransitionService,
         private NotificationService $notificationService,
+        private PickupReminderScheduler $pickupReminderScheduler,
     ) {
     }
 
@@ -69,6 +71,7 @@ final readonly class MerchantMarkReadyProcessor implements ProcessorInterface
         }
 
         $this->entityManager->flush();
+        $this->pickupReminderScheduler->scheduleForReadyOrder($order);
 
         return MerchantOrderCollectionProvider::toOutput($order);
     }

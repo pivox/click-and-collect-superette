@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Notification;
+use App\Entity\Order;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -72,6 +73,14 @@ class NotificationRepository extends ServiceEntityRepository
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    public function existsForOrderAndType(Order $order, string $type): bool
+    {
+        return null !== $this->findOneBy([
+            'order' => $order,
+            'type' => $type,
+        ]);
     }
 
     public function markAllReadForUser(User $user): int
