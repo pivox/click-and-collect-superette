@@ -16,6 +16,7 @@ final readonly class OrderTransitionService
         private EntityManagerInterface $entityManager,
         private OrderStatusLogRecorder $orderStatusLogRecorder,
         private PickupSessionRepository $pickupSessionRepository,
+        private NotificationService $notificationService,
     ) {
     }
 
@@ -43,5 +44,7 @@ final readonly class OrderTransitionService
     {
         $order->complete();
         $this->orderStatusLogRecorder->record($order, OrderStatus::Completed, $note);
+        $this->notificationService->notifyCustomerOrderCompleted($order);
+        $this->notificationService->notifyMerchantPickupCompleted($order);
     }
 }
