@@ -269,8 +269,8 @@ Finaliser la remise avec un QR code de retrait, une double validation et des not
 - Scan marchand → passage en `pickup_pending`.
 - Double validation client + marchand → `completed`.
 - Force complétion marchand si le client ne répond pas dans les 5 minutes.
-- **Notifications client** — transitions clés (acceptée, prête, retirée, rappel, etc.).
-- **Notifications marchand** — nouvelle commande soumise.
+- **Notifications client in-app** — transitions clés (acceptée, prête, retirée, rappel, etc.).
+- **Notifications marchand in-app** — nouvelle commande soumise.
 - **Rappel de retrait** — notification 1 heure avant le créneau si commande `ready` ; planification livrée, contenu détaillé à enrichir.
 - Suivi statut commande côté client par polling.
 
@@ -292,7 +292,7 @@ Finaliser la remise avec un QR code de retrait, une double validation et des not
 
 Une commande `ready` peut être retirée avec un QR code, validée des deux côtés et finalisée. Le client reçoit un rappel 1 heure avant son créneau, avec un contenu encore générique à enrichir. Les notifications sont envoyées à chaque transition clé.
 
-Limite infrastructure : le rappel différé repose sur Symfony Messenger. En production, il nécessite un transport async persistant et un worker actif ; `sync://` ne suffit pas pour garantir un différé réel.
+Limites : les notifications restent in-app uniquement, sans push/SMS/email/Mercure/WebSocket. Le rappel différé repose sur Symfony Messenger ; en production, il nécessite un transport async persistant et un worker actif. `sync://` ne suffit pas pour garantir un différé réel.
 
 ---
 
@@ -410,7 +410,7 @@ La plateforme est opérable et supervisée en production par une équipe réduit
 - Géolocalisation obligatoire.
 - Application mobile native.
 - Notation / avis sur les supérettes.
-- Push mobile / SMS (notifications via polling dans le MVP).
+- Push mobile / SMS / email / Mercure-WebSocket (notifications via polling dans le MVP).
 - Réouverture d'une session de retrait expirée (admin).
 
 ---
