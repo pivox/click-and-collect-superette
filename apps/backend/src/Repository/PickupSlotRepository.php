@@ -41,6 +41,22 @@ class PickupSlotRepository extends ServiceEntityRepository
         ]);
     }
 
+    public function findOneForShopAndRange(
+        Shop $shop,
+        \DateTimeImmutable $startsAt,
+        \DateTimeImmutable $endsAt,
+    ): ?PickupSlot {
+        return $this->createQueryBuilder('slot')
+            ->andWhere('IDENTITY(slot.shop) = :shopId')
+            ->andWhere('slot.startsAt = :startsAt')
+            ->andWhere('slot.endsAt = :endsAt')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('startsAt', $startsAt, Types::DATETIME_IMMUTABLE)
+            ->setParameter('endsAt', $endsAt, Types::DATETIME_IMMUTABLE)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     /**
      * @return list<PickupSlot>
      */
