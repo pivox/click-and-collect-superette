@@ -786,10 +786,11 @@ Réponse génération :
 
 ```json
 {
+  "store_id": "store-uuid",
   "generated_count": 12,
   "skipped_existing_count": 4,
   "horizon_start": "2026-05-16T00:00:00+01:00",
-  "horizon_end": "2026-06-13T23:59:59+01:00"
+  "horizon_end": "2026-06-13T00:00:00+01:00"
 }
 ```
 
@@ -799,9 +800,10 @@ Règles :
 - ownership strict via `Shop.owner` ;
 - génération de `PickupSlot` ponctuels sur 4 semaines ;
 - génération idempotente, sans duplication de créneaux existants ;
+- fenêtre de génération exclusive à `horizon_end`, avec exclusion des créneaux déjà passés au moment de l'appel ;
 - `DELETE` désactive la règle plutôt que de la supprimer physiquement ;
 - les règles inactives ne génèrent plus de créneaux ;
-- les créneaux existants, y compris réservés, ne sont ni modifiés, ni supprimés, ni désactivés par la génération.
+- les créneaux existants ou chevauchants actifs, y compris réservés, ne sont ni modifiés, ni supprimés, ni désactivés par la génération.
 
 ### Fermetures exceptionnelles
 

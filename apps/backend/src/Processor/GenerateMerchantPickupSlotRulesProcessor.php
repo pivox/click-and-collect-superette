@@ -46,6 +46,7 @@ final readonly class GenerateMerchantPickupSlotRulesProcessor implements Process
         $result = $this->pickupSlotRuleGenerator->generateForShop($shop);
 
         return new PickupSlotRuleGenerationOutput(
+            storeId: $shop->getId()->toRfc4122(),
             generatedCount: $result->generatedCount,
             skippedExistingCount: $result->skippedExistingCount,
             horizonStart: $result->horizonStart->format(\DateTimeInterface::ATOM),

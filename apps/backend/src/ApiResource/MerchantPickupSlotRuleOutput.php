@@ -12,7 +12,6 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Dto\MerchantPickupSlotRuleCreateInput;
 use App\Dto\MerchantPickupSlotRulePatchInput;
-use App\Entity\PickupSlotRule;
 use App\Entity\Shop;
 use App\Processor\CreateMerchantPickupSlotRuleProcessor;
 use App\Processor\DeleteMerchantPickupSlotRuleProcessor;
@@ -39,7 +38,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             uriTemplate: '/merchant/stores/{storeId}/pickup-slot-rules/{ruleId}',
             uriVariables: [
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
-                'ruleId' => new Link(fromClass: PickupSlotRule::class, identifiers: ['id']),
+                'ruleId' => new Link(fromClass: MerchantPickupSlotRuleOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             input: MerchantPickupSlotRulePatchInput::class,
@@ -52,7 +51,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             uriTemplate: '/merchant/stores/{storeId}/pickup-slot-rules/{ruleId}',
             uriVariables: [
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
-                'ruleId' => new Link(fromClass: PickupSlotRule::class, identifiers: ['id']),
+                'ruleId' => new Link(fromClass: MerchantPickupSlotRuleOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             read: false,
@@ -66,7 +65,7 @@ final readonly class MerchantPickupSlotRuleOutput
 {
     public function __construct(
         #[Groups(['merchant_pickup_slot_rule:read'])]
-        #[ApiProperty(identifier: false)]
+        #[ApiProperty(identifier: true)]
         public string $id,
         #[Groups(['merchant_pickup_slot_rule:read'])]
         public int $weekday,

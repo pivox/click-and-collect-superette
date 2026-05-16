@@ -35,6 +35,9 @@ final readonly class PickupSlotRuleGenerationOutput
     public function __construct(
         #[Groups(['pickup_slot_rule_generation:read'])]
         #[ApiProperty(identifier: true)]
+        #[SerializedName('store_id')]
+        public string $storeId,
+        #[Groups(['pickup_slot_rule_generation:read'])]
         #[SerializedName('generated_count')]
         public int $generatedCount,
         #[Groups(['pickup_slot_rule_generation:read'])]
