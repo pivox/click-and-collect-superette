@@ -15,6 +15,7 @@ use App\Provider\MerchantOrderCollectionProvider;
 use App\Repository\OrderRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -33,6 +34,7 @@ final readonly class MerchantPartiallyAcceptOrderProcessor implements ProcessorI
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
         private OrderStatusLogRecorder $orderStatusLogRecorder,
+        private NotificationService $notificationService,
     ) {
     }
 
@@ -121,6 +123,7 @@ final readonly class MerchantPartiallyAcceptOrderProcessor implements ProcessorI
 
                 $kadhia->setStatus(KadhiaStatus::Draft);
                 $this->orderStatusLogRecorder->record($order, OrderStatus::PartiallyAccepted, $data->notes);
+                $this->notificationService->notifyCustomerOrderPartiallyAccepted($order);
                 $this->entityManager->flush();
             });
         } catch (\LogicException $e) {
