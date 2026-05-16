@@ -9,6 +9,7 @@ use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\PickupSlotCollectionOutput;
 use App\ApiResource\PickupSlotOutput;
 use App\Entity\PickupSlot;
+use App\Repository\ExceptionalClosureRepository;
 use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -22,6 +23,7 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
     public function __construct(
         private ShopRepository $shopRepository,
         private PickupSlotRepository $pickupSlotRepository,
+        private ExceptionalClosureRepository $exceptionalClosureRepository,
     ) {
     }
 
@@ -41,6 +43,12 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
             throw new NotFoundHttpException('STORE_NOT_FOUND');
         }
 
+        $activeClosures = $this->exceptionalClosureRepository->findActiveForShop($shop);
+        $availableSlots = array_values(array_filter(
+            $this->pickupSlotRepository->findAvailableForShop($shop),
+            static fn (PickupSlot $slot): bool => !self::overlapsActiveClosure($activeClosures, $slot),
+        ));
+
         $items = array_map(
             static fn (PickupSlot $slot): PickupSlotOutput => new PickupSlotOutput(
                 id: $slot->getId()->toRfc4122(),
@@ -49,9 +57,23 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
                 capacity: $slot->getCapacity(),
                 availableCount: $slot->getAvailableCount(),
             ),
-            $this->pickupSlotRepository->findAvailableForShop($shop),
+            $availableSlots,
         );
 
         return new PickupSlotCollectionOutput($storeId, $items);
+    }
+
+    /**
+     * @param list<\App\Entity\ExceptionalClosure> $activeClosures
+     */
+    private static function overlapsActiveClosure(array $activeClosures, PickupSlot $slot): bool
+    {
+        foreach ($activeClosures as $closure) {
+            if ($closure->getStartsAt() < $slot->getEndsAt() && $closure->getEndsAt() > $slot->getStartsAt()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

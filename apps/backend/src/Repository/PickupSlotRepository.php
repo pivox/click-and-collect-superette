@@ -101,6 +101,47 @@ class PickupSlotRepository extends ServiceEntityRepository
         return false;
     }
 
+    public function hasActiveBookedOverlapForShop(
+        Shop $shop,
+        \DateTimeImmutable $startsAt,
+        \DateTimeImmutable $endsAt,
+    ): bool {
+        return null !== $this->createQueryBuilder('slot')
+            ->andWhere('IDENTITY(slot.shop) = :shopId')
+            ->andWhere('slot.isActive = true')
+            ->andWhere('slot.bookedCount > 0')
+            ->andWhere('slot.startsAt < :endsAt')
+            ->andWhere('slot.endsAt > :startsAt')
+            ->setMaxResults(1)
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('startsAt', $startsAt, Types::DATETIME_IMMUTABLE)
+            ->setParameter('endsAt', $endsAt, Types::DATETIME_IMMUTABLE)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * @return list<PickupSlot>
+     */
+    public function findActiveUnbookedOverlappingForShop(
+        Shop $shop,
+        \DateTimeImmutable $startsAt,
+        \DateTimeImmutable $endsAt,
+    ): array {
+        return $this->createQueryBuilder('slot')
+            ->andWhere('IDENTITY(slot.shop) = :shopId')
+            ->andWhere('slot.isActive = true')
+            ->andWhere('slot.bookedCount = 0')
+            ->andWhere('slot.startsAt < :endsAt')
+            ->andWhere('slot.endsAt > :startsAt')
+            ->orderBy('slot.startsAt', 'ASC')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('startsAt', $startsAt, Types::DATETIME_IMMUTABLE)
+            ->setParameter('endsAt', $endsAt, Types::DATETIME_IMMUTABLE)
+            ->getQuery()
+            ->getResult();
+    }
+
     /**
      * Returns active, non-full, future slots for a shop, ordered by start time.
      *

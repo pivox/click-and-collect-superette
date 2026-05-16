@@ -200,6 +200,7 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
         self::assertSame(4, $payload['generated_count']);
         self::assertSame(0, $payload['skipped_existing_count']);
+        self::assertSame(0, $payload['skipped_closure_count']);
         self::assertArrayHasKey('horizon_start', $payload);
         self::assertArrayHasKey('horizon_end', $payload);
 
@@ -243,8 +244,10 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         $secondPayload = $this->decodeJson($secondResponse);
         self::assertSame(3, $firstPayload['generated_count']);
         self::assertSame(1, $firstPayload['skipped_existing_count']);
+        self::assertSame(0, $firstPayload['skipped_closure_count']);
         self::assertSame(0, $secondPayload['generated_count']);
         self::assertSame(4, $secondPayload['skipped_existing_count']);
+        self::assertSame(0, $secondPayload['skipped_closure_count']);
 
         $storedExisting = $this->entityManager->getRepository(PickupSlot::class)->find($existing->getId());
         self::assertNotNull($storedExisting);

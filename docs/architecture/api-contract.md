@@ -735,9 +735,9 @@ Règles :
 
 ## Sprint 3b — Opérations marchand
 
-Statut : **S3B-001 en livraison backend pour les créneaux récurrents ; autres contrats à implémenter**.
+Statut : **S3B-001 et S3B-002 livrés côté backend ; autres contrats à implémenter**.
 
-Les contrats ci-dessous sont les routes Sprint 3b. Les règles de créneaux récurrents sont livrées par S3B-001 ; les autres sections restent des cibles tant que les PR correspondantes ne sont pas livrées.
+Les contrats ci-dessous sont les routes Sprint 3b. Les règles de créneaux récurrents sont livrées par S3B-001 et les fermetures exceptionnelles par S3B-002 ; les autres sections restent des cibles tant que les PR correspondantes ne sont pas livrées.
 
 ### Règles de créneaux récurrents
 
@@ -789,6 +789,7 @@ Réponse génération :
   "store_id": "store-uuid",
   "generated_count": 12,
   "skipped_existing_count": 4,
+  "skipped_closure_count": 2,
   "horizon_start": "2026-05-16T00:00:00+01:00",
   "horizon_end": "2026-06-13T00:00:00+01:00"
 }
@@ -804,22 +805,56 @@ Règles :
 - `DELETE` désactive la règle plutôt que de la supprimer physiquement ;
 - les règles inactives ne génèrent plus de créneaux ;
 - les créneaux existants ou chevauchants actifs, y compris réservés, ne sont ni modifiés, ni supprimés, ni désactivés par la génération.
+- les fermetures exceptionnelles actives de la même supérette sont ignorées avec `skipped_closure_count`.
 
 ### Fermetures exceptionnelles
+
+Statut : **livré S3B-002**.
 
 ```http
 GET    /api/merchant/stores/{storeId}/exceptional-closures
 POST   /api/merchant/stores/{storeId}/exceptional-closures
-PATCH  /api/merchant/stores/{storeId}/exceptional-closures/{id}
-DELETE /api/merchant/stores/{storeId}/exceptional-closures/{id}
+PATCH  /api/merchant/stores/{storeId}/exceptional-closures/{closureId}
+DELETE /api/merchant/stores/{storeId}/exceptional-closures/{closureId}
 ```
 
-Règles cibles :
+Contrat `POST/PATCH` :
+
+```json
+{
+  "starts_at": "2026-05-20T08:00:00+01:00",
+  "ends_at": "2026-05-20T18:00:00+01:00",
+  "reason": "Fermeture inventaire"
+}
+```
+
+Réponse item :
+
+```json
+{
+  "id": "exceptional-closure-uuid",
+  "starts_at": "2026-05-20T08:00:00+01:00",
+  "ends_at": "2026-05-20T18:00:00+01:00",
+  "reason": "Fermeture inventaire",
+  "is_active": true
+}
+```
+
+Règles :
 
 - marchand connecté uniquement ;
 - ownership strict via `Shop.owner` ;
+- `starts_at` et `ends_at` sont obligatoires, avec `starts_at < ends_at` ;
+- `reason` est optionnel, trimé et limité à 255 caractères ;
 - une fermeture bloque la génération de nouveaux créneaux dans sa plage ;
-- elle ne supprime pas les règles récurrentes.
+- elle ne supprime pas les règles récurrentes ;
+- si des créneaux actifs non réservés existent dans la plage, ils sont désactivés ;
+- si un créneau actif réservé existe dans la plage, la création ou modification est refusée (`409 EXCEPTIONAL_CLOSURE_HAS_BOOKED_SLOTS`) ;
+- un créneau ponctuel actif ne peut pas être créé, modifié ou réactivé dans une fermeture active (`422 PICKUP_SLOT_OVERLAPS_EXCEPTIONAL_CLOSURE`) ;
+- la liste publique des créneaux disponibles et la soumission de Kadhia refusent les créneaux qui chevauchent une fermeture active ;
+- `DELETE` désactive la fermeture sans suppression physique ;
+- supprimer une fermeture ne réactive pas automatiquement les créneaux désactivés ;
+- réduire la plage d'une fermeture par `PATCH` ne réactive pas automatiquement les créneaux désactivés par l'ancienne plage ; le marchand peut relancer la génération ou recréer les créneaux nécessaires.
 
 ### Heures d'ouverture
 

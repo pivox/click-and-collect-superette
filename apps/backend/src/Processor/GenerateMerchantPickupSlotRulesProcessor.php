@@ -49,6 +49,7 @@ final readonly class GenerateMerchantPickupSlotRulesProcessor implements Process
             storeId: $shop->getId()->toRfc4122(),
             generatedCount: $result->generatedCount,
             skippedExistingCount: $result->skippedExistingCount,
+            skippedClosureCount: $result->skippedClosureCount,
             horizonStart: $result->horizonStart->format(\DateTimeInterface::ATOM),
             horizonEnd: $result->horizonEnd->format(\DateTimeInterface::ATOM),
         );
