@@ -17,6 +17,7 @@ use App\Factory\OrderOutputFactory;
 use App\Repository\KadhiaRepository;
 use App\Repository\OrderRepository;
 use App\Repository\PickupSlotRepository;
+use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -38,6 +39,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         private OrderStatusLogRecorder $orderStatusLogRecorder,
         private OrderOutputFactory $orderOutputFactory,
         private Security $security,
+        private NotificationService $notificationService,
     ) {
     }
 
@@ -171,6 +173,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         }
 
         $kadhia->setStatus(KadhiaStatus::Submitted);
+        $this->notificationService->notifyMerchantOrderSubmitted($order);
         $this->entityManager->flush();
 
         return $this->orderOutputFactory->toOutput($order);
@@ -249,6 +252,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $this->orderStatusLogRecorder->record($order, OrderStatus::Submitted);
 
         $kadhia->setStatus(KadhiaStatus::Submitted);
+        $this->notificationService->notifyMerchantOrderSubmitted($order);
         $this->entityManager->flush();
 
         return $this->orderOutputFactory->toOutput($order);

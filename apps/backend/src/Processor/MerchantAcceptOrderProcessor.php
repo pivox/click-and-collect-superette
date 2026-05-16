@@ -12,6 +12,7 @@ use App\Provider\MerchantOrderCollectionProvider;
 use App\Repository\OrderRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -29,6 +30,7 @@ final readonly class MerchantAcceptOrderProcessor implements ProcessorInterface
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
         private OrderStatusLogRecorder $orderStatusLogRecorder,
+        private NotificationService $notificationService,
     ) {
     }
 
@@ -63,6 +65,7 @@ final readonly class MerchantAcceptOrderProcessor implements ProcessorInterface
         try {
             $order->accept();
             $this->orderStatusLogRecorder->record($order, OrderStatus::Accepted);
+            $this->notificationService->notifyCustomerOrderAccepted($order);
         } catch (\LogicException $e) {
             throw new ConflictHttpException($e->getMessage());
         }

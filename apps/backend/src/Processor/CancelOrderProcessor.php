@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Enum\OrderStatus;
 use App\Factory\OrderOutputFactory;
 use App\Repository\OrderRepository;
+use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -30,6 +31,7 @@ final readonly class CancelOrderProcessor implements ProcessorInterface
         private OrderStatusLogRecorder $orderStatusLogRecorder,
         private OrderOutputFactory $orderOutputFactory,
         private Security $security,
+        private NotificationService $notificationService,
     ) {
     }
 
@@ -67,6 +69,7 @@ final readonly class CancelOrderProcessor implements ProcessorInterface
             );
         }
         $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled);
+        $this->notificationService->notifyMerchantOrderCancelled($order);
 
         $this->entityManager->flush();
 

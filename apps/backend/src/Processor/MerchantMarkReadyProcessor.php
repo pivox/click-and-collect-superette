@@ -11,6 +11,7 @@ use App\Provider\MerchantOrderCollectionProvider;
 use App\Repository\OrderRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\NotificationService;
 use App\Service\OrderTransitionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -28,6 +29,7 @@ final readonly class MerchantMarkReadyProcessor implements ProcessorInterface
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
         private OrderTransitionService $orderTransitionService,
+        private NotificationService $notificationService,
     ) {
     }
 
@@ -61,6 +63,7 @@ final readonly class MerchantMarkReadyProcessor implements ProcessorInterface
 
         try {
             $this->orderTransitionService->markReady($order);
+            $this->notificationService->notifyCustomerOrderReady($order);
         } catch (\LogicException $e) {
             throw new ConflictHttpException($e->getMessage());
         }
