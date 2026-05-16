@@ -38,9 +38,7 @@ final readonly class MerchantPickupSessionForceCompleteProcessor implements Proc
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): MerchantPickupSessionForceCompleteOutput
     {
-        if (!$data instanceof MerchantPickupSessionForceCompleteInput) {
-            throw new \InvalidArgumentException('MerchantPickupSessionForceCompleteInput expected.');
-        }
+        \assert($data instanceof MerchantPickupSessionForceCompleteInput);
 
         $pickupSessionId = (string) ($uriVariables['id'] ?? '');
         $pickupSession = $this->pickupSessionRepository->findOneByIdWithOrder($pickupSessionId);
@@ -51,8 +49,11 @@ final readonly class MerchantPickupSessionForceCompleteProcessor implements Proc
         $order = $pickupSession->getOrder();
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($order->getShop());
 
-        // A consumed session or completed order must not proceed further.
-        if ($pickupSession->isUsed() || OrderStatus::Completed === $order->getStatus()) {
+        if (OrderStatus::Completed === $order->getStatus()) {
+            throw new ConflictHttpException('ORDER_ALREADY_COMPLETED');
+        }
+
+        if ($pickupSession->isUsed()) {
             throw new ConflictHttpException('PICKUP_SESSION_ALREADY_USED');
         }
 

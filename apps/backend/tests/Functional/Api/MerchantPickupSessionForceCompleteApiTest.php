@@ -333,7 +333,7 @@ final class MerchantPickupSessionForceCompleteApiTest extends FunctionalApiTestC
         );
 
         self::assertSame(409, $response->getStatusCode());
-        self::assertStringContainsString('PICKUP_SESSION_ALREADY_USED', (string) $response->getContent());
+        self::assertStringContainsString('ORDER_ALREADY_COMPLETED', (string) $response->getContent());
     }
 
     public function testCustomerAlreadyConfirmedReturns409(): void
@@ -492,7 +492,7 @@ final class MerchantPickupSessionForceCompleteApiTest extends FunctionalApiTestC
         );
         self::assertSame(200, $firstResponse->getStatusCode());
 
-        // Second call: session is now used → 409, not a duplicate log
+        // Second call: order is now completed → 409, not a duplicate log
         $secondResponse = $this->requestJson(
             'PATCH',
             \sprintf('/api/merchant/pickup-sessions/%s/force-complete', $pickupSession->getId()->toRfc4122()),
@@ -500,7 +500,7 @@ final class MerchantPickupSessionForceCompleteApiTest extends FunctionalApiTestC
             $merchant,
         );
         self::assertSame(409, $secondResponse->getStatusCode());
-        self::assertStringContainsString('PICKUP_SESSION_ALREADY_USED', (string) $secondResponse->getContent());
+        self::assertStringContainsString('ORDER_ALREADY_COMPLETED', (string) $secondResponse->getContent());
 
         $this->entityManager->clear();
         $updatedOrder = $this->entityManager->getRepository(Order::class)->find($order->getId());
