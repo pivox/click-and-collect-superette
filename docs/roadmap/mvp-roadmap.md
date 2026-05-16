@@ -256,7 +256,7 @@ Le marchand complète la gestion opérationnelle au-delà des créneaux ponctuel
 
 ---
 
-## Sprint 4 — Retrait sécurisé 🟠 P1
+## Sprint 4 — Retrait sécurisé ✅ Backend terminé
 
 ### Objectif
 
@@ -265,14 +265,14 @@ Finaliser la remise avec un QR code de retrait, une double validation et des not
 ### Fonctionnalités
 
 - Génération du QR code de retrait (token `PickupSession`) lors du passage en `ready`.
-- Affichage du QR code côté client (grande taille, luminosité max).
+- Affichage du QR code côté client via API.
 - Scan marchand → passage en `pickup_pending`.
 - Double validation client + marchand → `completed`.
 - Force complétion marchand si le client ne répond pas dans les 5 minutes.
-- **Notifications client** — transitions clés (acceptée, prête, etc.).
+- **Notifications client** — transitions clés (acceptée, prête, retirée, rappel, etc.).
 - **Notifications marchand** — nouvelle commande soumise.
-- **Rappel de retrait** — notification 1 heure avant le créneau si commande `ready`.
-- Suivi statut commande côté client (polling 30s).
+- **Rappel de retrait** — notification 1 heure avant le créneau si commande `ready` ; planification livrée, contenu détaillé à enrichir.
+- Suivi statut commande côté client par polling.
 
 ### User stories
 
@@ -288,9 +288,11 @@ Finaliser la remise avec un QR code de retrait, une double validation et des not
 - `PickupSession` (nouvelle entité).
 - `Notification` (nouvelle entité).
 
-### Critère de sortie
+### Critère de sortie ✅
 
-Une commande `ready` peut être retirée avec un QR code, validée des deux côtés et finalisée. Le client reçoit un rappel 1 heure avant son créneau. Les notifications sont envoyées à chaque transition clé.
+Une commande `ready` peut être retirée avec un QR code, validée des deux côtés et finalisée. Le client reçoit un rappel 1 heure avant son créneau, avec un contenu encore générique à enrichir. Les notifications sont envoyées à chaque transition clé.
+
+Limite infrastructure : le rappel différé repose sur Symfony Messenger. En production, il nécessite un transport async persistant et un worker actif ; `sync://` ne suffit pas pour garantir un différé réel.
 
 ---
 
@@ -423,7 +425,7 @@ La plateforme est opérable et supervisée en production par une équipe réduit
 | Sprint 2 | US-001 à US-004, US-017 à US-021, US-031 à US-033, US-042, US-044, US-048 | P0 | ✅ Partiel (3 US manquantes) |
 | Sprint 3 | US-005, US-006, US-022, US-023, US-024, US-036, US-037, US-040, US-045, US-051 | P0 | ✅ Backend terminé |
 | Sprint 3b | US-043, US-047, US-049, US-052, US-053, US-056, US-057 | P1 | 🔴 À coder |
-| Sprint 4 | US-007, US-025, US-026, US-038, US-039, US-064 | P1 | 🔴 À coder |
+| Sprint 4 | US-007, US-025, US-026, US-038, US-039, US-064 | P1 | ✅ Backend terminé |
 | Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | 🔴 À coder |
 | Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
 | Sprint 7 | US-008, US-058, US-059, US-060, US-061, US-062, US-063 | P2 | 🟡 À implémenter |

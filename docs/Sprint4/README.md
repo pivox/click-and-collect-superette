@@ -1,85 +1,54 @@
 # Sprint 4 — Retrait sécurisé
 
+## Statut
+
+**Backend terminé.**
+
+Sprint 4 finalise le retrait physique en supérette : QR code de retrait, scan marchand, passage en `pickup_pending`, double validation client + marchand, finalisation `completed`, force completion contrôlée et notifications in-app.
+
+Cette clôture ne couvre pas les notifications push, SMS, email, Mercure/WebSocket, ni la réouverture admin d'une session expirée.
+
 ## Objectif du sprint
 
-Sprint 4 finalise le cycle de vie d'une commande avec la remise physique en supérette : génération d'un QR code de retrait, scan marchand, double validation client + marchand, et finalisation.
+Permettre à un client de récupérer sa Kadhia avec un retrait sécurisé :
 
-Le client peut présenter son QR code, le marchand le scanne, les deux parties confirment et la commande est finalisée.
+1. la commande passe en `ready` ;
+2. une `PickupSession` est créée automatiquement ;
+3. le client récupère le token/QR de retrait ;
+4. le marchand scanne le QR ;
+5. la commande passe en `pickup_pending` ;
+6. le marchand confirme la remise ;
+7. le client confirme la réception ;
+8. la commande passe en `completed`.
 
-## Parcours cible
+Si le client ne confirme pas après scan et confirmation marchand, le marchand peut forcer la complétion après 5 minutes avec une note obligatoire.
 
-```text
-Commande en statut ready
-→ le client reçoit une notification « Kadhia prête ! »
-→ le client affiche le QR code de retrait sur son téléphone
-→ le marchand scanne le QR code
-→ la commande passe en pickup_pending
-→ le marchand confirme la remise
-→ le client confirme la réception
-→ la commande passe en completed
-```
+## PRs livrées
 
-## Décisions produit
-
-- Le QR code encode un token opaque (`PickupSession.token`, UUID v4).
-- Le token est généré lors du passage en statut `ready` (par `MerchantMarkReadyProcessor`).
-- Le token a une durée de validité de 24 heures.
-- Le scan marchand précède la confirmation client. Le client ne peut pas confirmer seul.
-- Si le client ne confirme pas dans les 5 minutes après le scan marchand, le marchand peut forcer la complétion avec une note.
-- Un token déjà utilisé est refusé (usage unique).
-- En cas de QR code expiré, la commande reste en `ready` et un nouveau token peut être régénéré par l'admin.
-- Les notifications sont envoyées aux transitions clés (US-038 et US-039).
+| PR | Sujet | Statut |
+|---|---|---|
+| #69 | Socle `PickupSession` + `Notification`, repositories, création de session au passage `ready` | Livré |
+| #70 | Lecture QR côté client | Livré |
+| #76 | Scan marchand du QR | Livré |
+| #77 | Confirmation marchand | Livré |
+| #81 | Confirmation client + finalisation `completed` | Livré |
+| #82 | Force completion marchand | Livré |
+| #83 | Notifications client/marchand | Livré |
+| #84 | Suivi statut commande client | Livré |
+| #85 | Rappel retrait 1h avant créneau | Partiel : planification livrée, contenu encore générique |
 
 ## User stories concernées
 
-| US | Sujet | Epic | Statut |
-|---|---|---|---|
-| US-025 | Afficher le QR code de retrait (client) | EPIC-007 | Existante |
-| US-007 | Double validation retrait | EPIC-007 | Existante |
-| US-026 | Suivre le statut de sa commande | EPIC-007 | Existante |
-| US-038 | Notifications client | EPIC-014 | Ajoutée |
-| US-039 | Notifications marchand | EPIC-014 | Ajoutée |
-| US-064 | Rappel de retrait avant expiration du créneau | EPIC-014 | Ajoutée |
+| US | Sujet | Statut backend |
+|---|---|---|
+| US-025 | Afficher le QR code de retrait côté client | Livré |
+| US-007 | Double validation du retrait | Livré |
+| US-026 | Suivre le statut de sa commande | Livré |
+| US-038 | Notifications client | Livré |
+| US-039 | Notifications marchand | Livré |
+| US-064 | Rappel de retrait avant expiration du créneau | Partiel : planification livrée, contenu encore générique |
 
-## Modèle métier à prévoir
-
-### Entité `PickupSession`
-
-```text
-pickup_sessions
-- id (uuid)
-- order_id (unique)
-- token (uuid, unique)
-- generated_at
-- expires_at (generated_at + 24h)
-- scanned_at (nullable)
-- merchant_confirmed_at (nullable)
-- customer_confirmed_at (nullable)
-- is_used (bool, default false)
-- force_completed_by_merchant (bool, default false)
-- force_note (varchar 500, nullable)
-- created_at
-
-INDEX(token)
-INDEX(order_id)
-```
-
-### Entité `Notification`
-
-```text
-notifications
-- id (uuid)
-- user_id
-- order_id (uuid, nullable)
-- title_fr, title_ar
-- body_fr, body_ar
-- is_read (bool, default false)
-- created_at
-
-INDEX(user_id, is_read, created_at)
-```
-
-## Endpoints Sprint 4
+## Endpoints livrés
 
 ### Client — QR code de retrait
 
@@ -88,15 +57,24 @@ GET /api/me/orders/{orderId}/pickup-session
 ```
 
 Réponse :
+
 ```json
 {
-  "id": "<uuid>",
+  "id": "<pickup-session-uuid>",
   "token": "<uuid>",
   "expires_at": "2026-05-15T14:00:00+01:00",
   "is_used": false,
+  "is_expired": false,
   "qr_payload": "<uuid>"
 }
 ```
+
+Règles :
+
+- réservé au client propriétaire de la commande ;
+- la commande doit être `ready` ;
+- le token exposé est le payload opaque du QR de retrait ;
+- le token est un UUID et n'est exposé qu'au client propriétaire via cette route.
 
 ### Marchand — scan QR
 
@@ -105,11 +83,23 @@ POST /api/merchant/pickup-sessions/scan
 ```
 
 Payload :
+
 ```json
-{ "token": "<uuid>" }
+{
+  "token": "<pickup-session-token-uuid>"
+}
 ```
 
-Réponse 200 avec l'`OrderOutput` en statut `pickup_pending`.
+Règles :
+
+- réservé à `ROLE_MERCHANT` ;
+- vérifie que le marchand est propriétaire de la supérette liée à la commande ;
+- refuse un token inconnu, expiré ou déjà utilisé ;
+- vérifie que la commande est en `ready` ;
+- renseigne `scannedAt` ;
+- passe la commande de `ready` à `pickup_pending` ;
+- écrit un `OrderStatusLog` en statut `pickup_pending` ;
+- un scan répété reste idempotent tant que la session est scannée et la commande encore `pickup_pending`.
 
 ### Marchand — confirmation remise
 
@@ -117,54 +107,218 @@ Réponse 200 avec l'`OrderOutput` en statut `pickup_pending`.
 PATCH /api/merchant/pickup-sessions/{id}/confirm
 ```
 
+Règles :
+
+- réservé au marchand propriétaire de la supérette ;
+- la session doit exister, être scannée et non utilisée ;
+- la commande doit être `pickup_pending` ;
+- renseigne `merchantConfirmedAt` ;
+- la confirmation marchand seule ne finalise pas la commande ;
+- si le client avait déjà confirmé, la commande passe en `completed`.
+
 ### Client — confirmation réception
 
 ```http
 PATCH /api/me/pickup-sessions/{id}/confirm
 ```
 
-### Client et marchand — notifications
+Règles :
+
+- réservé au client propriétaire de la commande ;
+- la session doit être scannée et non utilisée ;
+- la commande doit être `pickup_pending` ;
+- renseigne `customerConfirmedAt` ;
+- si le marchand avait déjà confirmé, la commande passe en `completed`.
+
+### Marchand — force completion
+
+```http
+PATCH /api/merchant/pickup-sessions/{id}/force-complete
+```
+
+Payload :
+
+```json
+{
+  "note": "Client parti sans confirmer sur son téléphone."
+}
+```
+
+Règles :
+
+- réservé au marchand propriétaire de la supérette ;
+- scan déjà effectué ;
+- commande en `pickup_pending` ;
+- confirmation marchand déjà faite ;
+- client non confirmé ;
+- délai minimal de 5 minutes après scan ;
+- note obligatoire ;
+- finalise la commande en `completed` ;
+- marque la session utilisée et `forceCompletedByMerchant=true`.
+
+### Client — notifications
 
 ```http
 GET   /api/me/notifications?page=1&unread=true
 PATCH /api/me/notifications/{id}/read
 PATCH /api/me/notifications/read-all
+```
 
+### Marchand — notifications
+
+```http
 GET   /api/merchant/notifications?page=1&unread=true
 PATCH /api/merchant/notifications/{id}/read
 PATCH /api/merchant/notifications/read-all
 ```
 
-### Historique de statuts (client et marchand)
+Règles notifications :
+
+- notifications in-app persistées en base ;
+- pagination simple par `page` ;
+- filtre optionnel `unread=true` ;
+- marquage unitaire ou global comme lu ;
+- pas de push mobile, SMS, email, Mercure ou WebSocket dans le MVP backend actuel.
+
+### Client — suivi statut commande
 
 ```http
-GET /api/me/orders/{orderId}/status-history
-GET /api/merchant/stores/{storeId}/orders/{orderId}/status-history
+GET /api/me/orders/{orderId}/status
 ```
 
-## Règles de transition complètes
+Règles :
 
-| De | Vers | Déclenché par |
-|---|---|---|
-| `ready` | `pickup_pending` | Scan marchand `POST .../scan` |
-| `pickup_pending` | `completed` | Confirmation marchand + client |
-| `pickup_pending` | `completed` | Force marchand si timeout client |
+- réservé au client propriétaire de la commande ;
+- retourne le statut courant, les libellés FR/AR, `updated_at` et l'état synthétique de la `PickupSession` ;
+- prévu pour un polling frontend simple.
+
+## Règles de transition Sprint 4
+
+| De | Vers | Déclencheur | Log |
+|---|---|---|---|
+| `preparing` | `ready` | `POST /api/merchant/stores/{storeId}/orders/{orderId}/mark-ready` | `ready` |
+| `ready` | `pickup_pending` | `POST /api/merchant/pickup-sessions/scan` | `pickup_pending` |
+| `pickup_pending` | `completed` | Confirmation client + marchand | `completed` |
+| `pickup_pending` | `completed` | Force completion marchand | `completed` avec note |
+
+`OrderStatusLog` trace les transitions clés `ready`, `pickup_pending` et `completed`.
+
+## Modèle de données utilisé
+
+### `PickupSession`
+
+- `id` UUID ;
+- `order` relation unique ;
+- `token` UUID opaque unique ;
+- `generatedAt` ;
+- `expiresAt` ;
+- `scannedAt` nullable ;
+- `merchantConfirmedAt` nullable ;
+- `customerConfirmedAt` nullable ;
+- `used` ;
+- `forceCompletedByMerchant` ;
+- `forceNote` nullable ;
+- `createdAt`.
+
+Le token a une durée de validité de 24 heures. L'expiration bloque le scan initial. Après scan et passage en `pickup_pending`, l'expiration ne bloque plus les confirmations afin de permettre de terminer un retrait déjà engagé.
+
+### `Notification`
+
+- `id` UUID ;
+- `user` ;
+- `order` nullable ;
+- `titleFr`, `titleAr` ;
+- `bodyFr`, `bodyAr` ;
+- `type` nullable ;
+- `read` ;
+- `createdAt`.
+
+Le type `pickup_reminder` est unique par commande afin d'éviter les doublons de rappel.
+
+## Notifications livrées
+
+Notifications client :
+
+- commande acceptée ;
+- commande refusée ;
+- commande partiellement acceptée ;
+- commande en préparation ;
+- commande prête ;
+- rappel de retrait avec contenu générique ;
+- commande retirée.
+
+Notifications marchand :
+
+- nouvelle commande soumise ;
+- commande annulée par le client ;
+- retrait finalisé.
+
+## Rappel de retrait 1h
+
+Le rappel de retrait est planifié lors du passage en `ready` :
+
+- si le créneau démarre dans plus d'une heure, un message Messenger est dispatché avec `DelayStamp` ;
+- si le créneau démarre dans moins d'une heure, le message est dispatché immédiatement ;
+- le handler crée une notification client uniquement si la commande est toujours `ready`, si la session n'est pas utilisée/scannée et si le créneau n'est pas commencé.
+
+Limites importantes :
+
+- le contenu du rappel ne contient pas encore le nom de la supérette, l'heure du créneau et le numéro de commande demandés par l'US-064 ;
+- le transport Messenger local peut être `sync://` ou `in-memory://` en test. Un vrai différé en production nécessite un transport async persistant et un worker actif ;
+- après scan, la confirmation client et la force completion ne bloquent plus sur le TTL ; la confirmation marchand conserve encore un garde d'expiration côté processor et doit être revue si l'on veut une règle strictement identique pour les deux confirmations.
+
+## Vérifications connues
+
+Résultats issus des PRs Sprint 4 précédentes :
+
+- PR #82 : suite complète 558 tests, 2146 assertions ;
+- PR #83 : suite complète 586 tests, 2243 assertions ;
+- PR #85 : suite complète 618 tests, 2367 assertions ;
+- PHPStan OK ;
+- PHP CS Fixer dry-run OK ;
+- `composer validate --no-check-publish` OK ;
+- Doctrine schema validate : mapping OK, validation DB locale bloquée par le rôle PostgreSQL `app` inexistant.
+
+## Limites connues
+
+- Notifications in-app uniquement.
+- Pas de push mobile.
+- Pas de SMS.
+- Pas d'email.
+- Pas de Mercure/WebSocket.
+- Pas de réouverture admin d'une session expirée dans le MVP.
+- Le rappel 1h dépend d'un transport Messenger async persistant et d'un worker actif en production.
+- Les confirmations simultanées ne sont pas sérialisées par un verrou pessimiste dédié ; le risque de concurrence reste à traiter si le trafic de retrait augmente.
+- La confirmation marchand conserve encore un contrôle d'expiration après scan, contrairement à la confirmation client et à la force completion.
+- Le contenu du rappel US-064 reste générique et doit être enrichi avec nom de supérette, heure de créneau et numéro de commande.
 
 ## Hors périmètre Sprint 4
 
-- Push mobile / SMS.
-- Mercure temps réel (post-MVP).
-- Réouverture d'une session de retrait expirée (admin).
 - Paiement en ligne.
+- Livraison.
+- Notifications externes SMS/email/push.
+- Realtime Mercure/WebSocket.
+- Réouverture admin de session expirée.
+- Créneaux récurrents et fermetures exceptionnelles.
+- Administration minimale des supérettes et marchands.
 
-## Définition de fini globale
+## Critère de sortie
 
-Le Sprint 4 est cohérent lorsque :
+Sprint 4 est terminé côté backend lorsque :
 
-1. Un client peut afficher son QR code de retrait pour une commande `ready`.
-2. Un marchand peut scanner le QR et passer la commande en `pickup_pending`.
-3. Les deux parties peuvent confirmer la remise pour passer en `completed`.
-4. Les notifications sont créées aux transitions clés et lisibles via l'API.
-5. L'historique des transitions est accessible et horodaté.
-6. Un QR code déjà utilisé est refusé.
-7. Un QR code expiré affiche un message explicite.
+1. une commande `ready` génère une `PickupSession` ;
+2. le client peut récupérer le QR de retrait ;
+3. le marchand peut scanner le QR et passer la commande en `pickup_pending` ;
+4. client et marchand peuvent confirmer le retrait ;
+5. la double validation finalise la commande en `completed` ;
+6. le marchand peut forcer la complétion après 5 minutes si le client ne confirme pas ;
+7. les notifications in-app sont créées et consultables ;
+8. le client peut suivre le statut de sa commande ;
+9. le rappel de retrait 1h est planifié via Messenger ;
+10. les limites techniques sont explicites.
+
+## Suite recommandée
+
+1. **Sprint 3b** — maturité opérationnelle marchand : créneaux récurrents, fermetures exceptionnelles, délais automatiques, historique complet.
+2. **Sprint 5** — administration minimale : création supérettes, comptes marchands, référentiel produit admin.
+3. **Sprint 7** — production/localisation : worker Messenger supervisé, observabilité, FR/AR/RTL, accessibilité, politique de rétention.
