@@ -8,7 +8,6 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
-use App\Entity\Order;
 use App\Provider\CustomerOrderStatusProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
@@ -17,7 +16,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
     operations: [
         new Get(
             uriTemplate: '/me/orders/{orderId}/status',
-            uriVariables: ['orderId' => new Link(fromClass: Order::class, identifiers: ['id'])],
+            uriVariables: ['orderId' => new Link(fromClass: CustomerOrderStatusOutput::class, identifiers: ['orderId'])],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['order_status:read']],
             provider: CustomerOrderStatusProvider::class,

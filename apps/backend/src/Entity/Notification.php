@@ -12,6 +12,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'notifications')]
 #[ORM\Index(name: 'IDX_NOTIFICATIONS_USER_READ_CREATED', columns: ['user_id', 'is_read', 'created_at'])]
 #[ORM\Index(name: 'IDX_NOTIFICATIONS_ORDER', columns: ['order_id'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_NOTIFICATIONS_ORDER_TYPE', columns: ['order_id', 'type'])]
 class Notification
 {
     #[ORM\Id]
@@ -38,6 +39,9 @@ class Notification
     #[ORM\Column(length: 500)]
     private string $bodyAr;
 
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $type;
+
     #[ORM\Column(name: 'is_read')]
     private bool $read = false;
 
@@ -51,6 +55,7 @@ class Notification
         string $bodyFr,
         string $bodyAr,
         ?Order $order = null,
+        ?string $type = null,
         ?\DateTimeImmutable $createdAt = null,
     ) {
         $this->id = Uuid::v4();
@@ -60,6 +65,7 @@ class Notification
         $this->bodyFr = $bodyFr;
         $this->bodyAr = $bodyAr;
         $this->order = $order;
+        $this->type = $type;
         $this->createdAt = $createdAt ?? new \DateTimeImmutable();
     }
 
@@ -96,6 +102,11 @@ class Notification
     public function getBodyAr(): string
     {
         return $this->bodyAr;
+    }
+
+    public function getType(): ?string
+    {
+        return $this->type;
     }
 
     public function isRead(): bool
