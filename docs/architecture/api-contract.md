@@ -791,7 +791,7 @@ Règles cibles :
 ### Historique complet commandes marchand
 
 ```http
-GET /api/merchant/stores/{storeId}/orders/history?status=&date_from=&date_to=&customer_query=&page=&limit=
+GET /api/merchant/stores/{storeId}/orders/history?status=&date_from=&date_to=&query=&page=&limit=
 ```
 
 Règles cibles :
@@ -799,6 +799,7 @@ Règles cibles :
 - marchand connecté uniquement ;
 - ownership strict via `Shop.owner` ;
 - tous statuts inclus ;
+- `query` recherche un numéro de commande (`#0042`) ou un nom client ;
 - pagination obligatoire ;
 - pas de lignes de commande détaillées dans la liste ;
 - données client limitées au besoin métier, le détail commande marchand restant la source des coordonnées complètes.
@@ -832,7 +833,7 @@ Règles cibles :
 US-043 et US-049 n'exposent pas nécessairement de nouvel endpoint public. Elles reposent sur des messages Symfony Messenger différés :
 
 - délai de réponse marchand : annulation automatique d'une commande encore `submitted` avant 2h du créneau ;
-- expiration acceptation partielle : annulation automatique d'une commande encore `partially_accepted` si le client ne re-soumet pas avant 2h du créneau ;
+- expiration acceptation partielle : alerte client 4h avant le créneau, puis annulation automatique d'une commande encore `partially_accepted` si le client ne re-soumet pas avant 2h du créneau ;
 - notification client in-app ;
 - `OrderStatusLog` ;
 - libération de capacité à traiter une seule fois.
