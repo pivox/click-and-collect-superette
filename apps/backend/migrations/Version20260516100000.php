@@ -17,6 +17,10 @@ final class Version20260516100000 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $this->addSql('ALTER TABLE notifications ADD type VARCHAR(64) DEFAULT NULL');
+        // PostgreSQL does not enforce uniqueness for NULL values: multiple rows with the same order_id
+        // and type IS NULL can coexist without violating this index. This is intentional — legacy
+        // notifications from S4-005 have no type and must remain. Typed notifications (e.g.
+        // pickup_reminder) are idempotent: at most one per (order_id, type) pair.
         $this->addSql('CREATE UNIQUE INDEX UNIQ_NOTIFICATIONS_ORDER_TYPE ON notifications (order_id, type)');
 
         $this->addSql('CREATE TABLE messenger_messages (

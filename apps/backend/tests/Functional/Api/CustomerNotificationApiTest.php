@@ -4,20 +4,15 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
-use App\Entity\Brand;
-use App\Entity\Category;
-use App\Entity\MerchantProduct;
 use App\Entity\Notification;
 use App\Entity\Order;
-use App\Entity\OrderLine;
-use App\Entity\ProductReference;
-use App\Entity\Shop;
 use App\Entity\User;
-use App\Enum\ProductReferenceStatus;
+use App\Tests\Functional\OrderPickupFixtureTrait;
 use Symfony\Component\Uid\Uuid;
 
 final class CustomerNotificationApiTest extends FunctionalApiTestCase
 {
+    use OrderPickupFixtureTrait;
     // --- GET /api/me/notifications ---
 
     public function testCustomerReceivesNotificationAfterOrderAccepted(): void
@@ -281,55 +276,5 @@ final class CustomerNotificationApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $notification;
-    }
-
-    private function createSubmittedOrder(User $customer, Shop $shop, MerchantProduct $product): Order
-    {
-        $order = (new Order())
-            ->setCustomer($customer)
-            ->setShop($shop);
-        $order->submit();
-
-        $line = (new OrderLine())
-            ->setMerchantProduct($product)
-            ->setQuantity(1)
-            ->setUnitPriceTnd($product->getPriceTnd())
-            ->setLineTotalTnd($product->getPriceTnd());
-        $order->addLine($line);
-        $order->recomputeTotal();
-
-        $this->entityManager->persist($order);
-        $this->entityManager->persist($line);
-        $this->entityManager->flush();
-
-        return $order;
-    }
-
-    private function createMerchantProduct(Shop $shop): MerchantProduct
-    {
-        $id = Uuid::v4()->toRfc4122();
-        $brand = (new Brand())
-            ->setCanonicalName('Brand CustNotif '.$id)
-            ->setSlug('brand-cust-notif-'.$id);
-        $category = (new Category())
-            ->setNameFr('Cat CustNotif '.$id)
-            ->setSlug('cat-cust-notif-'.$id);
-        $ref = (new ProductReference())
-            ->setBrand($brand)
-            ->setCategory($category)
-            ->setNameFr('Produit CustNotif')
-            ->setStatus(ProductReferenceStatus::Approved);
-        $product = (new MerchantProduct())
-            ->setShop($shop)
-            ->setProductReference($ref)
-            ->setPriceTnd('1.500');
-
-        $this->entityManager->persist($brand);
-        $this->entityManager->persist($category);
-        $this->entityManager->persist($ref);
-        $this->entityManager->persist($product);
-        $this->entityManager->flush();
-
-        return $product;
     }
 }
