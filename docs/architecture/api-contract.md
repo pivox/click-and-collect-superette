@@ -733,6 +733,114 @@ Règles :
 
 ---
 
+## Sprint 3b — Opérations marchand planifiées
+
+Statut : **à implémenter**.
+
+Ces contrats sont des cibles de Sprint 3b. Ils ne sont pas exposés par le backend tant que les PR S3B correspondantes ne sont pas livrées.
+
+### Règles de créneaux récurrents
+
+```http
+GET    /api/merchant/stores/{storeId}/pickup-slot-rules
+POST   /api/merchant/stores/{storeId}/pickup-slot-rules
+PATCH  /api/merchant/stores/{storeId}/pickup-slot-rules/{id}
+DELETE /api/merchant/stores/{storeId}/pickup-slot-rules/{id}
+POST   /api/merchant/stores/{storeId}/pickup-slot-rules/generate
+```
+
+Règles cibles :
+
+- marchand connecté uniquement ;
+- ownership strict via `Shop.owner` ;
+- génération de `PickupSlot` ponctuels sur 4 semaines ;
+- génération idempotente, sans duplication de créneaux existants ;
+- les créneaux réservés ne doivent pas être supprimés par modification de règle.
+
+### Fermetures exceptionnelles
+
+```http
+GET    /api/merchant/stores/{storeId}/exceptional-closures
+POST   /api/merchant/stores/{storeId}/exceptional-closures
+PATCH  /api/merchant/stores/{storeId}/exceptional-closures/{id}
+DELETE /api/merchant/stores/{storeId}/exceptional-closures/{id}
+```
+
+Règles cibles :
+
+- marchand connecté uniquement ;
+- ownership strict via `Shop.owner` ;
+- une fermeture bloque la génération de nouveaux créneaux dans sa plage ;
+- elle ne supprime pas les règles récurrentes.
+
+### Heures d'ouverture
+
+```http
+GET   /api/stores/{storeId}/opening-hours
+GET   /api/merchant/stores/{storeId}/opening-hours
+PATCH /api/merchant/stores/{storeId}/opening-hours
+```
+
+Règles cibles :
+
+- lecture publique pour la vitrine client ;
+- modification réservée au marchand propriétaire ;
+- fuseau de référence `Africa/Tunis` ;
+- horaires indicatifs distincts des créneaux de retrait disponibles.
+
+### Historique complet commandes marchand
+
+```http
+GET /api/merchant/stores/{storeId}/orders/history?status=&date_from=&date_to=&customer_query=&page=&limit=
+```
+
+Règles cibles :
+
+- marchand connecté uniquement ;
+- ownership strict via `Shop.owner` ;
+- tous statuts inclus ;
+- pagination obligatoire ;
+- pas de lignes de commande détaillées dans la liste ;
+- données client limitées au besoin métier, le détail commande marchand restant la source des coordonnées complètes.
+
+### Ruptures de stock en masse
+
+```http
+PATCH /api/merchant/stores/{storeId}/products/bulk-availability
+```
+
+Payload indicatif :
+
+```json
+{
+  "merchant_product_ids": ["merchant-product-uuid"],
+  "is_available": false,
+  "merchant_note": "Rupture temporaire"
+}
+```
+
+Règles cibles :
+
+- action réservée au marchand propriétaire ;
+- tous les produits ciblés doivent appartenir à la supérette ;
+- action atomique : pas de modification partielle si un identifiant est invalide ;
+- ne modifie pas les commandes déjà soumises ;
+- ne modifie pas le référentiel produit global.
+
+### Automatisations de délai
+
+US-043 et US-049 n'exposent pas nécessairement de nouvel endpoint public. Elles reposent sur des messages Symfony Messenger différés :
+
+- délai de réponse marchand : annulation automatique d'une commande encore `submitted` avant 2h du créneau ;
+- expiration acceptation partielle : annulation automatique d'une commande encore `partially_accepted` si le client ne re-soumet pas avant 2h du créneau ;
+- notification client in-app ;
+- `OrderStatusLog` ;
+- libération de capacité à traiter une seule fois.
+
+Un vrai différé production nécessite un transport Messenger async persistant et un worker actif.
+
+---
+
 ## Produits proposés
 
 ### Proposer un produit manquant

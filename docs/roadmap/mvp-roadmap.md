@@ -211,14 +211,15 @@ Le marchand reçoit une commande, la traite depuis son dashboard (acceptation, r
 
 ---
 
-## Sprint 3b — Maturité opérationnelle marchand 🟠 P1
+## Sprint 3b — Maturité opérationnelle marchand 🟠 P1 — Fondation documentaire prête
 
 ### Objectif
 
 Outiller le marchand pour gérer son activité quotidienne de façon autonome : créneaux, disponibilité catalogue, historique, gestion des délais automatiques et des fermetures.
 
 > **Prérequis :** Sprint 3 core terminé.
-> Sprint 3b peut être développé en parallèle de Sprint 4 si l'équipe est suffisante — la seule dépendance bloquante pour Sprint 4 est que les créneaux ponctuels (US-024) soient configurables, ce qui est déjà livré par Sprint 3.
+> **Prérequis :** Sprint 3 core et Sprint 4 clôturés côté backend.
+> La fondation documentaire est disponible dans `docs/Sprint3b/README.md` et `docs/Sprint3b/technical-readiness-report.md`.
 
 ### Fonctionnalités
 
@@ -249,6 +250,17 @@ Outiller le marchand pour gérer son activité quotidienne de façon autonome : 
 ### Note infrastructure
 
 US-043 et US-049 reposent sur **Symfony Messenger avec workers persistants** (DelayStamp). Valider que l'infrastructure Messenger (transport, worker supervisé) est opérationnelle en début de sprint — si les workers ne tournent pas, les annulations automatiques échouent silencieusement.
+
+### Découpage recommandé
+
+1. S3B-001 — Créneaux récurrents foundation.
+2. S3B-002 — Fermetures exceptionnelles.
+3. S3B-003 — Heures d'ouverture supérette.
+4. S3B-004 — Historique complet commandes marchand.
+5. S3B-005 — Ruptures stock en masse.
+6. S3B-006 — Délai réponse marchand automatique.
+7. S3B-007 — Expiration acceptation partielle.
+8. S3B-008 — Audit + clôture Sprint 3b.
 
 ### Critère de sortie
 
@@ -424,7 +436,7 @@ La plateforme est opérable et supervisée en production par une équipe réduit
 | Sprint 1 | US-013 à US-016, US-041 | P0 | ✅ Partiel (US-041 manquante) |
 | Sprint 2 | US-001 à US-004, US-017 à US-021, US-031 à US-033, US-042, US-044, US-048 | P0 | ✅ Partiel (3 US manquantes) |
 | Sprint 3 | US-005, US-006, US-022, US-023, US-024, US-036, US-037, US-040, US-045, US-051 | P0 | ✅ Backend terminé |
-| Sprint 3b | US-043, US-047, US-049, US-052, US-053, US-056, US-057 | P1 | 🔴 À coder |
+| Sprint 3b | US-043, US-047, US-049, US-052, US-053, US-056, US-057 | P1 | 🟠 Fondation documentaire prête, backend à coder |
 | Sprint 4 | US-007, US-025, US-026, US-038, US-039, US-064 | P1 | ✅ Backend terminé |
 | Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | 🔴 À coder |
 | Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
