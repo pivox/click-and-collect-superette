@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
-use App\Entity\Brand;
-use App\Entity\Category;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
 use App\Entity\PickupSession;
-use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
-use App\Enum\ProductReferenceStatus;
+use App\Tests\Functional\OrderPickupFixtureTrait;
 use Symfony\Component\Uid\Uuid;
 
 final class CustomerOrderStatusApiTest extends FunctionalApiTestCase
 {
+    use OrderPickupFixtureTrait;
     // --- GET /api/me/orders/{orderId}/status ---
 
     public function testOwnerCanFetchStatusForSubmittedOrder(): void
@@ -321,28 +319,6 @@ final class CustomerOrderStatusApiTest extends FunctionalApiTestCase
 
     // --- Fixtures ---
 
-    private function createSubmittedOrder(User $customer, Shop $shop, MerchantProduct $product): Order
-    {
-        $order = (new Order())
-            ->setCustomer($customer)
-            ->setShop($shop);
-        $order->submit();
-
-        $line = (new OrderLine())
-            ->setMerchantProduct($product)
-            ->setQuantity(1)
-            ->setUnitPriceTnd($product->getPriceTnd())
-            ->setLineTotalTnd($product->getPriceTnd());
-        $order->addLine($line);
-        $order->recomputeTotal();
-
-        $this->entityManager->persist($order);
-        $this->entityManager->persist($line);
-        $this->entityManager->flush();
-
-        return $order;
-    }
-
     private function createReadyOrder(User $customer, Shop $shop, MerchantProduct $product): Order
     {
         $order = (new Order())
@@ -367,33 +343,5 @@ final class CustomerOrderStatusApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $order;
-    }
-
-    private function createMerchantProduct(Shop $shop): MerchantProduct
-    {
-        $id = Uuid::v4()->toRfc4122();
-        $brand = (new Brand())
-            ->setCanonicalName('Brand Status '.$id)
-            ->setSlug('brand-status-'.$id);
-        $category = (new Category())
-            ->setNameFr('Cat Status '.$id)
-            ->setSlug('cat-status-'.$id);
-        $ref = (new ProductReference())
-            ->setBrand($brand)
-            ->setCategory($category)
-            ->setNameFr('Produit Status')
-            ->setStatus(ProductReferenceStatus::Approved);
-        $product = (new MerchantProduct())
-            ->setShop($shop)
-            ->setProductReference($ref)
-            ->setPriceTnd('1.500');
-
-        $this->entityManager->persist($brand);
-        $this->entityManager->persist($category);
-        $this->entityManager->persist($ref);
-        $this->entityManager->persist($product);
-        $this->entityManager->flush();
-
-        return $product;
     }
 }
