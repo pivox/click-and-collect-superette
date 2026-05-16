@@ -216,29 +216,17 @@ Ces points ne doivent pas être considérés comme livrés par Sprint 3/Sprint 4
 - enrichissement du contenu du rappel US-064 avec nom de supérette, heure de créneau et numéro de commande ;
 - export et statistiques avancées.
 
-## Priorités recommandées
+## Suite recommandée après Sprint 4
 
-### P0 — Sprint Auth
+### Contexte déjà livré
 
-**Documenté :** US-034, US-035.
+Sprint Auth, Sprint 3 core et Sprint 4 sont livrés côté backend. Ils couvrent l'inscription client, le profil client, le reset password, le traitement marchand core, les créneaux ponctuels, le retrait sécurisé, les notifications in-app et le suivi statut client.
 
-- `POST /api/auth/register/customer`
-- `GET /api/me/profile`
-- `PATCH /api/me/profile`
+### P1 — Sprint 3b : maturité opérationnelle marchand
 
-Sans inscription, aucun client ne peut tester le parcours complet en production.
+Récurrence des créneaux, fermetures exceptionnelles, délais automatiques et historique complet marchand.
 
-### P0 — Sprint 3 : parcours marchand core
-
-**Statut : livré côté backend.**
-
-La suite opérationnelle restante relève de Sprint 3b : récurrence des créneaux, fermetures exceptionnelles, délais automatiques, historique complet.
-
-### P1 — Sprint 4 : retrait sécurisé et notifications
-
-**Statut : livré côté backend.**
-
-Points à surveiller avant production : transport Messenger async persistant, worker actif, absence de push/SMS/email/Mercure, et verrouillage éventuel des confirmations simultanées si le trafic augmente.
+Points à cadrer dès le début du sprint : transport Messenger async persistant et worker actif pour les automatisations différées.
 
 ### P1 — Sprint 5 : administration minimale
 
@@ -247,6 +235,10 @@ Points à surveiller avant production : transport Messenger async persistant, wo
 - Création et gestion des supérettes (admin)
 - Création et gestion des marchands (admin)
 - CRUD Brand, Category, ProductReference (admin)
+
+### P2 — Sprint 7 : production/localisation
+
+Points à traiter avant production : transport Messenger async persistant, worker supervisé, absence de push/SMS/email/Mercure dans le MVP actuel, confirmations simultanées non sérialisées par un `SELECT FOR UPDATE` dédié, observabilité, FR/AR/RTL et politique de rétention.
 
 ### P2 — i18n FR/AR/RTL
 
