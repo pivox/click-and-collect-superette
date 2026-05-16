@@ -733,29 +733,77 @@ Règles :
 
 ---
 
-## Sprint 3b — Opérations marchand planifiées
+## Sprint 3b — Opérations marchand
 
-Statut : **à implémenter**.
+Statut : **S3B-001 en livraison backend pour les créneaux récurrents ; autres contrats à implémenter**.
 
-Ces contrats sont des cibles de Sprint 3b. Ils ne sont pas exposés par le backend tant que les PR S3B correspondantes ne sont pas livrées.
+Les contrats ci-dessous sont les routes Sprint 3b. Les règles de créneaux récurrents sont livrées par S3B-001 ; les autres sections restent des cibles tant que les PR correspondantes ne sont pas livrées.
 
 ### Règles de créneaux récurrents
+
+Statut : **livré S3B-001**.
 
 ```http
 GET    /api/merchant/stores/{storeId}/pickup-slot-rules
 POST   /api/merchant/stores/{storeId}/pickup-slot-rules
-PATCH  /api/merchant/stores/{storeId}/pickup-slot-rules/{id}
-DELETE /api/merchant/stores/{storeId}/pickup-slot-rules/{id}
+PATCH  /api/merchant/stores/{storeId}/pickup-slot-rules/{ruleId}
+DELETE /api/merchant/stores/{storeId}/pickup-slot-rules/{ruleId}
 POST   /api/merchant/stores/{storeId}/pickup-slot-rules/generate
 ```
 
-Règles cibles :
+Contrat `POST/PATCH` :
+
+```json
+{
+  "weekday": 1,
+  "start_time": "09:00",
+  "end_time": "12:00",
+  "capacity": 5
+}
+```
+
+Convention : `weekday` suit ISO-8601 (`1` lundi, `7` dimanche). Les heures sont locales au fuseau métier `Africa/Tunis`.
+
+Réponse collection :
+
+```json
+{
+  "items": [
+    {
+      "id": "pickup-slot-rule-uuid",
+      "weekday": 1,
+      "start_time": "09:00",
+      "end_time": "12:00",
+      "capacity": 5,
+      "is_active": true
+    }
+  ],
+  "total": 1
+}
+```
+
+Réponse génération :
+
+```json
+{
+  "store_id": "store-uuid",
+  "generated_count": 12,
+  "skipped_existing_count": 4,
+  "horizon_start": "2026-05-16T00:00:00+01:00",
+  "horizon_end": "2026-06-13T00:00:00+01:00"
+}
+```
+
+Règles :
 
 - marchand connecté uniquement ;
 - ownership strict via `Shop.owner` ;
 - génération de `PickupSlot` ponctuels sur 4 semaines ;
 - génération idempotente, sans duplication de créneaux existants ;
-- les créneaux réservés ne doivent pas être supprimés par modification de règle.
+- fenêtre de génération exclusive à `horizon_end`, avec exclusion des créneaux déjà passés au moment de l'appel ;
+- `DELETE` désactive la règle plutôt que de la supprimer physiquement ;
+- les règles inactives ne génèrent plus de créneaux ;
+- les créneaux existants ou chevauchants actifs, y compris réservés, ne sont ni modifiés, ni supprimés, ni désactivés par la génération.
 
 ### Fermetures exceptionnelles
 
