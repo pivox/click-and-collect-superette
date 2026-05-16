@@ -227,6 +227,90 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
         self::assertSame('2026-05-20', $storedClosure->getStartsAt()->setTimezone($timezone)->format('Y-m-d'));
     }
 
+    public function testPatchClosureRejectsRangeInvalidAgainstExistingStartsAt(): void
+    {
+        $merchant = $this->createUser('merchant-closure-patch-partial-invalid@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $closure = $this->createClosure($shop, '2026-05-20 08:00:00', '2026-05-20 18:00:00', 'Inventaire');
+        $timezone = new \DateTimeZone('Africa/Tunis');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/exceptional-closures/%s', $shop->getId(), $closure->getId()),
+            ['ends_at' => (new \DateTimeImmutable('2026-05-20 07:00:00', $timezone))->format(\DateTimeInterface::ATOM)],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('EXCEPTIONAL_CLOSURE_STARTS_AT_MUST_BE_BEFORE_ENDS_AT', (string) $response->getContent());
+    }
+
+    public function testMerchantCannotCreateOrReactivatePickupSlotInsideActiveClosure(): void
+    {
+        $merchant = $this->createUser('merchant-closure-slot-create-blocked@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $this->createClosure($shop, '2026-05-20 08:00:00', '2026-05-20 18:00:00', 'Inventaire');
+        $startsAt = new \DateTimeImmutable('2026-05-20 09:00:00', $timezone);
+        $endsAt = new \DateTimeImmutable('2026-05-20 10:00:00', $timezone);
+
+        $createResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()),
+            [
+                'starts_at' => $startsAt->format(\DateTimeInterface::ATOM),
+                'ends_at' => $endsAt->format(\DateTimeInterface::ATOM),
+                'capacity' => 4,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(422, $createResponse->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_OVERLAPS_EXCEPTIONAL_CLOSURE', (string) $createResponse->getContent());
+
+        $inactiveSlot = $this->createPickupSlot($shop, $startsAt, $endsAt, 4);
+        $inactiveSlot->setActive(false);
+        $this->entityManager->flush();
+
+        $patchResponse = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $inactiveSlot->getId()),
+            ['is_active' => true],
+            $merchant,
+        );
+
+        self::assertSame(422, $patchResponse->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_OVERLAPS_EXCEPTIONAL_CLOSURE', (string) $patchResponse->getContent());
+    }
+
+    public function testPublicPickupSlotCollectionHidesSlotsInsideActiveClosure(): void
+    {
+        $merchant = $this->createUser('merchant-closure-public-slots@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $closedSlot = $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('2026-05-20 09:00:00', $timezone),
+            new \DateTimeImmutable('2026-05-20 10:00:00', $timezone),
+            4,
+        );
+        $openSlot = $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('2026-05-21 09:00:00', $timezone),
+            new \DateTimeImmutable('2026-05-21 10:00:00', $timezone),
+            4,
+        );
+        $this->createClosure($shop, '2026-05-20 08:00:00', '2026-05-20 18:00:00', 'Inventaire');
+
+        $response = $this->requestJson('GET', \sprintf('/api/stores/%s/pickup-slots', $shop->getId()));
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($openSlot->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertNotSame($closedSlot->getId()->toRfc4122(), $payload['items'][0]['id']);
+    }
+
     public function testInactiveClosureDoesNotBlockGeneration(): void
     {
         $merchant = $this->createUser('merchant-closure-inactive-generation@example.test', ['ROLE_MERCHANT']);

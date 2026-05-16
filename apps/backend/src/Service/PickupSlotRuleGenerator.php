@@ -32,6 +32,7 @@ final readonly class PickupSlotRuleGenerator
         $generatedCount = 0;
         $skippedExistingCount = 0;
         $skippedClosureCount = 0;
+        $activeClosures = $this->exceptionalClosureRepository->findActiveForShop($shop);
 
         foreach ($this->pickupSlotRuleRepository->findActiveForShop($shop) as $rule) {
             for ($date = $horizonStart; $date < $horizonEnd; $date = $date->modify('+1 day')) {
@@ -46,7 +47,7 @@ final readonly class PickupSlotRuleGenerator
                     continue;
                 }
 
-                if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)) {
+                if ($this->overlapsActiveClosure($activeClosures, $startsAt, $endsAt)) {
                     ++$skippedClosureCount;
                     continue;
                 }
@@ -80,6 +81,20 @@ final readonly class PickupSlotRuleGenerator
             horizonStart: $horizonStart,
             horizonEnd: $horizonEnd,
         );
+    }
+
+    /**
+     * @param list<\App\Entity\ExceptionalClosure> $activeClosures
+     */
+    private function overlapsActiveClosure(array $activeClosures, \DateTimeImmutable $startsAt, \DateTimeImmutable $endsAt): bool
+    {
+        foreach ($activeClosures as $closure) {
+            if ($closure->getStartsAt() < $endsAt && $closure->getEndsAt() > $startsAt) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function combineDateAndTime(

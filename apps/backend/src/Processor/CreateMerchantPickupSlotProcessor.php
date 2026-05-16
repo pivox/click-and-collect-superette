@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\MerchantPickupSlotCreateInput;
 use App\Entity\PickupSlot;
+use App\Repository\ExceptionalClosureRepository;
 use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
@@ -25,6 +26,7 @@ final readonly class CreateMerchantPickupSlotProcessor implements ProcessorInter
     public function __construct(
         private ShopRepository $shopRepository,
         private PickupSlotRepository $pickupSlotRepository,
+        private ExceptionalClosureRepository $exceptionalClosureRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
     ) {
@@ -57,6 +59,10 @@ final readonly class CreateMerchantPickupSlotProcessor implements ProcessorInter
 
         if ($this->pickupSlotRepository->hasActiveOverlapForShop($shop, $data->startsAt, $data->endsAt)) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXISTING_SLOT');
+        }
+
+        if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $data->startsAt, $data->endsAt)) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXCEPTIONAL_CLOSURE');
         }
 
         $slot = (new PickupSlot())

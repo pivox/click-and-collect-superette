@@ -14,6 +14,7 @@ use App\Entity\User;
 use App\Enum\KadhiaStatus;
 use App\Enum\OrderStatus;
 use App\Factory\OrderOutputFactory;
+use App\Repository\ExceptionalClosureRepository;
 use App\Repository\KadhiaRepository;
 use App\Repository\OrderRepository;
 use App\Repository\PickupSlotRepository;
@@ -33,6 +34,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
 {
     public function __construct(
         private PickupSlotRepository $pickupSlotRepository,
+        private ExceptionalClosureRepository $exceptionalClosureRepository,
         private KadhiaRepository $kadhiaRepository,
         private OrderRepository $orderRepository,
         private EntityManagerInterface $entityManager,
@@ -92,6 +94,10 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
 
         if ($slot->getEndsAt() <= new \DateTimeImmutable()) {
             throw new UnprocessableEntityHttpException('PICKUP_SLOT_EXPIRED');
+        }
+
+        if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $slot->getStartsAt(), $slot->getEndsAt())) {
+            throw new UnprocessableEntityHttpException('PICKUP_SLOT_CLOSED');
         }
 
         if ($kadhia->getLines()->isEmpty()) {

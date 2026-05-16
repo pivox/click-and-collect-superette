@@ -850,8 +850,11 @@ Règles :
 - elle ne supprime pas les règles récurrentes ;
 - si des créneaux actifs non réservés existent dans la plage, ils sont désactivés ;
 - si un créneau actif réservé existe dans la plage, la création ou modification est refusée (`409 EXCEPTIONAL_CLOSURE_HAS_BOOKED_SLOTS`) ;
+- un créneau ponctuel actif ne peut pas être créé, modifié ou réactivé dans une fermeture active (`422 PICKUP_SLOT_OVERLAPS_EXCEPTIONAL_CLOSURE`) ;
+- la liste publique des créneaux disponibles et la soumission de Kadhia refusent les créneaux qui chevauchent une fermeture active ;
 - `DELETE` désactive la fermeture sans suppression physique ;
-- supprimer une fermeture ne réactive pas automatiquement les créneaux désactivés.
+- supprimer une fermeture ne réactive pas automatiquement les créneaux désactivés ;
+- réduire la plage d'une fermeture par `PATCH` ne réactive pas automatiquement les créneaux désactivés par l'ancienne plage ; le marchand peut relancer la génération ou recréer les créneaux nécessaires.
 
 ### Heures d'ouverture
 

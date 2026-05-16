@@ -13,8 +13,6 @@ use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\ExceptionalClosureImpactService;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -55,10 +53,6 @@ final readonly class CreateMerchantExceptionalClosureProcessor implements Proces
         }
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
-
-        if ($data->startsAt >= $data->endsAt) {
-            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'EXCEPTIONAL_CLOSURE_STARTS_AT_MUST_BE_BEFORE_ENDS_AT');
-        }
 
         $this->exceptionalClosureImpactService->applyClosureImpact($shop, $data->startsAt, $data->endsAt);
 
