@@ -271,8 +271,8 @@ Finaliser la remise avec un QR code de retrait, une double validation et des not
 - Force complétion marchand si le client ne répond pas dans les 5 minutes.
 - **Notifications client** — transitions clés (acceptée, prête, retirée, rappel, etc.).
 - **Notifications marchand** — nouvelle commande soumise.
-- **Rappel de retrait** — notification 1 heure avant le créneau si commande `ready`.
-- Suivi statut commande côté client (polling 30s).
+- **Rappel de retrait** — notification 1 heure avant le créneau si commande `ready` ; planification livrée, contenu détaillé à enrichir.
+- Suivi statut commande côté client par polling.
 
 ### User stories
 
@@ -290,7 +290,7 @@ Finaliser la remise avec un QR code de retrait, une double validation et des not
 
 ### Critère de sortie ✅
 
-Une commande `ready` peut être retirée avec un QR code, validée des deux côtés et finalisée. Le client reçoit un rappel 1 heure avant son créneau. Les notifications sont envoyées à chaque transition clé.
+Une commande `ready` peut être retirée avec un QR code, validée des deux côtés et finalisée. Le client reçoit un rappel 1 heure avant son créneau, avec un contenu encore générique à enrichir. Les notifications sont envoyées à chaque transition clé.
 
 Limite infrastructure : le rappel différé repose sur Symfony Messenger. En production, il nécessite un transport async persistant et un worker actif ; `sync://` ne suffit pas pour garantir un différé réel.
 

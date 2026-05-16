@@ -68,7 +68,7 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 | Notifications client | **Oui (US-038)** | Oui | Oui | **Oui** | OK | Notifications in-app persistées, lecture et marquage comme lu côté client. |
 | Notifications marchand | **Oui (US-039)** | Oui | Oui | **Oui** | OK | Notifications in-app persistées, lecture et marquage comme lu côté marchand. |
 | Suivi statut client | Oui (US-026) | Oui | Oui | Oui | OK | `GET /api/me/orders/{orderId}/status`, prévu pour polling simple. |
-| Rappel retrait 1h | Oui (US-064) | Oui | Oui | Oui | OK | Planification Messenger avec `DelayStamp`; production dépend d'un transport async persistant et d'un worker actif. |
+| Rappel retrait 1h | Oui (US-064) | Oui | Oui | Oui | PARTIEL | Planification Messenger avec `DelayStamp` livrée. Contenu notification encore générique : il ne contient pas encore nom de supérette, heure du créneau et numéro de commande comme demandé par l'US. Production dépend d'un transport async persistant et d'un worker actif. |
 | Historique statuts commande | **Oui (US-040)** | Oui | Oui | Oui | OK | `OrderStatusLog` et endpoints client/marchand livrés. |
 | Admin CRUD Brand/Category | **Oui (US-029)** | Non | Non | **Oui (Sprint5)** | MANQUANT | Endpoints définis dans Sprint5/README.md. |
 | Admin CRUD ProductReference | **Oui (US-029)** | Non | Non | **Oui (Sprint5)** | MANQUANT | Endpoints définis dans Sprint5/README.md. |
@@ -213,6 +213,7 @@ Ces points ne doivent pas être considérés comme livrés par Sprint 3/Sprint 4
 - expiration automatique d'une acceptation partielle ;
 - push mobile, SMS, email et realtime Mercure/WebSocket ;
 - réouverture admin d'une session de retrait expirée ;
+- enrichissement du contenu du rappel US-064 avec nom de supérette, heure de créneau et numéro de commande ;
 - export et statistiques avancées.
 
 ## Priorités recommandées

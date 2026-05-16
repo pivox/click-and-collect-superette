@@ -1093,7 +1093,7 @@ Réponse `200` :
   "order_id": "order-uuid",
   "status": "pickup_pending",
   "status_label_fr": "Retrait en cours",
-  "status_label_ar": "الاستلام جار",
+  "status_label_ar": "الاستلام قيد التنفيذ",
   "updated_at": "2026-05-15T13:00:00+00:00",
   "pickup_session": {
     "exists": true,

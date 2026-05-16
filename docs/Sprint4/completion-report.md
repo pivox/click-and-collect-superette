@@ -16,7 +16,7 @@ Sprint 4 sécurise la remise physique de la Kadhia en supérette. Il ajoute une 
 | #82 | `PATCH /api/merchant/pickup-sessions/{id}/force-complete` |
 | #83 | Notifications client et marchand |
 | #84 | `GET /api/me/orders/{orderId}/status` |
-| #85 | Rappel de retrait 1h avant créneau |
+| #85 | Rappel de retrait 1h avant créneau : planification livrée, contenu encore générique |
 
 ## Fonctionnalités livrées
 
@@ -32,7 +32,7 @@ Sprint 4 sécurise la remise physique de la Kadhia en supérette. Il ajoute une 
 - Notifications in-app client.
 - Notifications in-app marchand.
 - Suivi statut client par polling.
-- Rappel de retrait 1h avant le créneau via Symfony Messenger.
+- Rappel de retrait 1h avant le créneau via Symfony Messenger, avec contenu encore générique.
 - Historique `OrderStatusLog` sur les transitions clés.
 
 ## Endpoints livrés
@@ -110,7 +110,7 @@ Client :
 - Kadhia partiellement acceptée ;
 - Kadhia en préparation ;
 - Kadhia prête ;
-- rappel de retrait ;
+- rappel de retrait avec contenu générique ;
 - Kadhia retirée.
 
 Marchand :
@@ -132,6 +132,8 @@ La planification utilise Symfony Messenger et `DelayStamp` :
 - pas de notification si la commande n'est plus `ready`, si la session a été scannée/utilisée ou si le créneau a commencé.
 
 Limite production : le différé réel nécessite un transport async persistant et un worker actif. En environnement local/test, le transport peut être `sync://` ou `in-memory://`.
+
+Limite fonctionnelle : le contenu actuel du rappel ne contient pas encore le nom de la supérette, l'heure du créneau et le numéro de commande attendus par l'US-064.
 
 ## Tests et non-régressions connues
 
@@ -166,6 +168,7 @@ Tests Sprint 4 à maintenir :
 - Le rappel 1h dépend de Messenger et d'un worker actif en production.
 - Les confirmations simultanées ne sont pas verrouillées par un `SELECT FOR UPDATE` dédié.
 - La confirmation marchand conserve encore un contrôle d'expiration après scan, contrairement à la confirmation client et à la force completion.
+- Le rappel US-064 est planifié, mais son contenu reste générique et doit être enrichi.
 - Le polling client reste simple ; pas de streaming d'événements.
 
 ## Hors périmètre

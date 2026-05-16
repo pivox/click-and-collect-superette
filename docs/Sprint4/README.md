@@ -35,7 +35,7 @@ Si le client ne confirme pas après scan et confirmation marchand, le marchand p
 | #82 | Force completion marchand | Livré |
 | #83 | Notifications client/marchand | Livré |
 | #84 | Suivi statut commande client | Livré |
-| #85 | Rappel retrait 1h avant créneau | Livré |
+| #85 | Rappel retrait 1h avant créneau | Partiel : planification livrée, contenu encore générique |
 
 ## User stories concernées
 
@@ -46,7 +46,7 @@ Si le client ne confirme pas après scan et confirmation marchand, le marchand p
 | US-026 | Suivre le statut de sa commande | Livré |
 | US-038 | Notifications client | Livré |
 | US-039 | Notifications marchand | Livré |
-| US-064 | Rappel de retrait avant expiration du créneau | Livré |
+| US-064 | Rappel de retrait avant expiration du créneau | Partiel : planification livrée, contenu encore générique |
 
 ## Endpoints livrés
 
@@ -244,7 +244,7 @@ Notifications client :
 - commande partiellement acceptée ;
 - commande en préparation ;
 - commande prête ;
-- rappel de retrait ;
+- rappel de retrait avec contenu générique ;
 - commande retirée.
 
 Notifications marchand :
@@ -263,6 +263,7 @@ Le rappel de retrait est planifié lors du passage en `ready` :
 
 Limites importantes :
 
+- le contenu du rappel ne contient pas encore le nom de la supérette, l'heure du créneau et le numéro de commande demandés par l'US-064 ;
 - le transport Messenger local peut être `sync://` ou `in-memory://` en test. Un vrai différé en production nécessite un transport async persistant et un worker actif ;
 - après scan, la confirmation client et la force completion ne bloquent plus sur le TTL ; la confirmation marchand conserve encore un garde d'expiration côté processor et doit être revue si l'on veut une règle strictement identique pour les deux confirmations.
 
@@ -289,6 +290,7 @@ Résultats issus des PRs Sprint 4 précédentes :
 - Le rappel 1h dépend d'un transport Messenger async persistant et d'un worker actif en production.
 - Les confirmations simultanées ne sont pas sérialisées par un verrou pessimiste dédié ; le risque de concurrence reste à traiter si le trafic de retrait augmente.
 - La confirmation marchand conserve encore un contrôle d'expiration après scan, contrairement à la confirmation client et à la force completion.
+- Le contenu du rappel US-064 reste générique et doit être enrichi avec nom de supérette, heure de créneau et numéro de commande.
 
 ## Hors périmètre Sprint 4
 
