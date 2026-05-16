@@ -16,6 +16,10 @@ final class Version20260517100000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
+        // Timestamps are stored WITHOUT TIME ZONE, consistent with pickup_slots and other date columns
+        // in this project. Tunisia (Africa/Tunis) does not observe DST — it is permanently UTC+1 —
+        // so literal local-time storage is safe for overlap comparisons. All application code that
+        // constructs or compares these timestamps must use the Africa/Tunis timezone explicitly.
         $this->addSql('CREATE TABLE exceptional_closures (
             id UUID NOT NULL,
             shop_id UUID NOT NULL,
