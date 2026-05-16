@@ -39,9 +39,9 @@ final readonly class OrderTransitionService
         $this->orderStatusLogRecorder->record($order, OrderStatus::PickupPending);
     }
 
-    public function markCompleted(Order $order): void
+    public function markCompleted(Order $order, ?string $note = null): void
     {
         $order->complete();
-        $this->orderStatusLogRecorder->record($order, OrderStatus::Completed);
+        $this->orderStatusLogRecorder->record($order, OrderStatus::Completed, $note);
     }
 }
