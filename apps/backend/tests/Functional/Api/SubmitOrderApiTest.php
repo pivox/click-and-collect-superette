@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\ExceptionalClosure;
 use App\Entity\Kadhia;
 use App\Entity\KadhiaLine;
 use App\Entity\MerchantProduct;
@@ -230,6 +231,33 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
         self::assertSame(422, $response->getStatusCode());
         self::assertStringContainsString('PICKUP_SLOT_EXPIRED', (string) $response->getContent());
+    }
+
+    public function testSubmitOrderClosedSlotReturns422(): void
+    {
+        $customer = $this->createUser('submit-closed-slot@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop, capacity: 5);
+        $closure = (new ExceptionalClosure())
+            ->setShop($shop)
+            ->setStartsAt($slot->getStartsAt()->modify('-15 minutes'))
+            ->setEndsAt($slot->getEndsAt()->modify('+15 minutes'))
+            ->setReason('Inventaire')
+            ->setActive(true);
+        $this->entityManager->persist($closure);
+        $this->entityManager->flush();
+        $product = $this->createMerchantProduct($shop, '1.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '1.000');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_CLOSED', (string) $response->getContent());
     }
 
     public function testSubmitOrderSlotFromAnotherShopReturns404(): void

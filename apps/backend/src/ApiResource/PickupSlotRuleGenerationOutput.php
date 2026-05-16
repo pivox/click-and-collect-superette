@@ -44,6 +44,9 @@ final readonly class PickupSlotRuleGenerationOutput
         #[SerializedName('skipped_existing_count')]
         public int $skippedExistingCount,
         #[Groups(['pickup_slot_rule_generation:read'])]
+        #[SerializedName('skipped_closure_count')]
+        public int $skippedClosureCount,
+        #[Groups(['pickup_slot_rule_generation:read'])]
         #[SerializedName('horizon_start')]
         public string $horizonStart,
         #[Groups(['pickup_slot_rule_generation:read'])]
