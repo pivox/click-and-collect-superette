@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Entity\PickupSlot;
 use App\Entity\Shop;
+use App\Repository\ExceptionalClosureRepository;
 use App\Repository\PickupSlotRepository;
 use App\Repository\PickupSlotRuleRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -17,6 +18,7 @@ final readonly class PickupSlotRuleGenerator
     public function __construct(
         private PickupSlotRuleRepository $pickupSlotRuleRepository,
         private PickupSlotRepository $pickupSlotRepository,
+        private ExceptionalClosureRepository $exceptionalClosureRepository,
         private EntityManagerInterface $entityManager,
     ) {
     }
@@ -29,6 +31,7 @@ final readonly class PickupSlotRuleGenerator
         $horizonEnd = $horizonStart->modify('+4 weeks');
         $generatedCount = 0;
         $skippedExistingCount = 0;
+        $skippedClosureCount = 0;
 
         foreach ($this->pickupSlotRuleRepository->findActiveForShop($shop) as $rule) {
             for ($date = $horizonStart; $date < $horizonEnd; $date = $date->modify('+1 day')) {
@@ -40,6 +43,11 @@ final readonly class PickupSlotRuleGenerator
                 $endsAt = $this->combineDateAndTime($date, $rule->getEndTime(), $timezone);
 
                 if ($startsAt <= $now) {
+                    continue;
+                }
+
+                if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)) {
+                    ++$skippedClosureCount;
                     continue;
                 }
 
@@ -68,6 +76,7 @@ final readonly class PickupSlotRuleGenerator
         return new PickupSlotRuleGenerationResult(
             generatedCount: $generatedCount,
             skippedExistingCount: $skippedExistingCount,
+            skippedClosureCount: $skippedClosureCount,
             horizonStart: $horizonStart,
             horizonEnd: $horizonEnd,
         );
