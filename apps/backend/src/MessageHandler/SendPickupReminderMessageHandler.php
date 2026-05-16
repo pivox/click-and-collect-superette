@@ -52,6 +52,9 @@ final readonly class SendPickupReminderMessageHandler
         }
 
         $pickupSession = $this->pickupSessionRepository->findOneByOrder($order);
+        // scannedAt guard is intentionally kept: the OrderStatus::Ready check above should already
+        // prevent this, but a scan transitions the order to pickup_pending asynchronously and a
+        // delayed message could be delivered in the window between scan and status update.
         if (null === $pickupSession || $pickupSession->isUsed() || null !== $pickupSession->getScannedAt()) {
             return;
         }

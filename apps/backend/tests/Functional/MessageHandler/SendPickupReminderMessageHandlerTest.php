@@ -4,26 +4,22 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\MessageHandler;
 
-use App\Entity\Brand;
-use App\Entity\Category;
-use App\Entity\MerchantProduct;
 use App\Entity\Notification;
 use App\Entity\Order;
 use App\Entity\OrderLine;
 use App\Entity\PickupSession;
-use App\Entity\PickupSlot;
-use App\Entity\ProductReference;
-use App\Entity\Shop;
 use App\Enum\OrderStatus;
-use App\Enum\ProductReferenceStatus;
 use App\Message\SendPickupReminderMessage;
 use App\MessageHandler\SendPickupReminderMessageHandler;
 use App\Tests\Functional\Api\FunctionalApiTestCase;
+use App\Tests\Functional\OrderPickupFixtureTrait;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Uid\Uuid;
 
 final class SendPickupReminderMessageHandlerTest extends FunctionalApiTestCase
 {
+    use OrderPickupFixtureTrait;
+
     public function testHandlerCreatesCustomerNotificationForReadyOrder(): void
     {
         $order = $this->createReadyOrderWithPickupSession(new \DateTimeImmutable('2026-05-16 11:00:00'));
@@ -247,47 +243,5 @@ final class SendPickupReminderMessageHandlerTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $order;
-    }
-
-    private function createPickupSlot(Shop $shop, \DateTimeImmutable $startsAt): PickupSlot
-    {
-        $slot = (new PickupSlot())
-            ->setShop($shop)
-            ->setStartsAt($startsAt)
-            ->setEndsAt($startsAt->modify('+1 hour'))
-            ->setCapacity(5);
-
-        $this->entityManager->persist($slot);
-        $this->entityManager->flush();
-
-        return $slot;
-    }
-
-    private function createMerchantProduct(Shop $shop): MerchantProduct
-    {
-        $id = Uuid::v4()->toRfc4122();
-        $brand = (new Brand())
-            ->setCanonicalName('Brand Handler '.$id)
-            ->setSlug('brand-handler-'.$id);
-        $category = (new Category())
-            ->setNameFr('Cat Handler '.$id)
-            ->setSlug('cat-handler-'.$id);
-        $ref = (new ProductReference())
-            ->setBrand($brand)
-            ->setCategory($category)
-            ->setNameFr('Produit rappel handler')
-            ->setStatus(ProductReferenceStatus::Approved);
-        $product = (new MerchantProduct())
-            ->setShop($shop)
-            ->setProductReference($ref)
-            ->setPriceTnd('2.000');
-
-        $this->entityManager->persist($brand);
-        $this->entityManager->persist($category);
-        $this->entityManager->persist($ref);
-        $this->entityManager->persist($product);
-        $this->entityManager->flush();
-
-        return $product;
     }
 }
