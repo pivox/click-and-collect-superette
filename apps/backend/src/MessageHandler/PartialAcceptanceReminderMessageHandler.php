@@ -50,7 +50,10 @@ final readonly class PartialAcceptanceReminderMessageHandler
                 return;
             }
 
-            $this->notificationService->notifyCustomerPartialAcceptanceReminder($order);
+            // cycleId is generated at dispatch time so each partial-acceptance cycle gets its own
+            // idempotency key, even when the same pickup slot is reused across cycles.
+            $cycleType = NotificationService::TYPE_PARTIAL_ACCEPTANCE_REMINDER.'_'.$message->cycleId;
+            $this->notificationService->notifyCustomerPartialAcceptanceReminder($order, $cycleType);
             $this->entityManager->flush();
         });
     }

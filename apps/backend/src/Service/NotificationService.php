@@ -120,9 +120,9 @@ final readonly class NotificationService
         );
     }
 
-    public function notifyCustomerPartialAcceptanceReminder(Order $order): void
+    public function notifyCustomerPartialAcceptanceReminder(Order $order, string $cycleType): void
     {
-        if ($this->notificationRepository->existsForOrderAndType($order, self::TYPE_PARTIAL_ACCEPTANCE_REMINDER)) {
+        if ($this->notificationRepository->existsForOrderAndType($order, $cycleType)) {
             return;
         }
 
@@ -132,7 +132,7 @@ final readonly class NotificationService
             'يلزم الرد',
             'Votre Kadhia a été acceptée partiellement. Confirmez vos modifications avant l’expiration du délai.',
             'تم قبول القاضية جزئياً. أكدوا التعديلات قبل انتهاء المهلة.',
-            self::TYPE_PARTIAL_ACCEPTANCE_REMINDER,
+            $cycleType,
         );
     }
 

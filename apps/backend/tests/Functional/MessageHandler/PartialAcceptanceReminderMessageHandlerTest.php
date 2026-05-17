@@ -25,7 +25,7 @@ final class PartialAcceptanceReminderMessageHandlerTest extends FunctionalApiTes
         $order = $this->createPartiallyAcceptedOrder(new \DateTimeImmutable('2026-05-16 14:00:00'));
 
         $this->createHandler(new \DateTimeImmutable('2026-05-16 10:30:00'))(
-            new PartialAcceptanceReminderMessage($order->getId()->toRfc4122())
+            new PartialAcceptanceReminderMessage($order->getId()->toRfc4122(), Uuid::v4()->toRfc4122())
         );
 
         $this->entityManager->clear();
@@ -44,7 +44,7 @@ final class PartialAcceptanceReminderMessageHandlerTest extends FunctionalApiTes
         $order = $this->createPartiallyAcceptedOrder(new \DateTimeImmutable('2026-05-16 15:00:00'));
 
         $this->createHandler(new \DateTimeImmutable('2026-05-16 10:30:00'))(
-            new PartialAcceptanceReminderMessage($order->getId()->toRfc4122())
+            new PartialAcceptanceReminderMessage($order->getId()->toRfc4122(), Uuid::v4()->toRfc4122())
         );
 
         $this->entityManager->clear();
@@ -58,7 +58,7 @@ final class PartialAcceptanceReminderMessageHandlerTest extends FunctionalApiTes
         $order = $this->createPartiallyAcceptedOrder(new \DateTimeImmutable('2026-05-16 11:30:00'));
 
         $this->createHandler(new \DateTimeImmutable('2026-05-16 10:00:00'))(
-            new PartialAcceptanceReminderMessage($order->getId()->toRfc4122())
+            new PartialAcceptanceReminderMessage($order->getId()->toRfc4122(), Uuid::v4()->toRfc4122())
         );
 
         $this->entityManager->clear();
@@ -74,7 +74,7 @@ final class PartialAcceptanceReminderMessageHandlerTest extends FunctionalApiTes
         $this->entityManager->flush();
 
         $this->createHandler(new \DateTimeImmutable('2026-05-16 10:30:00'))(
-            new PartialAcceptanceReminderMessage($order->getId()->toRfc4122())
+            new PartialAcceptanceReminderMessage($order->getId()->toRfc4122(), Uuid::v4()->toRfc4122())
         );
 
         $this->entityManager->clear();
@@ -88,7 +88,8 @@ final class PartialAcceptanceReminderMessageHandlerTest extends FunctionalApiTes
     {
         $order = $this->createPartiallyAcceptedOrder(new \DateTimeImmutable('2026-05-16 14:00:00'));
         $handler = $this->createHandler(new \DateTimeImmutable('2026-05-16 10:30:00'));
-        $message = new PartialAcceptanceReminderMessage($order->getId()->toRfc4122());
+        // Same message object (same cycleId) dispatched twice — must produce only one notification.
+        $message = new PartialAcceptanceReminderMessage($order->getId()->toRfc4122(), Uuid::v4()->toRfc4122());
 
         $handler($message);
         $handler($message);
@@ -99,10 +100,50 @@ final class PartialAcceptanceReminderMessageHandlerTest extends FunctionalApiTes
         self::assertCount(1, $this->findReminderNotifications($updatedOrder));
     }
 
+    public function testHandlerCreatesReminderForSecondPartialAcceptanceCycle(): void
+    {
+        // Cycle 1: slot at 14:00, remindsAt = 10:00, expiresAt = 12:00
+        $slotStartsAt = new \DateTimeImmutable('2026-05-16 14:00:00');
+        $order = $this->createPartiallyAcceptedOrder($slotStartsAt);
+        $cycleId1 = Uuid::v4()->toRfc4122();
+
+        $this->createHandler(new \DateTimeImmutable('2026-05-16 10:30:00'))(
+            new PartialAcceptanceReminderMessage($order->getId()->toRfc4122(), $cycleId1)
+        );
+
+        $this->entityManager->clear();
+        $order = $this->entityManager->getRepository(Order::class)->find($order->getId());
+        self::assertNotNull($order);
+        self::assertCount(1, $this->findReminderNotifications($order));
+
+        // Customer resubmits; merchant partially accepts again on the SAME slot.
+        // This reproduces the edge case: expiresAt is unchanged, so only the
+        // cycleId distinguishes the two reminder cycles.
+        $order->resubmit();
+        $order->partiallyAccept('Autre rupture');
+        $this->entityManager->flush();
+
+        $this->entityManager->clear();
+        $order = $this->entityManager->getRepository(Order::class)->find($order->getId());
+        self::assertNotNull($order);
+
+        // Cycle 2: different cycleId → new notification even though slot and deadline are identical.
+        $cycleId2 = Uuid::v4()->toRfc4122();
+        $this->createHandler(new \DateTimeImmutable('2026-05-16 10:30:00'))(
+            new PartialAcceptanceReminderMessage($order->getId()->toRfc4122(), $cycleId2)
+        );
+
+        $this->entityManager->clear();
+        $order = $this->entityManager->getRepository(Order::class)->find($order->getId());
+        self::assertNotNull($order);
+        self::assertSame(OrderStatus::PartiallyAccepted, $order->getStatus());
+        self::assertCount(2, $this->findReminderNotifications($order));
+    }
+
     public function testInvalidOrderIdDoesNothing(): void
     {
         $this->createHandler(new \DateTimeImmutable('2026-05-16 10:30:00'))(
-            new PartialAcceptanceReminderMessage('not-a-uuid')
+            new PartialAcceptanceReminderMessage('not-a-uuid', Uuid::v4()->toRfc4122())
         );
 
         self::assertSame(0, $this->entityManager->getRepository(Notification::class)->count([]));
@@ -155,9 +196,14 @@ final class PartialAcceptanceReminderMessageHandlerTest extends FunctionalApiTes
      */
     private function findReminderNotifications(Order $order): array
     {
-        return $this->entityManager->getRepository(Notification::class)->findBy([
-            'order' => $order,
-            'type' => NotificationService::TYPE_PARTIAL_ACCEPTANCE_REMINDER,
-        ]);
+        return $this->entityManager->createQueryBuilder()
+            ->select('n')
+            ->from(Notification::class, 'n')
+            ->andWhere('IDENTITY(n.order) = :orderId')
+            ->andWhere('n.type LIKE :prefix')
+            ->setParameter('orderId', $order->getId(), 'uuid')
+            ->setParameter('prefix', NotificationService::TYPE_PARTIAL_ACCEPTANCE_REMINDER.'_%')
+            ->getQuery()
+            ->getResult();
     }
 }

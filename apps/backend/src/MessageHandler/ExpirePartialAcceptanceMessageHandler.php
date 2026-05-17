@@ -39,7 +39,7 @@ final readonly class ExpirePartialAcceptanceMessageHandler
 
             $pickupSlot = $order->getPickupSlot();
             $now = $this->clock->now();
-            if (null === $pickupSlot || $now >= $pickupSlot->getStartsAt()) {
+            if (null === $pickupSlot) {
                 return;
             }
 
@@ -47,6 +47,8 @@ final readonly class ExpirePartialAcceptanceMessageHandler
             if ($now < $expiresAt) {
                 return;
             }
+            // Intentionally no guard on $now >= $pickupSlot->getStartsAt(): a delayed worker must
+            // still cancel and release the slot even after the slot window has opened.
 
             $this->orderTransitionService->autoCancelPartialAcceptanceTimeout($order);
             $this->entityManager->flush();
