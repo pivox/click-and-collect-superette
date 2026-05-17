@@ -8,10 +8,13 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\ShopOpeningHoursOutput;
 use App\Dto\ShopOpeningHoursPatchInput;
+use App\Exception\OpeningHoursValidationException;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\OpeningHoursValidator;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -50,7 +53,12 @@ final readonly class UpdateMerchantShopOpeningHoursProcessor implements Processo
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
 
-        $openingHours = $this->openingHoursValidator->validateAndNormalize($data->openingHours);
+        try {
+            $openingHours = $this->openingHoursValidator->validateAndNormalize($data->openingHours);
+        } catch (OpeningHoursValidationException $exception) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->getMessage(), $exception);
+        }
+
         $shop->setOpeningHours($openingHours);
         $this->entityManager->flush();
 

@@ -155,7 +155,6 @@ final class ShopOpeningHoursApiTest extends FunctionalApiTestCase
                 ['start' => '08:00', 'end' => '09:00'],
                 ['start' => '10:00', 'end' => '11:00'],
                 ['start' => '12:00', 'end' => '13:00'],
-                ['start' => '14:00', 'end' => '15:00'],
             ]]),
         ];
 
@@ -189,6 +188,31 @@ final class ShopOpeningHoursApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         self::assertSame($openingHours, $this->decodeJson($response)['opening_hours']);
+    }
+
+    public function testPatchSortsRangesBeforePersisting(): void
+    {
+        $merchant = $this->createUser('merchant-opening-hours-sort@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $openingHours = $this->validOpeningHours([
+            '1' => [
+                ['start' => '15:00', 'end' => '20:00'],
+                ['start' => '08:00', 'end' => '12:00'],
+            ],
+        ]);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/opening-hours', $shop->getId()),
+            ['opening_hours' => $openingHours],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame([
+            ['start' => '08:00', 'end' => '12:00'],
+            ['start' => '15:00', 'end' => '20:00'],
+        ], $this->decodeJson($response)['opening_hours']['weekly']['1']);
     }
 
     public function testOpeningHoursRoutesAreRegistered(): void

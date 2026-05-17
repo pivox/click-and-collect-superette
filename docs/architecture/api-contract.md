@@ -921,9 +921,10 @@ Règles :
 - chaque journée contient une liste de plages, ou `[]` pour un jour fermé ;
 - une plage contient uniquement `start` et `end` au format strict `HH:MM` ;
 - `start < end` ;
-- maximum 3 plages par jour ;
+- maximum 2 plages par jour ;
 - les plages adjacentes sont autorisées (`end == next.start`) ;
 - les plages chevauchantes sont refusées ;
+- les plages sont normalisées par ordre croissant avant persistance ;
 - ces horaires sont indicatifs pour la vitrine et restent distincts des créneaux de retrait disponibles ;
 - aucun `PickupSlot` n'est généré automatiquement par cette route.
 

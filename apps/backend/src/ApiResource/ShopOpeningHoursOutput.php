@@ -10,7 +10,6 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
 use App\Dto\ShopOpeningHoursPatchInput;
-use App\Entity\Shop;
 use App\Processor\UpdateMerchantShopOpeningHoursProcessor;
 use App\Provider\MerchantShopOpeningHoursProvider;
 use App\Provider\ShopOpeningHoursProvider;
@@ -22,7 +21,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         new Get(
             uriTemplate: '/stores/{storeId}/opening-hours',
             uriVariables: [
-                'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
+                'storeId' => new Link(fromClass: self::class, identifiers: ['storeId']),
             ],
             formats: ['json' => ['application/json']],
             provider: ShopOpeningHoursProvider::class,
@@ -32,7 +31,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         new Get(
             uriTemplate: '/merchant/stores/{storeId}/opening-hours',
             uriVariables: [
-                'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
+                'storeId' => new Link(fromClass: self::class, identifiers: ['storeId']),
             ],
             formats: ['json' => ['application/json']],
             provider: MerchantShopOpeningHoursProvider::class,
@@ -42,7 +41,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         new Patch(
             uriTemplate: '/merchant/stores/{storeId}/opening-hours',
             uriVariables: [
-                'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
+                'storeId' => new Link(fromClass: self::class, identifiers: ['storeId']),
             ],
             formats: ['json' => ['application/json']],
             input: ShopOpeningHoursPatchInput::class,

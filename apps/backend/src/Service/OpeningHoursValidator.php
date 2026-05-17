@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use App\Exception\OpeningHoursValidationException;
 
 final class OpeningHoursValidator
 {
     private const TIMEZONE = 'Africa/Tunis';
-    private const MAX_RANGES_PER_DAY = 3;
+    private const MAX_RANGES_PER_DAY = 2;
 
     /**
      * @param array<string, mixed>|null $openingHours
@@ -90,9 +89,12 @@ final class OpeningHoursValidator
             $normalized[] = ['start' => $start, 'end' => $end];
         }
 
-        $this->assertNoOverlap($normalized);
+        usort(
+            $normalized,
+            static fn (array $a, array $b): int => $a['start'] <=> $b['start'],
+        );
 
-        return $normalized;
+        return $this->assertNoOverlap($normalized);
     }
 
     private function validateTime(mixed $value, string $errorCode): string
@@ -107,13 +109,13 @@ final class OpeningHoursValidator
     /**
      * @param list<array{start: string, end: string}> $ranges
      */
-    private function assertNoOverlap(array $ranges): void
+    /**
+     * @param list<array{start: string, end: string}> $ranges
+     *
+     * @return list<array{start: string, end: string}>
+     */
+    private function assertNoOverlap(array $ranges): array
     {
-        usort(
-            $ranges,
-            static fn (array $a, array $b): int => $a['start'] <=> $b['start'],
-        );
-
         $previousEnd = null;
         foreach ($ranges as $range) {
             if (null !== $previousEnd && $range['start'] < $previousEnd) {
@@ -122,10 +124,12 @@ final class OpeningHoursValidator
 
             $previousEnd = $range['end'];
         }
+
+        return $ranges;
     }
 
-    private function validationError(string $message): HttpException
+    private function validationError(string $message): OpeningHoursValidationException
     {
-        return new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, $message);
+        return new OpeningHoursValidationException($message);
     }
 }
