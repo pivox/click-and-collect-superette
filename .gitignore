@@ -2,7 +2,7 @@
 .mcp.json
 
 # macOS
-.DS_Store
+**/.DS_Store
 
 # IDE
 .idea/
