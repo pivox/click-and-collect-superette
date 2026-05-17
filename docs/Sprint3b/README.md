@@ -94,7 +94,7 @@ Filtres cibles :
 - `status` ;
 - `date_from` ;
 - `date_to` ;
-- `query` : recherche par numéro de commande (`#0042`) ou nom client ;
+- `query` : recherche par nom, prénom ou téléphone client ;
 - `page` ;
 - `limit`.
 
@@ -250,7 +250,7 @@ PATCH  /api/merchant/stores/{storeId}/products/bulk-availability
 
 - `PickupSlotRule` : `id`, `shop`, `weekday` (ISO 1–7), `startTime`, `endTime`, `capacity`, `isActive`, `createdAt`, `updatedAt`.
 - `ExceptionalClosure` : `id`, `shop`, `startsAt`, `endsAt`, `reason`, `isActive`, `createdAt`, `updatedAt`.
-- `Shop.openingHours` : JSONB, structure `{ "timezone": "Africa/Tunis", "weekly": { "1": [...], ... "7": [...] } }`. Clés ISO 1–7 (et non `monday`...) — divergence documentée vs préparation initiale.
+- `Shop.openingHours` : JSON Doctrine (`opening_hours JSON DEFAULT NULL` en migration), structure `{ "timezone": "Africa/Tunis", "weekly": { "1": [...], ... "7": [...] } }`. Clés ISO 1–7 (et non `monday`...) — divergence documentée vs préparation initiale.
 
 ### Messages Messenger
 
@@ -260,8 +260,8 @@ PATCH  /api/merchant/stores/{storeId}/products/bulk-availability
 
 ### Types de notification
 
-- S3B-006 : `timeout_merchant_response`
-- S3B-007 : `partial_acceptance_reminder_{cycleId}`, `partial_acceptance_expired`
+- S3B-006 : `merchant_response_timeout`
+- S3B-007 : `partial_acceptance_reminder_{cycleId}`, `partial_acceptance_timeout`
 
 ### Automatisations Messenger
 
