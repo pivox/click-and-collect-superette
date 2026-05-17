@@ -179,6 +179,7 @@ class OrderRepository extends ServiceEntityRepository
 
         $query = trim((string) $query);
         if ('' !== $query) {
+            $escapedQuery = self::escapeLike($query);
             $queryBuilder
                 ->andWhere(
                     $queryBuilder->expr()->orX(
@@ -188,11 +189,16 @@ class OrderRepository extends ServiceEntityRepository
                         'customer.phone LIKE :rawQuery',
                     )
                 )
-                ->setParameter('query', '%'.mb_strtolower($query).'%')
-                ->setParameter('rawQuery', '%'.$query.'%');
+                ->setParameter('query', '%'.mb_strtolower($escapedQuery).'%')
+                ->setParameter('rawQuery', '%'.$escapedQuery.'%');
         }
 
         return $queryBuilder;
+    }
+
+    private static function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     /**

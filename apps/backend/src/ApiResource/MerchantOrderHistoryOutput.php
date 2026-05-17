@@ -9,7 +9,6 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\QueryParameter;
-use App\Entity\Shop;
 use App\Provider\MerchantOrderHistoryProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -17,7 +16,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
     operations: [
         new Get(
             uriTemplate: '/merchant/stores/{storeId}/orders/history',
-            uriVariables: ['storeId' => new Link(fromClass: Shop::class, identifiers: ['id'])],
+            uriVariables: ['storeId' => new Link(fromClass: self::class, identifiers: ['id'])],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['merchant_order_history:read']],
             provider: MerchantOrderHistoryProvider::class,

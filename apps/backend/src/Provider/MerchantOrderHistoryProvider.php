@@ -104,18 +104,16 @@ final readonly class MerchantOrderHistoryProvider implements ProviderInterface
             return null;
         }
 
-        $timezone = new \DateTimeZone('Africa/Tunis');
-        try {
-            if (1 === preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
-                $date = new \DateTimeImmutable($raw, $timezone);
-
-                return $endOfDay ? $date->setTime(23, 59, 59) : $date->setTime(0, 0);
-            }
-
-            return new \DateTimeImmutable($raw);
-        } catch (\Exception) {
+        if (1 !== preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
             throw new UnprocessableEntityHttpException($errorCode);
         }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $raw, new \DateTimeZone('Africa/Tunis'));
+        if (false === $date || $date->format('Y-m-d') !== $raw) {
+            throw new UnprocessableEntityHttpException($errorCode);
+        }
+
+        return $endOfDay ? $date->setTime(23, 59, 59, 999999) : $date->setTime(0, 0);
     }
 
     private function parsePositiveInt(mixed $raw, int $default, string $errorCode): int

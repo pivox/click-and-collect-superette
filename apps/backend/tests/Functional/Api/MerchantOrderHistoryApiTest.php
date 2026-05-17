@@ -189,6 +189,8 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
             'status=unknown',
             'status=draft',
             'date_from=not-a-date',
+            'date_from=2026-02-31',
+            'date_from=2026-05-01T00:00:00',
             'date_from=2026-05-20&date_to=2026-05-01',
             'page=0',
             'limit=0',
@@ -259,6 +261,26 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertSame(1, $payload['total']);
         self::assertSame($orderA->getId()->toRfc4122(), $payload['items'][0]['id']);
+    }
+
+    public function testHistoryQueryEscapesLikeWildcards(): void
+    {
+        $merchant = $this->createUser('merchant-history-wildcards@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createCustomer('customer-history-wildcards@example.test', 'Ali', 'Owner', '+21622000111');
+        $this->createOrder($customer, $shop, OrderStatus::Submitted, new \DateTimeImmutable('2026-05-10T10:00:00+01:00'));
+
+        foreach (['%25', '_'] as $query) {
+            $response = $this->requestJson(
+                'GET',
+                \sprintf('/api/merchant/stores/%s/orders/history?query=%s', $shop->getId(), $query),
+                null,
+                $merchant,
+            );
+
+            self::assertSame(200, $response->getStatusCode());
+            self::assertSame(0, $this->decodeJson($response)['total']);
+        }
     }
 
     public function testHistoryAccessControlAndUnknownShop(): void
