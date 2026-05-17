@@ -412,6 +412,87 @@ La plateforme est opérable et supervisée en production par une équipe réduit
 
 ---
 
+## Qualité — Catalogue des scénarios à tester
+
+> **TODO owner :** Détailler et implémenter tous les scénarios ci-dessous dans `tests/Functional/Scenario/` avant de considérer le backend comme stabilisé.
+>
+> Les tests d'endpoint existants (`tests/Functional/Api/`) vérifient chaque route isolément.
+> Les tests de scénario enchaînent plusieurs appels HTTP réels sans setup BDD artificiel pour les transitions de statut — ils détectent les régressions transversales que les tests unitaires ratent.
+
+### Parcours CLIENT — 22 scénarios
+
+| # | Scénario | Statuts traversés |
+|---|---|---|
+| C-01 | Première découverte supérette via QR code → relation CustomerShop créée | — |
+| C-02 | Retour sur supérette connue → `lastSeenAt` mis à jour | — |
+| C-03 | Recherche supérette par nom | — |
+| C-04 | Recherche supérette par ville | — |
+| C-05 | Marquer supérette en favori | — |
+| C-06 | Masquer une supérette | — |
+| C-07 | Composer une Kadhia : ajout, modification quantité, suppression ligne | `draft` |
+| C-08 | Soumission nominale → commande créée | `draft → submitted` |
+| C-09 | Tentative soumission Kadhia vide → 422 `KADHIA_EMPTY` | — |
+| C-10 | Tentative soumission produit indisponible → 422 `PRODUCT_UNAVAILABLE` | — |
+| C-11 | Tentative soumission créneau plein → 422 `PICKUP_SLOT_FULL` | — |
+| C-12 | Tentative soumission créneau expiré → 422 `PICKUP_SLOT_EXPIRED` | — |
+| C-13 | Tentative soumission créneau couvert par fermeture exceptionnelle → 422 `PICKUP_SLOT_CLOSED` | — |
+| C-14 | Annuler commande avant acceptation | `submitted → cancelled` |
+| C-15 | Tentative annulation après acceptation → 409 | — |
+| C-16 | Suivi statut commande par polling | — |
+| C-17 | Commande acceptée → notification in-app reçue | — |
+| C-18 | Commande refusée → notification in-app reçue | — |
+| C-19 | Commande prête → notification + QR de retrait disponible | — |
+| C-20 | Acceptation partielle → Kadhia repasse `draft` → client re-soumet | `submitted → partially_accepted → submitted` |
+| C-21 | Présenter QR retrait → double validation → commande finalisée | `ready → pickup_pending → completed` |
+| C-22 | Rappel retrait 1h avant créneau si commande `ready` | — |
+
+### Parcours MARCHAND — 18 scénarios
+
+| # | Scénario | Statuts traversés |
+|---|---|---|
+| M-01 | Dashboard journalier → comptage par statut | — |
+| M-02 | Accepter une commande soumise | `submitted → accepted` |
+| M-03 | Refuser une commande avec raison | `submitted → rejected` |
+| M-04 | Accepter partiellement une commande | `submitted → partially_accepted` |
+| M-05 | Passer en préparation + marquer lignes préparées | `accepted → preparing` |
+| M-06 | Marquer commande prête | `preparing → ready` |
+| M-07 | Scanner QR retrait client | `ready → pickup_pending` |
+| M-08 | Confirmer la remise côté marchand (client déjà confirmé) | `pickup_pending → completed` |
+| M-09 | Force completion si client ne répond pas dans 5 min | `pickup_pending → completed` |
+| M-10 | CRUD créneaux ponctuels | — |
+| M-11 | Créer règle créneau récurrent → génération automatique 4 semaines | — |
+| M-12 | Créer fermeture exceptionnelle → slots désactivés dans la plage | — |
+| M-13 | Ruptures de stock en masse | — |
+| M-14 | Consulter historique commandes (filtres statut, date, pagination) | — |
+| M-15 | Personnaliser le thème visuel supérette | — |
+| M-16 | Configurer heures d'ouverture | — |
+| M-17 | Délai réponse automatique : commande annulée si non traitée avant 2h du créneau | `submitted → cancelled` |
+| M-18 | Expiration acceptation partielle : annulée si client ne re-soumet pas avant 2h du créneau | `partially_accepted → cancelled` |
+
+### Parcours ADMIN — 5 scénarios
+
+| # | Scénario |
+|---|---|
+| A-01 | CRUD supérettes + génération QR code |
+| A-02 | CRUD marchands (création, suspension, activation) |
+| A-03 | CRUD Brand, Category, ProductReference |
+| A-04 | Valider une proposition produit marchand → ProductReference créé |
+| A-05 | Configurer le thème global de la plateforme |
+
+### Contrôle d'accès — 5 scénarios
+
+| # | Scénario | Code attendu |
+|---|---|---|
+| AC-01 | Client tente une route marchand | 403 |
+| AC-02 | Marchand tente une route admin | 403 |
+| AC-03 | Marchand accède à une commande d'une autre supérette | 403 / 404 |
+| AC-04 | Requête non authentifiée sur toute route protégée | 401 |
+| AC-05 | Ressource inexistante (UUID inconnu) | 404 |
+
+**Total : 50 scénarios.** Chaque fichier de scénario dans `tests/Functional/Scenario/` doit : (1) créer les acteurs via les helpers `FunctionalApiTestCase`, (2) enchaîner les appels HTTP réels, (3) récupérer les IDs depuis les réponses précédentes, (4) vérifier l'état final en base.
+
+---
+
 ## Hors périmètre MVP
 
 - Paiement en ligne.
