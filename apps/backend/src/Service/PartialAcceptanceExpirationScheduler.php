@@ -11,6 +11,7 @@ use App\Message\PartialAcceptanceReminderMessage;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
+use Symfony\Component\Uid\Uuid;
 
 final readonly class PartialAcceptanceExpirationScheduler
 {
@@ -44,7 +45,8 @@ final readonly class PartialAcceptanceExpirationScheduler
         $expiresAt = $slotStartsAt->modify('-'.$this->partialAcceptanceExpirationLeadSeconds.' seconds');
 
         if ($now < $expiresAt) {
-            $this->dispatchAt(new PartialAcceptanceReminderMessage($orderId), $remindsAt, $now);
+            $cycleId = Uuid::v4()->toRfc4122();
+            $this->dispatchAt(new PartialAcceptanceReminderMessage($orderId, $cycleId), $remindsAt, $now);
         }
 
         $this->dispatchAt(new ExpirePartialAcceptanceMessage($orderId), $expiresAt, $now);

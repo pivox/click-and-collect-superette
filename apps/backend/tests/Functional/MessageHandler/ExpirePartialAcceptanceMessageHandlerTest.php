@@ -79,8 +79,9 @@ final class ExpirePartialAcceptanceMessageHandlerTest extends FunctionalApiTestC
         self::assertCount(0, $this->findTimeoutNotifications($updatedOrder));
     }
 
-    public function testHandlerDoesNothingAfterSlotStart(): void
+    public function testHandlerCancelsWhenWorkerDelayedBeyondSlotStart(): void
     {
+        // Slot at 09:59, expiresAt = 07:59; now = 10:00 — worker delayed, slot already started
         $order = $this->createOrderWithStatus(OrderStatus::PartiallyAccepted, new \DateTimeImmutable('2026-05-16 09:59:00'), booked: true);
 
         $this->createHandler(new \DateTimeImmutable('2026-05-16 10:00:00'))(
@@ -90,8 +91,28 @@ final class ExpirePartialAcceptanceMessageHandlerTest extends FunctionalApiTestC
         $this->entityManager->clear();
         $updatedOrder = $this->entityManager->getRepository(Order::class)->find($order->getId());
         self::assertNotNull($updatedOrder);
-        self::assertSame(OrderStatus::PartiallyAccepted, $updatedOrder->getStatus());
-        self::assertSame(1, $updatedOrder->getPickupSlot()?->getBookedCount());
+        self::assertSame(OrderStatus::Cancelled, $updatedOrder->getStatus());
+        self::assertSame(0, $updatedOrder->getPickupSlot()?->getBookedCount());
+        self::assertCount(1, $this->findTimeoutLogs($updatedOrder));
+        self::assertCount(1, $this->findTimeoutNotifications($updatedOrder));
+    }
+
+    public function testHandlerIsIdempotentWhenWorkerDelayedBeyondSlotStart(): void
+    {
+        $order = $this->createOrderWithStatus(OrderStatus::PartiallyAccepted, new \DateTimeImmutable('2026-05-16 09:59:00'), booked: true);
+        $handler = $this->createHandler(new \DateTimeImmutable('2026-05-16 10:00:00'));
+        $message = new ExpirePartialAcceptanceMessage($order->getId()->toRfc4122());
+
+        $handler($message);
+        $handler($message);
+
+        $this->entityManager->clear();
+        $updatedOrder = $this->entityManager->getRepository(Order::class)->find($order->getId());
+        self::assertNotNull($updatedOrder);
+        self::assertSame(OrderStatus::Cancelled, $updatedOrder->getStatus());
+        self::assertSame(0, $updatedOrder->getPickupSlot()?->getBookedCount());
+        self::assertCount(1, $this->findTimeoutLogs($updatedOrder));
+        self::assertCount(1, $this->findTimeoutNotifications($updatedOrder));
     }
 
     public function testHandlerDoesNothingWhenOrderHasNoPickupSlot(): void
