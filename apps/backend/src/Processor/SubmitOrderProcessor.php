@@ -118,7 +118,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
 
         $existingOrder = $this->orderRepository->findPartiallyAcceptedByKadhia($kadhia);
         if (null !== $existingOrder) {
-            $this->denyLatePartialAcceptanceResubmission($slot);
+            $this->denyLatePartialAcceptanceResubmission($existingOrder->getPickupSlot() ?? $slot);
         }
 
         try {
