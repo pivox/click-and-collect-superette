@@ -1149,14 +1149,87 @@ Règles :
 
 ### Supérettes
 
-Statut : **à implémenter**.
+Statut : **lecture livrée S5-002 ; mutations à implémenter**.
 
 ```http
-GET   /api/admin/stores
-POST  /api/admin/stores
-PATCH /api/admin/stores/{storeId}
-PATCH /api/admin/stores/{storeId}/owner
+GET   /api/admin/stores?page=1&limit=20
+GET   /api/admin/stores/{storeId}
+POST  /api/admin/stores                  (à implémenter)
+PATCH /api/admin/stores/{storeId}        (à implémenter)
+PATCH /api/admin/stores/{storeId}/owner  (à implémenter)
 ```
+
+Réponse liste `200` :
+
+```json
+{
+  "items": [
+    {
+      "id": "store-uuid",
+      "name": "Supérette El Amal",
+      "slug": "superette-el-amal",
+      "city": "Tunis",
+      "is_active": true,
+      "qr_code_token": "qr-token-opaque",
+      "created_at": "2026-05-18T10:00:00+00:00",
+      "owner": {
+        "id": "merchant-uuid",
+        "email": "merchant@example.test"
+      },
+      "products_count": 12
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 1
+}
+```
+
+Réponse détail `200` :
+
+```json
+{
+  "id": "store-uuid",
+  "name": "Supérette El Amal",
+  "slug": "superette-el-amal",
+  "city": "Tunis",
+  "is_active": true,
+  "qr_code_token": "qr-token-opaque",
+  "created_at": "2026-05-18T10:00:00+00:00",
+  "owner": {
+    "id": "merchant-uuid",
+    "email": "merchant@example.test"
+  },
+  "products_count": 12,
+  "theme_id": "theme-uuid",
+  "opening_hours": {
+    "timezone": "Africa/Tunis",
+    "weekly": {
+      "1": [
+        { "start": "08:00", "end": "12:00" }
+      ],
+      "2": [],
+      "3": [],
+      "4": [],
+      "5": [],
+      "6": [],
+      "7": []
+    }
+  },
+  "exceptional_closures_count": 1,
+  "pickup_rules_count": 2
+}
+```
+
+Règles :
+
+- admin connecté uniquement (`ROLE_ADMIN`) ;
+- `ROLE_MERCHANT`, `ROLE_CUSTOMER` et anonyme refusés ;
+- pagination : `page` défaut `1`, `limit` défaut `20`, `limit` plafonné à `50` ;
+- tri stable par `created_at` décroissant puis `id` décroissant ;
+- la liste expose un résumé léger avec propriétaire et nombre de produits ;
+- le détail ajoute thème, horaires d'ouverture, fermetures exceptionnelles actives et règles de créneaux actives ;
+- aucun mot de passe, hash, token auth, rôle utilisateur ou champ interne sensible n'est exposé.
 
 ### Régénérer le QR code d'une supérette
 
