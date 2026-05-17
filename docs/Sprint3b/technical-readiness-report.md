@@ -318,3 +318,52 @@ Tests transverses à conserver :
 8. **S3B-008 — Audit + clôture Sprint 3b**
 
 La première PR backend recommandée après cette fondation est **S3B-001 — Créneaux récurrents foundation**.
+
+---
+
+## Résultat final — Audit de clôture (2026-05-17)
+
+### Ce qui a été livré vs ce qui était prévu
+
+Toutes les US prévues dans la fondation documentaire ont été livrées côté backend :
+
+| Prévu | Livré |
+|---|---|
+| `PickupSlotRule` CRUD + génération 4 semaines | ✅ PR #92 — S3B-001 |
+| `ExceptionalClosure` CRUD + blocage génération | ✅ PR #93 — S3B-002 |
+| `Shop.openingHours` JSONB + lecture publique + modification marchand | ✅ PR #94 — S3B-003 |
+| Historique commandes marchand filtres + pagination | ✅ PR #95 — S3B-004 |
+| Ruptures de stock en masse (batch 50 produits) | ✅ PR #97 — S3B-005 |
+| `ExpireMerchantResponseMessage` + annulation automatique | ✅ PR #98 — S3B-006 |
+| `PartialAcceptanceReminderMessage` + `ExpirePartialAcceptanceMessage` + cycleId | ✅ PR #99 + #101 — S3B-007 |
+
+### Décisions techniques prises
+
+- **`PickupSlotRule`** : champs `weekday` (ISO 1–7 smallint), `startTime`, `endTime`, `capacity`, `isActive`. Contrainte d'unicité active sur `(shop_id, weekday, start_time, end_time)`. `DELETE` désactive la règle sans suppression physique pour préserver la traçabilité.
+
+- **Structure `openingHours` — clés ISO 1–7** : la structure livrée utilise les clés numériques ISO (`"1"` lundi, ..., `"7"` dimanche) et non les clés textuelles `"monday"` ... `"sunday"` envisagées dans la préparation initiale. Ce choix est plus robuste pour la localisation et cohérent avec `weekday` dans `PickupSlotRule`. Divergence documentée ici.
+
+- **`cycleId` UUID** : généré au dispatch `PartialAcceptanceReminderMessage` et `ExpirePartialAcceptanceMessage` pour isoler chaque cycle d'acceptation partielle. Un même cycle identifie les deux messages d'un même acceptation partielle et permet à l'handler de vérifier que le message correspond bien au cycle courant. Évite les annulations parasites après resoumission et nouvelle acceptation partielle.
+
+- **`cycleId = ''` par défaut** : valeur par défaut dans le constructeur de `PartialAcceptanceReminderMessage` pour compatibilité ascendante avec les messages en transit qui auraient été dispatchés avant l'introduction du champ. Corrigé dans PR #101. Feedback de risque 🟠 traité.
+
+- **Garde `$now >= $pickupSlot->getStartsAt()` retirée** de `ExpirePartialAcceptanceMessageHandler` : la garde initiale empêchait l'annulation d'une commande par un worker différé si le handler s'exécutait avant l'heure du créneau (ce qui est précisément l'objectif du message). Le seul contrôle conservé est `$order->getStatus() === OrderStatus::PartiallyAccepted` au moment d'exécution.
+
+### Limites MVP conservées intentionnellement
+
+- Pas de `SELECT FOR UPDATE` global sur toutes les transitions automatiques. Les handlers rechargent la commande et vérifient le statut au moment d'exécution, mais une concurrence très serrée (accept manuel simultané avec handler) reste théoriquement possible.
+- Transport Messenger `sync://` utilisé en local et en test. Il ne garantit pas un vrai différé : les messages différés sont exécutés immédiatement en test, ce qui est suffisant pour valider la logique des handlers mais pas pour valider le comportement différé réel.
+- Notifications in-app uniquement, sans push mobile, SMS, email ni Mercure/WebSocket.
+
+### Risques production
+
+- **Workers Messenger non validés en production** : les automatisations S3B-006 et S3B-007 reposent sur `DelayStamp`. Sans transport async persistant (Redis/AMQP) et worker supervisé, les annulations automatiques ne s'exécuteront pas.
+- **Concurrence sans lock dédié** : deux transitions simultanées (accept manuel + handler expiration) peuvent théoriquement aboutir à un double changement de statut. La probabilité reste faible en production mais n'est pas éliminée.
+
+### Recommandations avant passage en production
+
+1. Configurer un transport async persistant (Redis Streams ou AMQP) pour Symfony Messenger.
+2. Superviser le worker Messenger (systemd, Supervisor) avec redémarrage automatique.
+3. Tester `DelayStamp` avec un vrai délai sous charge pour valider que les messages sont bien différés et exécutés exactement une fois.
+4. Valider les notifications côté frontend par polling (`GET /api/me/notifications`).
+5. Envisager `SELECT FOR UPDATE` sur les transitions critiques si la concurrence devient un risque avéré en production.
