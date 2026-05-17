@@ -12,6 +12,8 @@ framework:
         routing:
             # Route your messages to the transports
             'App\Message\ExpireMerchantResponseMessage': async
+            'App\Message\ExpirePartialAcceptanceMessage': async
+            'App\Message\PartialAcceptanceReminderMessage': async
             'App\Message\SendPickupReminderMessage': async
 
 when@test:
