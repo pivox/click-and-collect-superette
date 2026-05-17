@@ -23,6 +23,7 @@ use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -44,6 +45,8 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         private Security $security,
         private NotificationService $notificationService,
         private MerchantResponseTimeoutScheduler $merchantResponseTimeoutScheduler,
+        private ClockInterface $clock,
+        private int $partialAcceptanceExpirationLeadSeconds,
     ) {
     }
 
@@ -114,6 +117,9 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         }
 
         $existingOrder = $this->orderRepository->findPartiallyAcceptedByKadhia($kadhia);
+        if (null !== $existingOrder) {
+            $this->denyLatePartialAcceptanceResubmission($slot);
+        }
 
         try {
             /** @var SubmittedOrderResult $result */
@@ -134,6 +140,19 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $this->merchantResponseTimeoutScheduler->scheduleForSubmittedOrder($result->order);
 
         return $result->output;
+    }
+
+    private function denyLatePartialAcceptanceResubmission(\App\Entity\PickupSlot $slot): void
+    {
+        $now = $this->clock->now();
+        if ($now >= $slot->getStartsAt()) {
+            throw new UnprocessableEntityHttpException('PARTIAL_ACCEPTANCE_EXPIRED');
+        }
+
+        $expiresAt = $slot->getStartsAt()->modify('-'.$this->partialAcceptanceExpirationLeadSeconds.' seconds');
+        if ($now >= $expiresAt) {
+            throw new UnprocessableEntityHttpException('PARTIAL_ACCEPTANCE_EXPIRED');
+        }
     }
 
     private function firstSubmit(

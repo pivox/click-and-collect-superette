@@ -17,6 +17,7 @@ use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
+use App\Service\PartialAcceptanceExpirationScheduler;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -35,6 +36,7 @@ final readonly class MerchantPartiallyAcceptOrderProcessor implements ProcessorI
         private EntityManagerInterface $entityManager,
         private OrderStatusLogRecorder $orderStatusLogRecorder,
         private NotificationService $notificationService,
+        private PartialAcceptanceExpirationScheduler $partialAcceptanceExpirationScheduler,
     ) {
     }
 
@@ -129,6 +131,8 @@ final readonly class MerchantPartiallyAcceptOrderProcessor implements ProcessorI
         } catch (\LogicException $e) {
             throw new ConflictHttpException($e->getMessage());
         }
+
+        $this->partialAcceptanceExpirationScheduler->scheduleForPartiallyAcceptedOrder($order);
 
         return MerchantOrderCollectionProvider::toOutput($order);
     }

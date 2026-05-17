@@ -747,7 +747,7 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
     {
         $merchant = $this->createUser('merchant-partial@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
-        $slot = $this->createPickupSlot($shop);
+        $slot = $this->createPickupSlot($shop, '+5 hours', '+6 hours');
         $customer = $this->createUser('customer-partial@example.test', ['ROLE_CUSTOMER']);
         $productA = $this->createMerchantProduct($shop, '2.000', 'Lait Vitalait 1L');
         $productB = $this->createMerchantProduct($shop, '1.500', 'Yaourt nature');
@@ -844,7 +844,7 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
     {
         $merchant = $this->createUser('merchant-partial-resubmit@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
-        $slot = $this->createPickupSlot($shop);
+        $slot = $this->createPickupSlot($shop, '+5 hours', '+6 hours');
         $customer = $this->createUser('customer-partial-resubmit@example.test', ['ROLE_CUSTOMER']);
         $productA = $this->createMerchantProduct($shop, '2.000');
         $productB = $this->createMerchantProduct($shop, '1.500');
@@ -1894,13 +1894,16 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         return $order;
     }
 
-    private function createPickupSlot(Shop $shop): PickupSlot
-    {
+    private function createPickupSlot(
+        Shop $shop,
+        string $startsAtModifier = '+1 hour',
+        string $endsAtModifier = '+2 hours',
+    ): PickupSlot {
         $now = new \DateTimeImmutable();
         $slot = (new PickupSlot())
             ->setShop($shop)
-            ->setStartsAt($now->modify('+1 hour'))
-            ->setEndsAt($now->modify('+2 hours'))
+            ->setStartsAt($now->modify($startsAtModifier))
+            ->setEndsAt($now->modify($endsAtModifier))
             ->setCapacity(5);
 
         $this->entityManager->persist($slot);
