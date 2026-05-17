@@ -106,6 +106,102 @@ class OrderRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return list<Order>
+     */
+    public function findHistoryForShop(
+        Shop $shop,
+        ?OrderStatus $status,
+        ?\DateTimeImmutable $createdFrom,
+        ?\DateTimeImmutable $createdTo,
+        ?string $query,
+        int $limit,
+        int $offset,
+    ): array {
+        $queryBuilder = $this->createHistoryQueryBuilder($shop, $status, $createdFrom, $createdTo, $query)
+            ->addOrderBy('o.createdAt', 'DESC')
+            ->addOrderBy('o.id', 'DESC')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset);
+
+        /** @var list<Order> $orders */
+        $orders = $queryBuilder->getQuery()->getResult();
+
+        return $orders;
+    }
+
+    public function countHistoryForShop(
+        Shop $shop,
+        ?OrderStatus $status,
+        ?\DateTimeImmutable $createdFrom,
+        ?\DateTimeImmutable $createdTo,
+        ?string $query,
+    ): int {
+        return (int) $this->createHistoryQueryBuilder($shop, $status, $createdFrom, $createdTo, $query)
+            ->select('COUNT(DISTINCT o.id)')
+            ->resetDQLPart('orderBy')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    private function createHistoryQueryBuilder(
+        Shop $shop,
+        ?OrderStatus $status,
+        ?\DateTimeImmutable $createdFrom,
+        ?\DateTimeImmutable $createdTo,
+        ?string $query,
+    ): \Doctrine\ORM\QueryBuilder {
+        $queryBuilder = $this->createQueryBuilder('o')
+            ->leftJoin('o.customer', 'customer')
+            ->leftJoin('o.pickupSlot', 'pickupSlot')
+            ->addSelect('customer', 'pickupSlot')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->andWhere('o.status != :draftStatus')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('draftStatus', OrderStatus::Draft);
+
+        if (null !== $status) {
+            $queryBuilder
+                ->andWhere('o.status = :status')
+                ->setParameter('status', $status);
+        }
+
+        if (null !== $createdFrom) {
+            $queryBuilder
+                ->andWhere('o.createdAt >= :createdFrom')
+                ->setParameter('createdFrom', $createdFrom, Types::DATETIME_IMMUTABLE);
+        }
+
+        if (null !== $createdTo) {
+            $queryBuilder
+                ->andWhere('o.createdAt <= :createdTo')
+                ->setParameter('createdTo', $createdTo, Types::DATETIME_IMMUTABLE);
+        }
+
+        $query = trim((string) $query);
+        if ('' !== $query) {
+            $escapedQuery = self::escapeLike($query);
+            $queryBuilder
+                ->andWhere(
+                    $queryBuilder->expr()->orX(
+                        'LOWER(customer.name) LIKE :query',
+                        'LOWER(customer.firstName) LIKE :query',
+                        'LOWER(customer.lastName) LIKE :query',
+                        'customer.phone LIKE :rawQuery',
+                    )
+                )
+                ->setParameter('query', '%'.mb_strtolower($escapedQuery).'%')
+                ->setParameter('rawQuery', '%'.$escapedQuery.'%');
+        }
+
+        return $queryBuilder;
+    }
+
+    private static function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    /**
      * Parses a comma-separated status filter string into an array of valid OrderStatus values.
      * Returns null when no filter is provided (meaning "no filter — return all").
      * Returns an empty array when all provided values are invalid enum values.
