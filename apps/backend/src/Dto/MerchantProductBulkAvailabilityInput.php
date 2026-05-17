@@ -12,7 +12,7 @@ final class MerchantProductBulkAvailabilityInput
     /**
      * @var list<string>
      */
-    #[Assert\Count(min: 1, max: 100)]
+    #[Assert\Count(min: 1, max: 50)]
     #[Assert\All([
         new Assert\NotBlank(),
         new Assert\Uuid(),

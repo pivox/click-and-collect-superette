@@ -60,12 +60,14 @@ final readonly class MerchantProductBulkAvailabilityProcessor implements Process
         $isAvailable = (bool) $data->isAvailable;
         $merchantNote = $this->normalizeMerchantNote($data->merchantNote);
 
-        $this->entityManager->wrapInTransaction(static function () use ($merchantProducts, $isAvailable, $merchantNote): void {
+        $this->entityManager->wrapInTransaction(function () use ($merchantProducts, $isAvailable, $merchantNote): void {
             foreach ($merchantProducts as $merchantProduct) {
                 $merchantProduct
                     ->setAvailable($isAvailable)
                     ->setMerchantNote($merchantNote);
             }
+
+            $this->entityManager->flush();
         });
 
         return new MerchantProductBulkAvailabilityOutput(

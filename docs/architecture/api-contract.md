@@ -1020,7 +1020,7 @@ Règles cibles :
 - action réservée au marchand propriétaire ;
 - tous les produits ciblés doivent appartenir à la supérette ;
 - action atomique : pas de modification partielle si un identifiant est invalide ;
-- batch limité à 100 produits ;
+- batch limité à 50 produits ;
 - les identifiants dupliqués sont dédupliqués ;
 - met à jour `MerchantProduct.isAvailable` et `MerchantProduct.merchantNote` ;
 - ne modifie pas `MerchantProduct.isVisible`, qui reste le contrôle d'affichage volontaire du marchand ;

@@ -116,7 +116,7 @@ final class MerchantProductBulkAvailabilityApiTest extends FunctionalApiTestCase
         $tooManyIdsResponse = $this->requestJson(
             'PATCH',
             \sprintf('/api/merchant/stores/%s/products/bulk-availability', $shop->getId()),
-            ['merchant_product_ids' => array_map(static fn (): string => Uuid::v4()->toRfc4122(), range(1, 101)), 'is_available' => false],
+            ['merchant_product_ids' => array_map(static fn (): string => Uuid::v4()->toRfc4122(), range(1, 51)), 'is_available' => false],
             $merchant,
         );
         $invalidUuidResponse = $this->requestJson(

@@ -9,7 +9,6 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
 use App\Dto\MerchantProductBulkAvailabilityInput;
-use App\Entity\Shop;
 use App\Processor\MerchantProductBulkAvailabilityProcessor;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
@@ -19,7 +18,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         new Patch(
             uriTemplate: '/merchant/stores/{storeId}/products/bulk-availability',
             uriVariables: [
-                'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
+                'storeId' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             input: MerchantProductBulkAvailabilityInput::class,

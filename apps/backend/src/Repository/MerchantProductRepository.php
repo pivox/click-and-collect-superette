@@ -11,6 +11,7 @@ use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<MerchantProduct>
@@ -45,14 +46,17 @@ class MerchantProductRepository extends ServiceEntityRepository
      */
     public function findForShopAndIds(Shop $shop, array $merchantProductIds): array
     {
-        $merchantProducts = [];
-
-        foreach ($merchantProductIds as $merchantProductId) {
-            $merchantProduct = $this->find($merchantProductId);
-            if ($merchantProduct instanceof MerchantProduct && $merchantProduct->getShop()->getId()->equals($shop->getId())) {
-                $merchantProducts[] = $merchantProduct;
-            }
+        if ([] === $merchantProductIds) {
+            return [];
         }
+
+        $ids = array_map(static fn (string $merchantProductId): Uuid => Uuid::fromString($merchantProductId), $merchantProductIds);
+
+        /** @var list<MerchantProduct> $merchantProducts */
+        $merchantProducts = $this->findBy([
+            'shop' => $shop,
+            'id' => $ids,
+        ]);
 
         return $merchantProducts;
     }
