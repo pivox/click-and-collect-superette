@@ -790,9 +790,7 @@ Règles :
 
 ## Sprint 3b — Opérations marchand
 
-Statut : **S3B-001 et S3B-002 livrés côté backend ; autres contrats à implémenter**.
-
-Les contrats ci-dessous sont les routes Sprint 3b. Les règles de créneaux récurrents sont livrées par S3B-001 et les fermetures exceptionnelles par S3B-002 ; les autres sections restent des cibles tant que les PR correspondantes ne sont pas livrées.
+Statut : **Sprint 3b entièrement livré côté backend (PR #92 à #101). Tous les endpoints ci-dessous sont opérationnels.**
 
 ### Règles de créneaux récurrents
 
@@ -985,6 +983,8 @@ Règles :
 
 ### Historique complet commandes marchand
 
+Statut : **livré S3B-004**.
+
 ```http
 GET /api/merchant/stores/{storeId}/orders/history?status=&date_from=&date_to=&query=&page=&limit=
 ```
@@ -994,12 +994,14 @@ Règles cibles :
 - marchand connecté uniquement ;
 - ownership strict via `Shop.owner` ;
 - tous statuts inclus ;
-- `query` recherche un numéro de commande (`#0042`) ou un nom client ;
+- `query` recherche par nom, prénom ou téléphone client ;
 - pagination obligatoire ;
 - pas de lignes de commande détaillées dans la liste ;
 - données client limitées au besoin métier, le détail commande marchand restant la source des coordonnées complètes.
 
 ### Ruptures de stock en masse
+
+Statut : **livré S3B-005**.
 
 ```http
 PATCH /api/merchant/stores/{storeId}/products/bulk-availability
