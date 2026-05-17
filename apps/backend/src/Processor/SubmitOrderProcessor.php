@@ -266,12 +266,3 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         return new SubmittedOrderResult($order, $this->orderOutputFactory->toOutput($order));
     }
 }
-
-final readonly class SubmittedOrderResult
-{
-    public function __construct(
-        public Order $order,
-        public OrderOutput $output,
-    ) {
-    }
-}
