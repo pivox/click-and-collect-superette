@@ -19,6 +19,8 @@ use App\Entity\User;
 use App\Enum\KadhiaStatus;
 use App\Enum\OrderStatus;
 use App\Enum\ProductReferenceStatus;
+use App\Message\ExpireMerchantResponseMessage;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Uid\Uuid;
 
 final class SubmitOrderApiTest extends FunctionalApiTestCase
@@ -91,6 +93,31 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertSame(201, $response->getStatusCode());
         $payload = $this->decodeJson($response);
         self::assertSame('Sans sel svp', $payload['notes']);
+    }
+
+    public function testSubmitOrderSchedulesMerchantResponseTimeout(): void
+    {
+        $customer = $this->createUser('submit-timeout-scheduled@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop, capacity: 5, startsAtModifier: '+4 hours', endsAtModifier: '+5 hours');
+        $product = $this->createMerchantProduct($shop, '3.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '3.000');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+
+        $transport = self::getContainer()->get('messenger.transport.async');
+        self::assertInstanceOf(InMemoryTransport::class, $transport);
+        $messages = array_map(static fn ($envelope): object => $envelope->getMessage(), $transport->getSent());
+
+        self::assertNotEmpty($messages);
+        self::assertInstanceOf(ExpireMerchantResponseMessage::class, $messages[0]);
     }
 
     public function testSubmitOrderSlotFullReturns422(): void

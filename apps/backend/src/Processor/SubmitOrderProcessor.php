@@ -18,6 +18,7 @@ use App\Repository\ExceptionalClosureRepository;
 use App\Repository\KadhiaRepository;
 use App\Repository\OrderRepository;
 use App\Repository\PickupSlotRepository;
+use App\Service\MerchantResponseTimeoutScheduler;
 use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
@@ -42,6 +43,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         private OrderOutputFactory $orderOutputFactory,
         private Security $security,
         private NotificationService $notificationService,
+        private MerchantResponseTimeoutScheduler $merchantResponseTimeoutScheduler,
     ) {
     }
 
@@ -114,14 +116,12 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $existingOrder = $this->orderRepository->findPartiallyAcceptedByKadhia($kadhia);
 
         try {
-            /** @var OrderOutput $result */
+            /** @var SubmittedOrderResult $result */
             $result = $this->entityManager->wrapInTransaction(
-                function () use ($data, $user, $shop, $slot, $kadhia, $existingOrder): OrderOutput {
-                    if (null !== $existingOrder) {
-                        return $this->resubmit($data, $slot, $kadhia, $existingOrder);
-                    }
-
-                    return $this->firstSubmit($data, $user, $shop, $slot, $kadhia);
+                function () use ($data, $user, $shop, $slot, $kadhia, $existingOrder): SubmittedOrderResult {
+                    return null !== $existingOrder
+                        ? $this->resubmit($data, $slot, $kadhia, $existingOrder)
+                        : $this->firstSubmit($data, $user, $shop, $slot, $kadhia);
                 }
             );
         } catch (\RuntimeException $e) {
@@ -131,7 +131,9 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             throw $e;
         }
 
-        return $result;
+        $this->merchantResponseTimeoutScheduler->scheduleForSubmittedOrder($result->order);
+
+        return $result->output;
     }
 
     private function firstSubmit(
@@ -140,7 +142,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         \App\Entity\Shop $shop,
         \App\Entity\PickupSlot $slot,
         \App\Entity\Kadhia $kadhia,
-    ): OrderOutput {
+    ): SubmittedOrderResult {
         $order = (new Order())
             ->setCustomer($user)
             ->setShop($shop)
@@ -182,7 +184,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $this->notificationService->notifyMerchantOrderSubmitted($order);
         $this->entityManager->flush();
 
-        return $this->orderOutputFactory->toOutput($order);
+        return new SubmittedOrderResult($order, $this->orderOutputFactory->toOutput($order));
     }
 
     private function resubmit(
@@ -190,7 +192,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         \App\Entity\PickupSlot $slot,
         \App\Entity\Kadhia $kadhia,
         Order $order,
-    ): OrderOutput {
+    ): SubmittedOrderResult {
         $oldSlot = $order->getPickupSlot();
         $sameSlot = null !== $oldSlot && $oldSlot->getId()->equals($slot->getId());
 
@@ -261,6 +263,15 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $this->notificationService->notifyMerchantOrderSubmitted($order);
         $this->entityManager->flush();
 
-        return $this->orderOutputFactory->toOutput($order);
+        return new SubmittedOrderResult($order, $this->orderOutputFactory->toOutput($order));
+    }
+}
+
+final readonly class SubmittedOrderResult
+{
+    public function __construct(
+        public Order $order,
+        public OrderOutput $output,
+    ) {
     }
 }

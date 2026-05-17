@@ -12,6 +12,8 @@ use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class OrderTransitionService
 {
+    public const MERCHANT_RESPONSE_TIMEOUT_NOTE = 'AUTO_CANCELLED_MERCHANT_RESPONSE_TIMEOUT';
+
     public function __construct(
         private EntityManagerInterface $entityManager,
         private OrderStatusLogRecorder $orderStatusLogRecorder,
@@ -46,5 +48,25 @@ final readonly class OrderTransitionService
         $this->orderStatusLogRecorder->record($order, OrderStatus::Completed, $note);
         $this->notificationService->notifyCustomerOrderCompleted($order);
         $this->notificationService->notifyMerchantPickupCompleted($order);
+    }
+
+    public function autoCancelMerchantResponseTimeout(Order $order): void
+    {
+        if (OrderStatus::Submitted !== $order->getStatus()) {
+            return;
+        }
+
+        $order->cancel();
+
+        $pickupSlot = $order->getPickupSlot();
+        if (null !== $pickupSlot) {
+            $this->entityManager->getConnection()->executeStatement(
+                'UPDATE pickup_slots SET booked_count = CASE WHEN booked_count > 0 THEN booked_count - 1 ELSE 0 END WHERE id = :id',
+                ['id' => $pickupSlot->getId()->toBinary()],
+            );
+        }
+
+        $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled, self::MERCHANT_RESPONSE_TIMEOUT_NOTE);
+        $this->notificationService->notifyCustomerMerchantResponseTimeout($order);
     }
 }

@@ -12,6 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 final readonly class NotificationService
 {
     public const TYPE_PICKUP_REMINDER = 'pickup_reminder';
+    public const TYPE_MERCHANT_RESPONSE_TIMEOUT = 'merchant_response_timeout';
 
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -98,6 +99,22 @@ final readonly class NotificationService
             'Votre Kadhia est prête. Pensez à la retirer pendant votre créneau.',
             'القاضية واجدة. تذكروا استلامها خلال الموعد المحدد.',
             self::TYPE_PICKUP_REMINDER,
+        );
+    }
+
+    public function notifyCustomerMerchantResponseTimeout(Order $order): void
+    {
+        if ($this->notificationRepository->existsForOrderAndType($order, self::TYPE_MERCHANT_RESPONSE_TIMEOUT)) {
+            return;
+        }
+
+        $this->persistForCustomer(
+            $order,
+            'Commande annulée automatiquement',
+            'تم إلغاء الطلب آليًا',
+            'Votre Kadhia a été annulée car le marchand n’a pas répondu à temps.',
+            'تم إلغاء القاضية لأن التاجر لم يرد في الوقت المناسب.',
+            self::TYPE_MERCHANT_RESPONSE_TIMEOUT,
         );
     }
 
