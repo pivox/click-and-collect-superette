@@ -858,18 +858,74 @@ Règles :
 
 ### Heures d'ouverture
 
+Statut : **livré S3B-003**.
+
 ```http
 GET   /api/stores/{storeId}/opening-hours
 GET   /api/merchant/stores/{storeId}/opening-hours
 PATCH /api/merchant/stores/{storeId}/opening-hours
 ```
 
-Règles cibles :
+Réponse `200` :
+
+```json
+{
+  "store_id": "shop-uuid",
+  "opening_hours": {
+    "timezone": "Africa/Tunis",
+    "weekly": {
+      "1": [
+        { "start": "08:00", "end": "12:00" },
+        { "start": "15:00", "end": "20:00" }
+      ],
+      "2": [],
+      "3": [],
+      "4": [],
+      "5": [],
+      "6": [],
+      "7": []
+    }
+  }
+}
+```
+
+Si aucun horaire n'est configuré, `opening_hours` vaut `null`.
+
+Payload `PATCH` :
+
+```json
+{
+  "opening_hours": {
+    "timezone": "Africa/Tunis",
+    "weekly": {
+      "1": [{ "start": "08:00", "end": "12:00" }],
+      "2": [],
+      "3": [],
+      "4": [],
+      "5": [],
+      "6": [],
+      "7": []
+    }
+  }
+}
+```
+
+Règles :
 
 - lecture publique pour la vitrine client ;
-- modification réservée au marchand propriétaire ;
-- fuseau de référence `Africa/Tunis` ;
-- horaires indicatifs distincts des créneaux de retrait disponibles.
+- lecture et modification marchand réservées au marchand propriétaire ;
+- supérette inactive masquée côté public (`404 STORE_NOT_FOUND`) ;
+- `PATCH` remplace toute la structure `opening_hours` ;
+- fuseau obligatoire et strictement égal à `Africa/Tunis` ;
+- `weekly` est obligatoire et contient exactement les clés ISO `1` à `7` ;
+- chaque journée contient une liste de plages, ou `[]` pour un jour fermé ;
+- une plage contient uniquement `start` et `end` au format strict `HH:MM` ;
+- `start < end` ;
+- maximum 3 plages par jour ;
+- les plages adjacentes sont autorisées (`end == next.start`) ;
+- les plages chevauchantes sont refusées ;
+- ces horaires sont indicatifs pour la vitrine et restent distincts des créneaux de retrait disponibles ;
+- aucun `PickupSlot` n'est généré automatiquement par cette route.
 
 ### Historique complet commandes marchand
 

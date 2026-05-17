@@ -52,6 +52,10 @@ class Shop
     #[ORM\OneToOne(mappedBy: 'shop', targetEntity: ShopTheme::class)]
     private ?ShopTheme $theme = null;
 
+    /** @var array<string, mixed>|null */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $openingHours = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -196,6 +200,24 @@ class Shop
         if (null !== $theme && $theme->getShop() !== $this) {
             $theme->setShop($this);
         }
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getOpeningHours(): ?array
+    {
+        return $this->openingHours;
+    }
+
+    /**
+     * @param array<string, mixed>|null $openingHours
+     */
+    public function setOpeningHours(?array $openingHours): static
+    {
+        $this->openingHours = $openingHours;
 
         return $this;
     }
