@@ -1091,14 +1091,61 @@ PUT /api/admin/theme
 
 ### Marchands
 
-Statut : **à implémenter**.
+Statut : **lecture livrée S5-001 ; mutations à implémenter**.
 
 ```http
-GET   /api/admin/merchants
-POST  /api/admin/merchants
-PATCH /api/admin/merchants/{merchantId}/activate
-PATCH /api/admin/merchants/{merchantId}/suspend
+GET   /api/admin/merchants?page=1&limit=20
+GET   /api/admin/merchants/{merchantId}
+POST  /api/admin/merchants                         (à implémenter)
+PATCH /api/admin/merchants/{merchantId}/activate   (à implémenter)
+PATCH /api/admin/merchants/{merchantId}/suspend    (à implémenter)
 ```
+
+Réponse liste `200` :
+
+```json
+{
+  "items": [
+    {
+      "id": "merchant-uuid",
+      "email": "merchant@example.test",
+      "first_name": "Ali",
+      "last_name": "Ben Salah",
+      "phone": "+21600000000",
+      "is_active": true,
+      "created_at": "2026-05-18T10:00:00+00:00",
+      "stores_count": 2
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 1
+}
+```
+
+Réponse détail `200` :
+
+```json
+{
+  "id": "merchant-uuid",
+  "email": "merchant@example.test",
+  "first_name": "Ali",
+  "last_name": "Ben Salah",
+  "phone": "+21600000000",
+  "is_active": true,
+  "created_at": "2026-05-18T10:00:00+00:00",
+  "stores_count": 2
+}
+```
+
+Règles :
+
+- admin connecté uniquement (`ROLE_ADMIN`) ;
+- `ROLE_MERCHANT`, `ROLE_CUSTOMER` et anonyme refusés ;
+- la liste ne retourne que les `User` ayant `ROLE_MERCHANT` ;
+- pagination : `page` défaut `1`, `limit` défaut `20`, `limit` plafonné à `50` ;
+- tri stable par `created_at` décroissant puis `id` décroissant ;
+- aucun mot de passe, hash, token ou champ interne sensible n'est exposé.
 
 ### Supérettes
 

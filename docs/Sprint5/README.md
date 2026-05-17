@@ -33,7 +33,7 @@ Admin crée une supérette
 | US | Sujet | Epic | Statut |
 |---|---|---|---|
 | US-009 | Créer et gérer les supérettes (admin) | EPIC-009 | Complétée |
-| US-028 | Gérer les comptes marchands | EPIC-009 | Existante |
+| US-028 | Gérer les comptes marchands | EPIC-009 | En cours — S5-001 livre la lecture admin |
 | US-029 | Superviser le référentiel produit global | EPIC-009 | Existante |
 | US-030 | Valider les propositions de nouveaux produits | EPIC-009 | Existante |
 
@@ -82,10 +82,52 @@ POST   /api/admin/stores/{storeId}/regenerate-qr
 
 ```http
 GET    /api/admin/merchants
+GET    /api/admin/merchants/{merchantId}
 POST   /api/admin/merchants      { "name", "email", "phone", "shopIds": [] }
 PATCH  /api/admin/merchants/{id}/suspend
 PATCH  /api/admin/merchants/{id}/activate
 ```
+
+Statut S5-001 : `GET /api/admin/merchants` et `GET /api/admin/merchants/{merchantId}` livrés.
+
+Contrat lecture :
+
+```json
+{
+  "items": [
+    {
+      "id": "merchant-uuid",
+      "email": "merchant@example.test",
+      "first_name": "Ali",
+      "last_name": "Ben Salah",
+      "phone": "+21600000000",
+      "is_active": true,
+      "created_at": "2026-05-18T10:00:00+00:00",
+      "stores_count": 2
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 1
+}
+```
+
+Règles S5-001 :
+
+- réservé à `ROLE_ADMIN` ;
+- JWT obligatoire ;
+- `ROLE_MERCHANT` et `ROLE_CUSTOMER` interdits ;
+- pagination `page` / `limit`, `limit` plafonné à 50 ;
+- tri stable par `created_at DESC`, puis `id DESC` ;
+- ne retourne ni mot de passe, ni hash, ni token, ni donnée sensible.
+
+Hors périmètre S5-001 :
+
+- création de compte marchand ;
+- suspension / activation ;
+- association marchand-supérette ;
+- invitation email ;
+- onboarding marchand.
 
 ## Hors périmètre Sprint 5
 
