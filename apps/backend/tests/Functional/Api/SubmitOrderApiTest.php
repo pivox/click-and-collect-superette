@@ -311,7 +311,7 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
     {
         $customer = $this->createUser('submit-resubmit@example.test', ['ROLE_CUSTOMER']);
         $shop = $this->createShop();
-        $slot = $this->createPickupSlot($shop, capacity: 5);
+        $slot = $this->createPickupSlot($shop, capacity: 5, startsAtModifier: '+3 hours', endsAtModifier: '+4 hours');
         $product = $this->createMerchantProduct($shop, '2.000');
         $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
 
@@ -353,6 +353,41 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertSame(OrderStatus::Submitted, $logs[0]->getStatus());
         self::assertNull($logs[0]->getNote());
         self::assertSame(OrderStatus::Submitted, $orders[0]->getStatus());
+    }
+
+    public function testSubmitOrderResubmitAfterPartialAcceptanceDeadlineReturns422(): void
+    {
+        $customer = $this->createUser('submit-resubmit-expired@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop, capacity: 5, startsAtModifier: '+90 minutes', endsAtModifier: '+150 minutes');
+        $product = $this->createMerchantProduct($shop, '2.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
+
+        $existingOrder = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop)
+            ->setKadhia($kadhia)
+            ->setPickupSlot($slot);
+        $this->entityManager->persist($existingOrder);
+        $existingOrder->submit();
+        $existingOrder->partiallyAccept('Rupture');
+        $kadhia->setStatus(KadhiaStatus::Draft);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PARTIAL_ACCEPTANCE_EXPIRED', (string) $response->getContent());
+
+        $this->entityManager->clear();
+        $updatedOrder = $this->entityManager->getRepository(Order::class)->find($existingOrder->getId());
+        self::assertNotNull($updatedOrder);
+        self::assertSame(OrderStatus::PartiallyAccepted, $updatedOrder->getStatus());
     }
 
     // Helpers

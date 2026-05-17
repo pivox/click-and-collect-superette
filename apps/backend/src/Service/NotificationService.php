@@ -13,6 +13,8 @@ final readonly class NotificationService
 {
     public const TYPE_PICKUP_REMINDER = 'pickup_reminder';
     public const TYPE_MERCHANT_RESPONSE_TIMEOUT = 'merchant_response_timeout';
+    public const TYPE_PARTIAL_ACCEPTANCE_REMINDER = 'partial_acceptance_reminder';
+    public const TYPE_PARTIAL_ACCEPTANCE_TIMEOUT = 'partial_acceptance_timeout';
 
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -115,6 +117,38 @@ final readonly class NotificationService
             'Votre Kadhia a été annulée car le marchand n’a pas répondu à temps.',
             'تم إلغاء القاضية لأن التاجر لم يرد في الوقت المناسب.',
             self::TYPE_MERCHANT_RESPONSE_TIMEOUT,
+        );
+    }
+
+    public function notifyCustomerPartialAcceptanceReminder(Order $order): void
+    {
+        if ($this->notificationRepository->existsForOrderAndType($order, self::TYPE_PARTIAL_ACCEPTANCE_REMINDER)) {
+            return;
+        }
+
+        $this->persistForCustomer(
+            $order,
+            'Réponse nécessaire',
+            'يلزم الرد',
+            'Votre Kadhia a été acceptée partiellement. Confirmez vos modifications avant l’expiration du délai.',
+            'تم قبول القاضية جزئياً. أكدوا التعديلات قبل انتهاء المهلة.',
+            self::TYPE_PARTIAL_ACCEPTANCE_REMINDER,
+        );
+    }
+
+    public function notifyCustomerPartialAcceptanceTimeout(Order $order): void
+    {
+        if ($this->notificationRepository->existsForOrderAndType($order, self::TYPE_PARTIAL_ACCEPTANCE_TIMEOUT)) {
+            return;
+        }
+
+        $this->persistForCustomer(
+            $order,
+            'Commande annulée automatiquement',
+            'تم إلغاء الطلب آليًا',
+            'Votre Kadhia a été annulée car l’acceptation partielle n’a pas été confirmée à temps.',
+            'تم إلغاء القاضية لأن القبول الجزئي لم يتم تأكيده في الوقت المناسب.',
+            self::TYPE_PARTIAL_ACCEPTANCE_TIMEOUT,
         );
     }
 
