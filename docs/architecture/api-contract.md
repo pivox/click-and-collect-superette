@@ -561,6 +561,60 @@ Règles :
 - le marchand doit être propriétaire de la supérette ;
 - la liste ne doit pas exposer les coordonnées client.
 
+### Historique complet des commandes marchand
+
+Statut : **livré Sprint 3b**.
+
+```http
+GET /api/merchant/stores/{storeId}/orders/history
+GET /api/merchant/stores/{storeId}/orders/history?status=completed
+GET /api/merchant/stores/{storeId}/orders/history?date_from=2026-05-01&date_to=2026-05-31
+GET /api/merchant/stores/{storeId}/orders/history?query=ali&page=1&limit=20
+```
+
+Réponse `200` :
+
+```json
+{
+  "items": [
+    {
+      "id": "order-uuid",
+      "status": "completed",
+      "status_label_fr": "Commande retirée",
+      "status_label_ar": "تم استلام الطلب",
+      "customer": {
+        "first_name": "Ali",
+        "last_name": "Ben Salah",
+        "phone": "+216..."
+      },
+      "total": "42.500",
+      "pickup_slot": {
+        "starts_at": "2026-05-17T10:00:00+01:00",
+        "ends_at": "2026-05-17T10:30:00+01:00"
+      },
+      "created_at": "2026-05-17T08:00:00+01:00",
+      "updated_at": "2026-05-17T10:20:00+01:00"
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 1
+}
+```
+
+Règles :
+
+- endpoint dédié à l'historique, sans modifier la liste opérationnelle `GET /api/merchant/stores/{storeId}/orders` ;
+- marchand connecté uniquement ;
+- le marchand doit être propriétaire de la supérette ;
+- inclut les commandes non brouillonnes de la supérette, tous statuts métier de `submitted` à `completed/cancelled/rejected` ;
+- tri par `created_at` décroissant ;
+- pagination obligatoire : `page` défaut `1`, `limit` défaut `20`, `limit` plafonné à `50` ;
+- `status` doit être un statut connu ;
+- `date_from` et `date_to` filtrent `Order.createdAt` ;
+- `query` recherche simplement sur nom, prénom ou téléphone client ;
+- la liste ne retourne pas les lignes de commande, ni email client, ni champ sensible utilisateur.
+
 ### Consulter le détail d'une commande marchand
 
 Statut : **livré Sprint 3**.

@@ -1,0 +1,164 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Provider;
+
+use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\ProviderInterface;
+use App\ApiResource\MerchantOrderHistoryCustomerOutput;
+use App\ApiResource\MerchantOrderHistoryItemOutput;
+use App\ApiResource\MerchantOrderHistoryOutput;
+use App\ApiResource\MerchantOrderHistoryPickupSlotOutput;
+use App\Entity\Order;
+use App\Enum\OrderStatus;
+use App\Repository\OrderRepository;
+use App\Repository\ShopRepository;
+use App\Security\MerchantShopAccessChecker;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
+use Symfony\Component\Uid\Uuid;
+
+/**
+ * @implements ProviderInterface<MerchantOrderHistoryOutput>
+ */
+final readonly class MerchantOrderHistoryProvider implements ProviderInterface
+{
+    private const int DEFAULT_PAGE = 1;
+    private const int DEFAULT_LIMIT = 20;
+    private const int MAX_LIMIT = 50;
+
+    public function __construct(
+        private ShopRepository $shopRepository,
+        private OrderRepository $orderRepository,
+        private MerchantShopAccessChecker $merchantShopAccessChecker,
+        private RequestStack $requestStack,
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $uriVariables
+     * @param array<string, mixed> $context
+     */
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): MerchantOrderHistoryOutput
+    {
+        $storeId = (string) ($uriVariables['storeId'] ?? '');
+        if (!Uuid::isValid($storeId)) {
+            throw new NotFoundHttpException('STORE_NOT_FOUND');
+        }
+
+        $shop = $this->shopRepository->find($storeId);
+        if (null === $shop) {
+            throw new NotFoundHttpException('STORE_NOT_FOUND');
+        }
+
+        $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
+
+        $request = $this->requestStack->getCurrentRequest();
+        $status = $this->parseStatus($request?->query->get('status'));
+        $dateFrom = $this->parseDate($request?->query->get('date_from'), false, 'ORDER_HISTORY_INVALID_DATE_FROM');
+        $dateTo = $this->parseDate($request?->query->get('date_to'), true, 'ORDER_HISTORY_INVALID_DATE_TO');
+        if (null !== $dateFrom && null !== $dateTo && $dateFrom > $dateTo) {
+            throw new UnprocessableEntityHttpException('ORDER_HISTORY_INVALID_DATE_RANGE');
+        }
+
+        $query = trim((string) ($request?->query->get('query') ?? ''));
+        $query = '' === $query ? null : $query;
+        $page = $this->parsePositiveInt($request?->query->get('page'), self::DEFAULT_PAGE, 'ORDER_HISTORY_INVALID_PAGE');
+        $limit = $this->parsePositiveInt($request?->query->get('limit'), self::DEFAULT_LIMIT, 'ORDER_HISTORY_INVALID_LIMIT');
+        $limit = min(self::MAX_LIMIT, $limit);
+        $offset = ($page - 1) * $limit;
+
+        $orders = $this->orderRepository->findHistoryForShop($shop, $status, $dateFrom, $dateTo, $query, $limit, $offset);
+        $total = $this->orderRepository->countHistoryForShop($shop, $status, $dateFrom, $dateTo, $query);
+
+        return new MerchantOrderHistoryOutput(
+            id: $storeId,
+            items: array_map(self::toItemOutput(...), $orders),
+            page: $page,
+            limit: $limit,
+            total: $total,
+        );
+    }
+
+    private function parseStatus(?string $raw): ?OrderStatus
+    {
+        $raw = trim((string) $raw);
+        if ('' === $raw) {
+            return null;
+        }
+
+        $status = OrderStatus::tryFrom($raw);
+        if (null === $status || OrderStatus::Draft === $status) {
+            throw new UnprocessableEntityHttpException('ORDER_HISTORY_INVALID_STATUS');
+        }
+
+        return $status;
+    }
+
+    private function parseDate(?string $raw, bool $endOfDay, string $errorCode): ?\DateTimeImmutable
+    {
+        $raw = trim((string) $raw);
+        if ('' === $raw) {
+            return null;
+        }
+
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        try {
+            if (1 === preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
+                $date = new \DateTimeImmutable($raw, $timezone);
+
+                return $endOfDay ? $date->setTime(23, 59, 59) : $date->setTime(0, 0);
+            }
+
+            return new \DateTimeImmutable($raw);
+        } catch (\Exception) {
+            throw new UnprocessableEntityHttpException($errorCode);
+        }
+    }
+
+    private function parsePositiveInt(mixed $raw, int $default, string $errorCode): int
+    {
+        if (null === $raw || '' === $raw) {
+            return $default;
+        }
+
+        if (false === filter_var($raw, \FILTER_VALIDATE_INT)) {
+            throw new UnprocessableEntityHttpException($errorCode);
+        }
+
+        $value = (int) $raw;
+        if ($value < 1) {
+            throw new UnprocessableEntityHttpException($errorCode);
+        }
+
+        return $value;
+    }
+
+    private static function toItemOutput(Order $order): MerchantOrderHistoryItemOutput
+    {
+        $status = $order->getStatus();
+        $customer = $order->getCustomer();
+        $slot = $order->getPickupSlot();
+
+        return new MerchantOrderHistoryItemOutput(
+            id: $order->getId()->toRfc4122(),
+            status: $status->value,
+            statusLabelFr: $status->labelFr(),
+            statusLabelAr: $status->labelAr(),
+            customer: new MerchantOrderHistoryCustomerOutput(
+                firstName: $customer->getFirstName(),
+                lastName: $customer->getLastName(),
+                phone: $customer->getPhone(),
+            ),
+            total: $order->getTotalTnd(),
+            pickupSlot: null === $slot ? null : new MerchantOrderHistoryPickupSlotOutput(
+                startsAt: $slot->getStartsAt()->format(\DateTimeInterface::ATOM),
+                endsAt: $slot->getEndsAt()->format(\DateTimeInterface::ATOM),
+            ),
+            createdAt: $order->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            updatedAt: $order->getUpdatedAt()->format(\DateTimeInterface::ATOM),
+        );
+    }
+}

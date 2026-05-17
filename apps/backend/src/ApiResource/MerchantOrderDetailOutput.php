@@ -25,6 +25,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
                 'orderId' => new Link(fromClass: MerchantOrderDetailOutput::class, identifiers: ['id']),
             ],
+            requirements: ['orderId' => '[0-9a-fA-F-]{36}'],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['merchant_order_detail:read'], 'skip_null_values' => false],
             provider: MerchantOrderItemProvider::class,
