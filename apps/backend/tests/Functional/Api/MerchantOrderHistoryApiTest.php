@@ -75,6 +75,12 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
         self::assertSame('0.000', $submitted['total']);
         self::assertSame($slot->getStartsAt()->format(\DateTimeInterface::ATOM), $submitted['pickup_slot']['starts_at']);
         self::assertSame($slot->getEndsAt()->format(\DateTimeInterface::ATOM), $submitted['pickup_slot']['ends_at']);
+
+        $rejected = $payload['items'][0];
+        self::assertSame('rejected', $rejected['status']);
+        self::assertNull($rejected['customer']['first_name']);
+        self::assertNull($rejected['customer']['last_name']);
+        self::assertNull($rejected['customer']['phone']);
         self::assertArrayNotHasKey('lines', $submitted);
         self::assertArrayNotHasKey('customer_email', $submitted['customer']);
         self::assertArrayNotHasKey('password', $submitted['customer']);
@@ -228,6 +234,31 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
             $merchantA,
         );
         self::assertSame(403, $forbiddenResponse->getStatusCode());
+    }
+
+    public function testHistoryQueryDoesNotLeakOrdersFromAnotherShop(): void
+    {
+        $merchantA = $this->createUser('merchant-history-query-a@example.test', ['ROLE_MERCHANT']);
+        $merchantB = $this->createUser('merchant-history-query-b@example.test', ['ROLE_MERCHANT']);
+        $shopA = $this->createShop($merchantA);
+        $shopB = $this->createShop($merchantB);
+        $customerA = $this->createCustomer('customer-history-query-a@example.test', 'Ali', 'Owner', '+21622000111');
+        $customerB = $this->createCustomer('customer-history-query-b@example.test', 'Ali', 'Other', '+21622000222');
+
+        $orderA = $this->createOrder($customerA, $shopA, OrderStatus::Submitted, new \DateTimeImmutable('2026-05-10T10:00:00+01:00'));
+        $this->createOrder($customerB, $shopB, OrderStatus::Submitted, new \DateTimeImmutable('2026-05-11T10:00:00+01:00'));
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/history?query=Ali', $shopA->getId()),
+            null,
+            $merchantA,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(1, $payload['total']);
+        self::assertSame($orderA->getId()->toRfc4122(), $payload['items'][0]['id']);
     }
 
     public function testHistoryAccessControlAndUnknownShop(): void

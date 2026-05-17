@@ -613,7 +613,8 @@ Règles :
 - `status` doit être un statut connu ;
 - `date_from` et `date_to` filtrent `Order.createdAt` ;
 - `query` recherche simplement sur nom, prénom ou téléphone client ;
-- la liste ne retourne pas les lignes de commande, ni email client, ni champ sensible utilisateur.
+- la liste ne retourne pas les lignes de commande, ni email client, ni champ sensible utilisateur ;
+- par cohérence avec le détail marchand, les coordonnées client sont masquées sur les commandes `completed`, `cancelled` et `rejected`.
 
 ### Consulter le détail d'une commande marchand
 

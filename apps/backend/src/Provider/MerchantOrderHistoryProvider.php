@@ -141,6 +141,11 @@ final readonly class MerchantOrderHistoryProvider implements ProviderInterface
         $status = $order->getStatus();
         $customer = $order->getCustomer();
         $slot = $order->getPickupSlot();
+        $canExposeCustomerContact = !\in_array(
+            $status,
+            [OrderStatus::Rejected, OrderStatus::Completed, OrderStatus::Cancelled],
+            true,
+        );
 
         return new MerchantOrderHistoryItemOutput(
             id: $order->getId()->toRfc4122(),
@@ -148,9 +153,9 @@ final readonly class MerchantOrderHistoryProvider implements ProviderInterface
             statusLabelFr: $status->labelFr(),
             statusLabelAr: $status->labelAr(),
             customer: new MerchantOrderHistoryCustomerOutput(
-                firstName: $customer->getFirstName(),
-                lastName: $customer->getLastName(),
-                phone: $customer->getPhone(),
+                firstName: $canExposeCustomerContact ? $customer->getFirstName() : null,
+                lastName: $canExposeCustomerContact ? $customer->getLastName() : null,
+                phone: $canExposeCustomerContact ? $customer->getPhone() : null,
             ),
             total: $order->getTotalTnd(),
             pickupSlot: null === $slot ? null : new MerchantOrderHistoryPickupSlotOutput(

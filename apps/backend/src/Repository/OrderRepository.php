@@ -181,10 +181,12 @@ class OrderRepository extends ServiceEntityRepository
         if ('' !== $query) {
             $queryBuilder
                 ->andWhere(
-                    'LOWER(customer.name) LIKE :query'
-                    .' OR LOWER(customer.firstName) LIKE :query'
-                    .' OR LOWER(customer.lastName) LIKE :query'
-                    .' OR customer.phone LIKE :rawQuery'
+                    $queryBuilder->expr()->orX(
+                        'LOWER(customer.name) LIKE :query',
+                        'LOWER(customer.firstName) LIKE :query',
+                        'LOWER(customer.lastName) LIKE :query',
+                        'customer.phone LIKE :rawQuery',
+                    )
                 )
                 ->setParameter('query', '%'.mb_strtolower($query).'%')
                 ->setParameter('rawQuery', '%'.$query.'%');
