@@ -39,6 +39,25 @@ class MerchantProductRepository extends ServiceEntityRepository
     }
 
     /**
+     * @param list<string> $merchantProductIds
+     *
+     * @return list<MerchantProduct>
+     */
+    public function findForShopAndIds(Shop $shop, array $merchantProductIds): array
+    {
+        $merchantProducts = [];
+
+        foreach ($merchantProductIds as $merchantProductId) {
+            $merchantProduct = $this->find($merchantProductId);
+            if ($merchantProduct instanceof MerchantProduct && $merchantProduct->getShop()->getId()->equals($shop->getId())) {
+                $merchantProducts[] = $merchantProduct;
+            }
+        }
+
+        return $merchantProducts;
+    }
+
+    /**
      * @return list<MerchantProduct>
      */
     public function findPublicCatalogForShop(Shop $shop, ?string $query = null, ?string $categorySlug = null): array
