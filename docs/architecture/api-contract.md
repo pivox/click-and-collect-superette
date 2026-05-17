@@ -1198,3 +1198,293 @@ GET /api/merchant/stores/{storeId}/theme
 ```
 
 ### Créer ou modifier le thème d'une supérette côté marchand
+
+```http
+PUT /api/merchant/stores/{storeId}/theme
+```
+
+### Lire et modifier le thème global admin
+
+```http
+GET /api/admin/theme
+PUT /api/admin/theme
+```
+
+---
+
+## Retrait sécurisé
+
+Statut : **livré Sprint 4**.
+
+### Lire la session de retrait côté client
+
+```http
+GET /api/me/orders/{orderId}/pickup-session
+```
+
+Réponse `200` :
+
+```json
+{
+  "id": "pickup-session-uuid",
+  "token": "pickup-token-uuid",
+  "expires_at": "2026-05-15T14:00:00+01:00",
+  "is_used": false,
+  "is_expired": false,
+  "qr_payload": "pickup-token-uuid"
+}
+```
+
+Règles :
+
+- client connecté uniquement ;
+- commande appartenant au client ;
+- commande en statut `ready` ;
+- le QR code encode `PickupSession.token` ;
+- le token est opaque, UUID, et n'est exposé que via cette route client.
+
+### Scanner un QR code de retrait côté marchand
+
+```http
+POST /api/merchant/pickup-sessions/scan
+```
+
+Payload :
+
+```json
+{
+  "token": "pickup-session-token-uuid"
+}
+```
+
+Réponse `200` :
+
+```json
+{
+  "id": "pickup-session-uuid",
+  "order_id": "order-uuid",
+  "store_id": "store-uuid",
+  "order_number": null,
+  "status": "pickup_pending",
+  "scanned_at": "2026-05-15T13:00:00+00:00",
+  "customer": {
+    "first_name": "Haythem",
+    "last_name": "Mabrouk",
+    "phone": "+21600000000"
+  },
+  "lines": [
+    {
+      "merchant_product_id": "merchant-product-uuid",
+      "name": "Lait Vitalait 1L",
+      "quantity": 2,
+      "unit_price_tnd": "2.800"
+    }
+  ]
+}
+```
+
+Règles :
+
+- marchand connecté uniquement ;
+- le marchand doit être propriétaire de la supérette liée à la commande ;
+- token existant, non expiré et non utilisé ;
+- commande en `ready` ;
+- passe la commande en `pickup_pending` ;
+- écrit un `OrderStatusLog` `pickup_pending` ;
+- un scan répété est idempotent si la session est déjà scannée et la commande encore `pickup_pending`.
+
+### Confirmation marchand
+
+```http
+PATCH /api/merchant/pickup-sessions/{id}/confirm
+```
+
+Réponse `200` :
+
+```json
+{
+  "id": "pickup-session-uuid",
+  "order_id": "order-uuid",
+  "order_status": "pickup_pending",
+  "scanned_at": "2026-05-15T13:00:00+00:00",
+  "merchant_confirmed_at": "2026-05-15T13:02:00+00:00",
+  "customer_confirmed_at": null,
+  "is_used": false,
+  "is_completed": false
+}
+```
+
+### Confirmation client
+
+```http
+PATCH /api/me/pickup-sessions/{id}/confirm
+```
+
+Même format de réponse que la confirmation marchand.
+
+### Force completion marchand
+
+```http
+PATCH /api/merchant/pickup-sessions/{id}/force-complete
+```
+
+Payload :
+
+```json
+{
+  "note": "Client parti sans confirmer sur son téléphone."
+}
+```
+
+Réponse `200` :
+
+```json
+{
+  "id": "pickup-session-uuid",
+  "order_id": "order-uuid",
+  "order_status": "completed",
+  "scanned_at": "2026-05-15T13:00:00+00:00",
+  "merchant_confirmed_at": "2026-05-15T13:02:00+00:00",
+  "customer_confirmed_at": null,
+  "is_used": true,
+  "is_completed": true,
+  "force_completed_by_merchant": true,
+  "force_note": "Client parti sans confirmer sur son téléphone."
+}
+```
+
+Règles :
+
+- `PickupSession.token` est opaque et unique par commande ;
+- usage unique après double validation ou force completion ;
+- expiration 24h après passage en `ready` ;
+- le scan bloque un token expiré ;
+- après scan, la confirmation client et la force completion ne bloquent plus sur le TTL ;
+- limite actuelle : la confirmation marchand conserve encore un garde d'expiration ;
+- passage `ready` → `pickup_pending` après scan marchand ;
+- passage `pickup_pending` → `completed` après double validation client + marchand ;
+- force completion possible après 5 minutes si le marchand a confirmé, le client n'a pas confirmé et une note est fournie ;
+- pas de réouverture admin d'une session expirée dans le MVP.
+
+---
+
+## Notifications
+
+Statut : **livré Sprint 4**.
+
+MVP recommandé : notifications persistées en base, lecture par API, sans push/SMS obligatoire au départ.
+
+```http
+GET   /api/me/notifications?page=1&unread=true
+PATCH /api/me/notifications/{id}/read
+PATCH /api/me/notifications/read-all
+
+GET   /api/merchant/notifications?page=1&unread=true
+PATCH /api/merchant/notifications/{id}/read
+PATCH /api/merchant/notifications/read-all
+```
+
+Événements minimaux :
+
+- commande soumise : notifier marchand ;
+- commande acceptée : notifier client ;
+- commande refusée : notifier client ;
+- commande acceptée partiellement : notifier client ;
+- commande en préparation : notifier client ;
+- commande prête : notifier client ;
+- rappel de retrait 1h avant créneau si commande `ready` ;
+- retrait finalisé : notifier client et marchand.
+
+Les notifications sont in-app uniquement. Le MVP actuel n'inclut pas push mobile, SMS, email, Mercure ou WebSocket.
+
+---
+
+## Suivi statut client
+
+Statut : **livré Sprint 4**.
+
+```http
+GET /api/me/orders/{orderId}/status
+```
+
+Réponse `200` :
+
+```json
+{
+  "order_id": "order-uuid",
+  "status": "pickup_pending",
+  "status_label_fr": "Retrait en cours",
+  "status_label_ar": "الاستلام قيد التنفيذ",
+  "updated_at": "2026-05-15T13:00:00+00:00",
+  "pickup_session": {
+    "exists": true,
+    "is_scanned": true,
+    "merchant_confirmed": true,
+    "customer_confirmed": false,
+    "is_used": false,
+    "force_completed_by_merchant": false
+  }
+}
+```
+
+Règles :
+
+- client connecté uniquement ;
+- commande appartenant au client ;
+- ne retourne pas le token QR ;
+- prévu pour un polling frontend simple.
+
+---
+
+## Codes d'erreur MVP
+
+| Code | Signification |
+| --- | --- |
+| `AUTH_EMAIL_ALREADY_USED` | Email déjà utilisé. |
+| `AUTH_INVALID_CREDENTIALS` | Identifiants invalides. |
+| `STORE_NOT_FOUND` | Supérette introuvable. |
+| `STORE_DISABLED` | Supérette désactivée. |
+| `CUSTOMER_STORE_NOT_FOUND` | Relation client/store introuvable. |
+| `PRODUCT_NOT_AVAILABLE` | Produit indisponible. |
+| `PRODUCT_UNAVAILABLE` | Produit indisponible ou invisible à la soumission. |
+| `KADHIA_NOT_FOUND` | Kadhia introuvable ou non accessible. |
+| `KADHIA_NOT_EDITABLE` | Kadhia non modifiable car non draft. |
+| `KADHIA_EMPTY` | Kadhia vide à la soumission. |
+| `PICKUP_SLOT_NOT_FOUND` | Créneau introuvable ou d'un autre store. |
+| `PICKUP_SLOT_FULL` | Créneau complet. |
+| `PICKUP_SLOT_EXPIRED` | Créneau expiré ou déjà commencé. |
+| `ORDER_INVALID_STATUS` | Transition de statut interdite. |
+| `ORDER_NOT_SUBMITTED` | La commande n'est pas dans un statut soumis attendu. |
+| `ORDER_NOT_PREPARING` | La commande n'est pas en préparation. |
+| `ORDER_LINE_NOT_FOUND` | Ligne de commande introuvable. |
+| `PICKUP_TOKEN_INVALID` | QR code de retrait invalide. |
+| `PICKUP_TOKEN_ALREADY_USED` | QR code déjà utilisé. |
+| `PICKUP_TOKEN_EXPIRED` | QR code expiré. |
+| `PICKUP_SESSION_NOT_FOUND` | Session de retrait introuvable. |
+| `PICKUP_SESSION_NOT_SCANNED` | Session de retrait pas encore scannée. |
+| `PICKUP_SESSION_ALREADY_USED` | Session de retrait déjà utilisée. |
+| `PICKUP_SESSION_EXPIRED` | Session de retrait expirée. |
+| `ORDER_NOT_READY` | La commande n'est pas prête au retrait. |
+| `ORDER_NOT_PICKUP_PENDING` | La commande n'est pas en retrait en cours. |
+| `ORDER_ALREADY_COMPLETED` | La commande est déjà finalisée. |
+| `PICKUP_SESSION_NOT_MERCHANT_CONFIRMED` | Le marchand n'a pas encore confirmé le retrait. |
+| `PICKUP_SESSION_ALREADY_CUSTOMER_CONFIRMED` | Le client a déjà confirmé le retrait. |
+| `PICKUP_FORCE_COMPLETION_TOO_EARLY` | Le délai de 5 minutes n'est pas encore atteint. |
+| `PRODUCT_REFERENCE_DUPLICATE` | Produit de référence probablement déjà existant. |
+
+---
+
+## Endpoints obsolètes à ne plus utiliser pour la Kadhia
+
+Les routes suivantes appartiennent à l'ancien modèle et ne doivent plus être utilisées dans les nouvelles PR :
+
+```http
+POST   /api/stores/{storeId}/orders
+POST   /api/orders/{orderId}/items
+PATCH  /api/orders/{orderId}/items/{itemId}
+DELETE /api/orders/{orderId}/items/{itemId}
+PATCH  /api/orders/{orderId}/pickup-slot
+POST   /api/orders/{orderId}/submit
+```
+
+Le modèle valide est `Kadhia -> submit -> Order`.
