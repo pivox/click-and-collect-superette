@@ -1020,8 +1020,23 @@ Règles cibles :
 - action réservée au marchand propriétaire ;
 - tous les produits ciblés doivent appartenir à la supérette ;
 - action atomique : pas de modification partielle si un identifiant est invalide ;
+- batch limité à 50 produits ;
+- les identifiants dupliqués sont dédupliqués ;
+- met à jour `MerchantProduct.isAvailable` et `MerchantProduct.merchantNote` ;
+- ne modifie pas `MerchantProduct.isVisible`, qui reste le contrôle d'affichage volontaire du marchand ;
 - ne modifie pas les commandes déjà soumises ;
 - ne modifie pas le référentiel produit global.
+
+Réponse `200` :
+
+```json
+{
+  "updated_count": 2,
+  "is_available": false,
+  "merchant_note": "Rupture temporaire",
+  "merchant_product_ids": ["merchant-product-uuid-1", "merchant-product-uuid-2"]
+}
+```
 
 ### Automatisations de délai
 
