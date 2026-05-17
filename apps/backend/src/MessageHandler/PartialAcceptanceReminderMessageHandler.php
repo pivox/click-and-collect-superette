@@ -50,7 +50,10 @@ final readonly class PartialAcceptanceReminderMessageHandler
                 return;
             }
 
-            $this->notificationService->notifyCustomerPartialAcceptanceReminder($order);
+            // Type includes the expiration timestamp so each partial-acceptance cycle gets its own
+            // idempotency key; a second cycle with a different slot deadline is not blocked.
+            $cycleType = NotificationService::TYPE_PARTIAL_ACCEPTANCE_REMINDER.'_'.$expiresAt->getTimestamp();
+            $this->notificationService->notifyCustomerPartialAcceptanceReminder($order, $cycleType);
             $this->entityManager->flush();
         });
     }
