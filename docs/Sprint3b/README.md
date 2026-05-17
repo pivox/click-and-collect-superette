@@ -2,11 +2,9 @@
 
 ## Statut
 
-**Statut : fondation documentaire.**
+**Statut : backend terminé — 2026-05-17.**
 
-Sprint 3b démarre après la clôture backend de Sprint 3 core et Sprint 4. Il ne change pas le parcours de retrait sécurisé ; il complète l'outillage quotidien du marchand autour des créneaux, disponibilités, historiques et automatisations.
-
-Cette fondation ne livre aucun endpoint applicatif. Elle fixe le périmètre, les contrats cibles et l'ordre recommandé des futures PR backend.
+Sprint 3b est entièrement livré côté backend. Il complète l'outillage quotidien du marchand autour des créneaux, disponibilités, historiques et automatisations. PRs #91 à #101 mergées sur main.
 
 ## Objectif
 
@@ -23,13 +21,13 @@ Permettre au marchand de gérer son activité quotidienne avec moins d'opératio
 
 | US | Sujet | Objectif | Statut |
 |---|---|---|---|
-| US-047 | Créneaux récurrents | Définir des règles hebdomadaires et générer les créneaux ponctuels sur 4 semaines | À coder |
-| US-056 | Fermeture exceptionnelle | Bloquer une plage de dates/heures sans supprimer les règles récurrentes | À coder |
-| US-057 | Heures d'ouverture | Définir les horaires hebdomadaires et les exposer publiquement | À coder |
-| US-053 | Historique complet marchand | Lister toutes les commandes avec filtres et pagination | À coder |
-| US-052 | Ruptures de stock en masse | Mettre à jour la disponibilité de plusieurs produits marchand | À coder |
-| US-043 | Délai de réponse marchand | Annuler automatiquement une commande non traitée avant 2h du créneau | À coder |
-| US-049 | Expiration acceptation partielle | Annuler automatiquement si le client ne re-soumet pas avant 2h du créneau | À coder |
+| US-047 | Créneaux récurrents | Définir des règles hebdomadaires et générer les créneaux ponctuels sur 4 semaines | ✅ Livré (S3B-001, PR #92) |
+| US-056 | Fermeture exceptionnelle | Bloquer une plage de dates/heures sans supprimer les règles récurrentes | ✅ Livré (S3B-002, PR #93) |
+| US-057 | Heures d'ouverture | Définir les horaires hebdomadaires et les exposer publiquement | ✅ Livré (S3B-003, PR #94) |
+| US-053 | Historique complet marchand | Lister toutes les commandes avec filtres et pagination | ✅ Livré (S3B-004, PR #95) |
+| US-052 | Ruptures de stock en masse | Mettre à jour la disponibilité de plusieurs produits marchand | ✅ Livré (S3B-005, PR #97) |
+| US-043 | Délai de réponse marchand | Annuler automatiquement une commande non traitée avant 2h du créneau | ✅ Livré (S3B-006, PR #98) |
+| US-049 | Expiration acceptation partielle | Annuler automatiquement si le client ne re-soumet pas avant 2h du créneau | ✅ Livré (S3B-007, PR #99 + #101) |
 
 ## Endpoints cibles
 
@@ -96,7 +94,7 @@ Filtres cibles :
 - `status` ;
 - `date_from` ;
 - `date_to` ;
-- `query` : recherche par numéro de commande (`#0042`) ou nom client ;
+- `query` : recherche par nom, prénom ou téléphone client ;
 - `page` ;
 - `limit`.
 
@@ -206,3 +204,97 @@ Règles cible :
 ## Critère de sortie Sprint 3b
 
 Sprint 3b sera terminé lorsque le marchand pourra gérer ses créneaux récurrentement, déclarer des fermetures, exposer ses horaires, consulter tout son historique, traiter des ruptures de stock en masse et bénéficier d'automatisations fiables sur les commandes sans réponse ou partiellement acceptées.
+
+---
+
+## Clôture Sprint 3b
+
+### Statut global : backend terminé — 2026-05-17
+
+### US livrées
+
+| US | Sujet | Statut |
+|---|---|---|
+| US-047 | Créneaux récurrents (PickupSlotRule + génération 4 semaines) | ✅ Livré (S3B-001, PR #92) |
+| US-056 | Fermetures exceptionnelles | ✅ Livré (S3B-002, PR #93) |
+| US-057 | Heures d'ouverture supérette | ✅ Livré (S3B-003, PR #94) |
+| US-053 | Historique complet commandes marchand | ✅ Livré (S3B-004, PR #95) |
+| US-052 | Ruptures de stock en masse | ✅ Livré (S3B-005, PR #97) |
+| US-043 | Délai de réponse marchand automatique | ✅ Livré (S3B-006, PR #98) |
+| US-049 | Expiration acceptation partielle | ✅ Livré (S3B-007, PR #99 + #101) |
+
+### Endpoints livrés
+
+```
+GET    /api/merchant/stores/{storeId}/pickup-slot-rules
+POST   /api/merchant/stores/{storeId}/pickup-slot-rules
+PATCH  /api/merchant/stores/{storeId}/pickup-slot-rules/{ruleId}
+DELETE /api/merchant/stores/{storeId}/pickup-slot-rules/{ruleId}
+POST   /api/merchant/stores/{storeId}/pickup-slot-rules/generate
+
+GET    /api/merchant/stores/{storeId}/exceptional-closures
+POST   /api/merchant/stores/{storeId}/exceptional-closures
+PATCH  /api/merchant/stores/{storeId}/exceptional-closures/{closureId}
+DELETE /api/merchant/stores/{storeId}/exceptional-closures/{closureId}
+
+GET    /api/stores/{storeId}/opening-hours
+GET    /api/merchant/stores/{storeId}/opening-hours
+PATCH  /api/merchant/stores/{storeId}/opening-hours
+
+GET    /api/merchant/stores/{storeId}/orders/history
+
+PATCH  /api/merchant/stores/{storeId}/products/bulk-availability
+```
+
+### Entités et champs ajoutés
+
+- `PickupSlotRule` : `id`, `shop`, `weekday` (ISO 1–7), `startTime`, `endTime`, `capacity`, `isActive`, `createdAt`, `updatedAt`.
+- `ExceptionalClosure` : `id`, `shop`, `startsAt`, `endsAt`, `reason`, `isActive`, `createdAt`, `updatedAt`.
+- `Shop.openingHours` : JSON Doctrine (`opening_hours JSON DEFAULT NULL` en migration), structure `{ "timezone": "Africa/Tunis", "weekly": { "1": [...], ... "7": [...] } }`. Clés ISO 1–7 (et non `monday`...) — divergence documentée vs préparation initiale.
+
+### Messages Messenger
+
+- **S3B-006** : `ExpireMerchantResponseMessage` — commande `submitted` → `cancelled` si non traitée avant `pickupSlot.startsAt - 2h`.
+- **S3B-007** : `PartialAcceptanceReminderMessage` — notification client à `pickupSlot.startsAt - 4h` (cycleId UUID par cycle d'acceptation partielle).
+- **S3B-007** : `ExpirePartialAcceptanceMessage` — commande `partially_accepted` → `cancelled` si le client ne re-soumet pas avant `pickupSlot.startsAt - 2h`.
+
+### Types de notification
+
+- S3B-006 : `merchant_response_timeout`
+- S3B-007 : `partial_acceptance_reminder_{cycleId}`, `partial_acceptance_timeout`
+
+### Automatisations Messenger
+
+- Expiration délai réponse marchand : commande `submitted` → `cancelled` si non traitée avant `pickupSlot.startsAt - 2h`
+- Rappel acceptation partielle : notification client à `pickupSlot.startsAt - 4h`
+- Expiration acceptation partielle : commande `partially_accepted` → `cancelled` si non re-soumise avant `pickupSlot.startsAt - 2h`
+
+### Résultats des tests (audit 2026-05-17)
+
+| Fichier de test | Résultat |
+|---|---|
+| `MerchantPickupSlotRuleApiTest.php` | OK (13 tests, 107 assertions) |
+| `MerchantExceptionalClosureApiTest.php` | OK (16 tests, 76 assertions) |
+| `ShopOpeningHoursApiTest.php` | OK (11 tests, 57 assertions) |
+| `MerchantOrderHistoryApiTest.php` | OK (9 tests, 100 assertions) |
+| `MerchantProductBulkAvailabilityApiTest.php` | OK (8 tests, 67 assertions) |
+| `MerchantResponseTimeoutSchedulerTest.php` | OK (5 tests, 10 assertions) |
+| `ExpireMerchantResponseMessageHandlerTest.php` | OK (14 tests, 72 assertions) |
+| `PartialAcceptanceExpirationSchedulerTest.php` | OK (6 tests, 18 assertions) |
+| `PartialAcceptanceReminderMessageHandlerTest.php` | OK (7 tests, 21 assertions) |
+| `ExpirePartialAcceptanceMessageHandlerTest.php` | OK (15 tests, 72 assertions) |
+| **Suite complète** | **OK (738 tests, 3009 assertions)** |
+| PHPStan | 0 erreur (274 fichiers analysés) |
+| PHP CS Fixer | 0 fichier à corriger |
+
+### Limites MVP conservées intentionnellement
+
+- Notifications in-app uniquement (pas SMS / email / push / Mercure / WebSocket).
+- `DelayStamp` Symfony Messenger nécessite un transport async persistant et un worker actif en production. Le transport `sync://` local ne garantit pas un vrai différé.
+- Pas de `SELECT FOR UPDATE` global sur toutes les transitions automatiques.
+- Pas d'analytics (Sprint 7), pas d'administration (Sprint 5).
+- `cycleId = ''` par défaut dans `PartialAcceptanceReminderMessage` pour compatibilité ascendante avec les messages en transit (corrigé PR #101).
+
+### Suite recommandée
+
+**Sprint 5 — Administration minimale** : CRUD supérettes et marchands admin, référentiel produit, QR code téléchargeable, onboarding marchand guidé.

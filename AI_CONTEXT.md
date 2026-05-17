@@ -62,12 +62,12 @@ Exclus du MVP :
 - Sprint Auth : terminé côté backend (inscription client, login JWT, profil client, reset password).
 - Sprint 3 : terminé côté backend (traitement marchand core, créneaux ponctuels, historique de statuts, dashboard journalier).
 - Sprint 4 : terminé côté backend (QR de retrait, `PickupSession`, scan marchand, `pickup_pending`, double validation, force completion, notifications in-app, suivi statut client, rappel retrait 1h).
-- Sprint 3b : fondation documentaire prête, backend à démarrer (créneaux récurrents, fermetures exceptionnelles, heures d'ouverture, ruptures de stock en masse, délais automatiques, historique complet marchand).
+- Sprint 3b : terminé côté backend. PRs #91–#101 livrées. Endpoints : pickup-slot-rules (CRUD + génération), exceptional-closures (CRUD), opening-hours (public + marchand), orders/history (filtres + pagination), products/bulk-availability. Automatisations Messenger : expiration délai réponse marchand (→ cancelled si submitted avant startsAt-2h), rappel acceptation partielle (notification à startsAt-4h), expiration acceptation partielle (→ cancelled si partially_accepted avant startsAt-2h). Limites : notifications in-app uniquement, transport async persistant requis en production. Suite recommandée : Sprint 5 — Administration minimale.
 - Sprint 5 : à faire (administration minimale des supérettes, marchands et référentiel produit).
 
 Limites Sprint 4 : le rappel de retrait 1h utilise Symfony Messenger et `DelayStamp`. Un vrai différé en production nécessite un transport async persistant et un worker actif ; les notifications restent in-app, sans push mobile, SMS, email ni Mercure/WebSocket dans le MVP backend actuel. Le contenu du rappel US-064 reste générique et doit encore intégrer le nom de la supérette, l'heure du créneau et le numéro de commande. Après scan, la confirmation client et la force completion ne bloquent plus sur le TTL, mais la confirmation marchand conserve encore un contrôle d'expiration côté processor. Le MVP ne prévoit pas de réouverture admin d'une session expirée et les confirmations simultanées ne sont pas sérialisées par un `SELECT FOR UPDATE` dédié.
 
-Suite recommandée : démarrer Sprint 3b par **S3B-001 — Créneaux récurrents foundation** (`PickupSlotRule`, CRUD marchand, génération de `PickupSlot` sur 4 semaines), puis traiter les fermetures exceptionnelles avant les automatisations Messenger.
+Suite recommandée : démarrer **Sprint 5 — Administration minimale** (CRUD supérettes et marchands admin, référentiel produit, QR code téléchargeable, onboarding marchand guidé).
 
 ## Statuts de commande
 
@@ -95,8 +95,8 @@ Suite recommandée : démarrer Sprint 3b par **S3B-001 — Créneaux récurrents
 - `Kadhia`
 - `KadhiaLine`
 - `PickupSlot`
-- `PickupSlotRule` (Sprint 3b prévu)
-- `ExceptionalClosure` (Sprint 3b prévu)
+- `PickupSlotRule`
+- `ExceptionalClosure`
 - `Order`
 - `OrderLine`
 - `PasswordResetToken`
