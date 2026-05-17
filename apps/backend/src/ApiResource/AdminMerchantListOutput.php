@@ -25,7 +25,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
                     description: 'Numéro de page (défaut : 1).',
                 ),
                 'limit' => new QueryParameter(
-                    schema: ['type' => 'integer', 'default' => 20, 'maximum' => 50],
+                    schema: ['type' => 'integer', 'default' => 20],
                     description: 'Résultats par page (défaut : 20, max : 50).',
                 ),
             ],

@@ -19,20 +19,40 @@ final readonly class AdminMerchantRepository
      */
     public function findPaginated(int $limit, int $offset): array
     {
-        return \array_slice($this->findSorted(), $offset, $limit);
+        /** @var list<User> $merchants */
+        $merchants = $this->userRepository->createQueryBuilder('u')
+            ->where('u.roles LIKE :role')
+            ->setParameter('role', '%ROLE_MERCHANT%')
+            ->orderBy('u.createdAt', 'DESC')
+            ->addOrderBy('u.id', 'DESC')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset)
+            ->getQuery()
+            ->getResult();
+
+        return $merchants;
     }
 
     public function countAll(): int
     {
-        return \count($this->findSorted());
+        return (int) $this->userRepository->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->where('u.roles LIKE :role')
+            ->setParameter('role', '%ROLE_MERCHANT%')
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     public function findOne(string $id): ?User
     {
-        $user = $this->userRepository->find($id);
-        if (!$user instanceof User || !$this->isMerchant($user)) {
-            return null;
-        }
+        /** @var User|null $user */
+        $user = $this->userRepository->createQueryBuilder('u')
+            ->where('u.id = :id')
+            ->andWhere('u.roles LIKE :role')
+            ->setParameter('id', $id, 'uuid')
+            ->setParameter('role', '%ROLE_MERCHANT%')
+            ->getQuery()
+            ->getOneOrNullResult();
 
         return $user;
     }
@@ -43,17 +63,27 @@ final readonly class AdminMerchantRepository
     }
 
     /**
-     * @return list<User>
+     * @param list<User> $merchants
+     *
+     * @return array<string, int>
      */
-    private function findSorted(): array
+    public function countStoresGrouped(array $merchants): array
     {
-        $users = $this->userRepository->findBy([], ['createdAt' => 'DESC', 'id' => 'DESC']);
+        if ([] === $merchants) {
+            return [];
+        }
 
-        return array_values(array_filter($users, $this->isMerchant(...)));
-    }
+        $counts = [];
+        $shops = $this->shopRepository->findBy(['owner' => $merchants]);
+        foreach ($shops as $shop) {
+            $ownerId = $shop->getOwner()?->getId()->toRfc4122();
+            if (null === $ownerId) {
+                continue;
+            }
 
-    private function isMerchant(User $user): bool
-    {
-        return \in_array('ROLE_MERCHANT', $user->getRoles(), true);
+            $counts[$ownerId] = ($counts[$ownerId] ?? 0) + 1;
+        }
+
+        return $counts;
     }
 }

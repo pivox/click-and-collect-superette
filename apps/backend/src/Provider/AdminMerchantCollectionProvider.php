@@ -9,7 +9,7 @@ use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\AdminMerchantListOutput;
 use App\Repository\AdminMerchantRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @implements ProviderInterface<AdminMerchantListOutput>
@@ -39,10 +39,11 @@ final readonly class AdminMerchantCollectionProvider implements ProviderInterfac
         $offset = ($page - 1) * $limit;
 
         $merchants = $this->adminMerchantRepository->findPaginated($limit, $offset);
+        $storesCounts = $this->adminMerchantRepository->countStoresGrouped($merchants);
         $items = array_map(
-            fn ($merchant) => AdminMerchantItemProvider::toOutput(
+            static fn ($merchant) => AdminMerchantItemProvider::toOutput(
                 $merchant,
-                $this->adminMerchantRepository->countStores($merchant),
+                $storesCounts[$merchant->getId()->toRfc4122()] ?? 0,
             ),
             $merchants,
         );
@@ -63,12 +64,12 @@ final readonly class AdminMerchantCollectionProvider implements ProviderInterfac
         }
 
         if (false === filter_var($raw, \FILTER_VALIDATE_INT)) {
-            throw new UnprocessableEntityHttpException($errorCode);
+            throw new BadRequestHttpException($errorCode);
         }
 
         $value = (int) $raw;
         if ($value < 1) {
-            throw new UnprocessableEntityHttpException($errorCode);
+            throw new BadRequestHttpException($errorCode);
         }
 
         return $value;

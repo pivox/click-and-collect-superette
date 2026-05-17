@@ -102,6 +102,27 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertSame($oldest->getId()->toRfc4122(), $pageTwo['items'][0]['id']);
     }
 
+    public function testLimitIsCappedAt50(): void
+    {
+        $admin = $this->createUser('admin-limit-cap@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('GET', '/api/admin/merchants?limit=100', user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame(50, $this->decodeJson($response)['limit']);
+    }
+
+    public function testMalformedPaginationQueryParamsReturnBadRequest(): void
+    {
+        $admin = $this->createUser('admin-invalid-admin-merchant-query@example.test', ['ROLE_ADMIN']);
+
+        $pageResponse = $this->requestJson('GET', '/api/admin/merchants?page=abc', user: $admin);
+        $limitResponse = $this->requestJson('GET', '/api/admin/merchants?limit=0', user: $admin);
+
+        self::assertSame(400, $pageResponse->getStatusCode());
+        self::assertSame(400, $limitResponse->getStatusCode());
+    }
+
     public function testCustomerIsForbidden(): void
     {
         $customer = $this->createUser('customer-admin-merchants-forbidden@example.test', ['ROLE_CUSTOMER']);
