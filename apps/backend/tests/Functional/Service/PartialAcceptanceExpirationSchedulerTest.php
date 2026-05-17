@@ -33,7 +33,9 @@ final class PartialAcceptanceExpirationSchedulerTest extends FunctionalApiTestCa
         $scheduler->scheduleForPartiallyAcceptedOrder($order);
 
         self::assertCount(2, $bus->dispatched);
-        self::assertInstanceOf(PartialAcceptanceReminderMessage::class, $bus->dispatched[0]->getMessage());
+        $reminderMsg = $bus->dispatched[0]->getMessage();
+        self::assertInstanceOf(PartialAcceptanceReminderMessage::class, $reminderMsg);
+        self::assertTrue(Uuid::isValid($reminderMsg->cycleId), 'cycleId must be a valid UUID');
         self::assertInstanceOf(ExpirePartialAcceptanceMessage::class, $bus->dispatched[1]->getMessage());
         self::assertSame(3_600_000, $bus->dispatched[0]->last(DelayStamp::class)?->getDelay());
         self::assertSame(10_800_000, $bus->dispatched[1]->last(DelayStamp::class)?->getDelay());
@@ -50,7 +52,9 @@ final class PartialAcceptanceExpirationSchedulerTest extends FunctionalApiTestCa
         $scheduler->scheduleForPartiallyAcceptedOrder($order);
 
         self::assertCount(2, $bus->dispatched);
-        self::assertInstanceOf(PartialAcceptanceReminderMessage::class, $bus->dispatched[0]->getMessage());
+        $reminderMsg = $bus->dispatched[0]->getMessage();
+        self::assertInstanceOf(PartialAcceptanceReminderMessage::class, $reminderMsg);
+        self::assertTrue(Uuid::isValid($reminderMsg->cycleId), 'cycleId must be a valid UUID');
         self::assertNull($bus->dispatched[0]->last(DelayStamp::class));
         self::assertInstanceOf(ExpirePartialAcceptanceMessage::class, $bus->dispatched[1]->getMessage());
         self::assertSame(3_600_000, $bus->dispatched[1]->last(DelayStamp::class)?->getDelay());

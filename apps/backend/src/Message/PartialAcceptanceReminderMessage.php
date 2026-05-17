@@ -8,6 +8,7 @@ final readonly class PartialAcceptanceReminderMessage
 {
     public function __construct(
         public string $orderId,
+        public string $cycleId,
     ) {
     }
 }
