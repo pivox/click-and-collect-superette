@@ -13,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 final readonly class OrderTransitionService
 {
     public const MERCHANT_RESPONSE_TIMEOUT_NOTE = 'AUTO_CANCELLED_MERCHANT_RESPONSE_TIMEOUT';
+    public const PARTIAL_ACCEPTANCE_TIMEOUT_NOTE = 'AUTO_CANCELLED_PARTIAL_ACCEPTANCE_TIMEOUT';
 
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -68,5 +69,25 @@ final readonly class OrderTransitionService
 
         $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled, self::MERCHANT_RESPONSE_TIMEOUT_NOTE);
         $this->notificationService->notifyCustomerMerchantResponseTimeout($order);
+    }
+
+    public function autoCancelPartialAcceptanceTimeout(Order $order): void
+    {
+        if (OrderStatus::PartiallyAccepted !== $order->getStatus()) {
+            return;
+        }
+
+        $order->cancelPartialAcceptanceTimeout();
+
+        $pickupSlot = $order->getPickupSlot();
+        if (null !== $pickupSlot) {
+            $this->entityManager->getConnection()->executeStatement(
+                'UPDATE pickup_slots SET booked_count = CASE WHEN booked_count > 0 THEN booked_count - 1 ELSE 0 END WHERE id = :id',
+                ['id' => $pickupSlot->getId()->toBinary()],
+            );
+        }
+
+        $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled, self::PARTIAL_ACCEPTANCE_TIMEOUT_NOTE);
+        $this->notificationService->notifyCustomerPartialAcceptanceTimeout($order);
     }
 }

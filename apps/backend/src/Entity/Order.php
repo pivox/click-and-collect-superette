@@ -297,6 +297,14 @@ class Order
         $this->status = OrderStatus::Cancelled;
     }
 
+    public function cancelPartialAcceptanceTimeout(): void
+    {
+        if (OrderStatus::PartiallyAccepted !== $this->status) {
+            throw new \LogicException('ORDER_NOT_PARTIALLY_ACCEPTED');
+        }
+        $this->status = OrderStatus::Cancelled;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
