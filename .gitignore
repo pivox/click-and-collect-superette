@@ -1,0 +1,8 @@
+# MCP configuration (may contain credentials)
+.mcp.json
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
