@@ -40,6 +40,7 @@ security:
         - { path: ^/api/stores/search$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/stores/[^/]+$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/stores/[^/]+/theme$, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/stores/[^/]+/opening-hours$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/stores/[^/]+/catalog$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/stores/[^/]+/pickup-slots$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/me/, roles: ROLE_CUSTOMER }
