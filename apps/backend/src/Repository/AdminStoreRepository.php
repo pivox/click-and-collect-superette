@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Shop;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 
 final readonly class AdminStoreRepository
 {
@@ -13,16 +15,16 @@ final readonly class AdminStoreRepository
         private MerchantProductRepository $merchantProductRepository,
         private ExceptionalClosureRepository $exceptionalClosureRepository,
         private PickupSlotRuleRepository $pickupSlotRuleRepository,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
     /**
      * @return list<Shop>
      */
-    public function findPaginated(int $limit, int $offset): array
+    public function findPaginated(int $limit, int $offset, ?bool $isActive = null): array
     {
-        /** @var list<Shop> $stores */
-        $stores = $this->shopRepository->createQueryBuilder('shop')
+        $queryBuilder = $this->shopRepository->createQueryBuilder('shop')
             ->leftJoin('shop.owner', 'owner')
             ->addSelect('owner')
             ->leftJoin('shop.theme', 'theme')
@@ -30,17 +32,34 @@ final readonly class AdminStoreRepository
             ->orderBy('shop.createdAt', 'DESC')
             ->addOrderBy('shop.id', 'DESC')
             ->setMaxResults($limit)
-            ->setFirstResult($offset)
+            ->setFirstResult($offset);
+
+        if (null !== $isActive) {
+            $queryBuilder
+                ->andWhere('shop.active = :isActive')
+                ->setParameter('isActive', $isActive);
+        }
+
+        /** @var list<Shop> $stores */
+        $stores = $queryBuilder
             ->getQuery()
             ->getResult();
 
         return $stores;
     }
 
-    public function countAll(): int
+    public function countAll(?bool $isActive = null): int
     {
-        return (int) $this->shopRepository->createQueryBuilder('shop')
-            ->select('COUNT(shop.id)')
+        $queryBuilder = $this->shopRepository->createQueryBuilder('shop')
+            ->select('COUNT(shop.id)');
+
+        if (null !== $isActive) {
+            $queryBuilder
+                ->andWhere('shop.active = :isActive')
+                ->setParameter('isActive', $isActive);
+        }
+
+        return (int) $queryBuilder
             ->getQuery()
             ->getSingleScalarResult();
     }
@@ -72,13 +91,40 @@ final readonly class AdminStoreRepository
             return [];
         }
 
+        $requestedStoreIds = array_fill_keys(
+            array_map(static fn (Shop $shop): string => $shop->getId()->toRfc4122(), $stores),
+            true,
+        );
+
+        /** @var list<array{shop_id: mixed, products_count: string|int}> $rows */
+        $rows = $this->entityManager->getConnection()->executeQuery(
+            'SELECT shop_id, COUNT(id) AS products_count FROM merchant_products GROUP BY shop_id',
+        )->fetchAllAssociative();
+
         $counts = [];
-        foreach ($this->merchantProductRepository->findBy(['shop' => $stores]) as $merchantProduct) {
-            $storeId = $merchantProduct->getShop()->getId()->toRfc4122();
-            $counts[$storeId] = ($counts[$storeId] ?? 0) + 1;
+        foreach ($rows as $row) {
+            $shopId = $this->normalizeShopId($row['shop_id']);
+            if (!isset($requestedStoreIds[$shopId])) {
+                continue;
+            }
+
+            $counts[$shopId] = (int) $row['products_count'];
         }
 
         return $counts;
+    }
+
+    private function normalizeShopId(mixed $shopId): string
+    {
+        if ($shopId instanceof Uuid) {
+            return $shopId->toRfc4122();
+        }
+
+        if (\is_string($shopId) && 16 === \strlen($shopId)) {
+            return Uuid::fromBinary($shopId)->toRfc4122();
+        }
+
+        return (string) $shopId;
     }
 
     public function countProducts(Shop $shop): int

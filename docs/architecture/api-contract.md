@@ -1152,7 +1152,7 @@ Règles :
 Statut : **lecture livrée S5-002 ; mutations à implémenter**.
 
 ```http
-GET   /api/admin/stores?page=1&limit=20
+GET   /api/admin/stores?page=1&limit=20&is_active=true
 GET   /api/admin/stores/{storeId}
 POST  /api/admin/stores                  (à implémenter)
 PATCH /api/admin/stores/{storeId}        (à implémenter)
@@ -1192,7 +1192,9 @@ Réponse détail `200` :
   "id": "store-uuid",
   "name": "Supérette El Amal",
   "slug": "superette-el-amal",
+  "address": "Rue de la République",
   "city": "Tunis",
+  "phone": "+21600000000",
   "is_active": true,
   "qr_code_token": "qr-token-opaque",
   "created_at": "2026-05-18T10:00:00+00:00",
@@ -1226,9 +1228,10 @@ Règles :
 - admin connecté uniquement (`ROLE_ADMIN`) ;
 - `ROLE_MERCHANT`, `ROLE_CUSTOMER` et anonyme refusés ;
 - pagination : `page` défaut `1`, `limit` défaut `20`, `limit` plafonné à `50` ;
+- filtre optionnel `is_active=true|false` sur la liste ;
 - tri stable par `created_at` décroissant puis `id` décroissant ;
 - la liste expose un résumé léger avec propriétaire et nombre de produits ;
-- le détail ajoute thème, horaires d'ouverture, fermetures exceptionnelles actives et règles de créneaux actives ;
+- le détail ajoute adresse, téléphone, thème, horaires d'ouverture, fermetures exceptionnelles actives et règles de créneaux actives ;
 - aucun mot de passe, hash, token auth, rôle utilisateur ou champ interne sensible n'est exposé.
 
 ### Régénérer le QR code d'une supérette

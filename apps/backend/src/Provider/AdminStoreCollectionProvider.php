@@ -7,6 +7,7 @@ namespace App\Provider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\AdminStoreListOutput;
+use App\ApiResource\AdminStoreOutputFactory;
 use App\Repository\AdminStoreRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -16,12 +17,13 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  */
 final readonly class AdminStoreCollectionProvider implements ProviderInterface
 {
-    private const int DEFAULT_PAGE = 1;
-    private const int DEFAULT_LIMIT = 20;
-    private const int MAX_LIMIT = 50;
+    private const DEFAULT_PAGE = 1;
+    private const DEFAULT_LIMIT = 20;
+    private const MAX_LIMIT = 50;
 
     public function __construct(
         private AdminStoreRepository $adminStoreRepository,
+        private AdminStoreOutputFactory $adminStoreOutputFactory,
         private RequestStack $requestStack,
     ) {
     }
@@ -36,12 +38,13 @@ final readonly class AdminStoreCollectionProvider implements ProviderInterface
         $page = $this->parsePositiveInt($request?->query->get('page'), self::DEFAULT_PAGE, 'ADMIN_STORE_INVALID_PAGE');
         $limit = $this->parsePositiveInt($request?->query->get('limit'), self::DEFAULT_LIMIT, 'ADMIN_STORE_INVALID_LIMIT');
         $limit = min(self::MAX_LIMIT, $limit);
+        $isActive = $this->parseOptionalBoolean($request?->query->get('is_active'));
         $offset = ($page - 1) * $limit;
 
-        $stores = $this->adminStoreRepository->findPaginated($limit, $offset);
+        $stores = $this->adminStoreRepository->findPaginated($limit, $offset, $isActive);
         $productCounts = $this->adminStoreRepository->countProductsGrouped($stores);
         $items = array_map(
-            static fn ($shop) => AdminStoreItemProvider::toOutput(
+            fn ($shop) => $this->adminStoreOutputFactory->create(
                 shop: $shop,
                 productsCount: $productCounts[$shop->getId()->toRfc4122()] ?? 0,
             ),
@@ -53,7 +56,7 @@ final readonly class AdminStoreCollectionProvider implements ProviderInterface
             items: $items,
             page: $page,
             limit: $limit,
-            total: $this->adminStoreRepository->countAll(),
+            total: $this->adminStoreRepository->countAll($isActive),
         );
     }
 
@@ -70,6 +73,20 @@ final readonly class AdminStoreCollectionProvider implements ProviderInterface
         $value = (int) $raw;
         if ($value < 1) {
             throw new BadRequestHttpException($errorCode);
+        }
+
+        return $value;
+    }
+
+    private function parseOptionalBoolean(mixed $raw): ?bool
+    {
+        if (null === $raw || '' === $raw) {
+            return null;
+        }
+
+        $value = filter_var($raw, \FILTER_VALIDATE_BOOLEAN, \FILTER_NULL_ON_FAILURE);
+        if (null === $value) {
+            throw new BadRequestHttpException('ADMIN_STORE_INVALID_IS_ACTIVE');
         }
 
         return $value;

@@ -114,7 +114,9 @@ Contrat lecture détail :
   "id": "store-uuid",
   "name": "Supérette El Amal",
   "slug": "superette-el-amal",
+  "address": "Rue de la République",
   "city": "Tunis",
+  "phone": "+21600000000",
   "is_active": true,
   "qr_code_token": "qr-token-opaque",
   "created_at": "2026-05-18T10:00:00+00:00",
@@ -136,6 +138,7 @@ Règles S5-002 :
 - JWT obligatoire ;
 - `ROLE_MERCHANT` et `ROLE_CUSTOMER` interdits ;
 - pagination `page` / `limit`, `limit` plafonné à 50 ;
+- filtre optionnel `is_active=true|false` sur la liste ;
 - tri stable par `created_at DESC`, puis `id DESC` ;
 - lecture uniquement, sans création ni modification de supérette ;
 - ne retourne ni mot de passe, ni hash, ni token auth, ni rôles utilisateur.

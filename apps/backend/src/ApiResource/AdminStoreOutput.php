@@ -39,8 +39,12 @@ final readonly class AdminStoreOutput
         public string $name,
         #[Groups(['admin_store:read', 'admin_store_list:read'])]
         public string $slug,
+        #[Groups(['admin_store:read'])]
+        public ?string $address,
         #[Groups(['admin_store:read', 'admin_store_list:read'])]
         public ?string $city,
+        #[Groups(['admin_store:read'])]
+        public ?string $phone,
         #[Groups(['admin_store:read', 'admin_store_list:read'])]
         #[SerializedName('is_active')]
         public bool $isActive,

@@ -50,6 +50,12 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertSame($merchant->getId()->toRfc4122(), $payload['items'][0]['owner']['id']);
         self::assertSame('merchant-store-list@example.test', $payload['items'][0]['owner']['email']);
         self::assertArrayHasKey('created_at', $payload['items'][0]);
+        self::assertArrayNotHasKey('address', $payload['items'][0]);
+        self::assertArrayNotHasKey('phone', $payload['items'][0]);
+        self::assertArrayNotHasKey('theme_id', $payload['items'][0]);
+        self::assertArrayNotHasKey('opening_hours', $payload['items'][0]);
+        self::assertArrayNotHasKey('exceptional_closures_count', $payload['items'][0]);
+        self::assertArrayNotHasKey('pickup_rules_count', $payload['items'][0]);
         self::assertArrayNotHasKey('password', $payload['items'][0]);
         self::assertArrayNotHasKey('password_hash', $payload['items'][0]);
         self::assertArrayNotHasKey('token', $payload['items'][0]);
@@ -67,6 +73,8 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
             slug: 'superette-detail',
             city: 'Sfax',
             createdAt: new \DateTimeImmutable('2026-05-18T09:00:00+00:00'),
+            address: 'Rue de la République',
+            phone: '+21600000000',
             openingHours: [
                 'timezone' => 'Africa/Tunis',
                 'weekly' => [
@@ -92,7 +100,9 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertSame($shop->getId()->toRfc4122(), $payload['id']);
         self::assertSame('Supérette Détail', $payload['name']);
         self::assertSame('superette-detail', $payload['slug']);
+        self::assertSame('Rue de la République', $payload['address']);
         self::assertSame('Sfax', $payload['city']);
+        self::assertSame('+21600000000', $payload['phone']);
         self::assertTrue($payload['is_active']);
         self::assertSame($shop->getQrCodeToken(), $payload['qr_code_token']);
         self::assertSame($merchant->getId()->toRfc4122(), $payload['owner']['id']);
@@ -118,9 +128,11 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
 
         $pageOneResponse = $this->requestJson('GET', '/api/admin/stores?page=1&limit=2', user: $admin);
         $pageTwoResponse = $this->requestJson('GET', '/api/admin/stores?page=2&limit=2', user: $admin);
+        $emptyPageResponse = $this->requestJson('GET', '/api/admin/stores?page=99&limit=2', user: $admin);
 
         self::assertSame(200, $pageOneResponse->getStatusCode());
         self::assertSame(200, $pageTwoResponse->getStatusCode());
+        self::assertSame(200, $emptyPageResponse->getStatusCode());
 
         $pageOne = $this->decodeJson($pageOneResponse);
         self::assertSame(3, $pageOne['total']);
@@ -135,6 +147,50 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertSame(2, $pageTwo['limit']);
         self::assertCount(1, $pageTwo['items']);
         self::assertSame($oldest->getId()->toRfc4122(), $pageTwo['items'][0]['id']);
+
+        $emptyPage = $this->decodeJson($emptyPageResponse);
+        self::assertSame(3, $emptyPage['total']);
+        self::assertSame(99, $emptyPage['page']);
+        self::assertSame(2, $emptyPage['limit']);
+        self::assertSame([], $emptyPage['items']);
+    }
+
+    public function testStoreListCanFilterByActiveState(): void
+    {
+        $admin = $this->createUser('admin-stores-active-filter@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-store-active-filter@example.test');
+        $activeStore = $this->createStore(
+            $merchant,
+            'Active Store',
+            'active-store',
+            'Tunis',
+            new \DateTimeImmutable('2026-05-18T10:00:00+00:00'),
+            active: true,
+        );
+        $inactiveStore = $this->createStore(
+            $merchant,
+            'Inactive Store',
+            'inactive-store',
+            'Tunis',
+            new \DateTimeImmutable('2026-05-18T09:00:00+00:00'),
+            active: false,
+        );
+
+        $activeResponse = $this->requestJson('GET', '/api/admin/stores?is_active=true', user: $admin);
+        $inactiveResponse = $this->requestJson('GET', '/api/admin/stores?is_active=false', user: $admin);
+        $invalidResponse = $this->requestJson('GET', '/api/admin/stores?is_active=maybe', user: $admin);
+
+        self::assertSame(200, $activeResponse->getStatusCode());
+        $activePayload = $this->decodeJson($activeResponse);
+        self::assertSame(1, $activePayload['total']);
+        self::assertSame($activeStore->getId()->toRfc4122(), $activePayload['items'][0]['id']);
+
+        self::assertSame(200, $inactiveResponse->getStatusCode());
+        $inactivePayload = $this->decodeJson($inactiveResponse);
+        self::assertSame(1, $inactivePayload['total']);
+        self::assertSame($inactiveStore->getId()->toRfc4122(), $inactivePayload['items'][0]['id']);
+
+        self::assertSame(400, $invalidResponse->getStatusCode());
     }
 
     public function testLimitIsCappedAt50AndMalformedPaginationReturnsBadRequest(): void
@@ -207,12 +263,18 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         string $city,
         \DateTimeImmutable $createdAt,
         ?array $openingHours = null,
+        ?string $address = null,
+        ?string $phone = null,
+        bool $active = true,
     ): Shop {
         $shop = $this->createShop($owner);
         $shop
             ->setName($name)
             ->setSlug($slug)
             ->setCity($city)
+            ->setAddress($address)
+            ->setPhone($phone)
+            ->setActive($active)
             ->setOpeningHours($openingHours);
         $this->setPrivateProperty($shop, 'createdAt', $createdAt);
         $this->setPrivateProperty($shop, 'updatedAt', $createdAt);

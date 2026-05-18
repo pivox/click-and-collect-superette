@@ -28,6 +28,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
                     schema: ['type' => 'integer', 'default' => 20],
                     description: 'Résultats par page (défaut : 20, max : 50).',
                 ),
+                'is_active' => new QueryParameter(
+                    schema: ['type' => 'boolean'],
+                    description: 'Filtre optionnel sur les supérettes actives ou inactives.',
+                ),
             ],
         ),
     ],
@@ -38,6 +42,7 @@ final readonly class AdminStoreListOutput
      * @param list<AdminStoreOutput> $items
      */
     public function __construct(
+        // API Platform identifier only; not part of the serialized collection payload.
         #[ApiProperty(identifier: true)]
         public string $id,
         #[Groups(['admin_store_list:read'])]
