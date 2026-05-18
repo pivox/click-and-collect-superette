@@ -8,6 +8,11 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
+use ApiPlatform\Metadata\Patch;
+use App\Dto\AdminUpdateMerchantInput;
+use App\Processor\AdminActivateMerchantProcessor;
+use App\Processor\AdminSuspendMerchantProcessor;
+use App\Processor\AdminUpdateMerchantProcessor;
 use App\Provider\AdminMerchantItemProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
@@ -22,6 +27,43 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['admin_merchant:read']],
             provider: AdminMerchantItemProvider::class,
+            security: "is_granted('ROLE_ADMIN')",
+        ),
+        new Patch(
+            uriTemplate: '/admin/merchants/{merchantId<[0-9a-fA-F\-]{32,36}>}',
+            uriVariables: [
+                'merchantId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            input: AdminUpdateMerchantInput::class,
+            normalizationContext: ['groups' => ['admin_merchant:read']],
+            provider: AdminMerchantItemProvider::class,
+            processor: AdminUpdateMerchantProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+            validate: true,
+        ),
+        new Patch(
+            uriTemplate: '/admin/merchants/{merchantId<[0-9a-fA-F\-]{32,36}>}/suspend',
+            uriVariables: [
+                'merchantId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            input: false,
+            normalizationContext: ['groups' => ['admin_merchant:read']],
+            provider: AdminMerchantItemProvider::class,
+            processor: AdminSuspendMerchantProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+        ),
+        new Patch(
+            uriTemplate: '/admin/merchants/{merchantId<[0-9a-fA-F\-]{32,36}>}/activate',
+            uriVariables: [
+                'merchantId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            input: false,
+            normalizationContext: ['groups' => ['admin_merchant:read']],
+            provider: AdminMerchantItemProvider::class,
+            processor: AdminActivateMerchantProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
         ),
     ],

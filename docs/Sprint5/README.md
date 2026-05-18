@@ -13,11 +13,19 @@ Sprint 5 est en cours.
 Livré :
 
 - S5-001 — lecture admin des comptes marchands, PR #103 ;
-- S5-002 — lecture admin des supérettes, PR #104.
+- S5-002 — lecture admin des supérettes, PR #104 ;
+- S5-004 — mutations admin des comptes marchands (création, mise à jour, suspension, activation), PR #105.
+
+Endpoints S5-004 livrés :
+
+- `POST   /api/admin/merchants` — création d'un compte marchand, retour 201 ;
+- `PATCH  /api/admin/merchants/{merchantId}` — mise à jour partielle (firstName, lastName, phone, isActive) ;
+- `PATCH  /api/admin/merchants/{merchantId}/suspend` — suspension (isActive → false) ;
+- `PATCH  /api/admin/merchants/{merchantId}/activate` — activation (isActive → true).
 
 Prochaine étape recommandée :
 
-- S5-003 — création/mise à jour admin des supérettes ou gestion admin des comptes marchands selon priorité produit.
+- S5-003 — création/mise à jour admin des supérettes (POST, PATCH, activate, deactivate).
 
 ## Parcours cible
 
