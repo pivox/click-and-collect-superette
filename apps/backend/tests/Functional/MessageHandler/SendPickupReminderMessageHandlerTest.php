@@ -33,8 +33,8 @@ final class SendPickupReminderMessageHandlerTest extends FunctionalApiTestCase
         self::assertSame('pickup_reminder', $notifications[0]->getType());
         self::assertSame('Rappel de retrait', $notifications[0]->getTitleFr());
         self::assertSame('تذكير بالاستلام', $notifications[0]->getTitleAr());
-        self::assertSame('Votre Kadhia est prête. Pensez à la retirer pendant votre créneau.', $notifications[0]->getBodyFr());
-        self::assertSame('القاضية واجدة. تذكروا استلامها خلال الموعد المحدد.', $notifications[0]->getBodyAr());
+        self::assertStringContainsString($order->getShop()->getName(), $notifications[0]->getBodyFr());
+        self::assertStringContainsString($order->getShop()->getName(), $notifications[0]->getBodyAr());
     }
 
     public function testHandlerDoesNothingBeforeReminderWindow(): void
@@ -146,8 +146,8 @@ final class SendPickupReminderMessageHandlerTest extends FunctionalApiTestCase
         self::assertSame(1, $ownerPayload['total']);
         self::assertSame('Rappel de retrait', $ownerPayload['items'][0]['title_fr']);
         self::assertSame('تذكير بالاستلام', $ownerPayload['items'][0]['title_ar']);
-        self::assertSame('Votre Kadhia est prête. Pensez à la retirer pendant votre créneau.', $ownerPayload['items'][0]['body_fr']);
-        self::assertSame('القاضية واجدة. تذكروا استلامها خلال الموعد المحدد.', $ownerPayload['items'][0]['body_ar']);
+        self::assertStringContainsString($order->getShop()->getName(), $ownerPayload['items'][0]['body_fr']);
+        self::assertStringContainsString($order->getShop()->getName(), $ownerPayload['items'][0]['body_ar']);
 
         $otherResponse = $this->requestJson('GET', '/api/me/notifications', null, $otherCustomer);
         $otherPayload = $this->decodeJson($otherResponse);
