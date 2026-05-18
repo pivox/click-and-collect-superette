@@ -16,7 +16,8 @@ Livré :
 - S5-002 — lecture admin des supérettes, PR #104 ;
 - S5-003 — mutations admin des supérettes (création, mise à jour), PR #107 ;
 - S5-003 — mutations admin des supérettes (activation, désactivation), PR #108 ;
-- S5-004 — mutations admin des comptes marchands (création, mise à jour, suspension, activation), PR #106.
+- S5-004 — mutations admin des comptes marchands (création, mise à jour, suspension, activation), PR #106 ;
+- S5-005 — QR admin supérette (lecture contrat QR, régénération du token).
 
 Endpoints S5-003 livrés (PR #107 + PR #108) :
 
@@ -24,6 +25,11 @@ Endpoints S5-003 livrés (PR #107 + PR #108) :
 - `PATCH  /api/admin/stores/{storeId}` — mise à jour partielle (name, address, city, phone, owner_id, is_active) ;
 - `PATCH  /api/admin/stores/{storeId}/activate` — activation (is_active → true) ;
 - `PATCH  /api/admin/stores/{storeId}/deactivate` — désactivation (is_active → false).
+
+Endpoints S5-005 livrés :
+
+- `GET    /api/admin/stores/{storeId}/qr-code` — lecture du contrat QR scannable ;
+- `POST   /api/admin/stores/{storeId}/regenerate-qr` — régénération du token QR opaque.
 
 Endpoints S5-004 livrés :
 
@@ -34,7 +40,7 @@ Endpoints S5-004 livrés :
 
 Prochaine étape recommandée :
 
-- S5-005 — CRUD admin des marques, catégories et référentiel produit.
+- CRUD admin des marques, catégories et référentiel produit.
 
 ## Parcours cible
 
@@ -106,6 +112,7 @@ PATCH  /api/admin/stores/{storeId}
 PATCH  /api/admin/stores/{storeId}/activate
 PATCH  /api/admin/stores/{storeId}/deactivate
 PATCH  /api/admin/stores/{storeId}/owner       { "merchantId": "<uuid>" }
+GET    /api/admin/stores/{storeId}/qr-code
 POST   /api/admin/stores/{storeId}/regenerate-qr
 ```
 
@@ -113,6 +120,7 @@ Statut :
 
 - S5-002 : `GET /api/admin/stores` et `GET /api/admin/stores/{storeId}` livrés par PR #104.
 - S5-003 : `POST /api/admin/stores` et `PATCH /api/admin/stores/{storeId}` livrés par PR #107.
+- S5-005 : `GET /api/admin/stores/{storeId}/qr-code` et `POST /api/admin/stores/{storeId}/regenerate-qr` livrés.
 
 Contrat lecture liste :
 
@@ -212,6 +220,32 @@ Règles S5-003 :
 - `PATCH` remplace uniquement les champs fournis ;
 - `PATCH` ne régénère ni slug ni QR code ;
 - `ownerId` peut assigner un marchand existant ou être `null` pour retirer le propriétaire ;
+- supérette absente : `404`.
+
+Contrat QR S5-005 :
+
+```json
+{
+  "store_id": "store-uuid",
+  "store_name": "Supérette El Amal",
+  "slug": "superette-el-amal",
+  "qr_code_token": "qr-token-opaque",
+  "target_url": "/api/stores/by-qr/qr-token-opaque",
+  "qr_payload": "/api/stores/by-qr/qr-token-opaque"
+}
+```
+
+Règles S5-005 :
+
+- réservé à `ROLE_ADMIN` ;
+- JWT obligatoire ;
+- `ROLE_MERCHANT` et `ROLE_CUSTOMER` interdits ;
+- `GET /qr-code` retourne le contrat nécessaire pour afficher ou télécharger un QR côté client/admin UI ;
+- le payload scannable reste l'URL publique existante `GET /api/stores/by-qr/{qrCodeToken}` ;
+- aucune image QR n'est générée côté backend dans cette PR ;
+- `POST /regenerate-qr` remplace uniquement `qrCodeToken` par un nouveau token opaque ;
+- l'ancien token devient invalide immédiatement ;
+- la régénération ne modifie ni catalogue, ni commande, ni propriétaire, ni slug ;
 - supérette absente : `404`.
 
 ### Admin Merchants (comptes marchands)

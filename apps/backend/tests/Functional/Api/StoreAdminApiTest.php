@@ -471,6 +471,95 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertSame(404, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/deactivate', $unknownId), [], $admin)->getStatusCode());
     }
 
+    public function testAdminGetsStoreQrCode(): void
+    {
+        $admin = $this->createUser('admin-store-qr-read@example.test', ['ROLE_ADMIN']);
+        $shop = $this->createStore(null, 'Store QR Read', 'store-qr-read', 'Tunis', new \DateTimeImmutable());
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/stores/%s/qr-code', $shop->getId()), user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
+        self::assertSame('Store QR Read', $payload['store_name']);
+        self::assertSame('store-qr-read', $payload['slug']);
+        self::assertSame($shop->getQrCodeToken(), $payload['qr_code_token']);
+        self::assertSame(\sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()), $payload['target_url']);
+        self::assertSame($payload['target_url'], $payload['qr_payload']);
+        self::assertArrayNotHasKey('password', $payload);
+        self::assertArrayNotHasKey('password_hash', $payload);
+        self::assertArrayNotHasKey('token', $payload);
+        self::assertArrayNotHasKey('owner', $payload);
+    }
+
+    public function testAdminRegeneratesQrToken(): void
+    {
+        $admin = $this->createUser('admin-store-qr-regenerate@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-store-qr-regenerate@example.test');
+        $shop = $this->createStore(
+            $merchant,
+            'Store QR Regenerate',
+            'store-qr-regenerate',
+            'Sousse',
+            new \DateTimeImmutable(),
+            address: 'Rue QR',
+            phone: '+21622222222',
+        );
+        $oldToken = $shop->getQrCodeToken();
+        $oldName = $shop->getName();
+        $oldSlug = $shop->getSlug();
+        $oldCity = $shop->getCity();
+        $oldAddress = $shop->getAddress();
+        $oldPhone = $shop->getPhone();
+        $oldOwnerId = $shop->getOwner()?->getId()->toRfc4122();
+
+        $response = $this->requestJson('POST', \sprintf('/api/admin/stores/%s/regenerate-qr', $shop->getId()), [], $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
+        self::assertSame($oldName, $payload['store_name']);
+        self::assertSame($oldSlug, $payload['slug']);
+        self::assertNotSame($oldToken, $payload['qr_code_token']);
+        self::assertSame(\sprintf('/api/stores/by-qr/%s', $payload['qr_code_token']), $payload['target_url']);
+        self::assertSame($payload['target_url'], $payload['qr_payload']);
+
+        $this->entityManager->refresh($shop);
+        self::assertSame($payload['qr_code_token'], $shop->getQrCodeToken());
+        self::assertSame($oldName, $shop->getName());
+        self::assertSame($oldSlug, $shop->getSlug());
+        self::assertSame($oldCity, $shop->getCity());
+        self::assertSame($oldAddress, $shop->getAddress());
+        self::assertSame($oldPhone, $shop->getPhone());
+        self::assertSame($oldOwnerId, $shop->getOwner()?->getId()->toRfc4122());
+
+        self::assertSame(404, $this->requestJson('GET', \sprintf('/api/stores/by-qr/%s', $oldToken))->getStatusCode());
+        self::assertSame(200, $this->requestJson('GET', \sprintf('/api/stores/by-qr/%s', $payload['qr_code_token']))->getStatusCode());
+    }
+
+    public function testQrCodeEndpointsAreForbiddenForNonAdmin(): void
+    {
+        $merchant = $this->createMerchant('merchant-store-qr-forbidden@example.test');
+        $customer = $this->createUser('customer-store-qr-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createStore($merchant, 'Store QR Forbidden', 'store-qr-forbidden', 'Tunis', new \DateTimeImmutable());
+
+        self::assertSame(403, $this->requestJson('GET', \sprintf('/api/admin/stores/%s/qr-code', $shop->getId()), user: $customer)->getStatusCode());
+        self::assertSame(403, $this->requestJson('POST', \sprintf('/api/admin/stores/%s/regenerate-qr', $shop->getId()), [], $customer)->getStatusCode());
+        self::assertSame(403, $this->requestJson('GET', \sprintf('/api/admin/stores/%s/qr-code', $shop->getId()), user: $merchant)->getStatusCode());
+        self::assertSame(403, $this->requestJson('POST', \sprintf('/api/admin/stores/%s/regenerate-qr', $shop->getId()), [], $merchant)->getStatusCode());
+        self::assertSame(401, $this->requestJson('GET', \sprintf('/api/admin/stores/%s/qr-code', $shop->getId()))->getStatusCode());
+        self::assertSame(401, $this->requestJson('POST', \sprintf('/api/admin/stores/%s/regenerate-qr', $shop->getId()), [])->getStatusCode());
+    }
+
+    public function testQrCodeEndpointsReturnNotFoundForMissingStore(): void
+    {
+        $admin = $this->createUser('admin-store-qr-missing@example.test', ['ROLE_ADMIN']);
+        $unknownId = Uuid::v4()->toRfc4122();
+
+        self::assertSame(404, $this->requestJson('GET', \sprintf('/api/admin/stores/%s/qr-code', $unknownId), user: $admin)->getStatusCode());
+        self::assertSame(404, $this->requestJson('POST', \sprintf('/api/admin/stores/%s/regenerate-qr', $unknownId), [], $admin)->getStatusCode());
+    }
+
     private function createMerchant(string $email): User
     {
         return $this->createUser($email, ['ROLE_MERCHANT']);
