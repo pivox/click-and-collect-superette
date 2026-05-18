@@ -1412,6 +1412,78 @@ Règles :
 
 Cas d'usage : QR code compromis, QR physique endommagé ou changement de supérette propriétaire.
 
+### Catégories produit
+
+Statut : **S5-006 livré**.
+
+```http
+GET    /api/admin/categories?page=1&limit=20
+GET    /api/admin/categories/{categoryId}
+POST   /api/admin/categories
+PATCH  /api/admin/categories/{categoryId}
+DELETE /api/admin/categories/{categoryId}
+```
+
+Payload `POST` :
+
+```json
+{
+  "nameFr": "Produits laitiers",
+  "nameAr": "منتجات الألبان",
+  "slug": "produits-laitiers"
+}
+```
+
+`slug` est optionnel : auto-généré depuis `nameFr` si absent, avec suffixe `-2`, `-3`… en cas de doublon. Si fourni, il doit être unique.
+
+Payload `PATCH` (tous les champs optionnels) :
+
+```json
+{
+  "nameFr": "Produits laitiers",
+  "nameAr": "منتجات الألبان",
+  "isActive": false
+}
+```
+
+Réponse item `GET 200` / `POST 201` / `PATCH 200` :
+
+```json
+{
+  "id": "category-uuid",
+  "name_fr": "Produits laitiers",
+  "name_ar": "منتجات الألبان",
+  "slug": "produits-laitiers",
+  "is_active": true,
+  "sort_order": 0,
+  "parent_id": null,
+  "created_at": "2026-05-18T10:00:00+00:00",
+  "updated_at": "2026-05-18T10:00:00+00:00"
+}
+```
+
+Réponse liste `GET 200` :
+
+```json
+{
+  "items": [...],
+  "page": 1,
+  "limit": 20,
+  "total": 1
+}
+```
+
+Règles :
+
+- réservé à `ROLE_ADMIN` ; JWT obligatoire ; anonyme → 401, marchand/client → 403 ;
+- `nameFr` obligatoire à la création ;
+- `slug` auto-généré si absent, unique — si fourni et déjà pris → 422 ;
+- `PATCH` ne modifie que les champs présents dans le corps ; le slug n'est jamais modifiable ;
+- `DELETE` : suppression logique (`isActive = false`) si la catégorie est liée à des `ProductReference` ; suppression physique sinon ;
+- catégorie absente → 404 ;
+- pagination : `page` défaut `1`, `limit` défaut `20`, `limit` plafonné à `50` ;
+- tri stable par `sortOrder ASC`, puis `nameFr ASC`.
+
 ### Valider une proposition produit
 
 ```http
