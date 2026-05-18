@@ -1091,17 +1091,102 @@ PUT /api/admin/theme
 
 ### Marchands
 
-Statut : **lecture livrée S5-001 ; mutations à implémenter**.
+Statut : **S5-001 lecture livrée ; S5-004 mutations livrées**.
 
 ```http
 GET   /api/admin/merchants?page=1&limit=20
 GET   /api/admin/merchants/{merchantId}
-POST  /api/admin/merchants                         (à implémenter)
-PATCH /api/admin/merchants/{merchantId}/activate   (à implémenter)
-PATCH /api/admin/merchants/{merchantId}/suspend    (à implémenter)
+POST  /api/admin/merchants
+PATCH /api/admin/merchants/{merchantId}
+PATCH /api/admin/merchants/{merchantId}/suspend
+PATCH /api/admin/merchants/{merchantId}/activate
 ```
 
-Réponse liste `200` :
+#### POST /api/admin/merchants — Créer un compte marchand
+
+Payload :
+
+```json
+{
+  "email": "merchant@example.test",
+  "first_name": "Ali",
+  "last_name": "Ben Salah",
+  "phone": "+21600000000",
+  "is_active": true
+}
+```
+
+Règles champs :
+
+- `email` : requis, format email valide, unique parmi tous les utilisateurs ;
+- `first_name` : requis, 1–100 caractères ;
+- `last_name` : requis, 1–100 caractères ;
+- `phone` : optionnel, max 20 caractères ;
+- `is_active` : optionnel, défaut `true`.
+
+Codes retour :
+
+- `201` — marchand créé ;
+- `401` — non authentifié ;
+- `403` — rôle insuffisant ;
+- `422` — validation échouée ou email déjà utilisé.
+
+Remarques :
+
+- Un mot de passe temporaire est généré automatiquement (jamais exposé dans la réponse).
+- Aucun email d'invitation n'est envoyé dans le MVP.
+- Le rôle `ROLE_MERCHANT` est attribué automatiquement.
+- **Compte dormant** : le marchand créé ne peut pas encore se connecter de manière autonome. Un mécanisme d'invitation ou de reset password sera livré dans une PR ultérieure (hors périmètre S5-004).
+
+#### PATCH /api/admin/merchants/{merchantId} — Mettre à jour un compte marchand
+
+Payload (tous les champs sont optionnels) :
+
+```json
+{
+  "first_name": "Ali",
+  "last_name": "Ben Salah",
+  "phone": "+21600000000",
+  "is_active": true
+}
+```
+
+Codes retour :
+
+- `200` — marchand mis à jour ;
+- `401` — non authentifié ;
+- `403` — rôle insuffisant ;
+- `404` — marchand introuvable ;
+- `422` — validation échouée.
+
+#### PATCH /api/admin/merchants/{merchantId}/suspend — Suspendre un compte marchand
+
+Aucun body requis. Passe `is_active` à `false`.
+
+Codes retour : `200`, `401`, `403`, `404`.
+
+#### PATCH /api/admin/merchants/{merchantId}/activate — Activer un compte marchand
+
+Aucun body requis. Passe `is_active` à `true`.
+
+Codes retour : `200`, `401`, `403`, `404`.
+
+#### Réponse item (POST 201 / PATCH 200)
+
+```json
+{
+  "id": "merchant-uuid",
+  "email": "merchant@example.test",
+  "first_name": "Ali",
+  "last_name": "Ben Salah",
+  "phone": "+21600000000",
+  "is_active": true,
+  "created_at": "2026-05-18T10:00:00+00:00",
+  "stores_count": 0
+}
+```
+
+#### Réponse liste GET 200
 
 ```json
 {
@@ -1123,22 +1208,7 @@ Réponse liste `200` :
 }
 ```
 
-Réponse détail `200` :
-
-```json
-{
-  "id": "merchant-uuid",
-  "email": "merchant@example.test",
-  "first_name": "Ali",
-  "last_name": "Ben Salah",
-  "phone": "+21600000000",
-  "is_active": true,
-  "created_at": "2026-05-18T10:00:00+00:00",
-  "stores_count": 2
-}
-```
-
-Règles :
+Règles communes :
 
 - admin connecté uniquement (`ROLE_ADMIN`) ;
 - `ROLE_MERCHANT`, `ROLE_CUSTOMER` et anonyme refusés ;

@@ -7,7 +7,10 @@ namespace App\ApiResource;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\QueryParameter;
+use App\Dto\AdminCreateMerchantInput;
+use App\Processor\AdminCreateMerchantProcessor;
 use App\Provider\AdminMerchantCollectionProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -29,6 +32,17 @@ use Symfony\Component\Serializer\Attribute\Groups;
                     description: 'Résultats par page (défaut : 20, max : 50).',
                 ),
             ],
+        ),
+        new Post(
+            uriTemplate: '/admin/merchants',
+            formats: ['json' => ['application/json']],
+            input: AdminCreateMerchantInput::class,
+            output: AdminMerchantOutput::class,
+            normalizationContext: ['groups' => ['admin_merchant:read']],
+            processor: AdminCreateMerchantProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+            status: 201,
+            validate: true,
         ),
     ],
 )]
