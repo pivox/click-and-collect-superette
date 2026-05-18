@@ -85,7 +85,7 @@ phpunit: ## Lance PHPUnit via conteneur PHP 8.4 one-shot — pas besoin du stack
 
 lint-backend: ## Lance PHP-CS-Fixer (dry-run) et PHPStan
 	$(BACKEND) vendor/bin/php-cs-fixer fix --dry-run --diff
-	$(BACKEND) vendor/bin/phpstan analyse
+	$(BACKEND) vendor/bin/phpstan analyse --memory-limit=1G
 
 lint-frontend: ## Lance ESLint et TypeScript check
 	$(FRONTEND) npm run lint
