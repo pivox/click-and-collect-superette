@@ -155,6 +155,23 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertSame([], $emptyPage['items']);
     }
 
+    public function testStoreListUsesIdDescendingAsStableTieBreaker(): void
+    {
+        $admin = $this->createUser('admin-stores-sort-tie@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-store-sort-tie@example.test');
+        $createdAt = new \DateTimeImmutable('2026-05-18T10:00:00+00:00');
+        $first = $this->createStore($merchant, 'Same Date A', 'same-date-a', 'Tunis', $createdAt);
+        $second = $this->createStore($merchant, 'Same Date B', 'same-date-b', 'Tunis', $createdAt);
+        $expectedIds = [$first->getId()->toRfc4122(), $second->getId()->toRfc4122()];
+        rsort($expectedIds, \SORT_STRING);
+
+        $response = $this->requestJson('GET', '/api/admin/stores?page=1&limit=2', user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame($expectedIds, array_column($payload['items'], 'id'));
+    }
+
     public function testStoreListCanFilterByActiveState(): void
     {
         $admin = $this->createUser('admin-stores-active-filter@example.test', ['ROLE_ADMIN']);
@@ -246,6 +263,167 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         $response = $this->requestJson('GET', \sprintf('/api/admin/stores/%s', Uuid::v4()), user: $admin);
 
         self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testAdminCreatesStoreWithGeneratedSlugAndQrCodeToken(): void
+    {
+        $admin = $this->createUser('admin-store-create@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-store-create@example.test');
+
+        $response = $this->requestJson('POST', '/api/admin/stores', [
+            'name' => 'Supérette El Bahja',
+            'address' => '12 Rue de Tunis',
+            'city' => 'Tunis',
+            'phone' => '+21611111111',
+            'ownerId' => $merchant->getId()->toRfc4122(),
+        ], user: $admin);
+
+        self::assertSame(201, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('Supérette El Bahja', $payload['name']);
+        self::assertSame('superette-el-bahja', $payload['slug']);
+        self::assertSame('12 Rue de Tunis', $payload['address']);
+        self::assertSame('Tunis', $payload['city']);
+        self::assertSame('+21611111111', $payload['phone']);
+        self::assertTrue($payload['is_active']);
+        self::assertNotEmpty($payload['qr_code_token']);
+        self::assertSame($merchant->getId()->toRfc4122(), $payload['owner']['id']);
+        self::assertSame('merchant-store-create@example.test', $payload['owner']['email']);
+
+        $shop = $this->entityManager->getRepository(Shop::class)->find($payload['id']);
+        self::assertInstanceOf(Shop::class, $shop);
+        self::assertSame('superette-el-bahja', $shop->getSlug());
+        self::assertSame($payload['qr_code_token'], $shop->getQrCodeToken());
+    }
+
+    public function testDuplicateSlugGetsSuffix(): void
+    {
+        $admin = $this->createUser('admin-store-create-duplicate@example.test', ['ROLE_ADMIN']);
+        $this->createStore(null, 'Supérette El Bahja', 'superette-el-bahja', 'Tunis', new \DateTimeImmutable());
+
+        $response = $this->requestJson('POST', '/api/admin/stores', [
+            'name' => 'Supérette El Bahja',
+            'city' => 'Ariana',
+        ], user: $admin);
+
+        self::assertSame(201, $response->getStatusCode());
+        self::assertSame('superette-el-bahja-2', $this->decodeJson($response)['slug']);
+    }
+
+    public function testAdminUpdatesStoreAndDoesNotRegenerateSlugOrQrCodeToken(): void
+    {
+        $admin = $this->createUser('admin-store-update@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-store-update@example.test');
+        $shop = $this->createStore(null, 'Store update', 'store-update', 'Tunis', new \DateTimeImmutable());
+        $originalQrCodeToken = $shop->getQrCodeToken();
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), [
+            'name' => 'Supérette Update',
+            'address' => '14 Rue de Sousse',
+            'city' => 'Sousse',
+            'phone' => '+21622222222',
+            'isActive' => false,
+            'ownerId' => $merchant->getId()->toRfc4122(),
+        ], user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('Supérette Update', $payload['name']);
+        self::assertSame('store-update', $payload['slug']);
+        self::assertSame($originalQrCodeToken, $payload['qr_code_token']);
+        self::assertSame('14 Rue de Sousse', $payload['address']);
+        self::assertSame('Sousse', $payload['city']);
+        self::assertSame('+21622222222', $payload['phone']);
+        self::assertFalse($payload['is_active']);
+        self::assertSame($merchant->getId()->toRfc4122(), $payload['owner']['id']);
+    }
+
+    public function testAdminCanClearStoreOwner(): void
+    {
+        $admin = $this->createUser('admin-store-clear-owner@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-store-clear-owner@example.test');
+        $shop = $this->createStore($merchant, 'Store owner clear', 'store-owner-clear', 'Tunis', new \DateTimeImmutable());
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), [
+            'ownerId' => null,
+        ], user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertNull($this->decodeJson($response)['owner']);
+    }
+
+    public function testCustomerMerchantAndAnonymousCannotCreateOrUpdateStores(): void
+    {
+        $merchant = $this->createMerchant('merchant-store-write-forbidden@example.test');
+        $customer = $this->createUser('customer-store-write-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createStore($merchant, 'Store write forbidden', 'store-write-forbidden', 'Tunis', new \DateTimeImmutable());
+        $payload = ['name' => 'Forbidden Store', 'city' => 'Tunis'];
+
+        self::assertSame(403, $this->requestJson('POST', '/api/admin/stores', $payload, user: $customer)->getStatusCode());
+        self::assertSame(403, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), $payload, user: $customer)->getStatusCode());
+        self::assertSame(403, $this->requestJson('POST', '/api/admin/stores', $payload, user: $merchant)->getStatusCode());
+        self::assertSame(403, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), $payload, user: $merchant)->getStatusCode());
+        self::assertSame(401, $this->requestJson('POST', '/api/admin/stores', $payload)->getStatusCode());
+        self::assertSame(401, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), $payload)->getStatusCode());
+    }
+
+    public function testUpdateMissingStoreReturnsNotFound(): void
+    {
+        $admin = $this->createUser('admin-store-update-missing@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', Uuid::v4()), [
+            'name' => 'Missing Store',
+        ], user: $admin);
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testInvalidCreateAndUpdatePayloadsReturnUnprocessableEntity(): void
+    {
+        $admin = $this->createUser('admin-store-invalid-payload@example.test', ['ROLE_ADMIN']);
+        $shop = $this->createStore(null, 'Store invalid payload', 'store-invalid-payload', 'Tunis', new \DateTimeImmutable());
+
+        $createResponse = $this->requestJson('POST', '/api/admin/stores', [
+            'name' => '',
+            'phone' => str_repeat('1', 21),
+            'ownerId' => 'not-a-uuid',
+        ], user: $admin);
+        $updateResponse = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), [
+            'name' => '',
+            'phone' => str_repeat('1', 21),
+            'isActive' => 'yes',
+            'ownerId' => 'not-a-uuid',
+        ], user: $admin);
+
+        self::assertSame(422, $createResponse->getStatusCode());
+        self::assertSame(422, $updateResponse->getStatusCode());
+    }
+
+    public function testCreateWithWhitespaceOnlyNameReturnsUnprocessableEntity(): void
+    {
+        $admin = $this->createUser('admin-store-whitespace-create@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('POST', '/api/admin/stores', [
+            'name' => '   ',
+        ], user: $admin);
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testUpdateWithWhitespaceOnlyNameReturnsUnprocessableEntity(): void
+    {
+        $admin = $this->createUser('admin-store-whitespace-update@example.test', ['ROLE_ADMIN']);
+        $shop = $this->createStore(null, 'Store whitespace name', 'store-whitespace-name', 'Tunis', new \DateTimeImmutable());
+        $originalName = $shop->getName();
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), [
+            'name' => '   ',
+        ], user: $admin);
+
+        self::assertSame(422, $response->getStatusCode());
+
+        $this->entityManager->refresh($shop);
+        self::assertSame($originalName, $shop->getName());
     }
 
     private function createMerchant(string $email): User
