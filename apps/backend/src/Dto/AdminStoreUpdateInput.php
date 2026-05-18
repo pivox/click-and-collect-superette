@@ -21,7 +21,6 @@ final class AdminStoreUpdateInput
     #[Assert\Length(max: 20)]
     public ?string $phone = null;
 
-    /** @var bool|null */
     #[Assert\Type('bool')]
     public mixed $isActive = null;
 
