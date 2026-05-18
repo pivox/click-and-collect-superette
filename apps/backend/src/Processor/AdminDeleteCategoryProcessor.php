@@ -13,7 +13,7 @@ use Symfony\Component\Uid\Uuid;
 /**
  * Logical delete if the category is linked to product references, physical delete otherwise.
  *
- * @implements ProcessorInterface<null, null>
+ * @implements ProcessorInterface<mixed, mixed>
  */
 final readonly class AdminDeleteCategoryProcessor implements ProcessorInterface
 {
@@ -26,7 +26,7 @@ final readonly class AdminDeleteCategoryProcessor implements ProcessorInterface
      * @param array<string, mixed> $uriVariables
      * @param array<string, mixed> $context
      */
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): null
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
         $categoryId = (string) ($uriVariables['categoryId'] ?? '');
         if (!Uuid::isValid($categoryId)) {

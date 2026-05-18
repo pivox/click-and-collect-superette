@@ -101,7 +101,7 @@ final class CategoryAdminApiTest extends FunctionalApiTestCase
         self::assertArrayHasKey('id', $payload);
     }
 
-    public function testAdminCreatesCategpryWithExplicitSlug(): void
+    public function testAdminCreatesCategoryWithExplicitSlug(): void
     {
         $admin = $this->createUser('admin-cat-slug@example.test', ['ROLE_ADMIN']);
 
