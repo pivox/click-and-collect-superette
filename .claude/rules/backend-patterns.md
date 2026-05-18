@@ -106,6 +106,25 @@ $page   = max(1, (int) ($request?->query->get('page') ?? 1));
 $status = $context['filters']['status'] ?? null;
 ```
 
+## 6. Extension bcmath et environnement de test
+
+`ext-bcmath` est déclarée dans `apps/backend/composer.json` et utilisée en production (`bcadd`, `bcmul`). Ne pas la retirer.
+
+Si des tests échouent avec `Call to undefined function bcadd()`, c'est que l'environnement CI n'a pas l'extension installée malgré la déclaration composer. Solution : ajouter un polyfill dans `tests/bootstrap.php` (pas en production) :
+
+```php
+if (!function_exists('bcadd')) {
+    function bcadd(string $num1, string $num2, int $scale = 0): string
+    {
+        return number_format((float) $num1 + (float) $num2, $scale, '.', '');
+    }
+    function bcmul(string $num1, string $num2, int $scale = 0): string
+    {
+        return number_format((float) $num1 * (float) $num2, $scale, '.', '');
+    }
+}
+```
+
 ## 7. PHPStan — memory limit obligatoire
 
 PHPStan crashe avec "Allowed memory size exhausted" si lancé sans limite explicite.
@@ -149,23 +168,4 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
 
 // Test — mocker l'interface, jamais la classe concrète
 $notifier = $this->createMock(PickupReminderNotifierInterface::class);
-```
-
-## 6. Extension bcmath et environnement de test
-
-`ext-bcmath` est déclarée dans `apps/backend/composer.json` et utilisée en production (`bcadd`, `bcmul`). Ne pas la retirer.
-
-Si des tests échouent avec `Call to undefined function bcadd()`, c'est que l'environnement CI n'a pas l'extension installée malgré la déclaration composer. Solution : ajouter un polyfill dans `tests/bootstrap.php` (pas en production) :
-
-```php
-if (!function_exists('bcadd')) {
-    function bcadd(string $num1, string $num2, int $scale = 0): string
-    {
-        return number_format((float) $num1 + (float) $num2, $scale, '.', '');
-    }
-    function bcmul(string $num1, string $num2, int $scale = 0): string
-    {
-        return number_format((float) $num1 * (float) $num2, $scale, '.', '');
-    }
-}
 ```

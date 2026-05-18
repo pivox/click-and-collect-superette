@@ -30,16 +30,33 @@ Tu dois aider à produire :
 5. Préserver le vocabulaire métier : **Kadhia**, supérette, marchand, client, rendez-vous, retrait.
 6. Pour chaque changement, expliquer : fichiers modifiés, raison, risque, test ou vérification.
 
+## Architecture
+
+Monorepo : `apps/backend/` (Symfony 7 · API Platform 4 · PostgreSQL · Doctrine)
+et `apps/frontend/` (Next.js 14 · React Query · Tailwind CSS).
+
 ## Commandes projet
 
-Le backend Symfony se trouve dans `apps/backend/`.
+### Backend (`apps/backend/`)
 
 ```bash
 cd apps/backend
 composer install
-bin/console doctrine:migrations:migrate
+symfony console lexik:jwt:generate-keypair   # première installation uniquement
+symfony console doctrine:migrations:migrate
 symfony server:start
 vendor/bin/phpunit
 vendor/bin/phpstan analyse --memory-limit=512M
-vendor/bin/php-cs-fixer fix --dry-run --diff
+vendor/bin/php-cs-fixer fix --dry-run --diff  # vérifier
+vendor/bin/php-cs-fixer fix                   # corriger
+```
+
+### Frontend (`apps/frontend/`)
+
+```bash
+cd apps/frontend
+npm install
+npm run dev    # dev sur http://localhost:3000
+npm run build
+npm run lint
 ```

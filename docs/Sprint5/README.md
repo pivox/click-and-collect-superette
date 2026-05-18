@@ -38,9 +38,19 @@ Endpoints S5-004 livrés :
 - `PATCH  /api/admin/merchants/{merchantId}/suspend` — suspension (is_active → false) ;
 - `PATCH  /api/admin/merchants/{merchantId}/activate` — activation (is_active → true).
 
+- S5-006 — CRUD admin des catégories produit, PR #112.
+
+Endpoints S5-006 livrés :
+
+- `GET    /api/admin/categories` — liste paginée des catégories ;
+- `GET    /api/admin/categories/{categoryId}` — détail d'une catégorie ;
+- `POST   /api/admin/categories` — création, slug auto-généré si absent ;
+- `PATCH  /api/admin/categories/{categoryId}` — mise à jour partielle ;
+- `DELETE /api/admin/categories/{categoryId}` — suppression physique si non liée à des produits, logique sinon.
+
 Prochaine étape recommandée :
 
-- CRUD admin des marques, catégories et référentiel produit.
+- CRUD admin des marques et référentiel produit.
 
 ## Parcours cible
 
