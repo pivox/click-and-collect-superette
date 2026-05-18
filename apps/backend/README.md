@@ -90,42 +90,7 @@ Depuis `apps/backend/` :
 composer validate --no-check-publish
 find src tests migrations -name '*.php' -exec php -l {} \;
 bin/console debug:router
-bin/console debug:router | grep theme
-bin/console router:match /api/docs
-bin/console router:match /api/docs.jsonopenapi
-bin/console router:match /api/docs.yamlopenapi
-php -S 127.0.0.1:8001 -t public public/index.php
-curl -I http://127.0.0.1:8001/api/docs.jsonopenapi
-curl -I http://127.0.0.1:8001/api/docs.yamlopenapi
-curl -I -H 'Accept: text/html' http://127.0.0.1:8001/api/docs
-curl http://127.0.0.1:8001/api/docs.jsonopenapi | grep -E '"/api/(admin/theme|stores/\{storeId\}/theme)"'
+vendor/bin/phpunit
+vendor/bin/phpstan analyse --memory-limit=512M
+vendor/bin/php-cs-fixer fix --dry-run --diff
 ```
-
-## Vérification manuelle Swagger/OpenAPI
-
-Attendu dans OpenAPI :
-
-- `GET /api/stores/{storeId}/theme`
-- `GET /api/admin/theme`
-- `PUT /api/admin/theme`
-- `GET /api/merchant/stores/{storeId}/theme`
-- `PUT /api/merchant/stores/{storeId}/theme`
-
-Attendu absent :
-
-- suppression de thème marchand
-- upload d'image
-- endpoint CDN
-- endpoint frontend
-
-Checklist manuelle actuelle :
-
-1. Démarrer le serveur local sur `http://127.0.0.1:8001`.
-2. Ouvrir `http://127.0.0.1:8001/api/docs.jsonopenapi`.
-3. Vérifier que `GET /api/stores/{storeId}/theme` apparaît.
-4. Vérifier que `GET /api/admin/theme` apparaît.
-5. Vérifier que `PUT /api/admin/theme` apparaît.
-6. Vérifier que `GET /api/merchant/stores/{storeId}/theme` apparaît.
-7. Vérifier que `PUT /api/merchant/stores/{storeId}/theme` apparaît.
-8. Vérifier qu'aucune route marchand de suppression, d'upload, de CDN ou de frontend n'apparaît.
-9. Tester `http://127.0.0.1:8001/api/docs` dans un navigateur ou avec `Accept: text/html` pour constater le blocage Swagger UI actuel lié à Twig.
