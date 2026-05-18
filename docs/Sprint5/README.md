@@ -6,6 +6,19 @@ Sprint 5 donne à l'opérateur plateforme les outils nécessaires pour onboarder
 
 C'est le sprint qui rend la plateforme opérable sans accès direct à la base de données.
 
+## État actuel
+
+Sprint 5 est en cours.
+
+Livré :
+
+- S5-001 — lecture admin des comptes marchands, PR #103 ;
+- S5-002 — lecture admin des supérettes, PR #104.
+
+Prochaine étape recommandée :
+
+- S5-003 — création/mise à jour admin des supérettes ou gestion admin des comptes marchands selon priorité produit.
+
 ## Parcours cible
 
 ```text
@@ -32,10 +45,10 @@ Admin crée une supérette
 
 | US | Sujet | Epic | Statut |
 |---|---|---|---|
-| US-009 | Créer et gérer les supérettes (admin) | EPIC-009 | Complétée |
-| US-028 | Gérer les comptes marchands | EPIC-009 | En cours — S5-001 livre la lecture admin |
-| US-029 | Superviser le référentiel produit global | EPIC-009 | Existante |
-| US-030 | Valider les propositions de nouveaux produits | EPIC-009 | Existante |
+| US-009 | Créer et gérer les supérettes (admin) | EPIC-009 | Partiel — lecture livrée par S5-002 |
+| US-028 | Gérer les comptes marchands | EPIC-009 | Partiel — lecture livrée par S5-001 |
+| US-029 | Superviser le référentiel produit global | EPIC-009 | À faire |
+| US-030 | Valider les propositions de nouveaux produits | EPIC-009 | À faire |
 
 ## Modèle métier — compléments
 
@@ -79,7 +92,7 @@ PATCH  /api/admin/stores/{storeId}/owner       { "merchantId": "<uuid>" }
 POST   /api/admin/stores/{storeId}/regenerate-qr
 ```
 
-Statut S5-002 : `GET /api/admin/stores` et `GET /api/admin/stores/{storeId}` livrés.
+Statut S5-002 : `GET /api/admin/stores` et `GET /api/admin/stores/{storeId}` livrés par PR #104.
 
 Contrat lecture liste :
 
@@ -153,7 +166,7 @@ PATCH  /api/admin/merchants/{id}/suspend
 PATCH  /api/admin/merchants/{id}/activate
 ```
 
-Statut S5-001 : `GET /api/admin/merchants` et `GET /api/admin/merchants/{merchantId}` livrés.
+Statut S5-001 : `GET /api/admin/merchants` et `GET /api/admin/merchants/{merchantId}` livrés par PR #103.
 
 Contrat lecture :
 
@@ -186,11 +199,13 @@ Règles S5-001 :
 - tri stable par `created_at DESC`, puis `id DESC` ;
 - ne retourne ni mot de passe, ni hash, ni token, ni donnée sensible.
 
-Hors périmètre S5-001 :
+Hors périmètre S5-001 et S5-002 :
 
 - création de compte marchand ;
 - suspension / activation ;
 - association marchand-supérette ;
+- création ou modification de supérette ;
+- régénération QR ;
 - invitation email ;
 - onboarding marchand.
 
@@ -201,14 +216,15 @@ Hors périmètre S5-001 :
 - Analytics et reporting commandes (Sprint 7).
 - Observabilité et audit logs (Sprint 7).
 - Fermeture définitive supérette, export CSV, audit trail admin (Sprint 7).
+- Billing, facturation, relances et paiements.
 
 ## Définition de fini globale
 
-Le Sprint 5 est cohérent lorsque :
+Le Sprint 5 sera cohérent lorsque :
 
 1. L'administrateur peut créer une supérette et télécharger son QR code.
 2. L'administrateur peut créer un compte marchand et l'associer à une supérette.
 3. Le marchand créé peut se connecter et accéder à son backoffice.
 4. L'administrateur peut gérer les marques, catégories et le référentiel produit.
 5. L'administrateur peut valider ou rejeter les propositions de nouveaux produits.
-6. Un client peut s'inscrire et consulter/modifier son profil.
+6. Les accès admin restent protégés par JWT + `ROLE_ADMIN` uniquement.
