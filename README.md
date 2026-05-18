@@ -15,6 +15,31 @@ L'objectif est de simplifier les courses du quotidien dans les supérettes tunis
 - proposer une expérience bilingue français / arabe ;
 - utiliser le dinar tunisien comme devise de référence.
 
+## État du projet
+
+Version actuelle : backend MVP avancé — post PR #104.
+
+Sprints et blocs backend livrés :
+
+- Foundation ;
+- Theme / branding ;
+- Product reference ;
+- Customer ordering ;
+- Merchant workflow core ;
+- Auth client ;
+- Sprint 4 — Secure pickup ;
+- Sprint 3b — Merchant operational maturity ;
+- Sprint 5 — Administration minimale : S5-001 et S5-002 livrées.
+
+Sprint courant : Sprint 5 — Administration minimale.
+
+Dernières PRs livrées :
+
+- PR #103 — S5-001 : lecture admin des comptes marchands ;
+- PR #104 — S5-002 : lecture admin des supérettes.
+
+Prochaine étape recommandée : S5-003 — création/mise à jour admin des supérettes ou gestion admin des comptes marchands selon priorité produit.
+
 ## Principe général
 
 1. Le client scanne le QR code de la supérette.
@@ -131,6 +156,8 @@ flowchart TD
 
 ### Administrateur plateforme
 
+- consulter les comptes marchands ;
+- consulter les supérettes ;
 - gérer les supérettes ;
 - gérer les comptes marchands ;
 - superviser les commandes ;
@@ -193,8 +220,11 @@ La documentation produit est organisée dans `docs/product/` :
 
 La documentation technique est organisée dans :
 
+- `AI_CONTEXT.md` : contexte court de référence pour les agents IA ;
+- `docs/architecture/api-contract.md` : contrat API ;
 - `docs/architecture/front-back-structure.md` : structure frontend / backend du MVP ;
-- `docs/adr/0001-front-back-only-mvp.md` : décision de ne garder que frontend + backend pour le MVP.
+- `docs/adr/0001-front-back-only-mvp.md` : décision de ne garder que frontend + backend pour le MVP ;
+- `docs/Sprint5/README.md` : cadrage du sprint d'administration minimale.
 
 ## Références utiles
 
