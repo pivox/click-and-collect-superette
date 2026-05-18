@@ -62,12 +62,21 @@ Exclus du MVP :
 - Sprint Auth : terminé côté backend (inscription client, login JWT, profil client, reset password).
 - Sprint 3 : terminé côté backend (traitement marchand core, créneaux ponctuels, historique de statuts, dashboard journalier).
 - Sprint 4 : terminé côté backend (QR de retrait, `PickupSession`, scan marchand, `pickup_pending`, double validation, force completion, notifications in-app, suivi statut client, rappel retrait 1h).
-- Sprint 3b : terminé côté backend. PRs #91–#101 livrées. Endpoints : pickup-slot-rules (CRUD + génération), exceptional-closures (CRUD), opening-hours (public + marchand), orders/history (filtres + pagination), products/bulk-availability. Automatisations Messenger : expiration délai réponse marchand (→ cancelled si submitted avant startsAt-2h), rappel acceptation partielle (notification à startsAt-4h), expiration acceptation partielle (→ cancelled si partially_accepted avant startsAt-2h). Limites : notifications in-app uniquement, transport async persistant requis en production. Suite recommandée : Sprint 5 — Administration minimale.
-- Sprint 5 : à faire (administration minimale des supérettes, marchands et référentiel produit).
+- Sprint 3b : terminé côté backend. PRs #91–#102 livrées ; PR #102 clôture officiellement le sprint (audit + documentation). Endpoints : pickup-slot-rules (CRUD + génération), exceptional-closures (CRUD), opening-hours (public + marchand), orders/history (filtres + pagination), products/bulk-availability. Automatisations Messenger : expiration délai réponse marchand (→ cancelled si submitted avant startsAt-2h), rappel acceptation partielle (notification à startsAt-4h), expiration acceptation partielle (→ cancelled si partially_accepted avant startsAt-2h). Limites : notifications in-app uniquement, transport async persistant requis en production.
+- Sprint 5 : en cours côté backend. S5-001 PR #103 livrée (lecture admin comptes marchands : `GET /api/admin/merchants`, `GET /api/admin/merchants/{merchantId}`). S5-002 PR #104 livrée (lecture admin supérettes : `GET /api/admin/stores`, `GET /api/admin/stores/{storeId}`). Prochaine étape recommandée : S5-003 — création/mise à jour admin des supérettes ou gestion admin des comptes marchands selon priorité produit.
+
+## Avancement global
+
+- Backend MVP : environ 90 %.
+- Produit terrain testable : environ 95 %.
+- Sprint courant : Sprint 5 — Administration minimale.
+- Prochaine PR recommandée : S5-003.
+
+## Limites connues
 
 Limites Sprint 4 : le rappel de retrait 1h utilise Symfony Messenger et `DelayStamp`. Un vrai différé en production nécessite un transport async persistant et un worker actif ; les notifications restent in-app, sans push mobile, SMS, email ni Mercure/WebSocket dans le MVP backend actuel. Le contenu du rappel US-064 reste générique et doit encore intégrer le nom de la supérette, l'heure du créneau et le numéro de commande. Après scan, la confirmation client et la force completion ne bloquent plus sur le TTL, mais la confirmation marchand conserve encore un contrôle d'expiration côté processor. Le MVP ne prévoit pas de réouverture admin d'une session expirée et les confirmations simultanées ne sont pas sérialisées par un `SELECT FOR UPDATE` dédié.
 
-Suite recommandée : démarrer **Sprint 5 — Administration minimale** (CRUD supérettes et marchands admin, référentiel produit, QR code téléchargeable, onboarding marchand guidé).
+Limites Sprint 5 actuel : S5-001 et S5-002 sont en lecture seule. Le backend ne couvre pas encore la création/modification/suspension de marchands, la création/modification/suspension de supérettes, l'association marchand-supérette, la régénération QR admin, l'onboarding guidé, l'email d'invitation, le billing, l'analytics, l'upload ou le CSV export.
 
 ## Statuts de commande
 
