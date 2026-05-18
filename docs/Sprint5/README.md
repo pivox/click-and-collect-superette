@@ -14,7 +14,7 @@ Livré :
 
 - S5-001 — lecture admin des comptes marchands, PR #103 ;
 - S5-002 — lecture admin des supérettes, PR #104 ;
-- S5-004 — mutations admin des comptes marchands (création, mise à jour, suspension, activation), PR #105.
+- S5-004 — mutations admin des comptes marchands (création, mise à jour, suspension, activation), PR #106.
 
 Endpoints S5-004 livrés :
 

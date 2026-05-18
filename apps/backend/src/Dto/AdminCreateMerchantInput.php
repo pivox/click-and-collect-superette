@@ -24,7 +24,7 @@ final readonly class AdminCreateMerchantInput
     #[SerializedName('last_name')]
     public string $lastName;
 
-    #[Assert\Length(max: 30)]
+    #[Assert\Length(max: 20)]
     public ?string $phone;
 
     #[SerializedName('is_active')]

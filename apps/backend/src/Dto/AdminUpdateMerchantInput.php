@@ -19,7 +19,7 @@ final readonly class AdminUpdateMerchantInput
     #[SerializedName('last_name')]
     public ?string $lastName;
 
-    #[Assert\Length(max: 30)]
+    #[Assert\Length(max: 20)]
     public ?string $phone;
 
     #[SerializedName('is_active')]
@@ -31,8 +31,8 @@ final readonly class AdminUpdateMerchantInput
         ?string $phone = null,
         ?bool $isActive = null,
     ) {
-        $this->firstName = null !== $firstName ? ('' !== trim($firstName) ? trim($firstName) : null) : null;
-        $this->lastName = null !== $lastName ? ('' !== trim($lastName) ? trim($lastName) : null) : null;
+        $this->firstName = null !== $firstName ? trim($firstName) : null;
+        $this->lastName = null !== $lastName ? trim($lastName) : null;
         $this->phone = null !== $phone ? ('' !== trim($phone) ? trim($phone) : null) : null;
         $this->isActive = $isActive;
     }

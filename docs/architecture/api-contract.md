@@ -1121,7 +1121,7 @@ Règles champs :
 - `email` : requis, format email valide, unique parmi tous les utilisateurs ;
 - `first_name` : requis, 1–100 caractères ;
 - `last_name` : requis, 1–100 caractères ;
-- `phone` : optionnel, max 30 caractères ;
+- `phone` : optionnel, max 20 caractères ;
 - `is_active` : optionnel, défaut `true`.
 
 Codes retour :
@@ -1136,6 +1136,7 @@ Remarques :
 - Un mot de passe temporaire est généré automatiquement (jamais exposé dans la réponse).
 - Aucun email d'invitation n'est envoyé dans le MVP.
 - Le rôle `ROLE_MERCHANT` est attribué automatiquement.
+- **Compte dormant** : le marchand créé ne peut pas encore se connecter de manière autonome. Un mécanisme d'invitation ou de reset password sera livré dans une PR ultérieure (hors périmètre S5-004).
 
 #### PATCH /api/admin/merchants/{merchantId} — Mettre à jour un compte marchand
 

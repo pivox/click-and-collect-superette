@@ -417,6 +417,62 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertStringNotContainsStringIgnoringCase('"roles"', $content);
     }
 
+    public function testBlankFirstNameOnPatchReturns422(): void
+    {
+        $admin = $this->createUser('admin-blank-name@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-blank-name@example.test', new \DateTimeImmutable());
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/merchants/%s', $merchant->getId()),
+            ['first_name' => ''],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testAnonymousUnauthorizedOnPatch(): void
+    {
+        $merchant = $this->createMerchant('merchant-patch-anon@example.test', new \DateTimeImmutable());
+
+        $patchResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s', $merchant->getId()), ['first_name' => 'Ghost']);
+        $suspendResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s/suspend', $merchant->getId()));
+        $activateResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s/activate', $merchant->getId()));
+
+        self::assertSame(401, $patchResponse->getStatusCode());
+        self::assertSame(401, $suspendResponse->getStatusCode());
+        self::assertSame(401, $activateResponse->getStatusCode());
+    }
+
+    public function testCustomerForbiddenOnPatch(): void
+    {
+        $customer = $this->createUser('customer-patch-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $merchant = $this->createMerchant('merchant-patch-customer@example.test', new \DateTimeImmutable());
+
+        $patchResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s', $merchant->getId()), ['first_name' => 'Ghost'], $customer);
+        $suspendResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s/suspend', $merchant->getId()), [], $customer);
+        $activateResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s/activate', $merchant->getId()), [], $customer);
+
+        self::assertSame(403, $patchResponse->getStatusCode());
+        self::assertSame(403, $suspendResponse->getStatusCode());
+        self::assertSame(403, $activateResponse->getStatusCode());
+    }
+
+    public function testMerchantForbiddenOnPatch(): void
+    {
+        $target = $this->createMerchant('merchant-patch-target@example.test', new \DateTimeImmutable());
+        $actor = $this->createMerchant('merchant-patch-actor@example.test', new \DateTimeImmutable());
+
+        $patchResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s', $target->getId()), ['first_name' => 'Ghost'], $actor);
+        $suspendResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s/suspend', $target->getId()), [], $actor);
+        $activateResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s/activate', $target->getId()), [], $actor);
+
+        self::assertSame(403, $patchResponse->getStatusCode());
+        self::assertSame(403, $suspendResponse->getStatusCode());
+        self::assertSame(403, $activateResponse->getStatusCode());
+    }
+
     private function createMerchant(
         string $email,
         \DateTimeImmutable $createdAt,
