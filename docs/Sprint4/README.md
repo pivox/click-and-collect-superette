@@ -35,7 +35,8 @@ Si le client ne confirme pas après scan et confirmation marchand, le marchand p
 | #82 | Force completion marchand | Livré |
 | #83 | Notifications client/marchand | Livré |
 | #84 | Suivi statut commande client | Livré |
-| #85 | Rappel retrait 1h avant créneau | Partiel : planification livrée, contenu encore générique |
+| #85 | Rappel retrait 1h avant créneau | Livré (planification Messenger) |
+| S4-007 | Commande `app:orders:send-pickup-reminders` + contenu enrichi (nom supérette, heure créneau) | Livré |
 
 ## User stories concernées
 
@@ -46,7 +47,7 @@ Si le client ne confirme pas après scan et confirmation marchand, le marchand p
 | US-026 | Suivre le statut de sa commande | Livré |
 | US-038 | Notifications client | Livré |
 | US-039 | Notifications marchand | Livré |
-| US-064 | Rappel de retrait avant expiration du créneau | Partiel : planification livrée, contenu encore générique |
+| US-064 | Rappel de retrait avant expiration du créneau | Livré : commande `app:orders:send-pickup-reminders`, contenu enrichi (nom supérette + heure) |
 
 ## Endpoints livrés
 
@@ -255,17 +256,31 @@ Notifications marchand :
 
 ## Rappel de retrait 1h
 
-Le rappel de retrait est planifié lors du passage en `ready` :
+Deux mécanismes coexistent :
+
+### Planification Messenger (PR #85)
+
+Le rappel est planifié lors du passage en `ready` :
 
 - si le créneau démarre dans plus d'une heure, un message Messenger est dispatché avec `DelayStamp` ;
 - si le créneau démarre dans moins d'une heure, le message est dispatché immédiatement ;
-- le handler crée une notification client uniquement si la commande est toujours `ready`, si la session n'est pas utilisée/scannée et si le créneau n'est pas commencé.
+- le handler crée la notification uniquement si la commande est toujours `ready`, si la session n'est pas utilisée/scannée et si le créneau n'a pas commencé.
 
-Limites importantes :
+### Commande de scan périodique (S4-007)
 
-- le contenu du rappel ne contient pas encore le nom de la supérette, l'heure du créneau et le numéro de commande demandés par l'US-064 ;
-- le transport Messenger local peut être `sync://` ou `in-memory://` en test. Un vrai différé en production nécessite un transport async persistant et un worker actif ;
-- après scan, la confirmation client et la force completion ne bloquent plus sur le TTL ; la confirmation marchand conserve encore un garde d'expiration côté processor et doit être revue si l'on veut une règle strictement identique pour les deux confirmations.
+La commande `app:orders:send-pickup-reminders` peut être appelée par un cron toutes les 5–10 minutes :
+
+- détecte les commandes en `ready` ou `pickup_pending` avec un créneau démarrant dans [now+55min, now+65min] ;
+- crée la notification in-app si elle n'existe pas déjà (`type = pickup_reminder`) ;
+- le contenu inclut le nom de la supérette et l'heure du créneau (Africa/Tunis) ;
+- la déduplication repose sur la contrainte unique `(order_id, type)` en base ;
+- aucune migration requise — réutilise le système de notification existant.
+
+Limites :
+
+- le transport Messenger en production nécessite un transport async persistant et un worker actif ;
+- la confirmation marchand conserve encore un garde d'expiration côté processor ;
+- les confirmations simultanées ne sont pas sérialisées par un verrou pessimiste dédié.
 
 ## Vérifications connues
 
@@ -274,6 +289,7 @@ Résultats issus des PRs Sprint 4 précédentes :
 - PR #82 : suite complète 558 tests, 2146 assertions ;
 - PR #83 : suite complète 586 tests, 2243 assertions ;
 - PR #85 : suite complète 618 tests, 2367 assertions ;
+- S4-007 : suite complète 803 tests, 3366 assertions ;
 - PHPStan OK ;
 - PHP CS Fixer dry-run OK ;
 - `composer validate --no-check-publish` OK ;
@@ -290,7 +306,7 @@ Résultats issus des PRs Sprint 4 précédentes :
 - Le rappel 1h dépend d'un transport Messenger async persistant et d'un worker actif en production.
 - Les confirmations simultanées ne sont pas sérialisées par un verrou pessimiste dédié ; le risque de concurrence reste à traiter si le trafic de retrait augmente.
 - La confirmation marchand conserve encore un contrôle d'expiration après scan, contrairement à la confirmation client et à la force completion.
-- Le contenu du rappel US-064 reste générique et doit être enrichi avec nom de supérette, heure de créneau et numéro de commande.
+- Le contenu du rappel inclut maintenant le nom de la supérette et l'heure du créneau. Le numéro de commande n'est pas encore disponible (champ absent de l'entité Order).
 
 ## Hors périmètre Sprint 4
 
