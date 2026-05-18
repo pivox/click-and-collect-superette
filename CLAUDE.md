@@ -40,6 +40,6 @@ composer install
 bin/console doctrine:migrations:migrate
 symfony server:start
 vendor/bin/phpunit
-vendor/bin/phpstan analyse
+vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/php-cs-fixer fix --dry-run --diff
 ```
