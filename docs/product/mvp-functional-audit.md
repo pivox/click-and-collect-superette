@@ -41,8 +41,10 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 | Profil client | **Oui (US-035)** | Oui | Oui | **Oui** | OK | `GET/PATCH /api/me/profile` livré; accès `ROLE_CUSTOMER`, champs sensibles non exposés. |
 | Mot de passe oublié | **Oui (US-046)** | Oui | **Oui** | **Oui** | OK | `POST /api/auth/password-reset/request` + `POST /api/auth/password-reset/confirm` livrés; alias `forgot-password` / `reset-password` exposés; entité `PasswordResetToken` créée. |
 | Inscription marchand publique | Non | Non | Non | Non | A_DECIDER | Créé par admin uniquement dans le MVP (US-028). |
-| Création marchand par admin | **Oui (US-028)** | Non | Non | Oui | MANQUANT | US-028 complète. Endpoints admin marchands à coder (Sprint 5). |
-| Création / gestion supérette admin | **Oui (US-009)** | Non | Non | **Oui** | MANQUANT | US-009 complétée. Endpoints admin stores à coder (Sprint 5). |
+| Lecture marchands admin | **Oui (US-028)** | Oui | Oui | Oui | OK | S5-001 livré : `GET /api/admin/merchants` et `GET /api/admin/merchants/{merchantId}`. Création/suspension/association restent à livrer. |
+| Lecture supérettes admin | **Oui (US-009)** | Oui | Oui | **Oui** | OK | S5-002 livré : `GET /api/admin/stores` et `GET /api/admin/stores/{storeId}`. |
+| Création / modification supérettes admin | **Oui (US-009)** | Oui | Oui | Oui | OK | S5-003 livré : `POST /api/admin/stores` et `PATCH /api/admin/stores/{storeId}`. Slug et QR générés à la création. |
+| Création / gestion marchands et actions admin restantes | **Oui (US-009, US-028)** | Non | Non | Oui | MANQUANT | Création/suspension marchands, QR téléchargeable/régénération, owner dédié et référentiel admin restent Sprint 5. |
 | QR code store | Oui | Oui | Oui | Oui | OK | Token opaque `qr_code_token`. |
 | Recherche store | Oui | Oui | Oui | Oui | OK | Garder `GET /api/stores/search`. |
 | Relation client/store | Oui | Oui | Oui | Oui | OK | Garder `/api/me/stores/*`. |
@@ -145,22 +147,29 @@ GET   /api/me/orders/{orderId}/status
 
 `PickupSession` porte le token QR opaque, les dates de scan/confirmation, l'usage unique et la force completion. `OrderStatusLog` trace les transitions `ready`, `pickup_pending` et `completed`.
 
-### 5. Admin incomplet
+### 5. Admin Sprint 5 partiellement livré
 
-Le thème global admin est présent, mais l'administration des marchands et supérettes manque.
+Le thème global admin est présent. Sprint 5 a démarré avec les lectures admin marchands/supérettes et la création/modification admin des supérettes, mais plusieurs actions d'administration restent incomplètes.
 
 **Documenté dans :** US-009 (complétée), US-028, Sprint5/README.md.
 
-À implémenter (Sprint 5) :
+Livré (Sprint 5) :
 
 ```http
 GET   /api/admin/merchants
+GET   /api/admin/merchants/{merchantId}
+GET   /api/admin/stores
+GET   /api/admin/stores/{storeId}
+POST  /api/admin/stores
+PATCH /api/admin/stores/{storeId}
+```
+
+À implémenter ensuite (Sprint 5) :
+
+```http
 POST  /api/admin/merchants
 PATCH /api/admin/merchants/{merchantId}/activate
 PATCH /api/admin/merchants/{merchantId}/suspend
-GET   /api/admin/stores
-POST  /api/admin/stores
-PATCH /api/admin/stores/{storeId}
 PATCH /api/admin/stores/{storeId}/owner
 POST  /api/admin/stores/{storeId}/regenerate-qr
 GET   /api/admin/brands + POST + PATCH

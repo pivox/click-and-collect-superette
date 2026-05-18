@@ -332,9 +332,14 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
         $merchant = $this->createUser('merchant-closure-generation@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
         $timezone = new \DateTimeZone('Africa/Tunis');
-        $now = new \DateTimeImmutable('2026-05-18 08:00:00', $timezone);
-        $this->createRule($shop, (int) $now->format('N'), '09:00', '10:00', 6);
-        $this->createClosure($shop, '2026-05-18 08:00:00', '2026-05-18 18:00:00', 'Inventaire');
+        $closedDate = (new \DateTimeImmutable('now', $timezone))->modify('+1 day')->setTime(8, 0);
+        $this->createRule($shop, (int) $closedDate->format('N'), '09:00', '10:00', 6);
+        $this->createClosure(
+            $shop,
+            $closedDate->format('Y-m-d 08:00:00'),
+            $closedDate->format('Y-m-d 18:00:00'),
+            'Inventaire',
+        );
 
         $generator = self::getContainer()->get(PickupSlotRuleGenerator::class);
         $firstResult = $generator->generateForShop($shop, $now);

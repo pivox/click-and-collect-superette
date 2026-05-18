@@ -80,6 +80,17 @@ final readonly class AdminStoreRepository
         return $shop;
     }
 
+    public function findOneBySlug(string $slug): ?Shop
+    {
+        return $this->shopRepository->findOneBy(['slug' => $slug]);
+    }
+
+    public function save(Shop $shop): void
+    {
+        $this->entityManager->persist($shop);
+        $this->entityManager->flush();
+    }
+
     /**
      * @param list<Shop> $stores
      *
@@ -91,23 +102,19 @@ final readonly class AdminStoreRepository
             return [];
         }
 
-        $requestedStoreIds = array_fill_keys(
-            array_map(static fn (Shop $shop): string => $shop->getId()->toRfc4122(), $stores),
-            true,
-        );
-
         /** @var list<array{shop_id: mixed, products_count: string|int}> $rows */
         $rows = $this->entityManager->getConnection()->executeQuery(
-            'SELECT shop_id, COUNT(id) AS products_count FROM merchant_products GROUP BY shop_id',
+            \sprintf(
+                'SELECT shop_id, COUNT(id) AS products_count FROM merchant_products WHERE shop_id IN (%s) GROUP BY shop_id',
+                implode(', ', array_fill(0, \count($stores), '?')),
+            ),
+            array_map(static fn (Shop $shop): string => $shop->getId()->toRfc4122(), $stores),
+            array_fill(0, \count($stores), 'uuid'),
         )->fetchAllAssociative();
 
         $counts = [];
         foreach ($rows as $row) {
             $shopId = $this->normalizeShopId($row['shop_id']);
-            if (!isset($requestedStoreIds[$shopId])) {
-                continue;
-            }
-
             $counts[$shopId] = (int) $row['products_count'];
         }
 

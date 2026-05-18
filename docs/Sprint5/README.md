@@ -100,7 +100,10 @@ PATCH  /api/admin/stores/{storeId}/owner       { "merchantId": "<uuid>" }
 POST   /api/admin/stores/{storeId}/regenerate-qr
 ```
 
-Statut S5-002 : `GET /api/admin/stores` et `GET /api/admin/stores/{storeId}` livrés par PR #104.
+Statut :
+
+- S5-002 : `GET /api/admin/stores` et `GET /api/admin/stores/{storeId}` livrés par PR #104.
+- S5-003 : `POST /api/admin/stores` et `PATCH /api/admin/stores/{storeId}` livrés par PR #107.
 
 Contrat lecture liste :
 
@@ -163,6 +166,44 @@ Règles S5-002 :
 - tri stable par `created_at DESC`, puis `id DESC` ;
 - lecture uniquement, sans création ni modification de supérette ;
 - ne retourne ni mot de passe, ni hash, ni token auth, ni rôles utilisateur.
+
+Contrat création S5-003 :
+
+```json
+{
+  "name": "Supérette El Amal",
+  "address": "Rue de la République",
+  "city": "Tunis",
+  "phone": "+21600000000",
+  "ownerId": "merchant-uuid"
+}
+```
+
+Contrat modification S5-003 :
+
+```json
+{
+  "name": "Supérette El Amal",
+  "address": "Rue de la République",
+  "city": "Tunis",
+  "phone": "+21600000000",
+  "isActive": true,
+  "ownerId": null
+}
+```
+
+Règles S5-003 :
+
+- réservé à `ROLE_ADMIN` ;
+- JWT obligatoire ;
+- `ROLE_MERCHANT` et `ROLE_CUSTOMER` interdits ;
+- `name` obligatoire à la création ;
+- `slug` généré automatiquement à la création depuis `name`, avec suffixe si le slug existe déjà ;
+- `qrCodeToken` généré automatiquement à la création ;
+- `PATCH` remplace uniquement les champs fournis ;
+- `PATCH` ne régénère ni slug ni QR code ;
+- `ownerId` peut assigner un marchand existant ou être `null` pour retirer le propriétaire ;
+- supérette absente : `404`.
 
 ### Admin Merchants (comptes marchands)
 
