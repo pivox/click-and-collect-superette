@@ -14,18 +14,27 @@ Livré :
 
 - S5-001 — lecture admin des comptes marchands, PR #103 ;
 - S5-002 — lecture admin des supérettes, PR #104 ;
+- S5-003 — mutations admin des supérettes (création, mise à jour), PR #107 ;
+- S5-003 — mutations admin des supérettes (activation, désactivation), PR #108 ;
 - S5-004 — mutations admin des comptes marchands (création, mise à jour, suspension, activation), PR #106.
+
+Endpoints S5-003 livrés (PR #107 + PR #108) :
+
+- `POST   /api/admin/stores` — création d'une supérette, retour 201 (slug auto-généré, qr_code_token opaque) ;
+- `PATCH  /api/admin/stores/{storeId}` — mise à jour partielle (name, address, city, phone, owner_id, is_active) ;
+- `PATCH  /api/admin/stores/{storeId}/activate` — activation (is_active → true) ;
+- `PATCH  /api/admin/stores/{storeId}/deactivate` — désactivation (is_active → false).
 
 Endpoints S5-004 livrés :
 
 - `POST   /api/admin/merchants` — création d'un compte marchand, retour 201 ;
-- `PATCH  /api/admin/merchants/{merchantId}` — mise à jour partielle (firstName, lastName, phone, isActive) ;
-- `PATCH  /api/admin/merchants/{merchantId}/suspend` — suspension (isActive → false) ;
-- `PATCH  /api/admin/merchants/{merchantId}/activate` — activation (isActive → true).
+- `PATCH  /api/admin/merchants/{merchantId}` — mise à jour partielle (first_name, last_name, phone, is_active) ;
+- `PATCH  /api/admin/merchants/{merchantId}/suspend` — suspension (is_active → false) ;
+- `PATCH  /api/admin/merchants/{merchantId}/activate` — activation (is_active → true).
 
 Prochaine étape recommandée :
 
-- S5-003 — création/mise à jour admin des supérettes (POST, PATCH, activate, deactivate).
+- S5-005 — CRUD admin des marques, catégories et référentiel produit.
 
 ## Parcours cible
 
@@ -53,8 +62,8 @@ Admin crée une supérette
 
 | US | Sujet | Epic | Statut |
 |---|---|---|---|
-| US-009 | Créer et gérer les supérettes (admin) | EPIC-009 | Partiel — lecture livrée par S5-002 |
-| US-028 | Gérer les comptes marchands | EPIC-009 | Partiel — lecture livrée par S5-001 |
+| US-009 | Créer et gérer les supérettes (admin) | EPIC-009 | Livré — lecture (S5-002) + mutations (S5-003) |
+| US-028 | Gérer les comptes marchands | EPIC-009 | Livré — lecture (S5-001) + mutations (S5-004) |
 | US-029 | Superviser le référentiel produit global | EPIC-009 | À faire |
 | US-030 | Valider les propositions de nouveaux produits | EPIC-009 | À faire |
 
