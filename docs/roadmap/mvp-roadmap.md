@@ -317,6 +317,7 @@ Permettre à l'opérateur de créer et gérer supérettes et marchands, et maint
 ### Fonctionnalités
 
 - CRUD supérettes (admin) avec génération et téléchargement du QR code.
+- **Admin store listing + detail** — lecture paginée des supérettes (`GET /api/admin/stores`, `GET /api/admin/stores/{storeId}`).
 - **Photo et logo de la supérette** (admin et marchand).
 - CRUD comptes marchands (admin) — création, suspension, activation.
 - **Foundation admin access + Merchant admin listing** — lecture paginée des marchands (`GET /api/admin/merchants`, `GET /api/admin/merchants/{merchantId}`).

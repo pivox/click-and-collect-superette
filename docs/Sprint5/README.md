@@ -70,6 +70,7 @@ PATCH  /api/admin/product-references/{id}/archive
 
 ```http
 GET    /api/admin/stores
+GET    /api/admin/stores/{storeId}
 POST   /api/admin/stores
 PATCH  /api/admin/stores/{storeId}
 PATCH  /api/admin/stores/{storeId}/activate
@@ -77,6 +78,70 @@ PATCH  /api/admin/stores/{storeId}/deactivate
 PATCH  /api/admin/stores/{storeId}/owner       { "merchantId": "<uuid>" }
 POST   /api/admin/stores/{storeId}/regenerate-qr
 ```
+
+Statut S5-002 : `GET /api/admin/stores` et `GET /api/admin/stores/{storeId}` livrés.
+
+Contrat lecture liste :
+
+```json
+{
+  "items": [
+    {
+      "id": "store-uuid",
+      "name": "Supérette El Amal",
+      "slug": "superette-el-amal",
+      "city": "Tunis",
+      "is_active": true,
+      "qr_code_token": "qr-token-opaque",
+      "created_at": "2026-05-18T10:00:00+00:00",
+      "owner": {
+        "id": "merchant-uuid",
+        "email": "merchant@example.test"
+      },
+      "products_count": 12
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 1
+}
+```
+
+Contrat lecture détail :
+
+```json
+{
+  "id": "store-uuid",
+  "name": "Supérette El Amal",
+  "slug": "superette-el-amal",
+  "address": "Rue de la République",
+  "city": "Tunis",
+  "phone": "+21600000000",
+  "is_active": true,
+  "qr_code_token": "qr-token-opaque",
+  "created_at": "2026-05-18T10:00:00+00:00",
+  "owner": {
+    "id": "merchant-uuid",
+    "email": "merchant@example.test"
+  },
+  "products_count": 12,
+  "theme_id": "theme-uuid",
+  "opening_hours": null,
+  "exceptional_closures_count": 0,
+  "pickup_rules_count": 0
+}
+```
+
+Règles S5-002 :
+
+- réservé à `ROLE_ADMIN` ;
+- JWT obligatoire ;
+- `ROLE_MERCHANT` et `ROLE_CUSTOMER` interdits ;
+- pagination `page` / `limit`, `limit` plafonné à 50 ;
+- filtre optionnel `is_active=true|false` sur la liste ;
+- tri stable par `created_at DESC`, puis `id DESC` ;
+- lecture uniquement, sans création ni modification de supérette ;
+- ne retourne ni mot de passe, ni hash, ni token auth, ni rôles utilisateur.
 
 ### Admin Merchants (comptes marchands)
 
