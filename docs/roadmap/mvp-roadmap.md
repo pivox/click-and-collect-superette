@@ -317,10 +317,11 @@ Permettre à l'opérateur de créer et gérer supérettes et marchands, et maint
 ### Fonctionnalités
 
 - CRUD supérettes (admin) avec génération et téléchargement du QR code.
-- **Admin store listing + detail** — lecture paginée des supérettes (`GET /api/admin/stores`, `GET /api/admin/stores/{storeId}`).
+- **Admin store listing + detail** — lecture paginée des supérettes (`GET /api/admin/stores`, `GET /api/admin/stores/{storeId}`). ✅ S5-002
 - **Photo et logo de la supérette** (admin et marchand).
-- CRUD comptes marchands (admin) — création, suspension, activation.
-- **Foundation admin access + Merchant admin listing** — lecture paginée des marchands (`GET /api/admin/merchants`, `GET /api/admin/merchants/{merchantId}`).
+- CRUD comptes marchands (admin) — création, suspension, activation. ✅ S5-004 livré
+- **Foundation admin access + Merchant admin listing** — lecture paginée des marchands (`GET /api/admin/merchants`, `GET /api/admin/merchants/{merchantId}`). ✅ S5-001
+- **Merchant admin mutations** — création, mise à jour, suspension et activation (`POST /api/admin/merchants`, `PATCH /api/admin/merchants/{id}`, `PATCH .../suspend`, `PATCH .../activate`). ✅ S5-004
 - CRUD Brand et Category (admin).
 - CRUD ProductReference (admin) — création directe, correction, archivage.
 - Validation des propositions de produits des marchands (existant).
@@ -330,7 +331,7 @@ Permettre à l'opérateur de créer et gérer supérettes et marchands, et maint
 ### User stories
 
 - US-009 — Créer et gérer les supérettes (admin) *(complétée)*
-- US-028 — Gérer les comptes marchands
+- US-028 — Gérer les comptes marchands *(mutations livrées S5-004 — lecture + création + PATCH + suspension + activation)* ✅
 - US-029 — Superviser le référentiel produit global
 - US-030 — Valider les propositions de nouveaux produits
 - **US-050** — Photo et logo de la supérette

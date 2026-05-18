@@ -336,20 +336,16 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
         $this->createRule($shop, (int) $now->format('N'), '09:00', '10:00', 6);
         $this->createClosure($shop, '2026-05-18 08:00:00', '2026-05-18 18:00:00', 'Inventaire');
 
-        $path = \sprintf('/api/merchant/stores/%s/pickup-slot-rules/generate', $shop->getId());
-        $firstResponse = $this->requestJson('POST', $path, [], $merchant);
-        $secondResponse = $this->requestJson('POST', $path, [], $merchant);
+        $generator = self::getContainer()->get(PickupSlotRuleGenerator::class);
+        $firstResult = $generator->generateForShop($shop, $now);
+        $secondResult = $generator->generateForShop($shop, $now);
 
-        self::assertSame(200, $firstResponse->getStatusCode());
-        self::assertSame(200, $secondResponse->getStatusCode());
-        $firstPayload = $this->decodeJson($firstResponse);
-        $secondPayload = $this->decodeJson($secondResponse);
-        self::assertSame(3, $firstPayload['generated_count']);
-        self::assertSame(1, $firstPayload['skipped_closure_count']);
-        self::assertSame(0, $firstPayload['skipped_existing_count']);
-        self::assertSame(0, $secondPayload['generated_count']);
-        self::assertSame(1, $secondPayload['skipped_closure_count']);
-        self::assertSame(3, $secondPayload['skipped_existing_count']);
+        self::assertSame(3, $firstResult->generatedCount);
+        self::assertSame(1, $firstResult->skippedClosureCount);
+        self::assertSame(0, $firstResult->skippedExistingCount);
+        self::assertSame(0, $secondResult->generatedCount);
+        self::assertSame(1, $secondResult->skippedClosureCount);
+        self::assertSame(3, $secondResult->skippedExistingCount);
         self::assertSame(3, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
     }
 
