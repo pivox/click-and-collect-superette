@@ -1219,7 +1219,7 @@ Règles communes :
 
 ### Supérettes
 
-Statut : **lecture livrée S5-002 ; mutations livrées S5-003 (POST, PATCH, activate, deactivate)**.
+Statut : **lecture livrée S5-002 ; mutations livrées S5-003 (POST, PATCH, activate, deactivate) ; QR admin livré S5-005**.
 
 ```http
 GET   /api/admin/stores?page=1&limit=20&is_active=true
@@ -1229,6 +1229,8 @@ PATCH /api/admin/stores/{storeId}
 PATCH /api/admin/stores/{storeId}/activate
 PATCH /api/admin/stores/{storeId}/deactivate
 PATCH /api/admin/stores/{storeId}/owner  (à implémenter)
+GET   /api/admin/stores/{storeId}/qr-code
+POST  /api/admin/stores/{storeId}/regenerate-qr
 ```
 
 #### POST /api/admin/stores — Créer une supérette
@@ -1367,13 +1369,37 @@ Règles :
 - `ownerId` peut assigner un marchand existant ou être `null` pour retirer le propriétaire ;
 - aucun mot de passe, hash, token auth, rôle utilisateur ou champ interne sensible n'est exposé.
 
-### Régénérer le QR code d'une supérette
+#### GET /api/admin/stores/{storeId}/qr-code — Lire le contrat QR
 
-Statut : **à implémenter**.
+Réponse `200` :
+
+```json
+{
+  "store_id": "store-uuid",
+  "store_name": "Supérette El Amal",
+  "slug": "superette-el-amal",
+  "qr_code_token": "qr-token-opaque",
+  "target_url": "/api/stores/by-qr/qr-token-opaque",
+  "qr_payload": "/api/stores/by-qr/qr-token-opaque"
+}
+```
+
+Règles :
+
+- admin connecté uniquement (`ROLE_ADMIN`) ;
+- la supérette doit exister ;
+- retourne les informations nécessaires pour afficher ou télécharger un QR côté interface admin ;
+- `qr_payload` encode la route publique existante `GET /api/stores/by-qr/{qrCodeToken}` ;
+- ne génère pas d'image PNG/PDF côté backend ;
+- n'expose aucun mot de passe, hash, token auth, propriétaire ou donnée sensible.
+
+#### POST /api/admin/stores/{storeId}/regenerate-qr — Régénérer le token QR
 
 ```http
 POST /api/admin/stores/{storeId}/regenerate-qr
 ```
+
+Réponse `200` : même contrat que `GET /api/admin/stores/{storeId}/qr-code`.
 
 Règles :
 
@@ -1381,7 +1407,8 @@ Règles :
 - la supérette doit exister ;
 - génère un nouveau `qrCodeToken` opaque (UUID v4) pour la supérette ;
 - l'ancien token est immédiatement invalidé — tout lien ou QR physique imprimé avec l'ancien token ne fonctionnera plus ;
-- retourne le nouveau token afin que l'admin puisse régénérer le QR physique.
+- retourne le nouveau contrat QR afin que l'admin puisse régénérer le QR physique ;
+- ne modifie ni catalogue, ni commande, ni propriétaire, ni slug, ni données d'identité de la supérette.
 
 Cas d'usage : QR code compromis, QR physique endommagé ou changement de supérette propriétaire.
 

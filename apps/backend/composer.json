@@ -1,4 +1,6 @@
 {
+    "name": "pivox/click-and-collect-superette-backend",
+    "description": "Backend Symfony — plateforme click-and-collect supérettes",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",
