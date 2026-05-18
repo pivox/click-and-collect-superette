@@ -1219,17 +1219,21 @@ Règles communes :
 
 ### Supérettes
 
-Statut : **lecture livrée S5-002 ; création/modification livrées S5-003 ; actions avancées à implémenter**.
+Statut : **lecture livrée S5-002 ; mutations livrées S5-003 (POST, PATCH, activate, deactivate)**.
 
 ```http
 GET   /api/admin/stores?page=1&limit=20&is_active=true
 GET   /api/admin/stores/{storeId}
 POST  /api/admin/stores
 PATCH /api/admin/stores/{storeId}
+PATCH /api/admin/stores/{storeId}/activate
+PATCH /api/admin/stores/{storeId}/deactivate
 PATCH /api/admin/stores/{storeId}/owner  (à implémenter)
 ```
 
-Payload création :
+#### POST /api/admin/stores — Créer une supérette
+
+Payload :
 
 ```json
 {
@@ -1237,22 +1241,52 @@ Payload création :
   "address": "Rue de la République",
   "city": "Tunis",
   "phone": "+21600000000",
-  "ownerId": "merchant-uuid"
+  "owner_id": "merchant-uuid-or-null",
+  "is_active": true
 }
 ```
 
-Payload modification :
+Règles :
+
+- `name` : obligatoire, 1–160 caractères ;
+- `address`, `city`, `phone` : optionnels, nullable ;
+- `phone` : max 20 caractères ;
+- `owner_id` : UUID d'un utilisateur `ROLE_MERCHANT` existant, ou `null` ; si l'UUID est inconnu → 422 ;
+- `slug` généré automatiquement par slugify du `name` (translittération ASCII, minuscules, séparateur `-`) ; suffixe `-2`, `-3`… en cas de doublon ; fallback `store` si le nom ne produit aucun caractère ASCII ;
+- `qr_code_token` généré aléatoirement (opaque) ;
+- retour : `AdminStoreOutput` avec HTTP 201.
+
+#### PATCH /api/admin/stores/{storeId} — Mise à jour partielle
+
+Payload (tous champs optionnels) :
 
 ```json
 {
-  "name": "Supérette El Amal",
-  "address": "Rue de la République",
-  "city": "Tunis",
-  "phone": "+21600000000",
-  "isActive": true,
-  "ownerId": null
+  "name": "Nouveau nom",
+  "address": "Nouvelle adresse",
+  "city": "Sfax",
+  "phone": "+21699000001",
+  "owner_id": "merchant-uuid-ou-null",
+  "is_active": false
 }
 ```
+
+Règles :
+
+- seuls les champs présents dans le payload sont mis à jour ;
+- `name` : si fourni, doit être non vide (1–160 caractères) ; le `slug` **n'est pas régénéré** lors d'un PATCH `name` — il reste immuable après création ;
+- `owner_id: null` efface le propriétaire ; `owner_id: "<uuid>"` l'assigne ; absence du champ → inchangé ;
+- `storeId` inconnu ou UUID invalide → 404 ;
+- retour : `AdminStoreOutput` avec HTTP 200.
+
+#### PATCH /api/admin/stores/{storeId}/activate
+
+Pas de payload. Passe `is_active` à `true`. Retour : `AdminStoreOutput` HTTP 200.
+
+#### PATCH /api/admin/stores/{storeId}/deactivate
+
+Pas de payload. Passe `is_active` à `false`. Retour : `AdminStoreOutput` HTTP 200.
+
 
 Réponse liste `200` :
 

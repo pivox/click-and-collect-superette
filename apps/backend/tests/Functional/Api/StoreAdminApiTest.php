@@ -426,6 +426,51 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertSame($originalName, $shop->getName());
     }
 
+    public function testAdminActivatesStore(): void
+    {
+        $admin = $this->createUser('admin-activate-store@example.test', ['ROLE_ADMIN']);
+        $shop = $this->createStore(null, 'Store Inactif', 'store-inactif-activate', 'Tunis', new \DateTimeImmutable(), active: false);
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/activate', $shop->getId()), [], $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertTrue($this->decodeJson($response)['is_active']);
+    }
+
+    public function testAdminDeactivatesStore(): void
+    {
+        $admin = $this->createUser('admin-deactivate-store@example.test', ['ROLE_ADMIN']);
+        $shop = $this->createStore(null, 'Store Actif', 'store-actif-deactivate', 'Tunis', new \DateTimeImmutable(), active: true);
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/deactivate', $shop->getId()), [], $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertFalse($this->decodeJson($response)['is_active']);
+    }
+
+    public function testActivateDeactivateForbiddenForNonAdmin(): void
+    {
+        $merchant = $this->createMerchant('merchant-activate-forbidden@example.test');
+        $customer = $this->createUser('customer-activate-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createStore(null, 'Store Activate Forbidden', 'store-activate-forbidden', 'Tunis', new \DateTimeImmutable());
+
+        self::assertSame(403, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/activate', $shop->getId()), [], $merchant)->getStatusCode());
+        self::assertSame(403, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/deactivate', $shop->getId()), [], $merchant)->getStatusCode());
+        self::assertSame(403, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/activate', $shop->getId()), [], $customer)->getStatusCode());
+        self::assertSame(403, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/deactivate', $shop->getId()), [], $customer)->getStatusCode());
+        self::assertSame(401, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/activate', $shop->getId()), [])->getStatusCode());
+        self::assertSame(401, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/deactivate', $shop->getId()), [])->getStatusCode());
+    }
+
+    public function testActivateDeactivateMissingStoreReturnsNotFound(): void
+    {
+        $admin = $this->createUser('admin-activate-missing@example.test', ['ROLE_ADMIN']);
+        $unknownId = Uuid::v4()->toRfc4122();
+
+        self::assertSame(404, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/activate', $unknownId), [], $admin)->getStatusCode());
+        self::assertSame(404, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s/deactivate', $unknownId), [], $admin)->getStatusCode());
+    }
+
     private function createMerchant(string $email): User
     {
         return $this->createUser($email, ['ROLE_MERCHANT']);
