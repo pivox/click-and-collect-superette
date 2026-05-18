@@ -106,6 +106,51 @@ $page   = max(1, (int) ($request?->query->get('page') ?? 1));
 $status = $context['filters']['status'] ?? null;
 ```
 
+## 7. PHPStan — memory limit obligatoire
+
+PHPStan crashe avec "Allowed memory size exhausted" si lancé sans limite explicite.
+
+```bash
+# Correct
+vendor/bin/phpstan analyse --memory-limit=512M
+
+# Incorrect — crashe à ~128 Mo (limite PHP par défaut)
+vendor/bin/phpstan analyse
+```
+
+## 8. CS Fixer — pas de backslash sur les fonctions natives, espace avant `fn`
+
+Deux règles CS Fixer silencieuses :
+
+- Préfixe global interdit : `\array_map`, `\count`, `\sprintf` → écrire sans `\`.
+- Espace obligatoire avant `(` dans les closures fléchées : `fn(` → `fn (`.
+
+```php
+// Correct
+array_map(static fn (OrderStatus $s) => $s->value, $statuses)
+
+// Incorrect — CS Fixer rejette les deux formes
+\array_map(static fn(OrderStatus $s) => $s->value, $statuses)
+```
+
+## 9. `final readonly class` ne peut pas être mockée par PHPUnit
+
+PHPUnit ne peut pas créer de mock d'une classe `final`. Pattern : extraire une interface, garder la classe `final readonly`, mocker l'interface dans les tests.
+
+```php
+// Interface (mockable dans les tests)
+interface PickupReminderNotifierInterface
+{
+    public function notifyCustomerPickupReminder(Order $order): void;
+}
+
+// Classe finale qui implémente l'interface
+final readonly class NotificationService implements PickupReminderNotifierInterface { ... }
+
+// Test — mocker l'interface, jamais la classe concrète
+$notifier = $this->createMock(PickupReminderNotifierInterface::class);
+```
+
 ## 6. Extension bcmath et environnement de test
 
 `ext-bcmath` est déclarée dans `apps/backend/composer.json` et utilisée en production (`bcadd`, `bcmul`). Ne pas la retirer.
