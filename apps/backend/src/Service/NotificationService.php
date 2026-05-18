@@ -9,7 +9,7 @@ use App\Entity\Order;
 use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
-final readonly class NotificationService
+final readonly class NotificationService implements PickupReminderNotifierInterface
 {
     public const TYPE_PICKUP_REMINDER = 'pickup_reminder';
     public const TYPE_MERCHANT_RESPONSE_TIMEOUT = 'merchant_response_timeout';
@@ -94,12 +94,34 @@ final readonly class NotificationService
             return;
         }
 
+        $slot = $order->getPickupSlot();
+        $shopName = $order->getShop()->getName();
+
+        if (null !== $slot) {
+            $slotTime = $slot->getStartsAt()
+                ->setTimezone(new \DateTimeZone('Africa/Tunis'))
+                ->format('H\hi');
+            $bodyFr = \sprintf(
+                'Votre Kadhia chez %s est prête. Votre créneau est à %s. Présentez votre QR code en supérette.',
+                $shopName,
+                $slotTime,
+            );
+            $bodyAr = \sprintf(
+                'قاضيتك في %s واجدة. موعد استلامها %s. أظهر رمز QR في العطار.',
+                $shopName,
+                $slotTime,
+            );
+        } else {
+            $bodyFr = \sprintf('Votre Kadhia chez %s est prête. Pensez à la retirer pendant votre créneau.', $shopName);
+            $bodyAr = \sprintf('قاضيتك في %s واجدة. تذكروا استلامها خلال الموعد المحدد.', $shopName);
+        }
+
         $this->persistForCustomer(
             $order,
             'Rappel de retrait',
             'تذكير بالاستلام',
-            'Votre Kadhia est prête. Pensez à la retirer pendant votre créneau.',
-            'القاضية واجدة. تذكروا استلامها خلال الموعد المحدد.',
+            $bodyFr,
+            $bodyAr,
             self::TYPE_PICKUP_REMINDER,
         );
     }

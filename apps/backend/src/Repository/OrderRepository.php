@@ -225,6 +225,30 @@ class OrderRepository extends ServiceEntityRepository
         return $result;
     }
 
+    /**
+     * Returns orders in eligible pickup statuses whose slot starts within [$from, $to).
+     *
+     * @return list<Order>
+     */
+    public function findOrdersNeedingPickupReminder(
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+    ): array {
+        /** @var list<Order> $result */
+        $result = $this->createQueryBuilder('o')
+            ->innerJoin('o.pickupSlot', 'slot')
+            ->andWhere('o.status IN (:statuses)')
+            ->andWhere('slot.startsAt >= :from')
+            ->andWhere('slot.startsAt < :to')
+            ->setParameter('statuses', [OrderStatus::Ready->value, OrderStatus::PickupPending->value])
+            ->setParameter('from', $from, Types::DATETIME_IMMUTABLE)
+            ->setParameter('to', $to, Types::DATETIME_IMMUTABLE)
+            ->getQuery()
+            ->getResult();
+
+        return $result;
+    }
+
     public function findOneByShopAndId(Shop $shop, string $orderId): ?Order
     {
         return $this->findOneBy([
