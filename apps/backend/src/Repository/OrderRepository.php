@@ -228,19 +228,25 @@ class OrderRepository extends ServiceEntityRepository
     /**
      * Returns orders in eligible pickup statuses whose slot starts within [$from, $to).
      *
+     * @param list<OrderStatus> $statuses
+     *
      * @return list<Order>
      */
     public function findOrdersNeedingPickupReminder(
         \DateTimeImmutable $from,
         \DateTimeImmutable $to,
+        array $statuses,
     ): array {
         /** @var list<Order> $result */
         $result = $this->createQueryBuilder('o')
             ->innerJoin('o.pickupSlot', 'slot')
+            ->leftJoin('o.shop', 'shop')
+            ->leftJoin('o.customer', 'customer')
+            ->addSelect('shop', 'customer')
             ->andWhere('o.status IN (:statuses)')
             ->andWhere('slot.startsAt >= :from')
             ->andWhere('slot.startsAt < :to')
-            ->setParameter('statuses', [OrderStatus::Ready->value, OrderStatus::PickupPending->value])
+            ->setParameter('statuses', array_map(static fn (OrderStatus $s) => $s->value, $statuses))
             ->setParameter('from', $from, Types::DATETIME_IMMUTABLE)
             ->setParameter('to', $to, Types::DATETIME_IMMUTABLE)
             ->getQuery()

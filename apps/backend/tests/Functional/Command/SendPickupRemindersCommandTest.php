@@ -61,7 +61,7 @@ final class SendPickupRemindersCommandTest extends FunctionalApiTestCase
         self::assertCount(1, $this->findPickupReminders($order));
     }
 
-    public function testSendsReminderForPickupPendingOrderInWindow(): void
+    public function testDoesNotSendReminderForPickupPendingOrder(): void
     {
         $now = new \DateTimeImmutable('2026-05-16 10:00:00');
         $order = $this->createReadyOrder($now->modify('+60 minutes'));
@@ -70,8 +70,8 @@ final class SendPickupRemindersCommandTest extends FunctionalApiTestCase
 
         $sent = $this->buildSender($now)->sendDueReminders();
 
-        self::assertSame(1, $sent);
-        self::assertCount(1, $this->findPickupReminders($order));
+        self::assertSame(0, $sent);
+        self::assertCount(0, $this->findPickupReminders($order));
     }
 
     public function testDoesNotSendReminderForCancelledOrder(): void

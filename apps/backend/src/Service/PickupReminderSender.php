@@ -33,7 +33,7 @@ final readonly class PickupReminderSender
         $from = $now->modify(\sprintf('+%d minutes', 60 - self::WINDOW_MINUTES));
         $to = $now->modify(\sprintf('+%d minutes', 60 + self::WINDOW_MINUTES));
 
-        $orders = $this->orderRepository->findOrdersNeedingPickupReminder($from, $to);
+        $orders = $this->orderRepository->findOrdersNeedingPickupReminder($from, $to, self::eligibleStatuses());
 
         foreach ($orders as $order) {
             $this->notifier->notifyCustomerPickupReminder($order);
@@ -51,6 +51,6 @@ final readonly class PickupReminderSender
      */
     public static function eligibleStatuses(): array
     {
-        return [OrderStatus::Ready, OrderStatus::PickupPending];
+        return [OrderStatus::Ready];
     }
 }

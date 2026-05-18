@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Service;
 
 use App\Entity\Order;
+use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use App\Service\PickupReminderNotifierInterface;
 use App\Service\PickupReminderSender;
@@ -24,6 +25,7 @@ final class PickupReminderSenderTest extends TestCase
             ->with(
                 new \DateTimeImmutable('2026-05-16 10:55:00'),
                 new \DateTimeImmutable('2026-05-16 11:05:00'),
+                [OrderStatus::Ready],
             )
             ->willReturn([]);
 
@@ -40,6 +42,7 @@ final class PickupReminderSenderTest extends TestCase
             ->with(
                 new \DateTimeImmutable('2026-05-16 10:25:00'),
                 new \DateTimeImmutable('2026-05-16 10:35:00'),
+                [OrderStatus::Ready],
             )
             ->willReturn([]);
 
