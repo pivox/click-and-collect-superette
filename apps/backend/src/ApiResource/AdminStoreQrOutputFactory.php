@@ -10,15 +10,12 @@ final readonly class AdminStoreQrOutputFactory
 {
     public function create(Shop $shop): AdminStoreQrOutput
     {
-        $targetUrl = \sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken());
-
         return new AdminStoreQrOutput(
             storeId: $shop->getId()->toRfc4122(),
             storeName: $shop->getName(),
             slug: $shop->getSlug(),
             qrCodeToken: $shop->getQrCodeToken(),
-            targetUrl: $targetUrl,
-            qrPayload: $targetUrl,
+            targetUrl: \sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()),
         );
     }
 }

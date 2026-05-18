@@ -19,7 +19,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         new Get(
             uriTemplate: '/admin/stores/{storeId<[0-9a-fA-F\-]{32,36}>}/qr-code',
             uriVariables: [
-                'storeId' => new Link(fromClass: AdminStoreOutput::class, identifiers: ['id']),
+                'storeId' => new Link(fromClass: self::class, identifiers: ['storeId']),
             ],
             formats: ['json' => ['application/json']],
             normalizationContext: ['groups' => ['admin_store_qr:read']],
@@ -29,13 +29,12 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         new Post(
             uriTemplate: '/admin/stores/{storeId<[0-9a-fA-F\-]{32,36}>}/regenerate-qr',
             uriVariables: [
-                'storeId' => new Link(fromClass: AdminStoreOutput::class, identifiers: ['id']),
+                'storeId' => new Link(fromClass: self::class, identifiers: ['storeId']),
             ],
             formats: ['json' => ['application/json']],
             status: 200,
             input: false,
             normalizationContext: ['groups' => ['admin_store_qr:read']],
-            provider: AdminStoreQrProvider::class,
             processor: AdminRegenerateStoreQrProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
         ),
@@ -59,9 +58,6 @@ final readonly class AdminStoreQrOutput
         #[Groups(['admin_store_qr:read'])]
         #[SerializedName('target_url')]
         public string $targetUrl,
-        #[Groups(['admin_store_qr:read'])]
-        #[SerializedName('qr_payload')]
-        public string $qrPayload,
     ) {
     }
 }
