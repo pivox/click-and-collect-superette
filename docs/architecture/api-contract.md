@@ -1478,8 +1478,9 @@ Règles :
 - réservé à `ROLE_ADMIN` ; JWT obligatoire ; anonyme → 401, marchand/client → 403 ;
 - `nameFr` obligatoire à la création ;
 - `slug` auto-généré si absent, unique — si fourni et déjà pris → 422 ;
-- `PATCH` ne modifie que les champs présents dans le corps ; le slug n'est jamais modifiable ;
-- `DELETE` : suppression logique (`isActive = false`) si la catégorie est liée à des `ProductReference` ; suppression physique sinon ;
+- `PATCH` ne modifie que les champs présents dans le corps ; le slug n'est jamais modifiable ; `nameFr` null explicite → 422 ;
+- `sortOrder` et `parentId` sont en lecture seule — non modifiables via PATCH dans le MVP ;
+- `DELETE` : suppression logique (`isActive = false`) si la catégorie est liée à des `ProductReference` ou des `ProductReferenceProposal` ; suppression physique sinon ;
 - catégorie absente → 404 ;
 - pagination : `page` défaut `1`, `limit` défaut `20`, `limit` plafonné à `50` ;
 - tri stable par `sortOrder ASC`, puis `nameFr ASC`.

@@ -38,7 +38,7 @@ Endpoints S5-004 livrés :
 - `PATCH  /api/admin/merchants/{merchantId}/suspend` — suspension (is_active → false) ;
 - `PATCH  /api/admin/merchants/{merchantId}/activate` — activation (is_active → true).
 
-- S5-006 — CRUD admin des catégories produit, PR #TBD.
+- S5-006 — CRUD admin des catégories produit, PR #112.
 
 Endpoints S5-006 livrés :
 

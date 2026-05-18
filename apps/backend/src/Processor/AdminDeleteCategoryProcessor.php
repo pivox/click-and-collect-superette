@@ -38,7 +38,7 @@ final readonly class AdminDeleteCategoryProcessor implements ProcessorInterface
             throw new NotFoundHttpException('ADMIN_CATEGORY_NOT_FOUND');
         }
 
-        if ($this->adminCategoryRepository->countLinkedProductReferences($category) > 0) {
+        if ($this->adminCategoryRepository->hasLinkedEntities($category)) {
             $category->setActive(false);
             $this->adminCategoryRepository->save($category);
         } else {

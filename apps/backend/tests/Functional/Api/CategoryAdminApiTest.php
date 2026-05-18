@@ -185,6 +185,21 @@ final class CategoryAdminApiTest extends FunctionalApiTestCase
         self::assertSame('معلبات', $payload['name_ar']);
     }
 
+    public function testPatchCategoryWithNullNameFrReturns422(): void
+    {
+        $admin = $this->createUser('admin-cat-patch-null@example.test', ['ROLE_ADMIN']);
+        $cat = $this->createCategory('Surgelés null', 'surgeles-null');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/categories/%s', $cat->getId()),
+            ['nameFr' => null],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     public function testPatchCategoryReturns404WhenAbsent(): void
     {
         $admin = $this->createUser('admin-cat-patch-404@example.test', ['ROLE_ADMIN']);

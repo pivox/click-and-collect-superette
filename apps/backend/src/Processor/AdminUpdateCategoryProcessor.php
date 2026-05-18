@@ -48,7 +48,10 @@ final readonly class AdminUpdateCategoryProcessor implements ProcessorInterface
 
         $payload = $this->currentPayload();
 
-        if (\array_key_exists('nameFr', $payload) && null !== $data->nameFr) {
+        if (\array_key_exists('nameFr', $payload)) {
+            if (null === $data->nameFr) {
+                throw new UnprocessableEntityHttpException('ADMIN_CATEGORY_NAME_FR_REQUIRED');
+            }
             $nameFr = trim($data->nameFr);
             if ('' === $nameFr) {
                 throw new UnprocessableEntityHttpException('ADMIN_CATEGORY_NAME_FR_BLANK');

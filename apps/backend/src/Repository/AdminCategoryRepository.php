@@ -57,15 +57,31 @@ final readonly class AdminCategoryRepository
             ->getSingleScalarResult();
     }
 
-    public function countLinkedProductReferences(Category $category): int
+    public function hasLinkedEntities(Category $category): bool
     {
-        return (int) $this->entityManager->createQueryBuilder()
+        $id = $category->getId();
+
+        $refCount = (int) $this->entityManager->createQueryBuilder()
             ->select('COUNT(pr.id)')
             ->from('App\Entity\ProductReference', 'pr')
-            ->andWhere('pr.category = :category')
-            ->setParameter('category', $category->getId(), 'uuid')
+            ->andWhere('pr.category = :id')
+            ->setParameter('id', $id, 'uuid')
             ->getQuery()
             ->getSingleScalarResult();
+
+        if ($refCount > 0) {
+            return true;
+        }
+
+        $proposalCount = (int) $this->entityManager->createQueryBuilder()
+            ->select('COUNT(p.id)')
+            ->from('App\Entity\ProductReferenceProposal', 'p')
+            ->andWhere('p.category = :id')
+            ->setParameter('id', $id, 'uuid')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $proposalCount > 0;
     }
 
     public function save(Category $category): void
