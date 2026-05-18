@@ -1219,14 +1219,39 @@ Règles communes :
 
 ### Supérettes
 
-Statut : **lecture livrée S5-002 ; mutations à implémenter**.
+Statut : **lecture livrée S5-002 ; création/modification livrées S5-003 ; actions avancées à implémenter**.
 
 ```http
 GET   /api/admin/stores?page=1&limit=20&is_active=true
 GET   /api/admin/stores/{storeId}
-POST  /api/admin/stores                  (à implémenter)
-PATCH /api/admin/stores/{storeId}        (à implémenter)
+POST  /api/admin/stores
+PATCH /api/admin/stores/{storeId}
 PATCH /api/admin/stores/{storeId}/owner  (à implémenter)
+```
+
+Payload création :
+
+```json
+{
+  "name": "Supérette El Amal",
+  "address": "Rue de la République",
+  "city": "Tunis",
+  "phone": "+21600000000",
+  "ownerId": "merchant-uuid"
+}
+```
+
+Payload modification :
+
+```json
+{
+  "name": "Supérette El Amal",
+  "address": "Rue de la République",
+  "city": "Tunis",
+  "phone": "+21600000000",
+  "isActive": true,
+  "ownerId": null
+}
 ```
 
 Réponse liste `200` :
@@ -1302,6 +1327,10 @@ Règles :
 - tri stable par `created_at` décroissant puis `id` décroissant ;
 - la liste expose un résumé léger avec propriétaire et nombre de produits ;
 - le détail ajoute adresse, téléphone, thème, horaires d'ouverture, fermetures exceptionnelles actives et règles de créneaux actives ;
+- à la création, le slug est généré depuis le nom avec suffixe en cas de doublon ;
+- à la création, `qr_code_token` est généré automatiquement ;
+- la modification ne régénère ni slug ni QR code ;
+- `ownerId` peut assigner un marchand existant ou être `null` pour retirer le propriétaire ;
 - aucun mot de passe, hash, token auth, rôle utilisateur ou champ interne sensible n'est exposé.
 
 ### Régénérer le QR code d'une supérette
