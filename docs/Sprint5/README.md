@@ -48,9 +48,11 @@ Endpoints S5-006 livrés :
 - `PATCH  /api/admin/categories/{categoryId}` — mise à jour partielle ;
 - `DELETE /api/admin/categories/{categoryId}` — suppression physique si non liée à des produits, logique sinon.
 
-Prochaine étape recommandée :
+Reste à livrer :
 
-- CRUD admin des marques et référentiel produit.
+- S5-007 — CRUD admin des marques (`Brand`) ;
+- S5-008 — CRUD admin du référentiel produit (`ProductReference`) ;
+- S5-009 — Contrainte `UNIQUE` en base sur le slug des supérettes (migration Doctrine + gestion de la collision côté processor).
 
 ## Parcours cible
 
@@ -82,6 +84,7 @@ Admin crée une supérette
 | US-028 | Gérer les comptes marchands | EPIC-009 | Livré — lecture (S5-001) + mutations (S5-004) |
 | US-029 | Superviser le référentiel produit global | EPIC-009 | À faire |
 | US-030 | Valider les propositions de nouveaux produits | EPIC-009 | À faire |
+| US-065 | Garantir l'unicité des slugs de supérette en base de données | EPIC-009 | À faire (S5-009) |
 
 ## Modèle métier — compléments
 
@@ -330,3 +333,43 @@ Le Sprint 5 sera cohérent lorsque :
 4. L'administrateur peut gérer les marques, catégories et le référentiel produit.
 5. L'administrateur peut valider ou rejeter les propositions de nouveaux produits.
 6. Les accès admin restent protégés par JWT + `ROLE_ADMIN` uniquement.
+7. Le slug d'une supérette est unique en base de données, toute collision est rejetée proprement.
+
+## US-065 — Garantir l'unicité des slugs de supérette en base de données
+
+**Rôle** : opérateur plateforme (admin).
+
+**Besoin** : Je veux que le système empêche deux supérettes d'avoir le même slug, même si deux administrateurs créent simultanément des supérettes avec des noms similaires.
+
+**Bénéfice** : Les URLs publiques des supérettes (`/api/stores/by-qr/{token}`) sont fondées sur des slugs supposés uniques. Un doublon silencieux provoquerait un comportement indéterminé côté client et côté QR code.
+
+**Préconditions** :
+- La supérette est créée via `POST /api/admin/stores`.
+- Le slug est actuellement généré par le processor (slugify + suffixe incrémental si doublon détecté en lecture).
+
+**Problème actuel** : la génération du slug n'est pas atomique. Deux requêtes concurrentes peuvent lire la même table avant que l'une ait inséré, obtenir le même slug disponible, et toutes les deux tenter d'insérer — provoquant soit un doublon silencieux si la contrainte `UNIQUE` est absente, soit une erreur 500 non gérée si elle est présente.
+
+**Scénario nominal** :
+1. L'admin crée une supérette avec `name = "El Amal"`.
+2. Le processor génère `slug = "el-amal"`.
+3. Si le slug est déjà pris, un suffixe numérique est ajouté (`el-amal-2`).
+4. L'insertion en base respecte la contrainte `UNIQUE` sur `slug`.
+5. En cas de collision de race condition résiduelle, le processor intercepte l'exception Doctrine et retourne une erreur métier claire (HTTP 409) plutôt qu'une erreur 500.
+
+**Règles métier** :
+- La contrainte `UNIQUE` est en base (`doctrine:migrations:diff` → migration dédiée).
+- Le processor attrape `UniqueConstraintViolationException` et retourne `HTTP 409 Conflict` avec un message explicite.
+- Le slug généré n'est jamais exposé comme identifiant modifiable par l'admin — seul `name` est modifiable, le slug reste figé à la création.
+
+**Critères d'acceptation** :
+- [ ] Une migration ajoute `UNIQUE KEY` sur `shop.slug`.
+- [ ] Deux requêtes concurrentes avec le même nom ne produisent pas de doublon silencieux.
+- [ ] En cas de collision, l'API retourne `409 Conflict` avec un corps JSON exploitable.
+- [ ] `doctrine:schema:validate` passe après la migration.
+- [ ] Un test fonctionnel couvre la tentative de création avec un slug déjà existant.
+
+**Notes techniques** :
+- Migration : `ALTER TABLE shop ADD CONSTRAINT uq_shop_slug UNIQUE (slug)`.
+- Intercepter `Doctrine\DBAL\Exception\UniqueConstraintViolationException` dans le processor `AdminStoreCreateProcessor`.
+- Ne pas retenter la génération automatiquement en cas de collision concurrente : rejeter avec 409 et laisser l'admin re-soumettre.
+- Risque faible en production (admin seulement, faible concurrence), mais nécessaire avant toute charge réelle.
