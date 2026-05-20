@@ -67,10 +67,11 @@ Exclus du MVP :
 
 ## Avancement global
 
-- Backend MVP : 100 % (Sprint 5 complet — S5-011 livré).
+- Backend MVP : 100 % (Sprint 5 audité et clôturé — S5-012 livré).
 - Produit terrain testable : environ 95 %.
-- Sprint courant : Sprint 6 (personnalisation visuelle) — à démarrer.
-- Prochaine PR recommandée : démarrage Sprint 6 (ShopTheme/PlatformTheme customization).
+- Sprint 6 (personnalisation visuelle) : implémenté côté backend (`PlatformTheme`, `ShopTheme`, thème public par supérette).
+- Prochaine priorité recommandée : frontend MVP (Next.js) ou US-065 (contrainte UNIQUE slug).
+- 933 tests backend passants, PHPStan niveau 8 clean, CS Fixer clean.
 
 ## Limites connues
 

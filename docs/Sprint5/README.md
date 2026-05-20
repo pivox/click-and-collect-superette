@@ -8,7 +8,7 @@ C'est le sprint qui rend la plateforme opérable sans accès direct à la base d
 
 ## État actuel
 
-Sprint 5 terminé.
+Sprint 5 terminé et audité — voir [`completion-report.md`](./completion-report.md).
 
 Livré :
 
@@ -18,7 +18,14 @@ Livré :
 - S5-003 — mutations admin des supérettes (activation, désactivation), PR #108 ;
 - S5-004 — mutations admin des comptes marchands (création, mise à jour, suspension, activation), PR #106 ;
 - S5-005 — QR admin supérette (lecture contrat QR, régénération du token) ;
-- S5-010 — QR marchand supérette (lecture contrat QR, lecture seule, propriétaire uniquement).
+- S5-006 — CRUD admin des catégories produit, PR #112 ;
+- S5-006b — CRUD admin des marques, PR #115 ;
+- S5-007 — CRUD admin référentiel produit, PR #116 ;
+- S5-008 — validation admin propositions produit, PR #117 ;
+- S5-009 — logo et cover URL pour les supérettes, PR #118 ;
+- S5-010 — QR marchand supérette (lecture contrat QR, lecture seule, propriétaire uniquement), PR #119 ;
+- S5-011 — onboarding marchand guidé, PR #120 ;
+- S5-012 — audit et clôture Sprint 5 (documentaire).
 
 Endpoints S5-003 livrés (PR #107 + PR #108) :
 
@@ -90,9 +97,12 @@ Admin crée une supérette
 |---|---|---|---|
 | US-009 | Créer et gérer les supérettes (admin) | EPIC-009 | Livré — lecture (S5-002) + mutations (S5-003) |
 | US-028 | Gérer les comptes marchands | EPIC-009 | Livré — lecture (S5-001) + mutations (S5-004) |
-| US-029 | Superviser le référentiel produit global | EPIC-009 | À faire |
-| US-030 | Valider les propositions de nouveaux produits | EPIC-009 | À faire |
-| US-065 | Garantir l'unicité des slugs de supérette en base de données | EPIC-009 | À faire (S5-009) |
+| US-029 | Superviser le référentiel produit global | EPIC-009 | Livré — S5-006b (brands) + S5-007 (product-references) |
+| US-030 | Valider les propositions de nouveaux produits | EPIC-009 | Livré — S5-008 (approve/reject) |
+| US-050 | Photo et logo de la supérette | EPIC-009 | Livré — S5-009 (logoUrl, coverUrl) |
+| US-054 | Onboarding marchand guidé | EPIC-009 | Livré — S5-011 |
+| US-055 | QR code téléchargeable par le marchand | EPIC-009 | Livré — S5-010 |
+| US-065 | Garantir l'unicité des slugs de supérette en base de données | EPIC-009 | Reporté — contrainte UNIQUE absente en base (risque faible admin-only) |
 
 ## Modèle métier — compléments
 

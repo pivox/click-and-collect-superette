@@ -308,7 +308,7 @@ Limites : les notifications restent in-app uniquement, sans push/SMS/email/Mercu
 
 ---
 
-## Sprint 5 — Administration minimale 🟠 En cours
+## Sprint 5 — Administration minimale ✅ Backend terminé
 
 ### Objectif
 
@@ -524,6 +524,6 @@ La plateforme est opérable et supervisée en production par une équipe réduit
 | Sprint 3 | US-005, US-006, US-022, US-023, US-024, US-036, US-037, US-040, US-045, US-051 | P0 | ✅ Backend terminé |
 | Sprint 3b | US-043, US-047, US-049, US-052, US-053, US-056, US-057 | P1 | ✅ Backend terminé |
 | Sprint 4 | US-007, US-025, US-026, US-038, US-039, US-064 | P1 | ✅ Backend terminé |
-| Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | 🟠 En cours |
+| Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | ✅ Backend terminé |
 | Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
 | Sprint 7 | US-008, US-058, US-059, US-060, US-061, US-062, US-063 | P2 | 🟡 À implémenter |

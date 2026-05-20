@@ -1126,7 +1126,7 @@ PUT /api/admin/theme
 
 ### Marchands
 
-Statut : **S5-001 lecture livrée ; S5-004 mutations livrées**.
+Statut : **S5-001 lecture livrée ; S5-004 mutations livrées. Sprint 5 complet.**
 
 ```http
 GET   /api/admin/merchants?page=1&limit=20
@@ -1446,6 +1446,160 @@ Règles :
 - ne modifie ni catalogue, ni commande, ni propriétaire, ni slug, ni données d'identité de la supérette.
 
 Cas d'usage : QR code compromis, QR physique endommagé ou changement de supérette propriétaire.
+
+### Marques produit
+
+Statut : **S5-006b livré**.
+
+```http
+GET    /api/admin/brands?page=1&limit=20
+GET    /api/admin/brands/{brandId}
+POST   /api/admin/brands
+PATCH  /api/admin/brands/{brandId}
+DELETE /api/admin/brands/{brandId}
+```
+
+Payload `POST` :
+
+```json
+{
+  "nameFr": "Vitalait",
+  "nameAr": "فيتاليت"
+}
+```
+
+Payload `PATCH` (tous les champs optionnels) :
+
+```json
+{
+  "nameFr": "Vitalait",
+  "nameAr": "فيتاليت",
+  "isActive": false
+}
+```
+
+Réponse item :
+
+```json
+{
+  "id": "brand-uuid",
+  "name_fr": "Vitalait",
+  "name_ar": "فيتاليت",
+  "slug": "vitalait",
+  "is_active": true,
+  "created_at": "2026-05-18T10:00:00+00:00",
+  "updated_at": "2026-05-18T10:00:00+00:00"
+}
+```
+
+Règles :
+
+- réservé à `ROLE_ADMIN` ; JWT obligatoire ; anonyme → 401, marchand/client → 403 ;
+- `nameFr` obligatoire à la création ;
+- `slug` auto-généré depuis `nameFr`, unique ;
+- `DELETE` : suppression logique (`isActive = false`) si la marque est liée à des produits, suppression physique sinon ;
+- marque absente → 404.
+
+### Référentiel produit
+
+Statut : **S5-007 livré**.
+
+```http
+GET    /api/admin/product-references?page=1&limit=20&q=&categoryId=&brandId=&status=
+GET    /api/admin/product-references/{productReferenceId}
+POST   /api/admin/product-references
+PATCH  /api/admin/product-references/{productReferenceId}
+PATCH  /api/admin/product-references/{productReferenceId}/archive
+```
+
+Payload `POST` :
+
+```json
+{
+  "nameFr": "Lait demi-écrémé",
+  "nameAr": null,
+  "brandId": "brand-uuid",
+  "categoryId": "category-uuid",
+  "volume": "1",
+  "unit": "litre",
+  "barcode": null,
+  "country": "TN",
+  "aliases": [],
+  "status": "approved"
+}
+```
+
+Réponse item :
+
+```json
+{
+  "id": "product-ref-uuid",
+  "name_fr": "Lait demi-écrémé",
+  "name_ar": null,
+  "brand": { "id": "brand-uuid", "name_fr": "Vitalait" },
+  "category": { "id": "category-uuid", "name_fr": "Produits laitiers", "slug": "produits-laitiers" },
+  "volume": "1",
+  "unit": "litre",
+  "barcode": null,
+  "country": "TN",
+  "status": "approved",
+  "aliases": [],
+  "created_at": "2026-05-18T10:00:00+00:00",
+  "updated_at": "2026-05-18T10:00:00+00:00"
+}
+```
+
+Règles :
+
+- réservé à `ROLE_ADMIN` ;
+- `nameFr` obligatoire à la création ;
+- `status` accepte `draft`, `pending_review`, `approved`, `rejected` à la création/modification ; `archived` réservé à `PATCH /archive` ;
+- `PATCH /archive` est idempotent ;
+- filtres de collection : `q` (recherche textuelle nameFr/nameAr), `brandId` (UUID), `categoryId` (UUID), `status` (valeur enum) — filtre invalide → 400.
+
+### Propositions de produits
+
+Statut : **S5-008 livré**.
+
+```http
+GET   /api/admin/product-proposals?page=1&limit=20&status=pending
+GET   /api/admin/product-proposals/{proposalId}
+PATCH /api/admin/product-proposals/{proposalId}/approve
+PATCH /api/admin/product-proposals/{proposalId}/reject
+```
+
+Payload `PATCH /approve` :
+
+```json
+{
+  "canonicalData": {
+    "nameFr": "Lait demi-écrémé",
+    "nameAr": null,
+    "brandId": "brand-uuid",
+    "categoryId": "category-uuid",
+    "volume": "1",
+    "unit": "litre",
+    "barcode": null,
+    "country": "TN"
+  }
+}
+```
+
+Payload `PATCH /reject` :
+
+```json
+{
+  "reason": "Produit déjà existant dans le référentiel"
+}
+```
+
+Règles :
+
+- réservé à `ROLE_ADMIN` ;
+- `approve` crée un `ProductReference` depuis les données canoniques fournies ; statut → `approved` ;
+- `reject` passe le statut → `rejected`, `reason` obligatoire non vide ;
+- toute action sur une proposition déjà traitée → `409 Conflict` ;
+- `created_product_reference_id` absent de la réponse JSON si null (propriété nullable non sérialisée).
 
 ### Catégories produit
 
