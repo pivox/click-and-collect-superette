@@ -14,6 +14,7 @@ use App\Enum\OrderStatus;
 use App\Repository\AdminStoreRepository;
 use App\Repository\OrderRepository;
 use App\Service\OrderStatusLogRecorder;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -41,29 +42,44 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
     {
         $storeId = (string) ($uriVariables['storeId'] ?? '');
         $shop = $this->resolveShop($storeId);
+        $reason = $data->reason;
 
-        if (null !== $shop->getArchivedAt()) {
-            throw new ConflictHttpException('ADMIN_STORE_ALREADY_ARCHIVED');
-        }
+        $this->entityManager->wrapInTransaction(function () use ($shop, $reason): void {
+            $conn = $this->entityManager->getConnection();
 
-        $reason = $data instanceof AdminArchiveStoreInput ? $data->reason : null;
-
-        $shop->archive($reason);
-
-        $activeOrders = $this->orderRepository->findActiveByShop($shop);
-        foreach ($activeOrders as $order) {
-            $order->forceCancel();
-            $slot = $order->getPickupSlot();
-            if (null !== $slot) {
-                $this->entityManager->getConnection()->executeStatement(
-                    'UPDATE pickup_slots SET booked_count = CASE WHEN booked_count > 0 THEN booked_count - 1 ELSE 0 END WHERE id = :id',
-                    ['id' => $slot->getId()->toBinary()],
+            // Serialize concurrent archive requests. FOR UPDATE is PostgreSQL-only;
+            // SQLite uses implicit table-level locking and does not support the syntax.
+            if (!$conn->getDatabasePlatform() instanceof SQLitePlatform) {
+                $conn->executeQuery(
+                    'SELECT id FROM shops WHERE id = :id FOR UPDATE',
+                    ['id' => $shop->getId()->toRfc4122()],
                 );
+                $this->entityManager->refresh($shop);
             }
-            $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled, 'ADMIN_STORE_ARCHIVED');
-        }
 
-        $this->adminStoreRepository->save($shop);
+            if (null !== $shop->getArchivedAt()) {
+                throw new ConflictHttpException('ADMIN_STORE_ALREADY_ARCHIVED');
+            }
+
+            $shop->archive($reason);
+
+            foreach ($this->orderRepository->findActiveByShop($shop) as $order) {
+                $order->forceCancel();
+                $slot = $order->getPickupSlot();
+                if (null !== $slot) {
+                    // Pass the Uuid object with explicit 'uuid' type so DBAL converts it
+                    // to RFC 4122 on PostgreSQL and to binary on SQLite.
+                    $conn->executeStatement(
+                        'UPDATE pickup_slots SET booked_count = CASE WHEN booked_count > 0 THEN booked_count - 1 ELSE 0 END WHERE id = :id',
+                        ['id' => $slot->getId()],
+                        ['id' => 'uuid'],
+                    );
+                }
+                $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled, 'ADMIN_STORE_ARCHIVED');
+            }
+
+            $this->adminStoreRepository->save($shop);
+        });
 
         return $this->adminStoreOutputFactory->create(
             shop: $shop,

@@ -9,6 +9,7 @@ use App\Entity\Category;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
+use App\Entity\OrderStatusLog;
 use App\Entity\PickupSlot;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
@@ -317,6 +318,43 @@ final class StoreArchiveAdminApiTest extends FunctionalApiTestCase
         $fetched = $this->entityManager->find(Order::class, $completedOrder->getId());
         self::assertNotNull($fetched);
         self::assertSame(OrderStatus::Completed, $fetched->getStatus());
+    }
+
+    public function testArchiveCancelledOrderHasStatusLogEntry(): void
+    {
+        $admin = $this->createUser('admin-archive-log@example.test', ['ROLE_ADMIN']);
+        $customer = $this->createUser('customer-archive-log@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $order = $this->createOrder($customer, $shop, OrderStatus::Submitted);
+
+        $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/stores/%s/archive', $shop->getId()),
+            [],
+            $admin,
+        );
+
+        $this->entityManager->refresh($order);
+        $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findBy(['order' => $order], ['createdAt' => 'ASC']);
+        self::assertNotEmpty($logs);
+        $lastLog = end($logs);
+        self::assertSame(OrderStatus::Cancelled, $lastLog->getStatus());
+        self::assertSame('ADMIN_STORE_ARCHIVED', $lastLog->getNote());
+    }
+
+    public function testArchiveWithEmptyReasonReturns422(): void
+    {
+        $admin = $this->createUser('admin-archive-empty-reason@example.test', ['ROLE_ADMIN']);
+        $shop = $this->createShop();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/stores/%s/archive', $shop->getId()),
+            ['reason' => ''],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
     }
 
     public function testArchiveAlreadyArchivedStoreReturns409(): void

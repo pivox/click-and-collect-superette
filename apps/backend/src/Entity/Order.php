@@ -306,9 +306,10 @@ class Order
     }
 
     /**
-     * Force-cancels any in-flight order regardless of current status.
-     * Only use when the cancellation is triggered by an external, irreversible event
-     * (e.g., permanent store closure). Does not fire domain guards on purpose.
+     * Cancels any in-flight order. Unlike cancel(), covers all active statuses
+     * (including preparing, ready, pickup_pending). Use only for irreversible
+     * external events (e.g., permanent store closure). Guards are intentionally
+     * wider than cancel() but still reject terminal statuses.
      */
     public function forceCancel(): void
     {
