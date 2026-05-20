@@ -62,6 +62,12 @@ class Shop
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $openingHours = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $archivedAt = null;
+
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $archiveReason = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -248,6 +254,25 @@ class Shop
     public function setCoverUrl(?string $coverUrl): static
     {
         $this->coverUrl = $coverUrl;
+
+        return $this;
+    }
+
+    public function getArchivedAt(): ?\DateTimeImmutable
+    {
+        return $this->archivedAt;
+    }
+
+    public function getArchiveReason(): ?string
+    {
+        return $this->archiveReason;
+    }
+
+    public function archive(?string $reason): static
+    {
+        $this->archivedAt = new \DateTimeImmutable();
+        $this->archiveReason = $reason;
+        $this->active = false;
 
         return $this;
     }
