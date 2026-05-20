@@ -311,3 +311,38 @@ self::assertArrayNotHasKey('created_product_reference_id', $payload); // avant a
 // Incorrect — échoue si la valeur est null
 self::assertArrayHasKey('created_product_reference_id', $payload);
 ```
+
+## 19. `ConflictHttpException` pour les conflits métier → HTTP 409
+
+Quand une action est refusée parce que la ressource est dans un état incompatible
+(ex. proposition déjà traitée, commande déjà annulée), lancer `ConflictHttpException`.
+
+```php
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+
+if (ProductReferenceProposalStatus::Pending !== $proposal->getStatus()) {
+    throw new ConflictHttpException('ADMIN_PRODUCT_PROPOSAL_ALREADY_PROCESSED');
+}
+```
+
+## 20. DTO imbriqué — `#[Assert\Valid]` obligatoire pour valider le sous-objet
+
+Sans `#[Assert\Valid]`, les contraintes du DTO enfant sont ignorées silencieusement.
+
+```php
+// Correct — les contraintes de AdminApproveCanonicalData sont vérifiées
+#[Assert\Valid]
+public ?AdminApproveCanonicalData $canonicalData = null;
+
+// Incorrect — validation du sous-objet ignorée même si les champs sont invalides
+public ?AdminApproveCanonicalData $canonicalData = null;
+```
+
+Placer la classe imbriquée dans le même fichier est acceptable quand elle n'est
+utilisée que par ce DTO parent.
+
+## 21. Supprimer le test quand l'endpoint est retiré
+
+Un test qui cible un endpoint supprimé retourne 404 et fait échouer la suite
+sans message d'erreur explicite sur la cause réelle. Toujours supprimer
+(ou migrer) le test en même temps que l'endpoint.
