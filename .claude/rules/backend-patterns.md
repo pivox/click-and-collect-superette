@@ -152,19 +152,23 @@ vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/phpstan analyse
 ```
 
-## 8. CS Fixer — pas de backslash sur les fonctions natives, espace avant `fn`
+## 8. Backslash obligatoire sur les fonctions natives (`@Symfony:risky`)
 
-Deux règles CS Fixer silencieuses :
+La config `.php-cs-fixer.dist.php` active `@Symfony:risky` qui inclut `native_function_invocation` :
+**CS Fixer impose `\sprintf`, `\array_map`, `\count`** (préfixe namespace global). Sans `\`, le `--dry-run` CI échoue.
 
-- Préfixe global interdit : `\array_map`, `\count`, `\sprintf` → écrire sans `\`.
+Deux règles :
+
+- Préfixe `\` obligatoire sur les fonctions natives : `\sprintf`, `\array_map`, `\count`, etc.
 - Espace obligatoire avant `(` dans les closures fléchées : `fn(` → `fn (`.
 
 ```php
 // Correct
-array_map(static fn (OrderStatus $s) => $s->value, $statuses)
+\array_map(static fn (OrderStatus $s) => $s->value, $statuses)
+\sprintf('/api/stores/by-qr/%s', $token)
 
-// Incorrect — CS Fixer rejette les deux formes
-\array_map(static fn(OrderStatus $s) => $s->value, $statuses)
+// Incorrect — CS Fixer ajoute \  |  fn( manque l'espace
+array_map(static fn(OrderStatus $s) => $s->value, $statuses)
 ```
 
 ## 9. `final readonly class` ne peut pas être mockée par PHPUnit

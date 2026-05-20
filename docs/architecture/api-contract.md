@@ -483,6 +483,41 @@ GET /api/me/orders/{orderId}/status-history
 
 ---
 
+## QR code — comparaison admin vs marchand
+
+Deux endpoints exposent le même contrat QR, avec des rôles et des permissions différents.
+
+| Dimension         | Admin (`/api/admin/…`)                       | Marchand (`/api/merchant/…`)                      |
+|-------------------|----------------------------------------------|---------------------------------------------------|
+| Route GET         | `/api/admin/stores/{storeId}/qr-code`        | `/api/merchant/stores/{storeId}/qr-code`          |
+| Rôle requis       | `ROLE_ADMIN`                                 | `ROLE_MERCHANT`                                   |
+| Restriction shop  | Aucune — accès à tout store                  | Propriétaire strict (`MerchantShopAccessChecker`) |
+| Régénération      | `POST /api/admin/stores/{storeId}/regenerate-qr` | Non disponible — lecture seule                |
+| Payload           | Identique (voir ci-dessous)                  | Identique                                         |
+
+Contrat de réponse commun :
+
+```json
+{
+  "store_id": "store-uuid",
+  "store_name": "Supérette El Amal",
+  "slug": "superette-el-amal",
+  "qr_code_token": "qr-token-opaque",
+  "target_url": "/api/stores/by-qr/qr-token-opaque"
+}
+```
+
+Règles S5-010 (QR marchand) :
+
+- réservé à `ROLE_MERCHANT` ;
+- JWT obligatoire — anonyme : `401`, autre rôle : `403` ;
+- seul le marchand propriétaire de la supérette peut accéder au contrat QR ;
+- tout autre marchand reçoit `403` ;
+- lecture seule — aucune régénération de token ;
+- supérette absente : `404`.
+
+---
+
 ## Référentiel produit et catalogue marchand
 
 ### Rechercher dans le référentiel global, dans le contexte d'une supérette marchand
