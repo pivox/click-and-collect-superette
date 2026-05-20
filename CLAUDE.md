@@ -51,6 +51,7 @@ vendor/bin/phpunit --filter testMethodName    # cibler une méthode de test
 vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/php-cs-fixer fix --dry-run --diff  # vérifier
 vendor/bin/php-cs-fixer fix                   # corriger
+grep -rn '\\sprintf\|\\array_map\|\\count(' apps/backend/src apps/backend/tests --include="*.php"  # \prefix non détecté par CS Fixer (§8)
 php bin/console debug:router | grep "mon-pattern"   # vérifier les routes après ajout
 vendor/bin/phpunit tests/Functional/Api/MonTest.php --testdox  # test ciblé
 symfony console doctrine:migrations:diff                         # générer une migration

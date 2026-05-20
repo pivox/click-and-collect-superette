@@ -4,7 +4,7 @@
 
 ### Test environment
 
-- Database: SQLite in-memory (`DATABASE_URL=sqlite:///:memory:`).
+- Database: SQLite fichier par classe de test dans `sys_get_temp_dir()` — schéma recréé via `rebuildSchema()` dans `setUp()`.
 - Auth: `HTTP_X_TEST_USER` header bypasses JWT — set to user email in test fixtures.
 - Schema: `rebuildSchema()` called before each test class to ensure clean state.
 

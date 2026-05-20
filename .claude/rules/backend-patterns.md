@@ -152,18 +152,25 @@ vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/phpstan analyse
 ```
 
-## 8. CS Fixer — pas de backslash sur les fonctions natives, espace avant `fn`
+## 8. Backslash sur les fonctions natives — NON détecté par CS Fixer
 
-Deux règles CS Fixer silencieuses :
+`native_function_invocation` n'est pas activée dans `.php-cs-fixer.dist.php` :
+**`\sprintf`, `\array_map`, `\count` passent `--dry-run` sans erreur.** Grep obligatoire avant PR :
+
+```bash
+grep -rn '\\sprintf\|\\array_map\|\\count(' apps/backend/src apps/backend/tests --include="*.php"
+```
+
+Deux règles à respecter manuellement :
 
 - Préfixe global interdit : `\array_map`, `\count`, `\sprintf` → écrire sans `\`.
-- Espace obligatoire avant `(` dans les closures fléchées : `fn(` → `fn (`.
+- Espace obligatoire avant `(` dans les closures fléchées : `fn(` → `fn (` *(celui-là, CS Fixer le corrige)*.
 
 ```php
 // Correct
 array_map(static fn (OrderStatus $s) => $s->value, $statuses)
 
-// Incorrect — CS Fixer rejette les deux formes
+// Incorrect — \sprintf passe CS Fixer ; fn( est corrigé par CS Fixer
 \array_map(static fn(OrderStatus $s) => $s->value, $statuses)
 ```
 
