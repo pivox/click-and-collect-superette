@@ -52,6 +52,8 @@ final readonly class AdminProductProposalCollectionProvider implements ProviderI
 
         $proposals = $this->proposalRepository->findBy($criteria, ['createdAt' => 'DESC'], $limit, $offset);
 
+        // TODO: retourner un objet ListOutput avec total/page/limit (cf. AdminProductReferenceCollectionProvider)
+
         return array_map(
             static fn ($p) => AdminProductProposalItemProvider::toOutput($p),
             $proposals,
