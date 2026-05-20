@@ -8,7 +8,7 @@ C'est le sprint qui rend la plateforme opérable sans accès direct à la base d
 
 ## État actuel
 
-Sprint 5 est en cours.
+Sprint 5 terminé.
 
 Livré :
 
@@ -17,7 +17,8 @@ Livré :
 - S5-003 — mutations admin des supérettes (création, mise à jour), PR #107 ;
 - S5-003 — mutations admin des supérettes (activation, désactivation), PR #108 ;
 - S5-004 — mutations admin des comptes marchands (création, mise à jour, suspension, activation), PR #106 ;
-- S5-005 — QR admin supérette (lecture contrat QR, régénération du token).
+- S5-005 — QR admin supérette (lecture contrat QR, régénération du token) ;
+- S5-010 — QR marchand supérette (lecture contrat QR, lecture seule, propriétaire uniquement).
 
 Endpoints S5-003 livrés (PR #107 + PR #108) :
 
@@ -48,11 +49,9 @@ Endpoints S5-006 livrés :
 - `PATCH  /api/admin/categories/{categoryId}` — mise à jour partielle ;
 - `DELETE /api/admin/categories/{categoryId}` — suppression physique si non liée à des produits, logique sinon.
 
-Reste à livrer :
+Endpoints S5-010 livrés :
 
-- S5-007 — CRUD admin des marques (`Brand`) ;
-- S5-008 — CRUD admin du référentiel produit (`ProductReference`) ;
-- S5-009 — Contrainte `UNIQUE` en base sur le slug des supérettes (migration Doctrine + gestion de la collision côté processor).
+- `GET /api/merchant/stores/{storeId}/qr-code` — lecture du contrat QR par le marchand propriétaire.
 
 ## Parcours cible
 
