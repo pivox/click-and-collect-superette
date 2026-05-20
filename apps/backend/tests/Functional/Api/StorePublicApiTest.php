@@ -147,4 +147,45 @@ final class StorePublicApiTest extends FunctionalApiTestCase
         self::assertSame($qrPayload['country'], $idPayload['country']);
         self::assertSame($qrPayload['is_active'], $idPayload['is_active']);
     }
+
+    public function testPublicEndpointsExposeLogoUrlAndCoverUrl(): void
+    {
+        $shop = $this->createShop();
+        $shop->setLogoUrl('https://cdn.example.com/logo.png');
+        $shop->setCoverUrl('https://cdn.example.com/cover.jpg');
+        $this->entityManager->flush();
+
+        $qrResponse = $this->requestJson('GET', \sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()));
+        $idResponse = $this->requestJson('GET', \sprintf('/api/stores/%s', $shop->getId()));
+
+        self::assertSame(200, $qrResponse->getStatusCode());
+        self::assertSame(200, $idResponse->getStatusCode());
+
+        $qrPayload = $this->decodeJson($qrResponse);
+        self::assertSame('https://cdn.example.com/logo.png', $qrPayload['logo_url']);
+        self::assertSame('https://cdn.example.com/cover.jpg', $qrPayload['cover_url']);
+
+        $idPayload = $this->decodeJson($idResponse);
+        self::assertSame('https://cdn.example.com/logo.png', $idPayload['logo_url']);
+        self::assertSame('https://cdn.example.com/cover.jpg', $idPayload['cover_url']);
+    }
+
+    public function testPublicEndpointsOmitLogoUrlAndCoverUrlWhenNull(): void
+    {
+        $shop = $this->createShop();
+
+        $qrResponse = $this->requestJson('GET', \sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()));
+        $idResponse = $this->requestJson('GET', \sprintf('/api/stores/%s', $shop->getId()));
+
+        self::assertSame(200, $qrResponse->getStatusCode());
+        self::assertSame(200, $idResponse->getStatusCode());
+
+        $qrPayload = $this->decodeJson($qrResponse);
+        self::assertArrayNotHasKey('logo_url', $qrPayload);
+        self::assertArrayNotHasKey('cover_url', $qrPayload);
+
+        $idPayload = $this->decodeJson($idResponse);
+        self::assertArrayNotHasKey('logo_url', $idPayload);
+        self::assertArrayNotHasKey('cover_url', $idPayload);
+    }
 }

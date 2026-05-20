@@ -45,6 +45,12 @@ final readonly class StoreByQrOutput
         #[Groups(['store_by_qr:read'])]
         #[SerializedName('catalog_url')]
         public string $catalogUrl,
+        #[Groups(['store_by_qr:read'])]
+        #[SerializedName('logo_url')]
+        public ?string $logoUrl,
+        #[Groups(['store_by_qr:read'])]
+        #[SerializedName('cover_url')]
+        public ?string $coverUrl,
         #[ApiProperty(identifier: true)]
         public ?string $qrCodeToken = null,
     ) {

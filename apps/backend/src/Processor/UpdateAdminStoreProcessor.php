@@ -73,6 +73,12 @@ final readonly class UpdateAdminStoreProcessor implements ProcessorInterface
         if (\array_key_exists('ownerId', $payload)) {
             $shop->setOwner($this->resolveMerchantOwner($data->ownerId));
         }
+        if (\array_key_exists('logoUrl', $payload)) {
+            $shop->setLogoUrl($this->normalizeNullableString($data->logoUrl));
+        }
+        if (\array_key_exists('coverUrl', $payload)) {
+            $shop->setCoverUrl($this->normalizeNullableString($data->coverUrl));
+        }
 
         $this->adminStoreRepository->save($shop);
 

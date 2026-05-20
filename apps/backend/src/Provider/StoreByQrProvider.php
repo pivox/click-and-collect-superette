@@ -47,6 +47,8 @@ final readonly class StoreByQrProvider implements ProviderInterface
             isActive: $shop->isActive(),
             themeUrl: \sprintf('/api/stores/%s/theme', $storeId),
             catalogUrl: \sprintf('/api/stores/%s/catalog', $storeId),
+            logoUrl: $shop->getLogoUrl(),
+            coverUrl: $shop->getCoverUrl(),
             qrCodeToken: $token,
         );
     }
