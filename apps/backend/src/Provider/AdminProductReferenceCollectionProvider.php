@@ -7,9 +7,11 @@ namespace App\Provider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\AdminProductReferenceListOutput;
+use App\Enum\ProductReferenceStatus;
 use App\Repository\AdminProductReferenceRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @implements ProviderInterface<AdminProductReferenceListOutput>
@@ -42,6 +44,16 @@ final readonly class AdminProductReferenceCollectionProvider implements Provider
         $categoryId = $request?->query->getString('category') ?: null;
         $brandId = $request?->query->getString('brand') ?: null;
         $status = $request?->query->getString('status') ?: null;
+
+        if (null !== $brandId && !Uuid::isValid($brandId)) {
+            throw new BadRequestHttpException('ADMIN_PRODUCT_REFERENCE_INVALID_BRAND_FILTER');
+        }
+        if (null !== $categoryId && !Uuid::isValid($categoryId)) {
+            throw new BadRequestHttpException('ADMIN_PRODUCT_REFERENCE_INVALID_CATEGORY_FILTER');
+        }
+        if (null !== $status && null === ProductReferenceStatus::tryFrom($status)) {
+            throw new BadRequestHttpException('ADMIN_PRODUCT_REFERENCE_INVALID_STATUS_FILTER');
+        }
 
         $productReferences = $this->adminProductReferenceRepository->findPaginated($limit, $offset, $q, $categoryId, $brandId, $status);
         $items = array_map(

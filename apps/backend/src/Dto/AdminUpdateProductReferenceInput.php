@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
-use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -43,6 +42,6 @@ final class AdminUpdateProductReferenceInput
     #[Assert\Length(max: 2)]
     public ?string $country = null;
 
-    #[Assert\Choice(callback: [ProductReferenceStatus::class, 'values'])]
+    #[Assert\Choice(choices: ['draft', 'pending_review', 'approved', 'rejected'])]
     public ?string $status = null;
 }

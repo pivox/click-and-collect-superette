@@ -423,6 +423,152 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         self::assertSame(404, $response->getStatusCode());
     }
 
+    public function testArchiveIsIdempotent(): void
+    {
+        $admin = $this->createUser('admin-pr-archive-idempotent@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Idemp', 'marque-idemp');
+        $category = $this->createCategory('Catégorie Idemp', 'categorie-idemp');
+        $ref = $this->createProductReference($brand, $category, 'Produit déjà archivé', status: ProductReferenceStatus::Archived);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/archive', $ref->getId()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('archived', $this->decodeJson($response)['status']);
+    }
+
+    public function testPatchUpdatesBrand(): void
+    {
+        $admin = $this->createUser('admin-pr-patch-brand@example.test', ['ROLE_ADMIN']);
+        $brand1 = $this->createBrand('Marque Init', 'marque-init');
+        $brand2 = $this->createBrand('Marque Nouvelle', 'marque-nouvelle');
+        $category = $this->createCategory('Catégorie Brand Up', 'categorie-brand-up');
+        $ref = $this->createProductReference($brand1, $category, 'Produit Brand');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s', $ref->getId()),
+            ['brandId' => $brand2->getId()->toRfc4122()],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame($brand2->getId()->toRfc4122(), $this->decodeJson($response)['brand_id']);
+    }
+
+    public function testPatchWithUnknownBrandIdReturns422(): void
+    {
+        $admin = $this->createUser('admin-pr-patch-bad-brand@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Bad Brand', 'marque-bad-brand');
+        $category = $this->createCategory('Catégorie Bad Brand Up', 'categorie-bad-brand-up');
+        $ref = $this->createProductReference($brand, $category, 'Produit Bad Brand');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s', $ref->getId()),
+            ['brandId' => '00000000-0000-0000-0000-000000000001'],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testPatchUpdatesCategory(): void
+    {
+        $admin = $this->createUser('admin-pr-patch-cat@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Cat Up', 'marque-cat-up');
+        $cat1 = $this->createCategory('Catégorie Init', 'categorie-init');
+        $cat2 = $this->createCategory('Catégorie Nouvelle', 'categorie-nouvelle');
+        $ref = $this->createProductReference($brand, $cat1, 'Produit Cat');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s', $ref->getId()),
+            ['categoryId' => $cat2->getId()->toRfc4122()],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame($cat2->getId()->toRfc4122(), $this->decodeJson($response)['category_id']);
+    }
+
+    public function testPatchWithUnknownCategoryIdReturns422(): void
+    {
+        $admin = $this->createUser('admin-pr-patch-bad-cat@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Bad Cat Up', 'marque-bad-cat-up');
+        $category = $this->createCategory('Catégorie Bad Cat Up', 'categorie-bad-cat-up');
+        $ref = $this->createProductReference($brand, $category, 'Produit Bad Cat');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s', $ref->getId()),
+            ['categoryId' => '00000000-0000-0000-0000-000000000001'],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testListFilterByInvalidBrandUuidReturns400(): void
+    {
+        $admin = $this->createUser('admin-pr-filter-bad-brand@example.test', ['ROLE_ADMIN']);
+
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/product-references?brand=not-a-uuid', user: $admin)->getStatusCode());
+    }
+
+    public function testListFilterByInvalidCategoryUuidReturns400(): void
+    {
+        $admin = $this->createUser('admin-pr-filter-bad-cat@example.test', ['ROLE_ADMIN']);
+
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/product-references?category=not-a-uuid', user: $admin)->getStatusCode());
+    }
+
+    public function testListFilterByInvalidStatusReturns400(): void
+    {
+        $admin = $this->createUser('admin-pr-filter-bad-status@example.test', ['ROLE_ADMIN']);
+
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/product-references?status=invalid_value', user: $admin)->getStatusCode());
+    }
+
+    public function testPatchCountryNullDefaultsToTN(): void
+    {
+        $admin = $this->createUser('admin-pr-patch-country-null@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Country Null', 'marque-country-null');
+        $category = $this->createCategory('Catégorie Country Null', 'categorie-country-null');
+        $ref = $this->createProductReference($brand, $category, 'Produit Country');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s', $ref->getId()),
+            ['country' => null],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('TN', $this->decodeJson($response)['country']);
+    }
+
+    public function testPatchStatusArchivedReturns422(): void
+    {
+        $admin = $this->createUser('admin-pr-patch-status-archived@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Archived Status', 'marque-archived-status');
+        $category = $this->createCategory('Catégorie Archived Status', 'categorie-archived-status');
+        $ref = $this->createProductReference($brand, $category, 'Produit Status Archived');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s', $ref->getId()),
+            ['status' => 'archived'],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     // ── ACCESS CONTROL ────────────────────────────────────────────────────────
 
     public function testAnonymousIsRejected(): void

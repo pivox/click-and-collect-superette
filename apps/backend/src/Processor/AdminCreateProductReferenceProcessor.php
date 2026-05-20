@@ -49,17 +49,14 @@ final readonly class AdminCreateProductReferenceProcessor implements ProcessorIn
             throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_CATEGORY_NOT_FOUND');
         }
 
-        $unit = ProductUnit::tryFrom((string) $data->unit);
-        if (null === $unit) {
-            throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_INVALID_UNIT');
-        }
+        $unit = ProductUnit::from((string) $data->unit);
 
         $barcode = null !== $data->barcode && '' !== trim($data->barcode) ? trim($data->barcode) : null;
         if (null !== $barcode && null !== $this->adminProductReferenceRepository->findOneByBarcode($barcode)) {
             throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BARCODE_DUPLICATE');
         }
 
-        $status = null !== $data->status ? (ProductReferenceStatus::tryFrom($data->status) ?? ProductReferenceStatus::Draft) : ProductReferenceStatus::Draft;
+        $status = null !== $data->status ? ProductReferenceStatus::from($data->status) : ProductReferenceStatus::Draft;
 
         $productReference = (new ProductReference())
             ->setNameFr(trim((string) $data->nameFr))

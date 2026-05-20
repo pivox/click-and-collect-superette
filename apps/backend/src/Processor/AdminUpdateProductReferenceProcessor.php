@@ -106,11 +106,7 @@ final readonly class AdminUpdateProductReferenceProcessor implements ProcessorIn
             if (null === $data->unit) {
                 throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_UNIT_REQUIRED');
             }
-            $unit = ProductUnit::tryFrom($data->unit);
-            if (null === $unit) {
-                throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_INVALID_UNIT');
-            }
-            $productReference->setUnit($unit);
+            $productReference->setUnit(ProductUnit::from($data->unit));
         }
 
         if (\array_key_exists('volume', $payload)) {
@@ -138,10 +134,7 @@ final readonly class AdminUpdateProductReferenceProcessor implements ProcessorIn
         }
 
         if (\array_key_exists('status', $payload) && null !== $data->status) {
-            $status = ProductReferenceStatus::tryFrom($data->status);
-            if (null !== $status) {
-                $productReference->setStatus($status);
-            }
+            $productReference->setStatus(ProductReferenceStatus::from($data->status));
         }
 
         $this->adminProductReferenceRepository->save($productReference);
