@@ -310,6 +310,70 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertSame('superette-el-bahja-2', $this->decodeJson($response)['slug']);
     }
 
+    public function testAdminSetsLogoUrlAndCoverUrlViaPatch(): void
+    {
+        $admin = $this->createUser('admin-store-logo@example.test', ['ROLE_ADMIN']);
+        $shop = $this->createStore(null, 'Store Logo', 'store-logo', 'Tunis', new \DateTimeImmutable());
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), [
+            'logoUrl' => 'https://cdn.example.com/logo.png',
+            'coverUrl' => 'https://cdn.example.com/cover.jpg',
+        ], user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('https://cdn.example.com/logo.png', $payload['logo_url']);
+        self::assertSame('https://cdn.example.com/cover.jpg', $payload['cover_url']);
+
+        $this->entityManager->refresh($shop);
+        self::assertSame('https://cdn.example.com/logo.png', $shop->getLogoUrl());
+        self::assertSame('https://cdn.example.com/cover.jpg', $shop->getCoverUrl());
+    }
+
+    public function testAdminClearsLogoUrlAndCoverUrlWithNull(): void
+    {
+        $admin = $this->createUser('admin-store-logo-clear@example.test', ['ROLE_ADMIN']);
+        $shop = $this->createStore(null, 'Store Logo Clear', 'store-logo-clear', 'Tunis', new \DateTimeImmutable(), logoUrl: 'https://cdn.example.com/old.png', coverUrl: 'https://cdn.example.com/old-cover.jpg');
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), [
+            'logoUrl' => null,
+            'coverUrl' => null,
+        ], user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertArrayNotHasKey('logo_url', $payload);
+        self::assertArrayNotHasKey('cover_url', $payload);
+
+        $this->entityManager->refresh($shop);
+        self::assertNull($shop->getLogoUrl());
+        self::assertNull($shop->getCoverUrl());
+    }
+
+    public function testInvalidUrlReturnsUnprocessableEntity(): void
+    {
+        $admin = $this->createUser('admin-store-logo-invalid@example.test', ['ROLE_ADMIN']);
+        $shop = $this->createStore(null, 'Store Logo Invalid', 'store-logo-invalid', 'Tunis', new \DateTimeImmutable());
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), [
+            'logoUrl' => 'not-a-valid-url',
+        ], user: $admin);
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testUrlTooLongReturnsUnprocessableEntity(): void
+    {
+        $admin = $this->createUser('admin-store-logo-toolong@example.test', ['ROLE_ADMIN']);
+        $shop = $this->createStore(null, 'Store Logo Toolong', 'store-logo-toolong', 'Tunis', new \DateTimeImmutable());
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), [
+            'logoUrl' => 'https://cdn.example.com/'.str_repeat('a', 2048).'.png',
+        ], user: $admin);
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     public function testAdminUpdatesStoreAndDoesNotRegenerateSlugOrQrCodeToken(): void
     {
         $admin = $this->createUser('admin-store-update@example.test', ['ROLE_ADMIN']);
@@ -577,6 +641,8 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         ?string $address = null,
         ?string $phone = null,
         bool $active = true,
+        ?string $logoUrl = null,
+        ?string $coverUrl = null,
     ): Shop {
         $shop = $this->createShop($owner);
         $shop
@@ -586,7 +652,9 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
             ->setAddress($address)
             ->setPhone($phone)
             ->setActive($active)
-            ->setOpeningHours($openingHours);
+            ->setOpeningHours($openingHours)
+            ->setLogoUrl($logoUrl)
+            ->setCoverUrl($coverUrl);
         $this->setPrivateProperty($shop, 'createdAt', $createdAt);
         $this->setPrivateProperty($shop, 'updatedAt', $createdAt);
         $this->entityManager->flush();
