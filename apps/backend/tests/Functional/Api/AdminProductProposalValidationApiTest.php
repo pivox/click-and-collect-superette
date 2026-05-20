@@ -91,7 +91,7 @@ final class AdminProductProposalValidationApiTest extends FunctionalApiTestCase
         self::assertSame($proposal->getId()->toRfc4122(), $payload['id']);
         self::assertSame('Produit détail', $payload['name_fr']);
         self::assertSame('pending', $payload['status']);
-        self::assertArrayNotHasKey('created_product_reference_id', $payload);
+        self::assertArrayNotHasKey('created_product_reference_id', $payload); // null properties absent from JSON (backend-patterns §18)
     }
 
     public function testMissingProposalDetailReturns404(): void

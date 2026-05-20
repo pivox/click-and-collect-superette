@@ -13,7 +13,6 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\QueryParameter;
 use App\Dto\AdminApproveProductProposalInput;
 use App\Dto\AdminRejectProductProposalInput;
-use App\Entity\ProductReferenceProposal;
 use App\Processor\AdminApproveProductProposalProcessor;
 use App\Processor\AdminRejectProductProposalProcessor;
 use App\Provider\AdminProductProposalCollectionProvider;
@@ -48,7 +47,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         new Patch(
             uriTemplate: '/admin/product-proposals/{proposalId}/approve',
             uriVariables: [
-                'proposalId' => new Link(fromClass: ProductReferenceProposal::class, identifiers: ['id']),
+                'proposalId' => new Link(fromClass: AdminProductProposalOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             input: AdminApproveProductProposalInput::class,
@@ -61,7 +60,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         new Patch(
             uriTemplate: '/admin/product-proposals/{proposalId}/reject',
             uriVariables: [
-                'proposalId' => new Link(fromClass: ProductReferenceProposal::class, identifiers: ['id']),
+                'proposalId' => new Link(fromClass: AdminProductProposalOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
             input: AdminRejectProductProposalInput::class,

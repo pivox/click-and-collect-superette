@@ -124,6 +124,8 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
             ->setCategory($category)
             ->setNameFr($canonical->nameFr)
             ->setNameAr($canonical->nameAr)
+            ->setVariantFr($canonical->variantFr)
+            ->setVariantAr($canonical->variantAr)
             ->setUnit($unit)
             ->setBarcode($canonical->barcode)
             ->setVolume($canonical->volume)
