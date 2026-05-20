@@ -1,5 +1,19 @@
 # GitHub PR Workflow
 
+## Branchement des PRs
+
+Toujours créer les branches de feature depuis `main` (ou la branche cible), jamais depuis
+une autre feature branch. Brancher sur une feature branch inclut ses commits dans le diff,
+rendant la review confuse et le merge risqué.
+
+```bash
+# Correct
+git checkout main && git pull && git checkout -b feat/s5-007-ma-feature
+
+# Incorrect — le diff de la PR inclut tous les commits de la feature source
+git checkout feat/s5-006-autre && git checkout -b feat/s5-007-ma-feature
+```
+
 ## Répondre à une review soumise
 
 `PATCH /repos/{owner}/{repo}/pulls/{id}/reviews/{reviewId}/events` retourne **422**

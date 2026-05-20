@@ -49,6 +49,8 @@ vendor/bin/phpunit
 vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/php-cs-fixer fix --dry-run --diff  # vérifier
 vendor/bin/php-cs-fixer fix                   # corriger
+php bin/console debug:router | grep "mon-pattern"   # vérifier les routes après ajout
+vendor/bin/phpunit tests/Functional/Api/MonTest.php --testdox  # test ciblé
 ```
 
 ### Frontend (`apps/frontend/`)

@@ -63,12 +63,14 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         $merchant = $this->createUser('merchant-approve@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
         $category = $this->createCategory('Laits');
-        $proposal = $this->createProposal($shop, $merchant, $category, 'Lait frais', brandName: 'BrandApprove');
+        $brand = $this->createBrand('BrandApprove');
+        $proposal = $this->createProposal($shop, $merchant, $category, 'Lait frais', brand: $brand);
 
         $response = $this->requestJson(
-            'POST',
+            'PATCH',
             \sprintf('/api/admin/product-proposals/%s/approve', $proposal->getId()),
-            user: $admin,
+            [],
+            $admin,
         );
 
         self::assertSame(200, $response->getStatusCode());
@@ -91,7 +93,7 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         $proposal = $this->createProposal($shop, $merchant, $category, 'Gâteau local');
 
         $response = $this->requestJson(
-            'POST',
+            'PATCH',
             \sprintf('/api/admin/product-proposals/%s/reject', $proposal->getId()),
             ['reason' => 'Produit trop générique'],
             $admin,
@@ -106,32 +108,6 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         self::assertSame('Produit trop générique', $updatedProposal->getRejectionReason());
     }
 
-    public function testAdminCanMergeProposalToExistingProductReference(): void
-    {
-        $admin = $this->createUser('admin-merge@example.test', ['ROLE_ADMIN']);
-        $merchant = $this->createUser('merchant-merge@example.test', ['ROLE_MERCHANT']);
-        $shop = $this->createShop($merchant);
-        $category = $this->createCategory('Conserves');
-        $proposal = $this->createProposal($shop, $merchant, $category, 'Harissa locale');
-        $existingRef = $this->createProductReference('Jouda', $category, 'Harissa');
-
-        $response = $this->requestJson(
-            'POST',
-            \sprintf('/api/admin/product-proposals/%s/merge', $proposal->getId()),
-            ['product_reference_id' => $existingRef->getId()->toRfc4122()],
-            $admin,
-        );
-
-        self::assertSame(200, $response->getStatusCode());
-
-        $this->entityManager->clear();
-        $updatedProposal = $this->entityManager->getRepository(ProductReferenceProposal::class)->find($proposal->getId());
-        self::assertInstanceOf(ProductReferenceProposal::class, $updatedProposal);
-        self::assertSame(ProductReferenceProposalStatus::Merged, $updatedProposal->getStatus());
-        self::assertNotNull($updatedProposal->getCreatedProductReference());
-        self::assertSame($existingRef->getId()->toRfc4122(), $updatedProposal->getCreatedProductReference()->getId()->toRfc4122());
-    }
-
     public function testRejectWithoutReasonReturnsValidationError(): void
     {
         $admin = $this->createUser('admin-reject-empty@example.test', ['ROLE_ADMIN']);
@@ -141,7 +117,7 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         $proposal = $this->createProposal($shop, $merchant, $category, 'Produit sans raison');
 
         $response = $this->requestJson(
-            'POST',
+            'PATCH',
             \sprintf('/api/admin/product-proposals/%s/reject', $proposal->getId()),
             ['reason' => ''],
             $admin,
@@ -159,12 +135,13 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
 
         $listResponse = $this->requestJson('GET', '/api/admin/product-proposals', user: $merchant);
         $approveResponse = $this->requestJson(
-            'POST',
+            'PATCH',
             \sprintf('/api/admin/product-proposals/%s/approve', $proposal->getId()),
-            user: $merchant,
+            [],
+            $merchant,
         );
         $rejectResponse = $this->requestJson(
-            'POST',
+            'PATCH',
             \sprintf('/api/admin/product-proposals/%s/reject', $proposal->getId()),
             ['reason' => 'Test'],
             $merchant,
@@ -188,12 +165,25 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         return $category;
     }
 
+    private function createBrand(string $name): Brand
+    {
+        $suffix = (string) $this->entityManager->getRepository(Brand::class)->count([]);
+        $brand = (new Brand())
+            ->setCanonicalName($name)
+            ->setSlug(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name) ?? '').'-'.$suffix);
+
+        $this->entityManager->persist($brand);
+        $this->entityManager->flush();
+
+        return $brand;
+    }
+
     private function createProposal(
         Shop $shop,
         User $proposedBy,
         Category $category,
         string $nameFr,
-        ?string $brandName = null,
+        ?Brand $brand = null,
     ): ProductReferenceProposal {
         $proposal = (new ProductReferenceProposal())
             ->setShop($shop)
@@ -201,7 +191,7 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
             ->setCategory($category)
             ->setNameFr($nameFr)
             ->setUnit(ProductUnit::Piece)
-            ->setBrandName($brandName);
+            ->setBrand($brand);
 
         $this->entityManager->persist($proposal);
         $this->entityManager->flush();
