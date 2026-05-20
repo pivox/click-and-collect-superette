@@ -29,6 +29,19 @@ new Get(
 )
 ```
 
+S'applique aussi aux PATCH avec `read: false, output: false` : même sans crash à l'exécution (AP ne génère pas d'IRI), un futur upgrade pourrait le déclencher. Toujours pointer vers le DTO.
+
+```php
+// Correct — même sans IRI générée en pratique
+new Patch(
+    uriTemplate: '/admin/resource/{resourceId}/action',
+    uriVariables: [
+        'resourceId' => new Link(fromClass: ResourceOutput::class, identifiers: ['id']),
+    ],
+    read: false, output: false,
+)
+```
+
 ## 2. DQL + SQLite + UUID BLOB dans les tests
 
 En environnement de test (SQLite), `createQueryBuilder` avec `setParameter('field', $entity)` échoue silencieusement pour les colonnes UUID (stockées en BLOB) : la requête retourne 0 résultat.
@@ -338,8 +351,8 @@ public ?AdminApproveCanonicalData $canonicalData = null;
 public ?AdminApproveCanonicalData $canonicalData = null;
 ```
 
-Placer la classe imbriquée dans le même fichier est acceptable quand elle n'est
-utilisée que par ce DTO parent.
+Toujours extraire dans un fichier séparé (`AdminApproveCanonicalData.php`) même si elle n'est
+utilisée que par un seul DTO parent — PSR-1 §3.
 
 ## 21. Supprimer le test quand l'endpoint est retiré
 
