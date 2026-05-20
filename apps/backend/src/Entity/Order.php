@@ -305,6 +305,28 @@ class Order
         $this->status = OrderStatus::Cancelled;
     }
 
+    /**
+     * Cancels any in-flight order. Unlike cancel(), covers all active statuses
+     * (including preparing, ready, pickup_pending). Use only for irreversible
+     * external events (e.g., permanent store closure). Guards are intentionally
+     * wider than cancel() but still reject terminal statuses.
+     */
+    public function forceCancel(): void
+    {
+        $activeCancellable = [
+            OrderStatus::Submitted,
+            OrderStatus::Accepted,
+            OrderStatus::PartiallyAccepted,
+            OrderStatus::Preparing,
+            OrderStatus::Ready,
+            OrderStatus::PickupPending,
+        ];
+        if (!\in_array($this->status, $activeCancellable, true)) {
+            throw new \LogicException('ORDER_NOT_IN_CANCELLABLE_STATUS');
+        }
+        $this->status = OrderStatus::Cancelled;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;

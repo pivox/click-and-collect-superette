@@ -38,6 +38,8 @@ final readonly class AdminStoreOutputFactory
             pickupRulesCount: $pickupRulesCount,
             logoUrl: $shop->getLogoUrl(),
             coverUrl: $shop->getCoverUrl(),
+            archivedAt: $shop->getArchivedAt()?->format(\DateTimeInterface::ATOM),
+            archiveReason: $shop->getArchiveReason(),
         );
     }
 }

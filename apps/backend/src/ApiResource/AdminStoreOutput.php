@@ -10,9 +10,11 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
+use App\Dto\AdminArchiveStoreInput;
 use App\Dto\AdminStoreCreateInput;
 use App\Dto\AdminStoreUpdateInput;
 use App\Processor\AdminActivateStoreProcessor;
+use App\Processor\AdminArchiveStoreProcessor;
 use App\Processor\AdminDeactivateStoreProcessor;
 use App\Processor\CreateAdminStoreProcessor;
 use App\Processor\UpdateAdminStoreProcessor;
@@ -77,6 +79,18 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             processor: AdminDeactivateStoreProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
         ),
+        new Patch(
+            uriTemplate: '/admin/stores/{storeId<[0-9a-fA-F\-]{32,36}>}/archive',
+            uriVariables: [
+                'storeId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            input: AdminArchiveStoreInput::class,
+            normalizationContext: ['groups' => ['admin_store:read']],
+            provider: AdminStoreItemProvider::class,
+            processor: AdminArchiveStoreProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+        ),
     ],
 )]
 final readonly class AdminStoreOutput
@@ -130,6 +144,12 @@ final readonly class AdminStoreOutput
         #[Groups(['admin_store:read'])]
         #[SerializedName('cover_url')]
         public ?string $coverUrl,
+        #[Groups(['admin_store:read', 'admin_store_list:read'])]
+        #[SerializedName('archived_at')]
+        public ?string $archivedAt,
+        #[Groups(['admin_store:read'])]
+        #[SerializedName('archive_reason')]
+        public ?string $archiveReason,
     ) {
     }
 }
