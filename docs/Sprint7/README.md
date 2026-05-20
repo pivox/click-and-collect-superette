@@ -48,7 +48,7 @@ Sprint 7 démarré — ce document sera complété au fil des livraisons.
 
 | Ticket | Sujet | Type |
 |---|---|---|
-| S7-001 | Fermeture définitive d'une supérette | Backend admin — Livré, PR #XXX |
+| S7-001 | Fermeture définitive d'une supérette | Backend admin — Livré, PR #122 |
 | S7-002 | Export CSV commandes marchand | Backend marchand |
 | S7-003 | Conservation et suppression des données | Backend conformité |
 | S7-004 | Audit trail admin | Backend admin |
