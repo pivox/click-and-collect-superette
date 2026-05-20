@@ -1,0 +1,430 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Functional\Api;
+
+use App\Entity\Brand;
+use App\Entity\Category;
+use App\Entity\ProductReference;
+use App\Enum\ProductReferenceStatus;
+use App\Enum\ProductUnit;
+
+final class BrandAdminApiTest extends FunctionalApiTestCase
+{
+    // ── LIST ──────────────────────────────────────────────────────────────────
+
+    public function testAdminListsBrands(): void
+    {
+        $admin = $this->createUser('admin-brand-list@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Danone', 'danone');
+
+        $response = $this->requestJson('GET', '/api/admin/brands', user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(1, $payload['total']);
+        self::assertSame(1, $payload['page']);
+        self::assertSame(20, $payload['limit']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($brand->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertSame('Danone', $payload['items'][0]['canonical_name']);
+        self::assertSame('danone', $payload['items'][0]['slug']);
+        self::assertTrue($payload['items'][0]['is_active']);
+        self::assertArrayHasKey('created_at', $payload['items'][0]);
+        self::assertArrayHasKey('updated_at', $payload['items'][0]);
+    }
+
+    public function testListPaginationDefaultsAndLimit(): void
+    {
+        $admin = $this->createUser('admin-brand-pagination@example.test', ['ROLE_ADMIN']);
+        for ($i = 1; $i <= 3; ++$i) {
+            $this->createBrand('Marque '.$i, 'marque-'.$i);
+        }
+
+        $pageOne = $this->decodeJson($this->requestJson('GET', '/api/admin/brands?page=1&limit=2', user: $admin));
+        $pageTwo = $this->decodeJson($this->requestJson('GET', '/api/admin/brands?page=2&limit=2', user: $admin));
+
+        self::assertSame(3, $pageOne['total']);
+        self::assertSame(2, $pageOne['limit']);
+        self::assertCount(2, $pageOne['items']);
+        self::assertSame(3, $pageTwo['total']);
+        self::assertCount(1, $pageTwo['items']);
+    }
+
+    public function testListPaginationInvalidPageReturns400(): void
+    {
+        $admin = $this->createUser('admin-brand-page-invalid@example.test', ['ROLE_ADMIN']);
+
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/brands?page=abc', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/brands?page=0', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/brands?limit=abc', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/brands?limit=0', user: $admin)->getStatusCode());
+    }
+
+    public function testListLimitIsCappedAtFifty(): void
+    {
+        $admin = $this->createUser('admin-brand-limit-cap@example.test', ['ROLE_ADMIN']);
+
+        $payload = $this->decodeJson($this->requestJson('GET', '/api/admin/brands?limit=100', user: $admin));
+
+        self::assertSame(50, $payload['limit']);
+    }
+
+    public function testListIncludesInactiveBrands(): void
+    {
+        $admin = $this->createUser('admin-brand-inactive@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Inactive Brand', 'inactive-brand');
+        $brand->setActive(false);
+        $this->entityManager->flush();
+
+        $payload = $this->decodeJson($this->requestJson('GET', '/api/admin/brands', user: $admin));
+
+        self::assertSame(1, $payload['total']);
+        self::assertFalse($payload['items'][0]['is_active']);
+    }
+
+    // ── GET ITEM ──────────────────────────────────────────────────────────────
+
+    public function testAdminGetsBrandDetail(): void
+    {
+        $admin = $this->createUser('admin-brand-detail@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Nestlé', 'nestle', country: 'CH', aliases: ['Nestle', 'NESTLE']);
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/brands/%s', $brand->getId()), user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame($brand->getId()->toRfc4122(), $payload['id']);
+        self::assertSame('Nestlé', $payload['canonical_name']);
+        self::assertSame('nestle', $payload['slug']);
+        self::assertSame('CH', $payload['country']);
+        self::assertSame(['Nestle', 'NESTLE'], $payload['aliases']);
+        self::assertTrue($payload['is_active']);
+    }
+
+    public function testGetBrandReturns404WhenAbsent(): void
+    {
+        $admin = $this->createUser('admin-brand-404@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('GET', '/api/admin/brands/00000000-0000-0000-0000-000000000001', user: $admin);
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    // ── POST ──────────────────────────────────────────────────────────────────
+
+    public function testAdminCreatesBrand(): void
+    {
+        $admin = $this->createUser('admin-brand-create@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('POST', '/api/admin/brands', [
+            'canonicalName' => 'Président',
+        ], $admin);
+
+        self::assertSame(201, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('Président', $payload['canonical_name']);
+        self::assertSame('president', $payload['slug']);
+        self::assertTrue($payload['is_active']);
+        self::assertSame([], $payload['aliases']);
+        self::assertArrayHasKey('id', $payload);
+    }
+
+    public function testAdminCreatesBrandWithExplicitSlugAndCountry(): void
+    {
+        $admin = $this->createUser('admin-brand-slug@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('POST', '/api/admin/brands', [
+            'canonicalName' => 'Vache qui rit',
+            'slug' => 'la-vache-qui-rit',
+            'country' => 'FR',
+            'aliases' => ['VQR'],
+        ], $admin);
+
+        self::assertSame(201, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('la-vache-qui-rit', $payload['slug']);
+        self::assertSame('FR', $payload['country']);
+        self::assertSame(['VQR'], $payload['aliases']);
+    }
+
+    public function testSlugAutoGeneratedAndUniqueWithSuffix(): void
+    {
+        $admin = $this->createUser('admin-brand-slug-suffix@example.test', ['ROLE_ADMIN']);
+        $this->createBrand('Délice', 'delice');
+
+        $response = $this->requestJson('POST', '/api/admin/brands', ['canonicalName' => 'Délice'], $admin);
+
+        self::assertSame(201, $response->getStatusCode());
+        self::assertSame('delice-2', $this->decodeJson($response)['slug']);
+    }
+
+    public function testExplicitDuplicateSlugIsRejected(): void
+    {
+        $admin = $this->createUser('admin-brand-dup-slug@example.test', ['ROLE_ADMIN']);
+        $this->createBrand('Délice', 'delice');
+
+        $response = $this->requestJson('POST', '/api/admin/brands', [
+            'canonicalName' => 'Délice Pro',
+            'slug' => 'delice',
+        ], $admin);
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testCreateBrandRequiresCanonicalName(): void
+    {
+        $admin = $this->createUser('admin-brand-no-name@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('POST', '/api/admin/brands', ['country' => 'TN'], $admin);
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    // ── PATCH ─────────────────────────────────────────────────────────────────
+
+    public function testAdminPatchesBrand(): void
+    {
+        $admin = $this->createUser('admin-brand-patch@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Hamoud', 'hamoud');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/brands/%s', $brand->getId()),
+            ['canonicalName' => 'Hamoud Boualem'],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('Hamoud Boualem', $payload['canonical_name']);
+        self::assertSame('hamoud', $payload['slug']);
+    }
+
+    public function testPatchBrandIsPartial(): void
+    {
+        $admin = $this->createUser('admin-brand-patch-partial@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Candia', 'candia', country: 'FR');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/brands/%s', $brand->getId()),
+            ['isActive' => false],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertFalse($payload['is_active']);
+        self::assertSame('Candia', $payload['canonical_name']);
+        self::assertSame('FR', $payload['country']);
+    }
+
+    public function testPatchBrandWithNullCanonicalNameReturns422(): void
+    {
+        $admin = $this->createUser('admin-brand-patch-null@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Lipton', 'lipton');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/brands/%s', $brand->getId()),
+            ['canonicalName' => null],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testPatchBrandUpdatesSlug(): void
+    {
+        $admin = $this->createUser('admin-brand-patch-slug@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Vache Qui Rit', 'vache-qui-rit-old');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/brands/%s', $brand->getId()),
+            ['slug' => 'la-vache-qui-rit'],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('la-vache-qui-rit', $this->decodeJson($response)['slug']);
+    }
+
+    public function testPatchBrandWithDuplicateSlugReturns422(): void
+    {
+        $admin = $this->createUser('admin-brand-patch-dup-slug@example.test', ['ROLE_ADMIN']);
+        $this->createBrand('Danone', 'danone-existing');
+        $brand = $this->createBrand('Danette', 'danette-existing');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/brands/%s', $brand->getId()),
+            ['slug' => 'danone-existing'],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testPatchBrandWithNullAliasesClearsArray(): void
+    {
+        $admin = $this->createUser('admin-brand-patch-aliases-null@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Président', 'president-aliases', aliases: ['Presi', 'PDT']);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/brands/%s', $brand->getId()),
+            ['aliases' => null],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame([], $this->decodeJson($response)['aliases']);
+    }
+
+    public function testPatchBrandReturns404WhenAbsent(): void
+    {
+        $admin = $this->createUser('admin-brand-patch-404@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson(
+            'PATCH',
+            '/api/admin/brands/00000000-0000-0000-0000-000000000001',
+            ['canonicalName' => 'X'],
+            $admin,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    // ── DELETE ────────────────────────────────────────────────────────────────
+
+    public function testAdminPhysicallyDeletesUnlinkedBrand(): void
+    {
+        $admin = $this->createUser('admin-brand-delete@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('À supprimer', 'a-supprimer-brand');
+        $id = $brand->getId()->toRfc4122();
+
+        $deleteResponse = $this->requestJson('DELETE', \sprintf('/api/admin/brands/%s', $id), user: $admin);
+        $getResponse = $this->requestJson('GET', \sprintf('/api/admin/brands/%s', $id), user: $admin);
+
+        self::assertSame(204, $deleteResponse->getStatusCode());
+        self::assertSame(404, $getResponse->getStatusCode());
+    }
+
+    public function testAdminLogicallyDeletesBrandLinkedToProducts(): void
+    {
+        $admin = $this->createUser('admin-brand-logical-delete@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Liée aux produits', 'liee-produits-brand');
+        $this->createProductReferenceForBrand($brand);
+        $id = $brand->getId()->toRfc4122();
+
+        $deleteResponse = $this->requestJson('DELETE', \sprintf('/api/admin/brands/%s', $id), user: $admin);
+        $getResponse = $this->requestJson('GET', \sprintf('/api/admin/brands/%s', $id), user: $admin);
+
+        self::assertSame(204, $deleteResponse->getStatusCode());
+        self::assertSame(200, $getResponse->getStatusCode());
+        self::assertFalse($this->decodeJson($getResponse)['is_active']);
+    }
+
+    public function testDeleteBrandReturns404WhenAbsent(): void
+    {
+        $admin = $this->createUser('admin-brand-delete-404@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('DELETE', '/api/admin/brands/00000000-0000-0000-0000-000000000001', user: $admin);
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    // ── ACCESS CONTROL ────────────────────────────────────────────────────────
+
+    public function testAnonymousIsRejected(): void
+    {
+        $brand = $this->createBrand('Test', 'test-brand-anon');
+
+        self::assertSame(401, $this->requestJson('GET', '/api/admin/brands')->getStatusCode());
+        self::assertSame(401, $this->requestJson('GET', \sprintf('/api/admin/brands/%s', $brand->getId()))->getStatusCode());
+        self::assertSame(401, $this->requestJson('POST', '/api/admin/brands', ['canonicalName' => 'X'])->getStatusCode());
+        self::assertSame(401, $this->requestJson('PATCH', \sprintf('/api/admin/brands/%s', $brand->getId()), ['canonicalName' => 'X'])->getStatusCode());
+        self::assertSame(401, $this->requestJson('DELETE', \sprintf('/api/admin/brands/%s', $brand->getId()))->getStatusCode());
+    }
+
+    public function testMerchantIsRejected(): void
+    {
+        $merchant = $this->createUser('merchant-brand@example.test', ['ROLE_MERCHANT']);
+        $brand = $this->createBrand('Test marchand', 'test-brand-marchand');
+
+        self::assertSame(403, $this->requestJson('GET', '/api/admin/brands', user: $merchant)->getStatusCode());
+        self::assertSame(403, $this->requestJson('GET', \sprintf('/api/admin/brands/%s', $brand->getId()), user: $merchant)->getStatusCode());
+        self::assertSame(403, $this->requestJson('POST', '/api/admin/brands', ['canonicalName' => 'X'], $merchant)->getStatusCode());
+        self::assertSame(403, $this->requestJson('PATCH', \sprintf('/api/admin/brands/%s', $brand->getId()), ['canonicalName' => 'X'], $merchant)->getStatusCode());
+        self::assertSame(403, $this->requestJson('DELETE', \sprintf('/api/admin/brands/%s', $brand->getId()), user: $merchant)->getStatusCode());
+    }
+
+    public function testCustomerIsRejected(): void
+    {
+        $customer = $this->createUser('customer-brand@example.test', ['ROLE_CUSTOMER']);
+        $brand = $this->createBrand('Test client', 'test-brand-client');
+
+        self::assertSame(403, $this->requestJson('GET', '/api/admin/brands', user: $customer)->getStatusCode());
+        self::assertSame(403, $this->requestJson('GET', \sprintf('/api/admin/brands/%s', $brand->getId()), user: $customer)->getStatusCode());
+        self::assertSame(403, $this->requestJson('POST', '/api/admin/brands', ['canonicalName' => 'X'], $customer)->getStatusCode());
+        self::assertSame(403, $this->requestJson('PATCH', \sprintf('/api/admin/brands/%s', $brand->getId()), ['canonicalName' => 'X'], $customer)->getStatusCode());
+        self::assertSame(403, $this->requestJson('DELETE', \sprintf('/api/admin/brands/%s', $brand->getId()), user: $customer)->getStatusCode());
+    }
+
+    // ── NON-REGRESSION ────────────────────────────────────────────────────────
+
+    public function testPublicBrandsEndpointStillWorks(): void
+    {
+        $user = $this->createUser('merchant-brands-nonreg@example.test', ['ROLE_MERCHANT']);
+        $this->createBrand('Activia', 'activia');
+        $this->createBrand('Danette', 'danette');
+
+        $response = $this->requestJson('GET', '/api/brands', user: $user);
+
+        self::assertSame(200, $response->getStatusCode());
+    }
+
+    // ── HELPERS ───────────────────────────────────────────────────────────────
+
+    /**
+     * @param list<string> $aliases
+     */
+    private function createBrand(string $canonicalName, string $slug, ?string $country = null, array $aliases = []): Brand
+    {
+        $brand = (new Brand())
+            ->setCanonicalName($canonicalName)
+            ->setSlug($slug)
+            ->setAliases($aliases)
+            ->setCountry($country)
+            ->setActive(true);
+
+        $this->entityManager->persist($brand);
+        $this->entityManager->flush();
+
+        return $brand;
+    }
+
+    private function createProductReferenceForBrand(Brand $brand): ProductReference
+    {
+        $category = (new Category())
+            ->setNameFr('Catégorie brand test')
+            ->setSlug('categorie-brand-test-'.$brand->getId()->toRfc4122())
+            ->setActive(true);
+
+        $productReference = (new ProductReference())
+            ->setBrand($brand)
+            ->setCategory($category)
+            ->setNameFr('Produit lié à la marque')
+            ->setUnit(ProductUnit::Piece)
+            ->setStatus(ProductReferenceStatus::Approved);
+
+        $this->entityManager->persist($category);
+        $this->entityManager->persist($productReference);
+        $this->entityManager->flush();
+
+        return $productReference;
+    }
+}
