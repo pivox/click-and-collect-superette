@@ -8,9 +8,14 @@ C'est le dernier sprint MVP identifié dans la roadmap actuelle.
 
 ## État actuel
 
-Sprint 7 n'est pas encore démarré côté documentation dédiée.
+- S7-001 — Fermeture définitive d'une supérette : **livré**.
+  - `PATCH /api/admin/stores/{storeId}/archive`
+  - Annulation automatique des commandes actives (submitted, accepted, partially_accepted, preparing, ready, pickup_pending)
+  - Désactivation immédiate (QR révoqué via `active = false`)
+  - 19 tests fonctionnels, PHPStan niveau 8 clean, CS Fixer clean
+  - Migration `Version20260521100000` : colonnes `archived_at` et `archive_reason` sur `shops`
 
-Ce document initialise le dossier `docs/Sprint7/` afin de cadrer les prochains lots sans mélanger production, conformité, PWA et fonctionnalités admin.
+Sprint 7 démarré — ce document sera complété au fil des livraisons.
 
 ## Fonctionnalités prévues
 
@@ -31,7 +36,7 @@ Ce document initialise le dossier `docs/Sprint7/` afin de cadrer les prochains l
 | US | Sujet | Statut |
 |---|---|---|
 | US-008 | Basculer la langue de l'interface FR/AR | Indiqué complété dans la roadmap, à vérifier |
-| US-058 | Fermeture définitive d'une supérette | À faire |
+| US-058 | Fermeture définitive d'une supérette | Livré (S7-001) |
 | US-059 | PWA installable et mode hors ligne | À faire |
 | US-060 | Accessibilité WCAG 2.1 AA | À faire |
 | US-061 | Export données commandes marchand CSV | À faire |
@@ -43,7 +48,7 @@ Ce document initialise le dossier `docs/Sprint7/` afin de cadrer les prochains l
 
 | Ticket | Sujet | Type |
 |---|---|---|
-| S7-001 | Fermeture définitive d'une supérette | Backend admin |
+| S7-001 | Fermeture définitive d'une supérette | Backend admin — Livré, PR #XXX |
 | S7-002 | Export CSV commandes marchand | Backend marchand |
 | S7-003 | Conservation et suppression des données | Backend conformité |
 | S7-004 | Audit trail admin | Backend admin |

@@ -305,6 +305,27 @@ class Order
         $this->status = OrderStatus::Cancelled;
     }
 
+    /**
+     * Force-cancels any in-flight order regardless of current status.
+     * Only use when the cancellation is triggered by an external, irreversible event
+     * (e.g., permanent store closure). Does not fire domain guards on purpose.
+     */
+    public function forceCancel(): void
+    {
+        $activeCancellable = [
+            OrderStatus::Submitted,
+            OrderStatus::Accepted,
+            OrderStatus::PartiallyAccepted,
+            OrderStatus::Preparing,
+            OrderStatus::Ready,
+            OrderStatus::PickupPending,
+        ];
+        if (!\in_array($this->status, $activeCancellable, true)) {
+            throw new \LogicException('ORDER_NOT_IN_CANCELLABLE_STATUS');
+        }
+        $this->status = OrderStatus::Cancelled;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;

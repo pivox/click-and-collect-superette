@@ -70,8 +70,9 @@ Exclus du MVP :
 - Backend MVP : 100 % (Sprint 5 audité et clôturé — S5-012 livré).
 - Produit terrain testable : environ 95 %.
 - Sprint 6 (personnalisation visuelle) : implémenté côté backend (`PlatformTheme`, `ShopTheme`, thème public par supérette).
-- Prochaine priorité recommandée : frontend MVP (Next.js) ou US-065 (contrainte UNIQUE slug).
-- 933 tests backend passants, PHPStan niveau 8 clean, CS Fixer clean.
+- Sprint 7 démarré : S7-001 livré — `PATCH /api/admin/stores/{storeId}/archive`, champs `Shop.archivedAt`/`Shop.archiveReason`, annulation des commandes actives, 19 tests.
+- Prochaine priorité recommandée : S7-002 (export CSV commandes) ou frontend MVP (Next.js).
+- 952 tests backend passants, PHPStan niveau 8 clean, CS Fixer clean.
 
 ## Limites connues
 

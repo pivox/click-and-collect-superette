@@ -255,6 +255,37 @@ class OrderRepository extends ServiceEntityRepository
         return $result;
     }
 
+    /**
+     * Returns all in-flight orders for the given shop that should be cancelled on permanent store closure.
+     * Draft orders are intentionally excluded — they are incomplete and hold no reserved resources.
+     *
+     * @return list<Order>
+     */
+    public function findActiveByShop(Shop $shop): array
+    {
+        $statuses = [
+            OrderStatus::Submitted,
+            OrderStatus::Accepted,
+            OrderStatus::PartiallyAccepted,
+            OrderStatus::Preparing,
+            OrderStatus::Ready,
+            OrderStatus::PickupPending,
+        ];
+
+        /** @var list<Order> $result */
+        $result = $this->createQueryBuilder('o')
+            ->leftJoin('o.pickupSlot', 'slot')
+            ->addSelect('slot')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->andWhere('o.status IN (:statuses)')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('statuses', array_map(static fn (OrderStatus $s): string => $s->value, $statuses))
+            ->getQuery()
+            ->getResult();
+
+        return $result;
+    }
+
     public function findOneByShopAndId(Shop $shop, string $orderId): ?Order
     {
         return $this->findOneBy([
