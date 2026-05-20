@@ -152,26 +152,23 @@ vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/phpstan analyse
 ```
 
-## 8. Backslash sur les fonctions natives — NON détecté par CS Fixer
+## 8. Backslash obligatoire sur les fonctions natives (`@Symfony:risky`)
 
-`native_function_invocation` n'est pas activée dans `.php-cs-fixer.dist.php` :
-**`\sprintf`, `\array_map`, `\count` passent `--dry-run` sans erreur.** Grep obligatoire avant PR :
+La config `.php-cs-fixer.dist.php` active `@Symfony:risky` qui inclut `native_function_invocation` :
+**CS Fixer impose `\sprintf`, `\array_map`, `\count`** (préfixe namespace global). Sans `\`, le `--dry-run` CI échoue.
 
-```bash
-grep -rn '\\sprintf\|\\array_map\|\\count(' apps/backend/src apps/backend/tests --include="*.php"
-```
+Deux règles :
 
-Deux règles à respecter manuellement :
-
-- Préfixe global interdit : `\array_map`, `\count`, `\sprintf` → écrire sans `\`.
-- Espace obligatoire avant `(` dans les closures fléchées : `fn(` → `fn (` *(celui-là, CS Fixer le corrige)*.
+- Préfixe `\` obligatoire sur les fonctions natives : `\sprintf`, `\array_map`, `\count`, etc.
+- Espace obligatoire avant `(` dans les closures fléchées : `fn(` → `fn (`.
 
 ```php
 // Correct
-array_map(static fn (OrderStatus $s) => $s->value, $statuses)
+\array_map(static fn (OrderStatus $s) => $s->value, $statuses)
+\sprintf('/api/stores/by-qr/%s', $token)
 
-// Incorrect — \sprintf passe CS Fixer ; fn( est corrigé par CS Fixer
-\array_map(static fn(OrderStatus $s) => $s->value, $statuses)
+// Incorrect — CS Fixer ajoute \  |  fn( manque l'espace
+array_map(static fn(OrderStatus $s) => $s->value, $statuses)
 ```
 
 ## 9. `final readonly class` ne peut pas être mockée par PHPUnit
