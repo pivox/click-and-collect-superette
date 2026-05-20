@@ -13,6 +13,7 @@ use App\Repository\AdminBrandRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
+use Symfony\Component\String\Slugger\SluggerInterface;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -23,6 +24,7 @@ final readonly class AdminUpdateBrandProcessor implements ProcessorInterface
     public function __construct(
         private AdminBrandRepository $adminBrandRepository,
         private RequestStack $requestStack,
+        private SluggerInterface $slugger,
     ) {
     }
 
@@ -58,8 +60,19 @@ final readonly class AdminUpdateBrandProcessor implements ProcessorInterface
             }
             $brand->setCanonicalName($canonicalName);
         }
-        if (\array_key_exists('aliases', $payload) && null !== $data->aliases) {
-            $brand->setAliases($data->aliases);
+        if (\array_key_exists('slug', $payload)) {
+            if (null === $data->slug || '' === trim($data->slug)) {
+                throw new UnprocessableEntityHttpException('ADMIN_BRAND_SLUG_BLANK');
+            }
+            $slug = $this->slugger->slug(trim($data->slug))->lower()->toString();
+            $existing = $this->adminBrandRepository->findOneBySlug($slug);
+            if (null !== $existing && !$existing->getId()->equals($brand->getId())) {
+                throw new UnprocessableEntityHttpException('ADMIN_BRAND_SLUG_DUPLICATE');
+            }
+            $brand->setSlug($slug);
+        }
+        if (\array_key_exists('aliases', $payload)) {
+            $brand->setAliases($data->aliases ?? []);
         }
         if (\array_key_exists('country', $payload)) {
             $country = null !== $data->country ? trim($data->country) : null;

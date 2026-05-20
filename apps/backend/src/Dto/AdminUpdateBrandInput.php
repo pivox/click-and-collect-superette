@@ -12,6 +12,9 @@ final class AdminUpdateBrandInput
     #[Assert\Length(max: 160)]
     public ?string $canonicalName = null;
 
+    #[Assert\Length(max: 180)]
+    public ?string $slug = null;
+
     /** @var list<string>|null */
     public ?array $aliases = null;
 

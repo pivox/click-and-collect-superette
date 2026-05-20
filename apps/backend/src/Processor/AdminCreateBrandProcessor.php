@@ -12,7 +12,7 @@ use App\Entity\Brand;
 use App\Provider\AdminBrandItemProvider;
 use App\Repository\AdminBrandRepository;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Symfony\Component\String\Slugger\AsciiSlugger;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
 /**
  * @implements ProcessorInterface<AdminCreateBrandInput, AdminBrandOutput>
@@ -21,6 +21,7 @@ final readonly class AdminCreateBrandProcessor implements ProcessorInterface
 {
     public function __construct(
         private AdminBrandRepository $adminBrandRepository,
+        private SluggerInterface $slugger,
     ) {
     }
 
@@ -35,9 +36,6 @@ final readonly class AdminCreateBrandProcessor implements ProcessorInterface
         }
 
         $canonicalName = trim((string) $data->canonicalName);
-        if ('' === $canonicalName) {
-            throw new UnprocessableEntityHttpException('ADMIN_BRAND_CANONICAL_NAME_BLANK');
-        }
 
         $slug = null !== $data->slug && '' !== trim($data->slug)
             ? trim($data->slug)
@@ -76,7 +74,7 @@ final readonly class AdminCreateBrandProcessor implements ProcessorInterface
 
     private function slugify(string $name): string
     {
-        $slug = (new AsciiSlugger('fr'))->slug($name)->lower()->toString();
+        $slug = $this->slugger->slug($name)->lower()->toString();
 
         return '' === $slug ? 'brand' : mb_substr($slug, 0, 180);
     }

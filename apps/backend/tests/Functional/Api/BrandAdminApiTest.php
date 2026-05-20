@@ -52,6 +52,38 @@ final class BrandAdminApiTest extends FunctionalApiTestCase
         self::assertCount(1, $pageTwo['items']);
     }
 
+    public function testListPaginationInvalidPageReturns400(): void
+    {
+        $admin = $this->createUser('admin-brand-page-invalid@example.test', ['ROLE_ADMIN']);
+
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/brands?page=abc', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/brands?page=0', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/brands?limit=abc', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/brands?limit=0', user: $admin)->getStatusCode());
+    }
+
+    public function testListLimitIsCappedAtFifty(): void
+    {
+        $admin = $this->createUser('admin-brand-limit-cap@example.test', ['ROLE_ADMIN']);
+
+        $payload = $this->decodeJson($this->requestJson('GET', '/api/admin/brands?limit=100', user: $admin));
+
+        self::assertSame(50, $payload['limit']);
+    }
+
+    public function testListIncludesInactiveBrands(): void
+    {
+        $admin = $this->createUser('admin-brand-inactive@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Inactive Brand', 'inactive-brand');
+        $brand->setActive(false);
+        $this->entityManager->flush();
+
+        $payload = $this->decodeJson($this->requestJson('GET', '/api/admin/brands', user: $admin));
+
+        self::assertSame(1, $payload['total']);
+        self::assertFalse($payload['items'][0]['is_active']);
+    }
+
     // ── GET ITEM ──────────────────────────────────────────────────────────────
 
     public function testAdminGetsBrandDetail(): void
@@ -202,6 +234,54 @@ final class BrandAdminApiTest extends FunctionalApiTestCase
         );
 
         self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testPatchBrandUpdatesSlug(): void
+    {
+        $admin = $this->createUser('admin-brand-patch-slug@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Vache Qui Rit', 'vache-qui-rit-old');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/brands/%s', $brand->getId()),
+            ['slug' => 'la-vache-qui-rit'],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('la-vache-qui-rit', $this->decodeJson($response)['slug']);
+    }
+
+    public function testPatchBrandWithDuplicateSlugReturns422(): void
+    {
+        $admin = $this->createUser('admin-brand-patch-dup-slug@example.test', ['ROLE_ADMIN']);
+        $this->createBrand('Danone', 'danone-existing');
+        $brand = $this->createBrand('Danette', 'danette-existing');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/brands/%s', $brand->getId()),
+            ['slug' => 'danone-existing'],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testPatchBrandWithNullAliasesClearsArray(): void
+    {
+        $admin = $this->createUser('admin-brand-patch-aliases-null@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Président', 'president-aliases', aliases: ['Presi', 'PDT']);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/brands/%s', $brand->getId()),
+            ['aliases' => null],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame([], $this->decodeJson($response)['aliases']);
     }
 
     public function testPatchBrandReturns404WhenAbsent(): void
