@@ -7,16 +7,20 @@ namespace App\Provider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\AdminProductProposalOutput;
-use App\Entity\ProductReferenceProposal;
 use App\Enum\ProductReferenceProposalStatus;
 use App\Repository\ProductReferenceProposalRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @implements ProviderInterface<AdminProductProposalOutput>
  */
 final readonly class AdminProductProposalCollectionProvider implements ProviderInterface
 {
+    private const int DEFAULT_PAGE = 1;
+    private const int DEFAULT_LIMIT = 20;
+    private const int MAX_LIMIT = 50;
+
     public function __construct(
         private ProductReferenceProposalRepository $proposalRepository,
         private RequestStack $requestStack,
@@ -32,30 +36,24 @@ final readonly class AdminProductProposalCollectionProvider implements ProviderI
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
     {
         $request = $this->requestStack->getCurrentRequest();
-        $statusFilter = $request?->query->getString('status') ?: null;
 
-        $criteria = [];
-        if (null !== $statusFilter) {
-            $status = ProductReferenceProposalStatus::tryFrom($statusFilter);
-            if (null !== $status) {
-                $criteria['status'] = $status;
-            }
+        $statusFilter = $request?->query->getString('status') ?: null;
+        if (null !== $statusFilter && null === ProductReferenceProposalStatus::tryFrom($statusFilter)) {
+            throw new BadRequestHttpException('ADMIN_PRODUCT_PROPOSAL_INVALID_STATUS_FILTER');
         }
 
-        $proposals = $this->proposalRepository->findBy($criteria, ['createdAt' => 'DESC']);
+        $page = max(self::DEFAULT_PAGE, (int) ($request?->query->get('page') ?? self::DEFAULT_PAGE));
+        $limit = min(self::MAX_LIMIT, max(1, (int) ($request?->query->get('limit') ?? self::DEFAULT_LIMIT)));
+        $offset = ($page - 1) * $limit;
+
+        $criteria = null !== $statusFilter
+            ? ['status' => ProductReferenceProposalStatus::from($statusFilter)]
+            : [];
+
+        $proposals = $this->proposalRepository->findBy($criteria, ['createdAt' => 'DESC'], $limit, $offset);
 
         return array_map(
-            static fn (ProductReferenceProposal $p): AdminProductProposalOutput => new AdminProductProposalOutput(
-                $p->getId()->toRfc4122(),
-                $p->getNameFr(),
-                $p->getNameAr(),
-                $p->getBrand()?->getCanonicalName() ?? $p->getBrandName(),
-                $p->getCategory()->getNameFr(),
-                $p->getStatus()->value,
-                $p->getRejectionReason(),
-                $p->getCreatedAt()->format(\DateTimeInterface::ATOM),
-                $p->getProposedBy()->getEmail(),
-            ),
+            static fn ($p) => AdminProductProposalItemProvider::toOutput($p),
             $proposals,
         );
     }
