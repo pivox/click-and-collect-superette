@@ -53,6 +53,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $onboardingCompletedAt = null;
+
     public function __construct()
     {
         $this->id = Uuid::v4();
@@ -189,5 +192,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    public function getOnboardingCompletedAt(): ?\DateTimeImmutable
+    {
+        return $this->onboardingCompletedAt;
+    }
+
+    public function setOnboardingCompletedAt(\DateTimeImmutable $at): static
+    {
+        $this->onboardingCompletedAt = $at;
+
+        return $this;
     }
 }

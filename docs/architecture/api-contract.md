@@ -1790,6 +1790,61 @@ Les notifications sont in-app uniquement. Le MVP actuel n'inclut pas push mobile
 
 ---
 
+## Onboarding marchand
+
+Statut : **livré Sprint 5 — S5-011**.
+
+```http
+GET   /api/merchant/onboarding
+PATCH /api/merchant/onboarding/complete
+```
+
+Accès : `ROLE_MERCHANT` uniquement. Anonyme → 401. `ROLE_CUSTOMER` → 403.
+
+### GET /api/merchant/onboarding
+
+Retourne l'état calculé des étapes d'onboarding du marchand authentifié.
+
+Réponse `200` :
+
+```json
+{
+  "completed": false,
+  "completed_at": null,
+  "steps": [
+    { "key": "store_profile",  "label": "Compléter la supérette",    "completed": true  },
+    { "key": "theme",          "label": "Personnaliser le thème",     "completed": false },
+    { "key": "catalog",        "label": "Ajouter des produits",       "completed": false },
+    { "key": "pickup_slots",   "label": "Configurer les créneaux",    "completed": false },
+    { "key": "qr_code",        "label": "Télécharger le QR code",     "completed": true  }
+  ]
+}
+```
+
+### PATCH /api/merchant/onboarding/complete
+
+Marque l'onboarding comme terminé. Idempotent : si déjà terminé, retourne `200` avec la date d'origine.
+
+Payload : aucun.
+
+Réponse `200` : même structure que `GET /api/merchant/onboarding` avec `completed: true` et `completed_at` renseigné.
+
+### Critères de complétion (best effort)
+
+| Étape | Critère | Limite |
+|---|---|---|
+| `store_profile` | ≥ 1 shop actif (`active: true`) appartenant au marchand | |
+| `theme` | ≥ 1 shop actif avec `ShopTheme` configuré | `PlatformTheme` non pris en compte (singleton toujours présent) |
+| `catalog` | ≥ 1 `MerchantProduct` avec `isVisible: true` dans ≥ 1 shop actif | |
+| `pickup_slots` | ≥ 1 `PickupSlotRule` active OU ≥ 1 `PickupSlot` futur actif dans ≥ 1 shop actif | |
+| `qr_code` | Même que `store_profile` — `qrCodeToken` est toujours non-null sur un shop existant | |
+
+### Champ `completed`
+
+`completed: true` uniquement si le marchand a explicitement appelé `PATCH /api/merchant/onboarding/complete`. Les étapes individuelles restent calculées dynamiquement quelle que soit la valeur de `completed`.
+
+---
+
 ## Suivi statut client
 
 Statut : **livré Sprint 4**.

@@ -142,6 +142,21 @@ class PickupSlotRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function countFutureActiveForShop(Shop $shop, ?\DateTimeImmutable $after = null): int
+    {
+        $after ??= new \DateTimeImmutable();
+
+        return (int) $this->createQueryBuilder('slot')
+            ->select('COUNT(slot.id)')
+            ->andWhere('IDENTITY(slot.shop) = :shopId')
+            ->andWhere('slot.isActive = true')
+            ->andWhere('slot.startsAt > :after')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('after', $after, Types::DATETIME_IMMUTABLE)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     /**
      * Returns active, non-full, future slots for a shop, ordered by start time.
      *

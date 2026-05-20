@@ -53,6 +53,15 @@ Endpoints S5-010 livrés :
 
 - `GET /api/merchant/stores/{storeId}/qr-code` — lecture du contrat QR par le marchand propriétaire.
 
+- S5-011 — onboarding marchand guidé.
+
+Endpoints S5-011 livrés :
+
+- `GET    /api/merchant/onboarding` — état calculé des étapes d'onboarding du marchand ;
+- `PATCH  /api/merchant/onboarding/complete` — marque l'onboarding terminé (idempotent, `200`).
+
+Champ ajouté : `User.onboardingCompletedAt` (nullable `DateTimeImmutable`), migration `Version20260520130000`.
+
 ## Parcours cible
 
 ```text
