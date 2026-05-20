@@ -53,7 +53,9 @@ vendor/bin/php-cs-fixer fix --dry-run --diff  # vérifier
 vendor/bin/php-cs-fixer fix                   # corriger
 php bin/console debug:router | grep "mon-pattern"   # vérifier les routes après ajout
 vendor/bin/phpunit tests/Functional/Api/MonTest.php --testdox  # test ciblé
+vendor/bin/phpunit --testdox 2>&1 | tail -40                   # sortie concise (les [error] sur 403/404 sont normaux)
 symfony console doctrine:migrations:diff                         # générer une migration
+symfony console doctrine:migrations:migrate --no-interaction    # appliquer en local
 ```
 
 ### Commandes slash disponibles
@@ -73,6 +75,12 @@ symfony console doctrine:migrations:diff                         # générer une
 Les specs de chaque feature sont dans `prompts/` (ex. `prompts/s5-008-admin-product-proposals.md`).
 Commande type : `traite @prompts/s5-XXX-nom.md et pousse une pr`.
 Avant d'implémenter, vérifier si la feature est déjà livrée : `git log --oneline | grep s5-XXX`.
+
+### Clôture de sprint (audit documentaire)
+
+Branche : `docs/sN-XXX-sprintN-completion-audit`
+Rapport : `docs/Sprint{N}/completion-report.md` (résultats réels des tests, routes, migrations, limites)
+Commit : `docs(sN-XXX): audit et clôture Sprint N`
 
 ### Frontend (`apps/frontend/`)
 
