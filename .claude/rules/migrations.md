@@ -8,6 +8,9 @@
    (recreates all tables). In that case, write the migration manually (e.g. `ALTER TABLE shops ADD
    logo_url VARCHAR(2048) DEFAULT NULL`) and delete the generated file.
 3. Validate: `symfony console doctrine:schema:validate` — must pass before merging.
+   **Drift cosmétique acceptable** : si `migrations:diff` génère uniquement des `ALTER INDEX ... RENAME TO`,
+   c'est un drift de noms d'index (custom → auto Doctrine), non fonctionnel. Supprimer le fichier généré
+   et documenter le drift comme connu. Ne pas committer une migration cosmétique inutile.
 4. Never edit a migration after it has been merged to `main`.
 5. Never run `doctrine:migrations:migrate` automatically — always run manually and deliberately.
 
