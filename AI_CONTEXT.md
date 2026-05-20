@@ -63,20 +63,20 @@ Exclus du MVP :
 - Sprint 3 : terminé côté backend (traitement marchand core, créneaux ponctuels, historique de statuts, dashboard journalier).
 - Sprint 4 : terminé côté backend (QR de retrait, `PickupSession`, scan marchand, `pickup_pending`, double validation, force completion, notifications in-app, suivi statut client, rappel retrait 1h).
 - Sprint 3b : terminé côté backend. PRs #91–#102 livrées ; PR #102 clôture officiellement le sprint (audit + documentation). Endpoints : pickup-slot-rules (CRUD + génération), exceptional-closures (CRUD), opening-hours (public + marchand), orders/history (filtres + pagination), products/bulk-availability. Automatisations Messenger : expiration délai réponse marchand (→ cancelled si submitted avant startsAt-2h), rappel acceptation partielle (notification à startsAt-4h), expiration acceptation partielle (→ cancelled si partially_accepted avant startsAt-2h). Limites : notifications in-app uniquement, transport async persistant requis en production.
-- Sprint 5 : en cours côté backend. S5-001 PR #103 livrée (lecture admin comptes marchands). S5-002 PR #104 livrée (lecture admin supérettes). S5-004 PR #105 livrée (mutations admin comptes marchands : POST, PATCH, suspend, activate). S5-003 PR #107 livrée (création/modification admin supérettes : `POST /api/admin/stores`, `PATCH /api/admin/stores/{storeId}`). S5-005 livré côté backend : lecture du contrat QR admin (`GET /api/admin/stores/{storeId}/qr-code`) et régénération du token opaque (`POST /api/admin/stores/{storeId}/regenerate-qr`). S5-006 livré : CRUD admin catégories produit (entité `Category` réutilisée, 5 endpoints `/api/admin/categories`). Restent CRUD admin marques et référentiel produit, génération image/PDF QR côté interface si nécessaire, et onboarding marchand.
+- Sprint 5 : quasi-terminé côté backend. S5-001 PR #103 (lecture admin marchands). S5-002 PR #104 (lecture admin supérettes). S5-004 PR #105 (mutations admin marchands : POST, PATCH, suspend, activate). S5-003 PR #107 (création/modification admin supérettes). S5-005 (contrat QR admin + régénération token). S5-006 PR #112 (CRUD admin catégories, 5 endpoints `/api/admin/categories`). S5-006b PR #115 (CRUD admin marques : `Brand`, 6 endpoints `/api/admin/brands`). S5-007 PR #116 (CRUD admin référentiel produit : `ProductReference`, 5 endpoints `/api/admin/product-references` dont archive). S5-008 PR #117 (validation admin propositions : `GET /api/admin/product-proposals`, `GET /{id}`, `PATCH /{id}/approve`, `PATCH /{id}/reject`, avec 409 sur doublon de traitement). Restent : génération image/PDF QR côté interface, onboarding marchand guidé, email d'invitation.
 
 ## Avancement global
 
-- Backend MVP : environ 95 %.
+- Backend MVP : environ 98 %.
 - Produit terrain testable : environ 95 %.
-- Sprint courant : Sprint 5 — Administration minimale.
-- Prochaine PR recommandée : référentiel produit admin (Brand, Category, ProductReference).
+- Sprint courant : Sprint 5 quasi-terminé — Sprint 6 (personnalisation visuelle) à démarrer.
+- Prochaine PR recommandée : onboarding marchand guidé ou démarrage Sprint 6 (ShopTheme).
 
 ## Limites connues
 
 Limites Sprint 4 : le rappel de retrait 1h utilise Symfony Messenger et `DelayStamp`. Un vrai différé en production nécessite un transport async persistant et un worker actif ; les notifications restent in-app, sans push mobile, SMS, email ni Mercure/WebSocket dans le MVP backend actuel. Le contenu du rappel US-064 reste générique et doit encore intégrer le nom de la supérette, l'heure du créneau et le numéro de commande. Après scan, la confirmation client et la force completion ne bloquent plus sur le TTL, mais la confirmation marchand conserve encore un contrôle d'expiration côté processor. Le MVP ne prévoit pas de réouverture admin d'une session expirée et les confirmations simultanées ne sont pas sérialisées par un `SELECT FOR UPDATE` dédié.
 
-Limites Sprint 5 actuel : S5-001, S5-002, S5-003, S5-004 et S5-005 sont livrés. Limites connues de S5-003 : la génération de slug n'est pas protégée contre une race condition (deux créations simultanées du même nom). Le risque opérationnel est faible (admin seulement, faible concurrence) ; une contrainte `UNIQUE` en base sur `slug` est recommandée avant passage en production à charge élevée. S5-005 retourne un contrat QR scannable JSON et régénère le token opaque, mais ne génère pas d'image PNG/PDF côté backend. Le champ `target_url` retourné est un chemin relatif (`/api/stores/by-qr/{token}`) — un QR code imprimé destiné à être scanné par un téléphone nécessite une URL absolue ; la composition de l'URL absolue est à la charge de l'interface ou d'une PR dédiée. Le backend ne couvre pas encore l'onboarding guidé, l'email d'invitation, le billing, l'analytics, l'upload ou le CSV export.
+Limites Sprint 5 : slug pas protégé contre race condition (faible risque admin-only ; une contrainte `UNIQUE` en base est recommandée avant charge élevée). S5-005 retourne `target_url` en chemin relatif — un QR imprimé nécessite une URL absolue composée côté interface. S5-008 n'expose pas `created_product_reference_id` quand null (propriété nullable exclue de la sérialisation JSON par API Platform par défaut). S5-008 : le statut `merged` de `ProductReferenceProposalStatus` est orphelin — l'endpoint `POST /merge` a été supprimé au profit de `PATCH /approve` + `productReferenceId` ; des enregistrements `merged` existants en base resteraient cohérents dans la lecture mais ne peuvent plus être créés ; prévoir un script one-shot de migration (`merged` → `approved`) avant passage en production si nécessaire. S5-008 : la collection `/api/admin/product-proposals` est paginée mais ne retourne pas de total (`X-Total-Count` / `hydra:totalItems`) — à ajouter dans une prochaine itération. Le backend ne couvre pas encore l'onboarding guidé, l'email d'invitation, le billing, l'analytics, l'upload ou le CSV export.
 
 ## Statuts de commande
 
@@ -93,16 +93,16 @@ Limites Sprint 5 actuel : S5-001, S5-002, S5-003, S5-004 et S5-005 sont livrés.
 
 ## Entités métier de référence
 
+Entités présentes dans `apps/backend/src/Entity/` :
+
 - `Shop`
-- `CustomerShop` ou `FavoriteShop`
+- `CustomerShop`
 - `Category`
 - `Brand`
 - `ProductReference`
 - `ProductReferenceProposal`
-- `ProductVariant`
-- `MerchantProductOffer`
-- `ProductFoodInfo`
-- `ProductExternalSource`
+- `MerchantProduct` (anciennement `MerchantProductOffer`)
+- `OpenDataProduct`
 - `Kadhia`
 - `KadhiaLine`
 - `PickupSlot`
@@ -110,10 +110,13 @@ Limites Sprint 5 actuel : S5-001, S5-002, S5-003, S5-004 et S5-005 sont livrés.
 - `ExceptionalClosure`
 - `Order`
 - `OrderLine`
+- `OrderStatusLog`
 - `PasswordResetToken`
 - `PickupSession`
+- `Notification`
 - `PlatformTheme`
 - `ShopTheme`
+- `User`
 
 ## Stack cible recommandée
 

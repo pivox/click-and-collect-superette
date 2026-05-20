@@ -6,17 +6,17 @@ namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
-use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\QueryParameter;
-use App\Dto\MergeProposalInput;
-use App\Dto\RejectProposalInput;
-use App\Entity\ProductReferenceProposal;
-use App\Processor\ApproveProductProposalProcessor;
-use App\Processor\MergeProductProposalProcessor;
-use App\Processor\RejectProductProposalProcessor;
+use App\Dto\AdminApproveProductProposalInput;
+use App\Dto\AdminRejectProductProposalInput;
+use App\Processor\AdminApproveProductProposalProcessor;
+use App\Processor\AdminRejectProductProposalProcessor;
 use App\Provider\AdminProductProposalCollectionProvider;
+use App\Provider\AdminProductProposalItemProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 
@@ -30,45 +30,44 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             security: "is_granted('ROLE_ADMIN')",
             parameters: [
                 'status' => new QueryParameter(schema: ['type' => 'string'], description: 'Filtrer par statut (pending, approved, rejected, merged).'),
+                'page' => new QueryParameter(schema: ['type' => 'integer']),
+                'limit' => new QueryParameter(schema: ['type' => 'integer']),
             ],
         ),
-        new Post(
+        new Get(
+            uriTemplate: '/admin/product-proposals/{proposalId}',
+            uriVariables: [
+                'proposalId' => new Link(fromClass: AdminProductProposalOutput::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            provider: AdminProductProposalItemProvider::class,
+            normalizationContext: ['groups' => ['admin_proposal:read']],
+            security: "is_granted('ROLE_ADMIN')",
+        ),
+        new Patch(
             uriTemplate: '/admin/product-proposals/{proposalId}/approve',
             uriVariables: [
-                'proposalId' => new Link(fromClass: ProductReferenceProposal::class, identifiers: ['id']),
+                'proposalId' => new Link(fromClass: AdminProductProposalOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
-            input: false,
+            input: AdminApproveProductProposalInput::class,
             output: false,
             status: 200,
             read: false,
-            processor: ApproveProductProposalProcessor::class,
+            processor: AdminApproveProductProposalProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
         ),
-        new Post(
+        new Patch(
             uriTemplate: '/admin/product-proposals/{proposalId}/reject',
             uriVariables: [
-                'proposalId' => new Link(fromClass: ProductReferenceProposal::class, identifiers: ['id']),
+                'proposalId' => new Link(fromClass: AdminProductProposalOutput::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
-            input: RejectProposalInput::class,
+            input: AdminRejectProductProposalInput::class,
             output: false,
             status: 200,
             read: false,
-            processor: RejectProductProposalProcessor::class,
-            security: "is_granted('ROLE_ADMIN')",
-        ),
-        new Post(
-            uriTemplate: '/admin/product-proposals/{proposalId}/merge',
-            uriVariables: [
-                'proposalId' => new Link(fromClass: ProductReferenceProposal::class, identifiers: ['id']),
-            ],
-            formats: ['json' => ['application/json']],
-            input: MergeProposalInput::class,
-            output: false,
-            status: 200,
-            read: false,
-            processor: MergeProductProposalProcessor::class,
+            processor: AdminRejectProductProposalProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
         ),
     ],
@@ -101,6 +100,9 @@ final readonly class AdminProductProposalOutput
         #[Groups(['admin_proposal:read'])]
         #[SerializedName('proposed_by')]
         public string $proposedBy,
+        #[Groups(['admin_proposal:read'])]
+        #[SerializedName('created_product_reference_id')]
+        public ?string $createdProductReferenceId = null,
     ) {
     }
 }
