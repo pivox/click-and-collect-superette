@@ -47,6 +47,7 @@ symfony console lexik:jwt:generate-keypair   # première installation uniquement
 symfony console doctrine:migrations:migrate
 symfony server:start
 vendor/bin/phpunit
+vendor/bin/phpunit --filter testMethodName    # cibler une méthode de test
 vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/php-cs-fixer fix --dry-run --diff  # vérifier
 vendor/bin/php-cs-fixer fix                   # corriger
@@ -66,6 +67,12 @@ symfony console doctrine:migrations:diff                         # générer une
 - `/simplify` — simplifie le code récemment écrit
 - `/revise-claude-md` — met à jour CLAUDE.md avec les apprentissages de la session
 - `/claude-md-improver` — audite et améliore les fichiers CLAUDE.md
+
+## Workflow features
+
+Les specs de chaque feature sont dans `prompts/` (ex. `prompts/s5-008-admin-product-proposals.md`).
+Commande type : `traite @prompts/s5-XXX-nom.md et pousse une pr`.
+Avant d'implémenter, vérifier si la feature est déjà livrée : `git log --oneline | grep s5-XXX`.
 
 ### Frontend (`apps/frontend/`)
 
