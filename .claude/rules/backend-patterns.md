@@ -360,18 +360,18 @@ Un test qui cible un endpoint supprimé retourne 404 et fait échouer la suite
 sans message d'erreur explicite sur la cause réelle. Toujours supprimer
 (ou migrer) le test en même temps que l'endpoint.
 
-## 22. `Assert\Url` — toujours spécifier `requireTld: true`
+## 22. `Assert\Url` — toujours spécifier `requireTld` et `protocols`
 
-Sans option explicite, Symfony 7.1 émet une dépréciation : "Not passing a value for the
-`requireTld` option to the Url constraint is deprecated. Its default value will change to true."
+Sans options explicites : (1) Symfony 7.1 émet une dépréciation sur `requireTld` ; (2) `ftp://`
+est accepté par défaut, ce qui expose un risque côté frontend (`<img src="ftp://...">`).
 
 ```php
-// Correct
-#[Assert\Url(requireTld: true)]
+// Correct — https/http seulement, pas ftp
+#[Assert\Url(requireTld: true, protocols: ['https', 'http'])]
 #[Assert\Length(max: 2048)]
 public ?string $logoUrl = null;
 
-// Incorrect — déclenche une dépréciation Symfony 7.1
+// Incorrect — accepte ftp + déclenche une dépréciation Symfony 7.1
 #[Assert\Url]
 public ?string $logoUrl = null;
 ```
