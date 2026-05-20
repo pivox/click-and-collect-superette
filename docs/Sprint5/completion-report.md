@@ -86,8 +86,8 @@ Sprint 5 avait pour mission de rendre la plateforme opérable par un administrat
 
 | Migration | Description |
 |---|---|
-| Version20260520120000 | `ADD COLUMN logo_url`, `cover_url` à la table `shop` |
-| Version20260520130000 | `ADD COLUMN onboarding_completed_at` à la table `user` |
+| Version20260520120000 | `ADD COLUMN logo_url`, `cover_url` à la table `shops` |
+| Version20260520130000 | `ADD COLUMN onboarding_completed_at` à la table `users` |
 
 Entités modifiées : `Shop` (logoUrl, coverUrl), `User` (onboardingCompletedAt).
 
