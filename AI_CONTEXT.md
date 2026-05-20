@@ -63,14 +63,14 @@ Exclus du MVP :
 - Sprint 3 : terminé côté backend (traitement marchand core, créneaux ponctuels, historique de statuts, dashboard journalier).
 - Sprint 4 : terminé côté backend (QR de retrait, `PickupSession`, scan marchand, `pickup_pending`, double validation, force completion, notifications in-app, suivi statut client, rappel retrait 1h).
 - Sprint 3b : terminé côté backend. PRs #91–#102 livrées ; PR #102 clôture officiellement le sprint (audit + documentation). Endpoints : pickup-slot-rules (CRUD + génération), exceptional-closures (CRUD), opening-hours (public + marchand), orders/history (filtres + pagination), products/bulk-availability. Automatisations Messenger : expiration délai réponse marchand (→ cancelled si submitted avant startsAt-2h), rappel acceptation partielle (notification à startsAt-4h), expiration acceptation partielle (→ cancelled si partially_accepted avant startsAt-2h). Limites : notifications in-app uniquement, transport async persistant requis en production.
-- Sprint 5 : quasi-terminé côté backend. S5-001 PR #103 (lecture admin marchands). S5-002 PR #104 (lecture admin supérettes). S5-004 PR #105 (mutations admin marchands : POST, PATCH, suspend, activate). S5-003 PR #107 (création/modification admin supérettes). S5-005 (contrat QR admin + régénération token). S5-006 PR #112 (CRUD admin catégories, 5 endpoints `/api/admin/categories`). S5-006b PR #115 (CRUD admin marques : `Brand`, 6 endpoints `/api/admin/brands`). S5-007 PR #116 (CRUD admin référentiel produit : `ProductReference`, 5 endpoints `/api/admin/product-references` dont archive). S5-008 PR #117 (validation admin propositions : `GET /api/admin/product-proposals`, `GET /{id}`, `PATCH /{id}/approve`, `PATCH /{id}/reject`, avec 409 sur doublon de traitement). S5-009 PR #118 (logo et cover URL sur `Shop` : `logoUrl`/`coverUrl` nullable max 2048 chars, exposés en lecture admin + publique via `StoreByQrOutput` et `StorePublicOutput`, modifiables via PATCH admin). Restent : génération image/PDF QR côté interface, onboarding marchand guidé, email d'invitation.
+- Sprint 5 : terminé côté backend (S5-001 à S5-009, PRs #103–#118). S5-001 PR #103 (lecture admin marchands). S5-002 PR #104 (lecture admin supérettes). S5-004 PR #105 (mutations admin marchands : POST, PATCH, suspend, activate). S5-003 PR #107 (création/modification admin supérettes). S5-005 (contrat QR admin + régénération token). S5-006 PR #112 (CRUD admin catégories, 5 endpoints `/api/admin/categories`). S5-006b PR #115 (CRUD admin marques : `Brand`, 6 endpoints `/api/admin/brands`). S5-007 PR #116 (CRUD admin référentiel produit : `ProductReference`, 5 endpoints `/api/admin/product-references` dont archive). S5-008 PR #117 (validation admin propositions : `GET /api/admin/product-proposals`, `GET /{id}`, `PATCH /{id}/approve`, `PATCH /{id}/reject`, avec 409 sur doublon de traitement). S5-009 PR #118 (logo et cover URL sur `Shop` : `logoUrl`/`coverUrl` nullable max 2048 chars, exposés en lecture admin + publique via `StoreByQrOutput` et `StorePublicOutput`, modifiables via PATCH admin). Restent hors Sprint 5 : génération image/PDF QR côté interface, onboarding marchand guidé, email d'invitation (reportés Sprint 6+).
 
 ## Avancement global
 
-- Backend MVP : environ 99 %.
+- Backend MVP : 100 % (Sprint 5 complet).
 - Produit terrain testable : environ 95 %.
-- Sprint courant : Sprint 5 quasi-terminé — Sprint 6 (personnalisation visuelle) à démarrer.
-- Prochaine PR recommandée : onboarding marchand guidé ou démarrage Sprint 6.
+- Sprint courant : Sprint 6 (personnalisation visuelle) — à démarrer.
+- Prochaine PR recommandée : démarrage Sprint 6 (ShopTheme/PlatformTheme customization).
 
 ## Limites connues
 
