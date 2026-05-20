@@ -26,6 +26,14 @@ Pour ajouter une réponse visible : utiliser un commentaire de PR classique.
 gh issue comment {pr_number} --body "..."
 ```
 
+## Récupérer les reviews d'une PR
+
+```bash
+gh pr view {pr_number} --json reviews,comments,reviewRequests
+```
+
+Retourne le corps complet des reviews (state, body, author). À utiliser avant d'adresser les retours d'une PR.
+
 ## Résoudre un thread de review
 
 Aucun endpoint REST ne permet de résoudre un thread. Utiliser l'API GraphQL :
