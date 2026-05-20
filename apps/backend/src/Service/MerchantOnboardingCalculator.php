@@ -12,11 +12,13 @@ use App\Repository\MerchantProductRepository;
 use App\Repository\PickupSlotRepository;
 use App\Repository\PickupSlotRuleRepository;
 use App\Repository\ShopRepository;
+use App\Repository\ShopThemeRepository;
 
 final readonly class MerchantOnboardingCalculator
 {
     public function __construct(
         private ShopRepository $shopRepository,
+        private ShopThemeRepository $shopThemeRepository,
         private MerchantProductRepository $merchantProductRepository,
         private PickupSlotRuleRepository $pickupSlotRuleRepository,
         private PickupSlotRepository $pickupSlotRepository,
@@ -57,7 +59,7 @@ final readonly class MerchantOnboardingCalculator
             ),
             new MerchantOnboardingStepOutput(
                 key: 'qr_code',
-                label: 'Télécharger le QR code',
+                label: 'Accéder au QR code',
                 completed: $qrCode,
             ),
         ];
@@ -76,7 +78,7 @@ final readonly class MerchantOnboardingCalculator
     private function anyShopHasTheme(array $shops): bool
     {
         foreach ($shops as $shop) {
-            if (null !== $shop->getTheme()) {
+            if ($this->shopThemeRepository->existsForShop($shop)) {
                 return true;
             }
         }

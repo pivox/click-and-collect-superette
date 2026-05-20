@@ -39,7 +39,8 @@ final readonly class MerchantOnboardingOutput
      * @param list<MerchantOnboardingStepOutput> $steps
      */
     public function __construct(
-        // Virtual identifier: the authenticated merchant's UUID. Not exposed in the URL.
+        #[Groups(['merchant_onboarding:read'])]
+        #[SerializedName('user_id')]
         public string $id,
         #[Groups(['merchant_onboarding:read'])]
         public bool $completed,

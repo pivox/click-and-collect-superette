@@ -1809,6 +1809,7 @@ Réponse `200` :
 
 ```json
 {
+  "user_id": "merchant-uuid",
   "completed": false,
   "completed_at": null,
   "steps": [
@@ -1816,10 +1817,12 @@ Réponse `200` :
     { "key": "theme",          "label": "Personnaliser le thème",     "completed": false },
     { "key": "catalog",        "label": "Ajouter des produits",       "completed": false },
     { "key": "pickup_slots",   "label": "Configurer les créneaux",    "completed": false },
-    { "key": "qr_code",        "label": "Télécharger le QR code",     "completed": true  }
+    { "key": "qr_code",        "label": "Accéder au QR code",         "completed": true  }
   ]
 }
 ```
+
+**i18n** : le champ `label` est en français uniquement (fallback de debug). Le frontend doit utiliser `key` comme clé i18n pour afficher le libellé en arabe (ex. `t('onboarding.store_profile')`).
 
 ### PATCH /api/merchant/onboarding/complete
 

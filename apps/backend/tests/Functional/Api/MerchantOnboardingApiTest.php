@@ -283,7 +283,8 @@ final class MerchantOnboardingApiTest extends FunctionalApiTestCase
             ->setShop($shop)
             ->setStartsAt($now->modify('+2 hours'))
             ->setEndsAt($now->modify('+3 hours'))
-            ->setCapacity(5);
+            ->setCapacity(5)
+            ->setActive(true);
 
         $this->entityManager->persist($slot);
         $this->entityManager->flush();
