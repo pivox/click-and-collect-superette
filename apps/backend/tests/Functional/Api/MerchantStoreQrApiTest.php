@@ -15,7 +15,7 @@ final class MerchantStoreQrApiTest extends FunctionalApiTestCase
         $merchant = $this->createMerchant('merchant-qr-owner@example.test');
         $shop = $this->createStore($merchant, 'Supérette El Amal', 'superette-el-amal', 'Tunis');
 
-        $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/qr-code', $shop->getId()), user: $merchant);
+        $response = $this->requestJson('GET', sprintf('/api/merchant/stores/%s/qr-code', $shop->getId()), user: $merchant);
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
@@ -23,7 +23,7 @@ final class MerchantStoreQrApiTest extends FunctionalApiTestCase
         self::assertSame('Supérette El Amal', $payload['store_name']);
         self::assertSame('superette-el-amal', $payload['slug']);
         self::assertSame($shop->getQrCodeToken(), $payload['qr_code_token']);
-        self::assertSame(\sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()), $payload['target_url']);
+        self::assertSame(sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()), $payload['target_url']);
         self::assertArrayNotHasKey('password', $payload);
         self::assertArrayNotHasKey('owner', $payload);
     }
@@ -33,11 +33,11 @@ final class MerchantStoreQrApiTest extends FunctionalApiTestCase
         $merchant = $this->createMerchant('merchant-qr-target@example.test');
         $shop = $this->createStore($merchant, 'Supérette Cible', 'superette-cible', 'Sfax');
 
-        $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/qr-code', $shop->getId()), user: $merchant);
+        $response = $this->requestJson('GET', sprintf('/api/merchant/stores/%s/qr-code', $shop->getId()), user: $merchant);
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        $expectedTargetUrl = \sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken());
+        $expectedTargetUrl = sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken());
         self::assertSame($expectedTargetUrl, $payload['target_url']);
 
         $publicResponse = $this->requestJson('GET', $payload['target_url']);
@@ -50,7 +50,7 @@ final class MerchantStoreQrApiTest extends FunctionalApiTestCase
         $otherMerchant = $this->createMerchant('merchant-qr-intruder@example.test');
         $shop = $this->createStore($owner, 'Supérette Privée', 'superette-privee', 'Tunis');
 
-        $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/qr-code', $shop->getId()), user: $otherMerchant);
+        $response = $this->requestJson('GET', sprintf('/api/merchant/stores/%s/qr-code', $shop->getId()), user: $otherMerchant);
 
         self::assertSame(403, $response->getStatusCode());
     }
@@ -61,7 +61,7 @@ final class MerchantStoreQrApiTest extends FunctionalApiTestCase
         $customer = $this->createUser('customer-qr-forbidden@example.test', ['ROLE_CUSTOMER']);
         $shop = $this->createStore($merchant, 'Supérette Customer Test', 'superette-customer-test', 'Tunis');
 
-        $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/qr-code', $shop->getId()), user: $customer);
+        $response = $this->requestJson('GET', sprintf('/api/merchant/stores/%s/qr-code', $shop->getId()), user: $customer);
 
         self::assertSame(403, $response->getStatusCode());
     }
@@ -71,7 +71,7 @@ final class MerchantStoreQrApiTest extends FunctionalApiTestCase
         $merchant = $this->createMerchant('merchant-qr-anon-test@example.test');
         $shop = $this->createStore($merchant, 'Supérette Anon Test', 'superette-anon-test', 'Tunis');
 
-        $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/qr-code', $shop->getId()));
+        $response = $this->requestJson('GET', sprintf('/api/merchant/stores/%s/qr-code', $shop->getId()));
 
         self::assertSame(401, $response->getStatusCode());
     }
@@ -80,7 +80,7 @@ final class MerchantStoreQrApiTest extends FunctionalApiTestCase
     {
         $merchant = $this->createMerchant('merchant-qr-missing@example.test');
 
-        $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/qr-code', Uuid::v4()), user: $merchant);
+        $response = $this->requestJson('GET', sprintf('/api/merchant/stores/%s/qr-code', Uuid::v4()), user: $merchant);
 
         self::assertSame(404, $response->getStatusCode());
     }

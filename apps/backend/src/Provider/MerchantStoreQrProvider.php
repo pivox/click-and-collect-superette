@@ -46,7 +46,7 @@ final readonly class MerchantStoreQrProvider implements ProviderInterface
             storeName: $shop->getName(),
             slug: $shop->getSlug(),
             qrCodeToken: $shop->getQrCodeToken(),
-            targetUrl: \sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()),
+            targetUrl: sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()),
         );
     }
 }
