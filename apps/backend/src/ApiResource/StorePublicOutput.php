@@ -40,6 +40,12 @@ final readonly class StorePublicOutput
         #[Groups(['store_public:read'])]
         #[SerializedName('is_active')]
         public bool $isActive,
+        #[Groups(['store_public:read'])]
+        #[SerializedName('logo_url')]
+        public ?string $logoUrl,
+        #[Groups(['store_public:read'])]
+        #[SerializedName('cover_url')]
+        public ?string $coverUrl,
     ) {
     }
 }

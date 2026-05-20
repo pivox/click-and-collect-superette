@@ -26,4 +26,12 @@ final class AdminStoreUpdateInput
 
     #[Assert\Uuid]
     public ?string $ownerId = null;
+
+    #[Assert\Url(requireTld: true, protocols: ['https', 'http'])]
+    #[Assert\Length(max: 2048)]
+    public ?string $logoUrl = null;
+
+    #[Assert\Url(requireTld: true, protocols: ['https', 'http'])]
+    #[Assert\Length(max: 2048)]
+    public ?string $coverUrl = null;
 }

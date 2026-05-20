@@ -124,6 +124,12 @@ final readonly class AdminStoreOutput
         #[Groups(['admin_store:read'])]
         #[SerializedName('pickup_rules_count')]
         public int $pickupRulesCount,
+        #[Groups(['admin_store:read'])]
+        #[SerializedName('logo_url')]
+        public ?string $logoUrl,
+        #[Groups(['admin_store:read'])]
+        #[SerializedName('cover_url')]
+        public ?string $coverUrl,
     ) {
     }
 }

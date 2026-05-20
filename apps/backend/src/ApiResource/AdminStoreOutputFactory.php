@@ -36,6 +36,8 @@ final readonly class AdminStoreOutputFactory
             openingHours: $shop->getOpeningHours(),
             exceptionalClosuresCount: $exceptionalClosuresCount,
             pickupRulesCount: $pickupRulesCount,
+            logoUrl: $shop->getLogoUrl(),
+            coverUrl: $shop->getCoverUrl(),
         );
     }
 }

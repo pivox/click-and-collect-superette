@@ -44,6 +44,8 @@ final readonly class StorePublicProvider implements ProviderInterface
             city: $shop->getCity(),
             country: $shop->getCountry(),
             isActive: $shop->isActive(),
+            logoUrl: $shop->getLogoUrl(),
+            coverUrl: $shop->getCoverUrl(),
         );
     }
 }

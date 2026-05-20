@@ -52,6 +52,12 @@ class Shop
     #[ORM\OneToOne(mappedBy: 'shop', targetEntity: ShopTheme::class)]
     private ?ShopTheme $theme = null;
 
+    #[ORM\Column(length: 2048, nullable: true)]
+    private ?string $logoUrl = null;
+
+    #[ORM\Column(length: 2048, nullable: true)]
+    private ?string $coverUrl = null;
+
     /** @var array<string, mixed>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $openingHours = null;
@@ -218,6 +224,30 @@ class Shop
     public function setOpeningHours(?array $openingHours): static
     {
         $this->openingHours = $openingHours;
+
+        return $this;
+    }
+
+    public function getLogoUrl(): ?string
+    {
+        return $this->logoUrl;
+    }
+
+    public function setLogoUrl(?string $logoUrl): static
+    {
+        $this->logoUrl = $logoUrl;
+
+        return $this;
+    }
+
+    public function getCoverUrl(): ?string
+    {
+        return $this->coverUrl;
+    }
+
+    public function setCoverUrl(?string $coverUrl): static
+    {
+        $this->coverUrl = $coverUrl;
 
         return $this;
     }
