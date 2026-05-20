@@ -359,3 +359,19 @@ utilisée que par un seul DTO parent — PSR-1 §3.
 Un test qui cible un endpoint supprimé retourne 404 et fait échouer la suite
 sans message d'erreur explicite sur la cause réelle. Toujours supprimer
 (ou migrer) le test en même temps que l'endpoint.
+
+## 22. `Assert\Url` — toujours spécifier `requireTld: true`
+
+Sans option explicite, Symfony 7.1 émet une dépréciation : "Not passing a value for the
+`requireTld` option to the Url constraint is deprecated. Its default value will change to true."
+
+```php
+// Correct
+#[Assert\Url(requireTld: true)]
+#[Assert\Length(max: 2048)]
+public ?string $logoUrl = null;
+
+// Incorrect — déclenche une dépréciation Symfony 7.1
+#[Assert\Url]
+public ?string $logoUrl = null;
+```

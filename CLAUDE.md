@@ -34,6 +34,8 @@ Tu dois aider à produire :
 Monorepo : `apps/backend/` (Symfony 7 · API Platform 4 · PostgreSQL · Doctrine)
 et `apps/frontend/` (Next.js 14 · React Query · Tailwind CSS).
 
+- `.claude/rules/` — règles auto-chargées : backend-patterns, migrations, security, testing, github
+
 ## Commandes projet
 
 ### Backend (`apps/backend/`)
@@ -59,6 +61,11 @@ symfony console doctrine:migrations:diff                         # générer une
 - `/api-resource` — conçoit ou révise une ressource API Platform
 - `/mvp-check` — vérifie qu'une demande reste dans le périmètre MVP
 - `/product-reference` — workflow référentiel produit
+- `/review` — revue de PR complète
+- `/security-review` — audit sécurité des changements en cours
+- `/simplify` — simplifie le code récemment écrit
+- `/revise-claude-md` — met à jour CLAUDE.md avec les apprentissages de la session
+- `/claude-md-improver` — audite et améliore les fichiers CLAUDE.md
 
 ### Frontend (`apps/frontend/`)
 

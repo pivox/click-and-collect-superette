@@ -4,6 +4,9 @@
 
 1. Every Doctrine entity change must be accompanied by a migration.
 2. Generate: `symfony console doctrine:migrations:diff` — review the diff before committing.
+   **Warning**: if the local DB is empty or out of sync, the diff generates a full-schema migration
+   (recreates all tables). In that case, write the migration manually (e.g. `ALTER TABLE shops ADD
+   logo_url VARCHAR(2048) DEFAULT NULL`) and delete the generated file.
 3. Validate: `symfony console doctrine:schema:validate` — must pass before merging.
 4. Never edit a migration after it has been merged to `main`.
 5. Never run `doctrine:migrations:migrate` automatically — always run manually and deliberately.
