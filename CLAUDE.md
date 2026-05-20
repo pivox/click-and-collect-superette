@@ -4,7 +4,6 @@
 @AI_CONTEXT.md
 @Claude/instructions.md
 @Claude/workflows.md
-@Claude/checklist.md
 
 ## Rôle attendu
 
@@ -51,7 +50,15 @@ vendor/bin/php-cs-fixer fix --dry-run --diff  # vérifier
 vendor/bin/php-cs-fixer fix                   # corriger
 php bin/console debug:router | grep "mon-pattern"   # vérifier les routes après ajout
 vendor/bin/phpunit tests/Functional/Api/MonTest.php --testdox  # test ciblé
+symfony console doctrine:migrations:diff                         # générer une migration
 ```
+
+### Commandes slash disponibles
+
+- `/init-context` — charge le contexte complet + choisit le sous-agent (démarrage recommandé)
+- `/api-resource` — conçoit ou révise une ressource API Platform
+- `/mvp-check` — vérifie qu'une demande reste dans le périmètre MVP
+- `/product-reference` — workflow référentiel produit
 
 ### Frontend (`apps/frontend/`)
 
