@@ -374,6 +374,17 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
     }
 
+    public function testNonAdminCannotSetLogoUrl(): void
+    {
+        $customer = $this->createUser('customer-logo-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $merchant = $this->createMerchant('merchant-logo-forbidden@example.test');
+        $shop = $this->createStore(null, 'Store Logo Forbidden', 'store-logo-forbidden', 'Tunis', new \DateTimeImmutable());
+
+        self::assertSame(403, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), ['logoUrl' => 'https://cdn.example.com/logo.png'], $customer)->getStatusCode());
+        self::assertSame(403, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), ['logoUrl' => 'https://cdn.example.com/logo.png'], $merchant)->getStatusCode());
+        self::assertSame(401, $this->requestJson('PATCH', \sprintf('/api/admin/stores/%s', $shop->getId()), ['logoUrl' => 'https://cdn.example.com/logo.png'])->getStatusCode());
+    }
+
     public function testAdminUpdatesStoreAndDoesNotRegenerateSlugOrQrCodeToken(): void
     {
         $admin = $this->createUser('admin-store-update@example.test', ['ROLE_ADMIN']);
