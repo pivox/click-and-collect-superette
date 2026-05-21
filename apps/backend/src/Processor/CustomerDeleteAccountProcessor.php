@@ -10,7 +10,6 @@ use App\Entity\User;
 use App\Repository\PasswordResetTokenRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * @implements ProcessorInterface<object|null, null>
@@ -33,14 +32,13 @@ final readonly class CustomerDeleteAccountProcessor implements ProcessorInterfac
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): null
     {
         $user = $this->security->getUser();
-        if (!$user instanceof User || !$this->security->isGranted('ROLE_CUSTOMER')) {
-            throw new AccessDeniedHttpException('CUSTOMER_ACCESS_REQUIRED');
-        }
+        \assert($user instanceof User);
 
         $now = new \DateTimeImmutable();
         $user
             ->setDeletedAt($now)
             ->setActive(false)
+            ->setPassword('*')
             ->setEmail($this->anonymizedEmail($user))
             ->setName(self::ANONYMIZED_VALUE)
             ->setFirstName(self::ANONYMIZED_VALUE)

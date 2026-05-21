@@ -14,6 +14,7 @@ Lors de la suppression du compte client :
 - `User.email` devient une adresse technique `deleted-<uuid>@deleted.local` ;
 - `User.name`, `User.firstName` et `User.lastName` deviennent `[supprimé]` ;
 - `User.phone` devient `null` ;
+- `User.password` devient `*`, un hash invalide non réutilisable ;
 - `User.active` passe à `false`.
 
 Ces valeurs évitent d'exposer les coordonnées du client dans les historiques marchand qui lisent encore le `User` rattaché à une commande.
@@ -21,8 +22,8 @@ Ces valeurs évitent d'exposer les coordonnées du client dans les historiques m
 ## Données supprimées ou invalidées
 
 - Les `PasswordResetToken` actifs du client sont consommés immédiatement.
-- Le compte supprime ne peut plus se connecter : `DeletedUserChecker` bloque tout `User` avec `deletedAt` non null.
-- Les JWT déjà émis ne sont pas stockés dans une denylist dans le MVP. En pratique, ils ne doivent plus ouvrir les routes protégées car l'identifiant email d'origine est anonymisé et le `UserChecker` bloque le compte marqué supprimé.
+- Le compte supprimé ne peut plus se connecter : `DeletedUserChecker` bloque tout `User` avec `deletedAt` non null.
+- Les JWT déjà émis ne sont pas stockés dans une denylist dans le MVP. En pratique, ils ne doivent plus ouvrir les routes protégées car l'identifiant email d'origine est anonymisé. Le `DeletedUserChecker` reste une protection secondaire si l'utilisateur est retrouvé malgré l'anonymisation, par exemple avec une configuration JWT basée sur l'UUID. Le TTL JWT de 1h reste le délai maximum d'exposition résiduelle hors denylist persistante.
 
 ## Données conservées
 

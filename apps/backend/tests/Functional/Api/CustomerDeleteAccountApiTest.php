@@ -46,6 +46,7 @@ final class CustomerDeleteAccountApiTest extends FunctionalApiTestCase
         self::assertSame('[supprimé]', $storedUser->getFirstName());
         self::assertSame('[supprimé]', $storedUser->getLastName());
         self::assertNull($storedUser->getPhone());
+        self::assertSame('*', $storedUser->getPassword());
 
         $storedToken = $this->entityManager->getRepository(PasswordResetToken::class)->find($token->getId());
         self::assertInstanceOf(PasswordResetToken::class, $storedToken);
@@ -86,6 +87,9 @@ final class CustomerDeleteAccountApiTest extends FunctionalApiTestCase
 
         $this->requestJson('DELETE', '/api/me/account', user: $customer);
 
+        self::assertNotNull($customer->getDeletedAt());
+        self::assertMatchesRegularExpression('/^deleted-[0-9a-f-]+@deleted\.local$/', $customer->getEmail());
+
         $response = $this->requestJson('GET', '/api/me/profile', user: $customer);
 
         self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
@@ -115,8 +119,10 @@ final class CustomerDeleteAccountApiTest extends FunctionalApiTestCase
         $customer = $this->createCustomer('client.delete-reset-request@example.test');
         $this->requestJson('DELETE', '/api/me/account', user: $customer);
 
+        self::assertNotNull($customer->getDeletedAt());
+
         $response = $this->requestJson('POST', '/api/auth/password-reset/request', [
-            'email' => 'client.delete-reset-request@example.test',
+            'email' => $customer->getEmail(),
         ]);
 
         self::assertSame(Response::HTTP_ACCEPTED, $response->getStatusCode());

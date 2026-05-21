@@ -35,6 +35,7 @@ final readonly class LastLoginAtSubscriber implements EventSubscriberInterface
         }
 
         $user->setLastLoginAt(new \DateTimeImmutable());
+        // User is already managed here; this flush persists the login timestamp.
         $this->entityManager->flush();
     }
 }

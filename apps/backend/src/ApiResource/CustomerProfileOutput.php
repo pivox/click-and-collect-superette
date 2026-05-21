@@ -36,7 +36,6 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         ),
         new Delete(
             uriTemplate: '/me/account',
-            formats: ['json' => ['application/json']],
             output: false,
             status: 204,
             read: false,
