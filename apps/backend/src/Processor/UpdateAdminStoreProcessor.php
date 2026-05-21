@@ -12,6 +12,7 @@ use App\Dto\AdminStoreUpdateInput;
 use App\Entity\User;
 use App\Repository\AdminMerchantRepository;
 use App\Repository\AdminStoreRepository;
+use App\Service\AdminAuditLogger;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -26,6 +27,7 @@ final readonly class UpdateAdminStoreProcessor implements ProcessorInterface
         private AdminStoreOutputFactory $adminStoreOutputFactory,
         private AdminMerchantRepository $adminMerchantRepository,
         private RequestStack $requestStack,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -80,6 +82,13 @@ final readonly class UpdateAdminStoreProcessor implements ProcessorInterface
             $shop->setCoverUrl($this->normalizeNullableString($data->coverUrl));
         }
 
+        $this->auditLogger->log(
+            action: 'store.update',
+            resourceType: 'store',
+            resourceId: $shop->getId()->toRfc4122(),
+            summary: \sprintf('Supérette "%s" modifiée.', $shop->getName()),
+            metadata: ['name' => $shop->getName()],
+        );
         $this->adminStoreRepository->save($shop);
 
         return $this->adminStoreOutputFactory->create(

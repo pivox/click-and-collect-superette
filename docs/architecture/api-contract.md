@@ -1786,6 +1786,50 @@ GET /api/admin/theme
 PUT /api/admin/theme
 ```
 
+### Journal d'audit des actions admin critiques
+
+Statut : **livré backend S7-004**.
+
+```http
+GET /api/admin/audit-logs?action=&resource_type=&resource_id=&admin=&page=1&limit=20
+```
+
+Réponse `200` :
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "action": "merchant.suspend",
+      "resource_type": "merchant",
+      "resource_id": "uuid",
+      "summary": "Compte marchand marchand@example.com suspendu.",
+      "metadata": { "email": "marchand@example.com" },
+      "admin_id": "uuid",
+      "admin_email": "admin@example.com",
+      "ip_address": "127.0.0.1",
+      "user_agent": "...",
+      "created_at": "2026-05-21T12:00:00+00:00"
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 42
+}
+```
+
+Règles :
+
+- réservé à `ROLE_ADMIN` ; JWT obligatoire ; anonyme → 401, marchand/client → 403 ;
+- lecture seule — POST/PATCH/DELETE retournent `405` ;
+- logs triés par `created_at` décroissant ;
+- filtrable par `action`, `resource_type`, `resource_id` et `admin` (UUID de l’administrateur) ;
+- `metadata` ne contient jamais de mot de passe, token ou secret ;
+- `summary` contient un résumé lisible prêt à afficher côté backoffice ;
+- `user_agent` est tronqué à 500 caractères avant persistance ;
+- actions loggées : `merchant.create`, `merchant.update`, `merchant.suspend`, `merchant.activate`, `store.create`, `store.update`, `store.activate`, `store.deactivate`, `store.qr_regenerate`, `store.archive`, `product_reference.create`, `product_reference.update`, `product_reference.archive`, `product_proposal.approve`, `product_proposal.reject`.
+
 ---
 
 ## Retrait sécurisé

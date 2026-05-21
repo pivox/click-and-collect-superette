@@ -13,6 +13,7 @@ use App\Entity\Shop;
 use App\Enum\OrderStatus;
 use App\Repository\AdminStoreRepository;
 use App\Repository\OrderRepository;
+use App\Service\AdminAuditLogger;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,6 +32,7 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private OrderStatusLogRecorder $orderStatusLogRecorder,
         private AdminStoreOutputFactory $adminStoreOutputFactory,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -78,6 +80,13 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
                 $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled, 'ADMIN_STORE_ARCHIVED');
             }
 
+            $this->auditLogger->log(
+                action: 'store.archive',
+                resourceType: 'store',
+                resourceId: $shop->getId()->toRfc4122(),
+                summary: \sprintf('Supérette "%s" archivée.', $shop->getName()),
+                metadata: ['name' => $shop->getName(), 'reason' => $reason],
+            );
             $this->adminStoreRepository->save($shop);
         });
 

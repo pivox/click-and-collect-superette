@@ -10,6 +10,7 @@ use App\ApiResource\AdminProductReferenceOutput;
 use App\Enum\ProductReferenceStatus;
 use App\Provider\AdminProductReferenceItemProvider;
 use App\Repository\AdminProductReferenceRepository;
+use App\Service\AdminAuditLogger;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -20,6 +21,7 @@ final readonly class AdminArchiveProductReferenceProcessor implements ProcessorI
 {
     public function __construct(
         private AdminProductReferenceRepository $adminProductReferenceRepository,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -40,6 +42,13 @@ final readonly class AdminArchiveProductReferenceProcessor implements ProcessorI
         }
 
         $productReference->setStatus(ProductReferenceStatus::Archived);
+        $this->auditLogger->log(
+            action: 'product_reference.archive',
+            resourceType: 'product_reference',
+            resourceId: $productReference->getId()->toRfc4122(),
+            summary: \sprintf('Produit référentiel "%s" archivé.', $productReference->getNameFr()),
+            metadata: ['name_fr' => $productReference->getNameFr()],
+        );
         $this->adminProductReferenceRepository->save($productReference);
 
         return AdminProductReferenceItemProvider::toOutput($productReference);

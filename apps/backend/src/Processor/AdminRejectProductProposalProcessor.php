@@ -10,6 +10,7 @@ use App\Dto\AdminRejectProductProposalInput;
 use App\Entity\ProductReferenceProposal;
 use App\Enum\ProductReferenceProposalStatus;
 use App\Repository\ProductReferenceProposalRepository;
+use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -23,6 +24,7 @@ final readonly class AdminRejectProductProposalProcessor implements ProcessorInt
     public function __construct(
         private ProductReferenceProposalRepository $proposalRepository,
         private EntityManagerInterface $entityManager,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -52,6 +54,14 @@ final readonly class AdminRejectProductProposalProcessor implements ProcessorInt
 
         $proposal->setStatus(ProductReferenceProposalStatus::Rejected);
         $proposal->setRejectionReason($data->reason);
+
+        $this->auditLogger->log(
+            action: 'product_proposal.reject',
+            resourceType: 'product_proposal',
+            resourceId: $proposalId,
+            summary: \sprintf('Proposition produit "%s" rejetée.', $proposal->getNameFr()),
+            metadata: ['rejection_reason' => $data->reason],
+        );
 
         $this->entityManager->flush();
     }

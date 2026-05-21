@@ -12,6 +12,7 @@ use App\Entity\User;
 use App\Provider\AdminMerchantItemProvider;
 use App\Repository\AdminMerchantRepository;
 use App\Repository\UserRepository;
+use App\Service\AdminAuditLogger;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -27,6 +28,7 @@ final readonly class AdminCreateMerchantProcessor implements ProcessorInterface
         private AdminMerchantRepository $adminMerchantRepository,
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -62,6 +64,13 @@ final readonly class AdminCreateMerchantProcessor implements ProcessorInterface
 
         try {
             $this->entityManager->persist($user);
+            $this->auditLogger->log(
+                action: 'merchant.create',
+                resourceType: 'merchant',
+                resourceId: $user->getId()->toRfc4122(),
+                summary: \sprintf('Compte marchand %s créé.', $email),
+                metadata: ['email' => $email],
+            );
             $this->entityManager->flush();
         } catch (UniqueConstraintViolationException) {
             throw new UnprocessableEntityHttpException('ADMIN_MERCHANT_EMAIL_ALREADY_EXISTS');
