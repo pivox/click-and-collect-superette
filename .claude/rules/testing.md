@@ -29,3 +29,27 @@ cd apps/backend && vendor/bin/phpunit
 
 - Test class: `{Subject}Test.php`
 - Test method: `test{ScenarioInCamelCase}` or descriptive method name
+
+## Pickup slot tests — always use relative dates
+
+`PickupSlotRepository::findAvailableForShop()` filters `startsAt > now()`. Tests with hardcoded
+dates silently return 0 results once those dates pass.
+
+```php
+// Correct — always in the future
+$tomorrow = new \DateTimeImmutable('tomorrow 09:00:00', $timezone);
+$slot = $this->createPickupSlot($shop, $tomorrow, $tomorrow->modify('+1 hour'), 4);
+
+// Incorrect — returns 0 results the day after the hardcoded date
+$slot = $this->createPickupSlot($shop, new \DateTimeImmutable('2026-05-21 09:00:00', $tz), ...);
+```
+
+## Verifying a pre-existing CI failure
+
+```bash
+git checkout main
+vendor/bin/phpunit tests/Functional/Api/SomeTest.php --filter testSpecificMethod
+git checkout -  # return to feature branch
+```
+
+If it fails identically on `main`, document it in the PR and handle separately.

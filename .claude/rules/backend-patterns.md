@@ -379,3 +379,49 @@ public ?string $logoUrl = null;
 #[Assert\Url]
 public ?string $logoUrl = null;
 ```
+
+## 23. `StreamedResponse::getContent()` retourne `false` dans les tests
+
+`getContent()` est une méthode de `Response`. Sur une `StreamedResponse`, elle retourne `false`.
+Capturer le corps avec `ob_start()` + `sendContent()` + `ob_get_clean()`.
+
+```php
+// Correct — capture le corps d'une StreamedResponse
+ob_start();
+$response->sendContent();
+$body = (string) ob_get_clean();
+$body = ltrim($body, "\xEF\xBB\xBF"); // strip BOM si présent avant parsing
+
+// Incorrect — retourne false sur StreamedResponse
+(string) $response->getContent();
+```
+
+## 24. `fputcsv` — RFC 4180 : `$escape=''`, pas `'\\'`
+
+`$escape='\\'` produit `\"` — Excel FR/TN parse incorrectement. RFC 4180 utilise le
+double-quote doubling (`""`), obtenu avec `$escape=''`. Appliquer aux deux sens (production et test).
+
+```php
+// Correct — RFC 4180, Excel FR/TN compatible
+fputcsv($stream, $row, ';', '"', '');
+str_getcsv($line, ';', '"', '');
+
+// Incorrect — Excel interprète \" comme une séquence d'échappement non standard
+fputcsv($stream, $row, ';', '"', '\\');
+```
+
+## 25. `DateInterval::$days` toujours absolu — ne détecte pas une plage inversée
+
+`$dateFrom->diff($dateTo)->days` est toujours ≥ 0 quel que soit l'ordre des dates.
+La garde "plage trop grande" ne protège pas contre l'inversion — vérification explicite requise.
+
+```php
+// Correct — vérification avant la garde de durée maximale
+if ($dateFrom > $dateTo) {
+    throw new BadRequestHttpException('..._INVALID_DATE_RANGE');
+}
+$diffDays = (int) $dateFrom->diff($dateTo)->days;
+if ($diffDays > self::MAX_RANGE_DAYS) { ... }
+
+// Incorrect — diff()->days retourne la même valeur positive dans les deux sens
+```
