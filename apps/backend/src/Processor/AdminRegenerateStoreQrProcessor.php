@@ -9,6 +9,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\AdminStoreQrOutput;
 use App\ApiResource\AdminStoreQrOutputFactory;
 use App\Repository\AdminStoreRepository;
+use App\Service\AdminAuditLogger;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -20,6 +21,7 @@ final readonly class AdminRegenerateStoreQrProcessor implements ProcessorInterfa
     public function __construct(
         private AdminStoreRepository $adminStoreRepository,
         private AdminStoreQrOutputFactory $adminStoreQrOutputFactory,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -40,6 +42,12 @@ final readonly class AdminRegenerateStoreQrProcessor implements ProcessorInterfa
         }
 
         $shop->setQrCodeToken(Uuid::v4()->toRfc4122());
+        $this->auditLogger->log(
+            action: 'store.qr_regenerate',
+            resourceType: 'store',
+            resourceId: $shop->getId()->toRfc4122(),
+            metadata: ['name' => $shop->getName()],
+        );
         $this->adminStoreRepository->save($shop);
 
         return $this->adminStoreQrOutputFactory->create($shop);

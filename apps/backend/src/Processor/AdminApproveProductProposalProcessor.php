@@ -17,6 +17,7 @@ use App\Repository\AdminBrandRepository;
 use App\Repository\AdminCategoryRepository;
 use App\Repository\AdminProductReferenceRepository;
 use App\Repository\ProductReferenceProposalRepository;
+use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -34,6 +35,7 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
         private AdminBrandRepository $brandRepository,
         private AdminCategoryRepository $categoryRepository,
         private EntityManagerInterface $entityManager,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -58,6 +60,13 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
         }
 
         $input = $data instanceof AdminApproveProductProposalInput ? $data : new AdminApproveProductProposalInput();
+
+        // Persist log before the private method flushes, so both are committed atomically.
+        $this->auditLogger->log(
+            action: 'product_proposal.approve',
+            resourceType: 'product_proposal',
+            resourceId: $proposalId,
+        );
 
         if (null !== $input->productReferenceId) {
             $this->linkToExisting($proposal, $input->productReferenceId);

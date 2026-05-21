@@ -10,6 +10,7 @@ use App\ApiResource\AdminStoreOutput;
 use App\ApiResource\AdminStoreOutputFactory;
 use App\Entity\Shop;
 use App\Repository\AdminStoreRepository;
+use App\Service\AdminAuditLogger;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -21,6 +22,7 @@ final readonly class AdminActivateStoreProcessor implements ProcessorInterface
     public function __construct(
         private AdminStoreRepository $adminStoreRepository,
         private AdminStoreOutputFactory $adminStoreOutputFactory,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -34,6 +36,12 @@ final readonly class AdminActivateStoreProcessor implements ProcessorInterface
         $shop = $this->resolveShop($storeId);
 
         $shop->setActive(true);
+        $this->auditLogger->log(
+            action: 'store.activate',
+            resourceType: 'store',
+            resourceId: $shop->getId()->toRfc4122(),
+            metadata: ['name' => $shop->getName()],
+        );
         $this->adminStoreRepository->save($shop);
 
         return $this->adminStoreOutputFactory->create(

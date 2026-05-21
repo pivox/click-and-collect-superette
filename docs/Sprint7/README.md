@@ -30,6 +30,14 @@ C'est le dernier sprint MVP identifié dans la roadmap actuelle.
   - Commandes et lignes de commande conservées pour l'historique marchand
   - Politique documentée dans `docs/Sprint7/data-retention-policy.md`
 
+- S7-004 — Audit trail des actions admin critiques : **livré côté backend**.
+  - `GET /api/admin/audit-logs` (lecture seule, paginé, filtres `action` / `resource_type` / `resource_id`)
+  - Entité `AdminAuditLog` append-only, service `AdminAuditLogger` injecté dans 9 processors
+  - Actions loggées : `merchant.create`, `merchant.suspend`, `merchant.activate`, `store.activate`, `store.deactivate`, `store.qr_regenerate`, `store.archive`, `product_proposal.approve`, `product_proposal.reject`
+  - `metadata` ne contient jamais password, token ni secret
+  - 21 tests fonctionnels, PHPStan niveau 8 clean, CS Fixer clean
+  - Migration `Version20260521120000` : table `admin_audit_logs` avec FK RESTRICT sur `users`
+
 Sprint 7 en cours — ce document sera complété au fil des livraisons.
 
 ## Fonctionnalités prévues
@@ -56,7 +64,7 @@ Sprint 7 en cours — ce document sera complété au fil des livraisons.
 | US-060 | Accessibilité WCAG 2.1 AA | À faire |
 | US-061 | Export données commandes marchand CSV | Livré (S7-002) |
 | US-062 | Politique de conservation et suppression des données | Livré backend S7-003 |
-| US-063 | Audit trail des actions admin | À faire |
+| US-063 | Audit trail des actions admin | Livré (S7-004) |
 | US-066 | Garantir la fiabilité des automatisations différées en production via un transport Messenger persistant | À faire (S7-009) |
 
 ## Découpage recommandé
@@ -66,7 +74,7 @@ Sprint 7 en cours — ce document sera complété au fil des livraisons.
 | S7-001 | Fermeture définitive d'une supérette | Backend admin — Livré, PR #122 |
 | S7-002 | Export CSV commandes marchand | Backend marchand — Livré |
 | S7-003 | Conservation et suppression des données | Backend conformité — Livré |
-| S7-004 | Audit trail admin | Backend admin |
+| S7-004 | Audit trail admin | Backend admin — Livré |
 | S7-005 | Observabilité production | Backend / infra |
 | S7-006 | PWA installable et offline | Frontend / PWA |
 | S7-007 | Accessibilité WCAG 2.1 AA | Frontend / qualité |
