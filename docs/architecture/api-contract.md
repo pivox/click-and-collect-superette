@@ -1034,6 +1034,37 @@ Règles cibles :
 - pas de lignes de commande détaillées dans la liste ;
 - données client limitées au besoin métier, le détail commande marchand restant la source des coordonnées complètes.
 
+### Export CSV des commandes marchand
+
+Statut : **livré S7-002**.
+
+```http
+GET /api/merchant/stores/{storeId}/orders/export.csv?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&status=
+```
+
+Réponse :
+
+```
+Content-Type: text/csv; charset=UTF-8
+Content-Disposition: attachment; filename="commandes-{storeId}-{date_from}-{date_to}.csv"
+```
+
+Colonnes (dans cet ordre) : `order_id`, `status`, `customer_name`, `customer_phone`, `total_tnd`, `pickup_starts_at`, `pickup_ends_at`, `created_at`, `updated_at`.
+
+Séparateur : `;` (compatible Excel FR/TN). Les valeurs contenant `;` ou `"` sont échappées selon RFC 4180.
+
+Règles :
+
+- `ROLE_MERCHANT` uniquement — 401 anonyme, 403 customer ou autre marchand ;
+- ownership strict via `MerchantShopAccessChecker` ;
+- `date_from` et `date_to` obligatoires — 400 si absents ou invalides ;
+- plage maximale 92 jours — 400 si dépassée ;
+- `status` optionnel — exclut toujours les commandes `draft` ;
+- aucune donnée sensible (mot de passe, token, email client) dans le fichier ;
+- controller Symfony classique, `StreamedResponse` — pas de provider API Platform.
+
+---
+
 ### Ruptures de stock en masse
 
 Statut : **livré S3B-005**.
