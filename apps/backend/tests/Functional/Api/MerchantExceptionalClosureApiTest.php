@@ -288,19 +288,26 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
         $merchant = $this->createUser('merchant-closure-public-slots@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
         $timezone = new \DateTimeZone('Africa/Tunis');
+        $tomorrow = new \DateTimeImmutable('tomorrow 09:00:00', $timezone);
+        $dayAfter = new \DateTimeImmutable('tomorrow +1 day 09:00:00', $timezone);
         $closedSlot = $this->createPickupSlot(
             $shop,
-            new \DateTimeImmutable('2026-05-20 09:00:00', $timezone),
-            new \DateTimeImmutable('2026-05-20 10:00:00', $timezone),
+            $tomorrow,
+            $tomorrow->modify('+1 hour'),
             4,
         );
         $openSlot = $this->createPickupSlot(
             $shop,
-            new \DateTimeImmutable('2026-05-21 09:00:00', $timezone),
-            new \DateTimeImmutable('2026-05-21 10:00:00', $timezone),
+            $dayAfter,
+            $dayAfter->modify('+1 hour'),
             4,
         );
-        $this->createClosure($shop, '2026-05-20 08:00:00', '2026-05-20 18:00:00', 'Inventaire');
+        $this->createClosure(
+            $shop,
+            $tomorrow->modify('-1 hour')->format('Y-m-d H:i:s'),
+            $tomorrow->modify('+2 hours')->format('Y-m-d H:i:s'),
+            'Inventaire',
+        );
 
         $response = $this->requestJson('GET', \sprintf('/api/stores/%s/pickup-slots', $shop->getId()));
 
@@ -332,7 +339,8 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
         $merchant = $this->createUser('merchant-closure-generation@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
         $timezone = new \DateTimeZone('Africa/Tunis');
-        $closedDate = (new \DateTimeImmutable('now', $timezone))->modify('+1 day')->setTime(8, 0);
+        $now = new \DateTimeImmutable('now', $timezone);
+        $closedDate = $now->modify('+1 day')->setTime(8, 0);
         $this->createRule($shop, (int) $closedDate->format('N'), '09:00', '10:00', 6);
         $this->createClosure(
             $shop,

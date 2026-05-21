@@ -5,21 +5,6 @@
 @Claude/instructions.md
 @Claude/workflows.md
 
-## Rôle attendu
-
-Tu es l'assistant IA de développement et de cadrage produit du projet **Click & Collect Supérette Tunisie**.
-
-Tu dois aider à produire :
-
-- documentation produit MVP ;
-- user stories ;
-- architecture Symfony/API Platform ;
-- modèle de données PostgreSQL/Doctrine ;
-- API contracts ;
-- backoffice marchand ;
-- parcours client mobile-first ;
-- décisions techniques traçables.
-
 ## Règles prioritaires
 
 1. Lire `AGENTS.md` et `AI_CONTEXT.md` avant toute proposition.
@@ -44,37 +29,55 @@ et `apps/frontend/` (Next.js 14 · React Query · Tailwind CSS).
 cd apps/backend
 composer install
 symfony console lexik:jwt:generate-keypair   # première installation uniquement
-symfony console doctrine:migrations:migrate
 symfony server:start
+
+# Tests
 vendor/bin/phpunit
-vendor/bin/phpunit --filter testMethodName    # cibler une méthode de test
+vendor/bin/phpunit tests/Functional/Api/MonTest.php --testdox  # classe ciblée
+vendor/bin/phpunit --filter testMethodName                      # méthode ciblée
+vendor/bin/phpunit --testdox 2>&1 | tail -40                    # sortie concise (les [error] sur 403/404 sont normaux)
+
+# Qualité (check complet avant PR)
+vendor/bin/phpstan analyse --memory-limit=512M && vendor/bin/php-cs-fixer fix --dry-run --diff && vendor/bin/phpunit
+
 vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/php-cs-fixer fix --dry-run --diff  # vérifier
 vendor/bin/php-cs-fixer fix                   # corriger
-php bin/console debug:router | grep "mon-pattern"   # vérifier les routes après ajout
-vendor/bin/phpunit tests/Functional/Api/MonTest.php --testdox  # test ciblé
-vendor/bin/phpunit --testdox 2>&1 | tail -40                   # sortie concise (les [error] sur 403/404 sont normaux)
+
+# Base de données
 symfony console doctrine:migrations:diff                         # générer une migration
-symfony console doctrine:migrations:migrate --no-interaction    # appliquer en local
+symfony console doctrine:migrations:migrate --no-interaction    # appliquer en local (demande approbation Claude)
+
+# Debug
+php bin/console debug:router | grep "mon-pattern"   # vérifier les routes après ajout
 ```
+
+> **Permissions bloquées** (demandent approbation explicite) : `doctrine:migrations:migrate`, `composer require`, `composer remove`, `git push --force`, lecture de `.env`.
+
 
 ### Commandes slash disponibles
 
+**Projet (`.claude/commands/`) :**
 - `/init-context` — charge le contexte complet + choisit le sous-agent (démarrage recommandé)
 - `/api-resource` — conçoit ou révise une ressource API Platform
 - `/mvp-check` — vérifie qu'une demande reste dans le périmètre MVP
 - `/product-reference` — workflow référentiel produit
-- `/review` — revue de PR complète
-- `/security-review` — audit sécurité des changements en cours
-- `/simplify` — simplifie le code récemment écrit
+
+**Globales (`~/.claude/commands/`) :**
+- `/review-pr` — revue de PR complète (multi-agents)
+- `/feature-dev` — workflow implémentation feature (discovery → clarification → architecture → code)
 - `/revise-claude-md` — met à jour CLAUDE.md avec les apprentissages de la session
 - `/claude-md-improver` — audite et améliore les fichiers CLAUDE.md
 
+**Hook automatique :** coller une URL `github.com/pivox/click-and-collect-superette/pull/{N}` dans le prompt déclenche automatiquement une revue de PR sans commande explicite.
+
 ## Workflow features
 
-Les specs de chaque feature sont dans `prompts/` (ex. `prompts/s5-008-admin-product-proposals.md`).
-Commande type : `traite @prompts/s5-XXX-nom.md et pousse une pr`.
-Avant d'implémenter, vérifier si la feature est déjà livrée : `git log --oneline | grep s5-XXX`.
+Les specs de chaque feature sont dans `prompts/` (ex. `prompts/s7-003-data-retention.md`).
+Commande type : `traite @prompts/s7-XXX-nom.md et pousse une pr`.
+Avant d'implémenter, vérifier si la feature est déjà livrée : `git log --oneline | grep s7-XXX`.
+
+Prompts Sprint 7 disponibles : `s7-003-data-retention`, `s7-004-admin-audit-trail`, `s7-005-production-observability`, `s7-006-pwa-offline`, `s7-007-accessibility-wcag`, `s7-008-sprint7-audit`.
 
 ### Clôture de sprint (audit documentaire)
 

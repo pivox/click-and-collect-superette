@@ -14,8 +14,14 @@ C'est le dernier sprint MVP identifié dans la roadmap actuelle.
   - Désactivation immédiate (QR révoqué via `active = false`)
   - 19 tests fonctionnels, PHPStan niveau 8 clean, CS Fixer clean
   - Migration `Version20260521100000` : colonnes `archived_at` et `archive_reason` sur `shops`
+- S7-002 — Export CSV des commandes marchand : **livré**.
+  - `GET /api/merchant/stores/{storeId}/orders/export.csv?date_from=&date_to=&status=`
+  - `StreamedResponse`, séparateur `;`, RFC 4180, charset UTF-8
+  - Paramètres `date_from`/`date_to` obligatoires, plage max 92 jours
+  - 17 tests fonctionnels (accès, filtres, données, privacy, escaping), PHPStan niveau 8 clean, CS Fixer clean
+  - Aucune migration — pas de nouveau champ Doctrine
 
-Sprint 7 démarré — ce document sera complété au fil des livraisons.
+Sprint 7 en cours — ce document sera complété au fil des livraisons.
 
 ## Fonctionnalités prévues
 
@@ -39,7 +45,7 @@ Sprint 7 démarré — ce document sera complété au fil des livraisons.
 | US-058 | Fermeture définitive d'une supérette | Livré (S7-001) |
 | US-059 | PWA installable et mode hors ligne | À faire |
 | US-060 | Accessibilité WCAG 2.1 AA | À faire |
-| US-061 | Export données commandes marchand CSV | À faire |
+| US-061 | Export données commandes marchand CSV | Livré (S7-002) |
 | US-062 | Politique de conservation et suppression des données | À faire |
 | US-063 | Audit trail des actions admin | À faire |
 | US-066 | Garantir la fiabilité des automatisations différées en production via un transport Messenger persistant | À faire (S7-009) |
@@ -49,7 +55,7 @@ Sprint 7 démarré — ce document sera complété au fil des livraisons.
 | Ticket | Sujet | Type |
 |---|---|---|
 | S7-001 | Fermeture définitive d'une supérette | Backend admin — Livré, PR #122 |
-| S7-002 | Export CSV commandes marchand | Backend marchand |
+| S7-002 | Export CSV commandes marchand | Backend marchand — Livré |
 | S7-003 | Conservation et suppression des données | Backend conformité |
 | S7-004 | Audit trail admin | Backend admin |
 | S7-005 | Observabilité production | Backend / infra |

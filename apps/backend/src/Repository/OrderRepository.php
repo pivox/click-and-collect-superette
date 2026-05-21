@@ -286,6 +286,28 @@ class OrderRepository extends ServiceEntityRepository
         return $result;
     }
 
+    /**
+     * Returns all non-draft orders for the export. The full result set is hydrated into memory
+     * (acceptable for MVP with the 92-day cap; switch to toIterable() + batch clear for scale).
+     *
+     * @return list<Order>
+     */
+    public function findForExport(
+        Shop $shop,
+        ?OrderStatus $status,
+        \DateTimeImmutable $createdFrom,
+        \DateTimeImmutable $createdTo,
+    ): array {
+        /** @var list<Order> $orders */
+        $orders = $this->createHistoryQueryBuilder($shop, $status, $createdFrom, $createdTo, null)
+            ->addOrderBy('o.createdAt', 'DESC')
+            ->addOrderBy('o.id', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        return $orders;
+    }
+
     public function findOneByShopAndId(Shop $shop, string $orderId): ?Order
     {
         return $this->findOneBy([
