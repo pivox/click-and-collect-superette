@@ -46,6 +46,10 @@ final class MerchantOrderExportController extends AbstractController
         $dateFrom = $this->requireDate($request->query->get('date_from'), false, 'ORDER_EXPORT_MISSING_DATE_FROM', 'ORDER_EXPORT_INVALID_DATE_FROM');
         $dateTo = $this->requireDate($request->query->get('date_to'), true, 'ORDER_EXPORT_MISSING_DATE_TO', 'ORDER_EXPORT_INVALID_DATE_TO');
 
+        if ($dateFrom > $dateTo) {
+            throw new BadRequestHttpException('ORDER_EXPORT_INVALID_DATE_RANGE');
+        }
+
         $diffDays = (int) $dateFrom->diff($dateTo)->days;
         if ($diffDays > self::MAX_RANGE_DAYS) {
             throw new BadRequestHttpException('ORDER_EXPORT_RANGE_TOO_LARGE');
@@ -63,9 +67,13 @@ final class MerchantOrderExportController extends AbstractController
         $response = new StreamedResponse(function () use ($orders): void {
             $stream = fopen('php://output', 'w');
             if (false === $stream) {
-                return;
+                throw new \RuntimeException('CSV_STREAM_OPEN_FAILED');
             }
 
+            // BOM for Excel FR/TN UTF-8 recognition (Arabic names, accented chars)
+            fwrite($stream, "\xEF\xBB\xBF");
+
+            // RFC 4180 compliant: $escape='' uses "" doubling, not backslash-escaping
             fputcsv($stream, [
                 'order_id',
                 'status',
@@ -76,10 +84,10 @@ final class MerchantOrderExportController extends AbstractController
                 'pickup_ends_at',
                 'created_at',
                 'updated_at',
-            ], ';', '"', '\\');
+            ], ';', '"', '');
 
             foreach ($orders as $order) {
-                fputcsv($stream, $this->toRow($order), ';', '"', '\\');
+                fputcsv($stream, $this->toRow($order), ';', '"', '');
             }
 
             fclose($stream);
@@ -143,13 +151,22 @@ final class MerchantOrderExportController extends AbstractController
         return [
             $order->getId()->toRfc4122(),
             $order->getStatus()->value,
-            $customerName,
-            $customer->getPhone() ?? '',
+            $this->neutralizeFormula($customerName),
+            $this->neutralizeFormula($customer->getPhone() ?? ''),
             $order->getTotalTnd(),
             $slot instanceof PickupSlot ? $slot->getStartsAt()->format(\DateTimeInterface::ATOM) : '',
             $slot instanceof PickupSlot ? $slot->getEndsAt()->format(\DateTimeInterface::ATOM) : '',
             $order->getCreatedAt()->format(\DateTimeInterface::ATOM),
             $order->getUpdatedAt()->format(\DateTimeInterface::ATOM),
         ];
+    }
+
+    private function neutralizeFormula(string $value): string
+    {
+        if ('' !== $value && \in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 }

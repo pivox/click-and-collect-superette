@@ -84,8 +84,10 @@ final class MerchantOrderExportApiTest extends FunctionalApiTestCase
     {
         ob_start();
         $response->sendContent();
+        $body = (string) ob_get_clean();
 
-        return (string) ob_get_clean();
+        // Strip UTF-8 BOM so parsers don't see it as part of the first column name
+        return str_starts_with($body, "\xEF\xBB\xBF") ? substr($body, 3) : $body;
     }
 
     /**
@@ -100,13 +102,13 @@ final class MerchantOrderExportApiTest extends FunctionalApiTestCase
             return [];
         }
 
-        $header = str_getcsv(array_shift($lines), ';', '"', '\\');
+        $header = str_getcsv(array_shift($lines), ';', '"', '');
         $rows = [];
         foreach ($lines as $line) {
             if ('' === trim($line)) {
                 continue;
             }
-            $values = str_getcsv($line, ';', '"', '\\');
+            $values = str_getcsv($line, ';', '"', '');
             /** @var array<string, string> $row */
             $row = array_combine($header, $values);
             $rows[] = $row;
@@ -141,7 +143,7 @@ final class MerchantOrderExportApiTest extends FunctionalApiTestCase
         self::assertSame(200, $response->getStatusCode());
         $content = $this->captureBody($response);
         $firstLine = explode("\n", $content)[0];
-        $headers = str_getcsv($firstLine, ';', '"', '\\');
+        $headers = str_getcsv($firstLine, ';', '"', '');
 
         self::assertSame([
             'order_id',
@@ -174,7 +176,8 @@ final class MerchantOrderExportApiTest extends FunctionalApiTestCase
         self::assertSame($order->getId()->toRfc4122(), $row['order_id']);
         self::assertSame('accepted', $row['status']);
         self::assertSame('Amira Trabelsi', $row['customer_name']);
-        self::assertSame('+21698765432', $row['customer_phone']);
+        // Phone starting with '+' is prefixed with "'" per OWASP CSV injection prevention
+        self::assertSame("'+21698765432", $row['customer_phone']);
         self::assertSame('0.000', $row['total_tnd']);
         self::assertSame($slot->getStartsAt()->format(\DateTimeInterface::ATOM), $row['pickup_starts_at']);
         self::assertSame($slot->getEndsAt()->format(\DateTimeInterface::ATOM), $row['pickup_ends_at']);
@@ -372,5 +375,50 @@ final class MerchantOrderExportApiTest extends FunctionalApiTestCase
         self::assertSame(200, $response->getStatusCode());
         $rows = $this->parseCsvBody($this->captureBody($response));
         self::assertCount(0, $rows);
+    }
+
+    // ---- UTF-8 BOM ---------------------------------------------------------
+
+    public function testResponseBodyStartsWithUtf8Bom(): void
+    {
+        $merchant = $this->createMerchant('bom');
+        $shop = $this->createShop($merchant);
+
+        $response = $this->requestJson('GET', $this->exportUrl($shop->getId()->toRfc4122(), 'date_from=2026-05-01&date_to=2026-05-31'), null, $merchant);
+
+        self::assertSame(200, $response->getStatusCode());
+        ob_start();
+        $response->sendContent();
+        $rawBody = (string) ob_get_clean();
+        self::assertStringStartsWith("\xEF\xBB\xBF", $rawBody, 'UTF-8 BOM must be present for Excel FR/TN compatibility');
+    }
+
+    // ---- date inversion ----------------------------------------------------
+
+    public function testInvertedDateRangeReturns400(): void
+    {
+        $merchant = $this->createMerchant('invert');
+        $shop = $this->createShop($merchant);
+
+        $response = $this->requestJson('GET', $this->exportUrl($shop->getId()->toRfc4122(), 'date_from=2026-05-31&date_to=2026-05-01'), null, $merchant);
+
+        self::assertSame(400, $response->getStatusCode());
+    }
+
+    // ---- CSV formula injection protection ----------------------------------
+
+    public function testCsvFormulaInjectionIsNeutralized(): void
+    {
+        $merchant = $this->createMerchant('injection');
+        $shop = $this->createShop($merchant);
+        $customer = $this->createCustomer('injection', '=HYPERLINK("http://evil.com")', 'Trabelsi', '+21699000001');
+        $this->createOrder($customer, $shop, OrderStatus::Submitted, new \DateTimeImmutable('2026-05-10T10:00:00+01:00'));
+
+        $response = $this->requestJson('GET', $this->exportUrl($shop->getId()->toRfc4122(), 'date_from=2026-05-01&date_to=2026-05-31'), null, $merchant);
+
+        self::assertSame(200, $response->getStatusCode());
+        $rows = $this->parseCsvBody($this->captureBody($response));
+        self::assertCount(1, $rows);
+        self::assertStringStartsWith("'", $rows[0]['customer_name'], 'Formula injection must be neutralized with a leading apostrophe');
     }
 }

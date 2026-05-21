@@ -287,7 +287,8 @@ class OrderRepository extends ServiceEntityRepository
     }
 
     /**
-     * Returns all non-draft orders for export within the given date range, without pagination.
+     * Returns all non-draft orders for the export. The full result set is hydrated into memory
+     * (acceptable for MVP with the 92-day cap; switch to toIterable() + batch clear for scale).
      *
      * @return list<Order>
      */
