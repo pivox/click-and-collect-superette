@@ -10,6 +10,7 @@ use App\Repository\OrderRepository;
 use App\Repository\PickupSessionRepository;
 use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Uid\Uuid;
@@ -23,10 +24,27 @@ final readonly class SendPickupReminderMessageHandler
         private NotificationService $notificationService,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private LoggerInterface $logger,
     ) {
     }
 
     public function __invoke(SendPickupReminderMessage $message): void
+    {
+        try {
+            $this->handle($message);
+        } catch (\Throwable $exception) {
+            $this->logger->error('messenger.failure', [
+                'message' => SendPickupReminderMessage::class,
+                'order_id' => $message->orderId,
+                'exception_class' => $exception::class,
+                'exception_message' => $exception->getMessage(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
+    private function handle(SendPickupReminderMessage $message): void
     {
         if (!Uuid::isValid($message->orderId)) {
             return;

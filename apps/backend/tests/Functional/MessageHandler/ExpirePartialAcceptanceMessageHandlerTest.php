@@ -11,11 +11,13 @@ use App\Entity\OrderStatusLog;
 use App\Enum\OrderStatus;
 use App\Message\ExpirePartialAcceptanceMessage;
 use App\MessageHandler\ExpirePartialAcceptanceMessageHandler;
+use App\Repository\OrderRepository;
 use App\Service\NotificationService;
 use App\Service\OrderTransitionService;
 use App\Tests\Functional\Api\FunctionalApiTestCase;
 use App\Tests\Functional\OrderPickupFixtureTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Log\NullLogger;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Uid\Uuid;
 
@@ -176,11 +178,12 @@ final class ExpirePartialAcceptanceMessageHandlerTest extends FunctionalApiTestC
     private function createHandler(\DateTimeImmutable $now): ExpirePartialAcceptanceMessageHandler
     {
         return new ExpirePartialAcceptanceMessageHandler(
-            $this->entityManager->getRepository(Order::class),
+            self::getContainer()->get(OrderRepository::class),
             self::getContainer()->get(OrderTransitionService::class),
             $this->entityManager,
             new MockClock($now),
             7200,
+            new NullLogger(),
         );
     }
 

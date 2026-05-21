@@ -11,11 +11,13 @@ use App\Entity\OrderStatusLog;
 use App\Enum\OrderStatus;
 use App\Message\ExpireMerchantResponseMessage;
 use App\MessageHandler\ExpireMerchantResponseMessageHandler;
+use App\Repository\OrderRepository;
 use App\Service\NotificationService;
 use App\Service\OrderTransitionService;
 use App\Tests\Functional\Api\FunctionalApiTestCase;
 use App\Tests\Functional\OrderPickupFixtureTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Log\NullLogger;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Uid\Uuid;
 
@@ -166,11 +168,12 @@ final class ExpireMerchantResponseMessageHandlerTest extends FunctionalApiTestCa
     private function createHandler(\DateTimeImmutable $now): ExpireMerchantResponseMessageHandler
     {
         return new ExpireMerchantResponseMessageHandler(
-            $this->entityManager->getRepository(Order::class),
+            self::getContainer()->get(OrderRepository::class),
             self::getContainer()->get(OrderTransitionService::class),
             $this->entityManager,
             new MockClock($now),
             7200,
+            new NullLogger(),
         );
     }
 

@@ -9,6 +9,7 @@ use App\Message\PartialAcceptanceReminderMessage;
 use App\Repository\OrderRepository;
 use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Uid\Uuid;
@@ -23,10 +24,27 @@ final readonly class PartialAcceptanceReminderMessageHandler
         private ClockInterface $clock,
         private int $partialAcceptanceReminderLeadSeconds,
         private int $partialAcceptanceExpirationLeadSeconds,
+        private LoggerInterface $logger,
     ) {
     }
 
     public function __invoke(PartialAcceptanceReminderMessage $message): void
+    {
+        try {
+            $this->handle($message);
+        } catch (\Throwable $exception) {
+            $this->logger->error('messenger.failure', [
+                'message' => PartialAcceptanceReminderMessage::class,
+                'order_id' => $message->orderId,
+                'exception_class' => $exception::class,
+                'exception_message' => $exception->getMessage(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
+    private function handle(PartialAcceptanceReminderMessage $message): void
     {
         if (!Uuid::isValid($message->orderId)) {
             return;

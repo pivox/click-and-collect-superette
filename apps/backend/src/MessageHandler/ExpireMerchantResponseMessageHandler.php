@@ -9,6 +9,7 @@ use App\Message\ExpireMerchantResponseMessage;
 use App\Repository\OrderRepository;
 use App\Service\OrderTransitionService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Uid\Uuid;
@@ -22,10 +23,27 @@ final readonly class ExpireMerchantResponseMessageHandler
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private int $merchantResponseTimeoutLeadSeconds,
+        private LoggerInterface $logger,
     ) {
     }
 
     public function __invoke(ExpireMerchantResponseMessage $message): void
+    {
+        try {
+            $this->handle($message);
+        } catch (\Throwable $exception) {
+            $this->logger->error('messenger.failure', [
+                'message' => ExpireMerchantResponseMessage::class,
+                'order_id' => $message->orderId,
+                'exception_class' => $exception::class,
+                'exception_message' => $exception->getMessage(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
+    private function handle(ExpireMerchantResponseMessage $message): void
     {
         if (!Uuid::isValid($message->orderId)) {
             return;
