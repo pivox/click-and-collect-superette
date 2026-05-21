@@ -17,6 +17,7 @@ use App\Repository\AdminBrandRepository;
 use App\Repository\AdminCategoryRepository;
 use App\Repository\AdminProductReferenceRepository;
 use App\Repository\ProductReferenceProposalRepository;
+use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -34,6 +35,7 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
         private AdminBrandRepository $brandRepository,
         private AdminCategoryRepository $categoryRepository,
         private EntityManagerInterface $entityManager,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -60,13 +62,23 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
         $input = $data instanceof AdminApproveProductProposalInput ? $data : new AdminApproveProductProposalInput();
 
         if (null !== $input->productReferenceId) {
-            $this->linkToExisting($proposal, $input->productReferenceId);
+            $productReference = $this->linkToExisting($proposal, $input->productReferenceId);
         } else {
-            $this->createFromData($proposal, $input->canonicalData);
+            $productReference = $this->createFromData($proposal, $input->canonicalData);
         }
+
+        $this->auditLogger->log(
+            action: 'product_proposal.approve',
+            resourceType: 'product_proposal',
+            resourceId: $proposalId,
+            summary: \sprintf('Proposition produit "%s" validée.', $proposal->getNameFr()),
+            metadata: ['product_reference_id' => $productReference->getId()->toRfc4122()],
+        );
+
+        $this->entityManager->flush();
     }
 
-    private function linkToExisting(ProductReferenceProposal $proposal, string $productReferenceId): void
+    private function linkToExisting(ProductReferenceProposal $proposal, string $productReferenceId): ProductReference
     {
         $productReference = $this->productReferenceRepository->findOne($productReferenceId);
         if (null === $productReference) {
@@ -76,10 +88,10 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
         $proposal->setStatus(ProductReferenceProposalStatus::Approved);
         $proposal->setCreatedProductReference($productReference);
 
-        $this->entityManager->flush();
+        return $productReference;
     }
 
-    private function createFromData(ProductReferenceProposal $proposal, ?AdminApproveCanonicalData $canonical): void
+    private function createFromData(ProductReferenceProposal $proposal, ?AdminApproveCanonicalData $canonical): ProductReference
     {
         if (null !== $canonical) {
             $productReference = $this->buildFromCanonical($canonical);
@@ -92,7 +104,7 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
         $proposal->setStatus(ProductReferenceProposalStatus::Approved);
         $proposal->setCreatedProductReference($productReference);
 
-        $this->entityManager->flush();
+        return $productReference;
     }
 
     private function buildFromCanonical(AdminApproveCanonicalData $canonical): ProductReference

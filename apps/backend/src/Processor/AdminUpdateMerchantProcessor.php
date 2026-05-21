@@ -11,6 +11,7 @@ use App\Dto\AdminUpdateMerchantInput;
 use App\Entity\User;
 use App\Provider\AdminMerchantItemProvider;
 use App\Repository\AdminMerchantRepository;
+use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -25,6 +26,7 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
         private AdminMerchantRepository $adminMerchantRepository,
         private EntityManagerInterface $entityManager,
         private RequestStack $requestStack,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -67,6 +69,13 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
             $merchant->setName($firstName.' '.$lastName);
         }
 
+        $this->auditLogger->log(
+            action: 'merchant.update',
+            resourceType: 'merchant',
+            resourceId: $merchant->getId()->toRfc4122(),
+            summary: \sprintf('Compte marchand %s modifié.', $merchant->getEmail()),
+            metadata: ['email' => $merchant->getEmail()],
+        );
         $this->entityManager->flush();
 
         return AdminMerchantItemProvider::toOutput($merchant, $this->adminMerchantRepository->countStores($merchant));

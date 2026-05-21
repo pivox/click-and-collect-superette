@@ -14,6 +14,7 @@ use App\Provider\AdminProductReferenceItemProvider;
 use App\Repository\AdminBrandRepository;
 use App\Repository\AdminCategoryRepository;
 use App\Repository\AdminProductReferenceRepository;
+use App\Service\AdminAuditLogger;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -29,6 +30,7 @@ final readonly class AdminUpdateProductReferenceProcessor implements ProcessorIn
         private AdminBrandRepository $adminBrandRepository,
         private AdminCategoryRepository $adminCategoryRepository,
         private RequestStack $requestStack,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -137,6 +139,13 @@ final readonly class AdminUpdateProductReferenceProcessor implements ProcessorIn
             $productReference->setStatus(ProductReferenceStatus::from($data->status));
         }
 
+        $this->auditLogger->log(
+            action: 'product_reference.update',
+            resourceType: 'product_reference',
+            resourceId: $productReference->getId()->toRfc4122(),
+            summary: \sprintf('Produit référentiel "%s" modifié.', $productReference->getNameFr()),
+            metadata: ['name_fr' => $productReference->getNameFr()],
+        );
         $this->adminProductReferenceRepository->save($productReference);
 
         return AdminProductReferenceItemProvider::toOutput($productReference);

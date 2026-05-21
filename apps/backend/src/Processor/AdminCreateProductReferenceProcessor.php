@@ -15,6 +15,7 @@ use App\Provider\AdminProductReferenceItemProvider;
 use App\Repository\AdminBrandRepository;
 use App\Repository\AdminCategoryRepository;
 use App\Repository\AdminProductReferenceRepository;
+use App\Service\AdminAuditLogger;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
@@ -26,6 +27,7 @@ final readonly class AdminCreateProductReferenceProcessor implements ProcessorIn
         private AdminProductReferenceRepository $adminProductReferenceRepository,
         private AdminBrandRepository $adminBrandRepository,
         private AdminCategoryRepository $adminCategoryRepository,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -72,6 +74,13 @@ final readonly class AdminCreateProductReferenceProcessor implements ProcessorIn
             ->setCountry(null !== $data->country && '' !== trim($data->country) ? trim($data->country) : 'TN')
             ->setStatus($status);
 
+        $this->auditLogger->log(
+            action: 'product_reference.create',
+            resourceType: 'product_reference',
+            resourceId: $productReference->getId()->toRfc4122(),
+            summary: \sprintf('Produit référentiel "%s" créé.', $productReference->getNameFr()),
+            metadata: ['name_fr' => $productReference->getNameFr()],
+        );
         $this->adminProductReferenceRepository->save($productReference);
 
         return AdminProductReferenceItemProvider::toOutput($productReference);
