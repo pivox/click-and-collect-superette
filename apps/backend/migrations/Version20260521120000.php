@@ -22,6 +22,7 @@ final class Version20260521120000 extends AbstractMigration
             action VARCHAR(100) NOT NULL,
             resource_type VARCHAR(100) NOT NULL,
             resource_id VARCHAR(36) NOT NULL,
+            summary TEXT DEFAULT NULL,
             metadata JSON DEFAULT NULL,
             ip_address VARCHAR(45) DEFAULT NULL,
             user_agent VARCHAR(500) DEFAULT NULL,
@@ -30,6 +31,7 @@ final class Version20260521120000 extends AbstractMigration
         )');
         $this->addSql('COMMENT ON COLUMN admin_audit_logs.id IS \'(DC2Type:uuid)\'');
         $this->addSql('COMMENT ON COLUMN admin_audit_logs.admin_user_id IS \'(DC2Type:uuid)\'');
+        $this->addSql('COMMENT ON COLUMN admin_audit_logs.created_at IS \'(DC2Type:datetime_immutable)\'');
         $this->addSql('ALTER TABLE admin_audit_logs ADD CONSTRAINT FK_ADMIN_AUDIT_LOGS_USER FOREIGN KEY (admin_user_id) REFERENCES users (id) ON DELETE RESTRICT NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('CREATE INDEX IDX_ADMIN_AUDIT_LOGS_ACTION ON admin_audit_logs (action)');
         $this->addSql('CREATE INDEX IDX_ADMIN_AUDIT_LOGS_RESOURCE ON admin_audit_logs (resource_type, resource_id)');

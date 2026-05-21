@@ -41,6 +41,7 @@ final readonly class AdminActivateMerchantProcessor implements ProcessorInterfac
             action: 'merchant.activate',
             resourceType: 'merchant',
             resourceId: $merchant->getId()->toRfc4122(),
+            summary: \sprintf('Compte marchand %s activé.', $merchant->getEmail()),
             metadata: ['email' => $merchant->getEmail()],
         );
         $this->entityManager->flush();

@@ -84,6 +84,7 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
                 action: 'store.archive',
                 resourceType: 'store',
                 resourceId: $shop->getId()->toRfc4122(),
+                summary: \sprintf('Supérette "%s" archivée.', $shop->getName()),
                 metadata: ['name' => $shop->getName(), 'reason' => $reason],
             );
             $this->adminStoreRepository->save($shop);

@@ -46,6 +46,7 @@ final readonly class AdminRegenerateStoreQrProcessor implements ProcessorInterfa
             action: 'store.qr_regenerate',
             resourceType: 'store',
             resourceId: $shop->getId()->toRfc4122(),
+            summary: \sprintf('QR code de la supérette "%s" régénéré.', $shop->getName()),
             metadata: ['name' => $shop->getName()],
         );
         $this->adminStoreRepository->save($shop);

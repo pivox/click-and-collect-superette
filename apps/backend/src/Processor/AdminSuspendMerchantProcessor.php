@@ -41,6 +41,7 @@ final readonly class AdminSuspendMerchantProcessor implements ProcessorInterface
             action: 'merchant.suspend',
             resourceType: 'merchant',
             resourceId: $merchant->getId()->toRfc4122(),
+            summary: \sprintf('Compte marchand %s suspendu.', $merchant->getEmail()),
             metadata: ['email' => $merchant->getEmail()],
         );
         $this->entityManager->flush();

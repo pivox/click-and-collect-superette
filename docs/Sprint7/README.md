@@ -31,12 +31,15 @@ C'est le dernier sprint MVP identifié dans la roadmap actuelle.
   - Politique documentée dans `docs/Sprint7/data-retention-policy.md`
 
 - S7-004 — Audit trail des actions admin critiques : **livré côté backend**.
-  - `GET /api/admin/audit-logs` (lecture seule, paginé, filtres `action` / `resource_type` / `resource_id`)
-  - Entité `AdminAuditLog` append-only, service `AdminAuditLogger` injecté dans 9 processors
-  - Actions loggées : `merchant.create`, `merchant.suspend`, `merchant.activate`, `store.activate`, `store.deactivate`, `store.qr_regenerate`, `store.archive`, `product_proposal.approve`, `product_proposal.reject`
+  - `GET /api/admin/audit-logs` (lecture seule, paginé, filtres `action` / `resource_type` / `resource_id` / `admin`)
+  - Entité `AdminAuditLog` append-only, service `AdminAuditLogger` injecté dans 15 processors
+  - Actions loggées : `merchant.create`, `merchant.update`, `merchant.suspend`, `merchant.activate`, `store.create`, `store.update`, `store.activate`, `store.deactivate`, `store.qr_regenerate`, `store.archive`, `product_reference.create`, `product_reference.update`, `product_reference.archive`, `product_proposal.approve`, `product_proposal.reject`
+  - Chaque entrée expose un `summary` lisible pour le backoffice
   - `metadata` ne contient jamais password, token ni secret
-  - 21 tests fonctionnels, PHPStan niveau 8 clean, CS Fixer clean
+  - `user_agent` est tronqué à 500 caractères avant persistance
+  - 28 tests fonctionnels, PHPStan niveau 8 clean, CS Fixer clean
   - Migration `Version20260521120000` : table `admin_audit_logs` avec FK RESTRICT sur `users`
+  - Limite production : `ip_address` n'est fiable que si `trusted_proxies` est configuré côté Symfony ; sinon la colonne peut contenir l'IP du proxy ou `127.0.0.1`
 
 Sprint 7 en cours — ce document sera complété au fil des livraisons.
 

@@ -40,6 +40,7 @@ final readonly class AdminActivateStoreProcessor implements ProcessorInterface
             action: 'store.activate',
             resourceType: 'store',
             resourceId: $shop->getId()->toRfc4122(),
+            summary: \sprintf('Supérette "%s" activée.', $shop->getName()),
             metadata: ['name' => $shop->getName()],
         );
         $this->adminStoreRepository->save($shop);

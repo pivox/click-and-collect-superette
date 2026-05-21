@@ -12,6 +12,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 final readonly class AdminAuditLogger
 {
+    private const int USER_AGENT_MAX_LENGTH = 500;
+
     public function __construct(
         private EntityManagerInterface $entityManager,
         private Security $security,
@@ -29,6 +31,7 @@ final readonly class AdminAuditLogger
         string $action,
         string $resourceType,
         string $resourceId,
+        ?string $summary = null,
         ?array $metadata = null,
     ): void {
         $user = $this->security->getUser();
@@ -43,11 +46,21 @@ final readonly class AdminAuditLogger
             action: $action,
             resourceType: $resourceType,
             resourceId: $resourceId,
+            summary: $summary,
             metadata: $metadata,
             ipAddress: $request?->getClientIp(),
-            userAgent: $request?->headers->get('User-Agent'),
+            userAgent: $this->truncateUserAgent($request?->headers->get('User-Agent')),
         );
 
         $this->entityManager->persist($log);
+    }
+
+    private function truncateUserAgent(?string $userAgent): ?string
+    {
+        if (null === $userAgent) {
+            return null;
+        }
+
+        return mb_substr($userAgent, 0, self::USER_AGENT_MAX_LENGTH);
     }
 }

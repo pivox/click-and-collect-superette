@@ -68,6 +68,7 @@ final readonly class AdminCreateMerchantProcessor implements ProcessorInterface
                 action: 'merchant.create',
                 resourceType: 'merchant',
                 resourceId: $user->getId()->toRfc4122(),
+                summary: \sprintf('Compte marchand %s créé.', $email),
                 metadata: ['email' => $email],
             );
             $this->entityManager->flush();

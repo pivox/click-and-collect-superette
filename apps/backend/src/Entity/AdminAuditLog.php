@@ -32,6 +32,9 @@ class AdminAuditLog
     #[ORM\Column(name: 'resource_id', length: 36)]
     private string $resourceId;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $summary = null;
+
     /** @var array<string, mixed>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $metadata = null;
@@ -53,6 +56,7 @@ class AdminAuditLog
         string $action,
         string $resourceType,
         string $resourceId,
+        ?string $summary = null,
         ?array $metadata = null,
         ?string $ipAddress = null,
         ?string $userAgent = null,
@@ -62,6 +66,7 @@ class AdminAuditLog
         $this->action = $action;
         $this->resourceType = $resourceType;
         $this->resourceId = $resourceId;
+        $this->summary = $summary;
         $this->metadata = $metadata;
         $this->ipAddress = $ipAddress;
         $this->userAgent = $userAgent;
@@ -91,6 +96,11 @@ class AdminAuditLog
     public function getResourceId(): string
     {
         return $this->resourceId;
+    }
+
+    public function getSummary(): ?string
+    {
+        return $this->summary;
     }
 
     /** @return array<string, mixed>|null */

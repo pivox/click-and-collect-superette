@@ -27,6 +27,7 @@ class AdminAuditLogRepository extends ServiceEntityRepository
         ?string $action = null,
         ?string $resourceType = null,
         ?string $resourceId = null,
+        ?string $adminId = null,
     ): array {
         $qb = $this->createQueryBuilder('log')
             ->leftJoin('log.adminUser', 'u')
@@ -48,6 +49,10 @@ class AdminAuditLogRepository extends ServiceEntityRepository
             $qb->andWhere('log.resourceId = :resourceId')->setParameter('resourceId', $resourceId);
         }
 
+        if (null !== $adminId) {
+            $qb->andWhere('u.id = :adminId')->setParameter('adminId', $adminId, 'uuid');
+        }
+
         /* @var list<AdminAuditLog> */
         return $qb->getQuery()->getResult();
     }
@@ -56,9 +61,11 @@ class AdminAuditLogRepository extends ServiceEntityRepository
         ?string $action = null,
         ?string $resourceType = null,
         ?string $resourceId = null,
+        ?string $adminId = null,
     ): int {
         $qb = $this->createQueryBuilder('log')
-            ->select('COUNT(log.id)');
+            ->select('COUNT(log.id)')
+            ->leftJoin('log.adminUser', 'u');
 
         if (null !== $action) {
             $qb->andWhere('log.action = :action')->setParameter('action', $action);
@@ -70,6 +77,10 @@ class AdminAuditLogRepository extends ServiceEntityRepository
 
         if (null !== $resourceId) {
             $qb->andWhere('log.resourceId = :resourceId')->setParameter('resourceId', $resourceId);
+        }
+
+        if (null !== $adminId) {
+            $qb->andWhere('u.id = :adminId')->setParameter('adminId', $adminId, 'uuid');
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();

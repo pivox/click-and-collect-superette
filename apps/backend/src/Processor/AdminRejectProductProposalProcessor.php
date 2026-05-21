@@ -59,6 +59,7 @@ final readonly class AdminRejectProductProposalProcessor implements ProcessorInt
             action: 'product_proposal.reject',
             resourceType: 'product_proposal',
             resourceId: $proposalId,
+            summary: \sprintf('Proposition produit "%s" rejetée.', $proposal->getNameFr()),
             metadata: ['rejection_reason' => $data->reason],
         );
 

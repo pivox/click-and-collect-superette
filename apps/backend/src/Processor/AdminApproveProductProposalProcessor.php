@@ -61,21 +61,24 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
 
         $input = $data instanceof AdminApproveProductProposalInput ? $data : new AdminApproveProductProposalInput();
 
-        // Persist log before the private method flushes, so both are committed atomically.
+        if (null !== $input->productReferenceId) {
+            $productReference = $this->linkToExisting($proposal, $input->productReferenceId);
+        } else {
+            $productReference = $this->createFromData($proposal, $input->canonicalData);
+        }
+
         $this->auditLogger->log(
             action: 'product_proposal.approve',
             resourceType: 'product_proposal',
             resourceId: $proposalId,
+            summary: \sprintf('Proposition produit "%s" validée.', $proposal->getNameFr()),
+            metadata: ['product_reference_id' => $productReference->getId()->toRfc4122()],
         );
 
-        if (null !== $input->productReferenceId) {
-            $this->linkToExisting($proposal, $input->productReferenceId);
-        } else {
-            $this->createFromData($proposal, $input->canonicalData);
-        }
+        $this->entityManager->flush();
     }
 
-    private function linkToExisting(ProductReferenceProposal $proposal, string $productReferenceId): void
+    private function linkToExisting(ProductReferenceProposal $proposal, string $productReferenceId): ProductReference
     {
         $productReference = $this->productReferenceRepository->findOne($productReferenceId);
         if (null === $productReference) {
@@ -85,10 +88,10 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
         $proposal->setStatus(ProductReferenceProposalStatus::Approved);
         $proposal->setCreatedProductReference($productReference);
 
-        $this->entityManager->flush();
+        return $productReference;
     }
 
-    private function createFromData(ProductReferenceProposal $proposal, ?AdminApproveCanonicalData $canonical): void
+    private function createFromData(ProductReferenceProposal $proposal, ?AdminApproveCanonicalData $canonical): ProductReference
     {
         if (null !== $canonical) {
             $productReference = $this->buildFromCanonical($canonical);
@@ -101,7 +104,7 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
         $proposal->setStatus(ProductReferenceProposalStatus::Approved);
         $proposal->setCreatedProductReference($productReference);
 
-        $this->entityManager->flush();
+        return $productReference;
     }
 
     private function buildFromCanonical(AdminApproveCanonicalData $canonical): ProductReference

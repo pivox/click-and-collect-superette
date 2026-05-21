@@ -32,6 +32,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
                     schema: ['type' => 'string'],
                     description: 'Filtre par UUID de la ressource concernée.',
                 ),
+                'admin' => new QueryParameter(
+                    schema: ['type' => 'string'],
+                    description: 'Filtre par UUID de l’administrateur ayant réalisé l’action.',
+                ),
                 'page' => new QueryParameter(
                     schema: ['type' => 'integer', 'default' => 1],
                     description: 'Numéro de page (défaut : 1).',

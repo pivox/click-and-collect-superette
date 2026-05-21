@@ -12,6 +12,7 @@ use App\Entity\AdminAuditLog;
 use App\Repository\AdminAuditLogRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @implements ProviderInterface<AdminAuditLogListOutput>
@@ -44,8 +45,12 @@ final readonly class AdminAuditLogCollectionProvider implements ProviderInterfac
         $action = $request?->query->get('action') ?: null;
         $resourceType = $request?->query->get('resource_type') ?: null;
         $resourceId = $request?->query->get('resource_id') ?: null;
+        $adminId = $request?->query->get('admin') ?: null;
+        if (null !== $adminId && !Uuid::isValid($adminId)) {
+            throw new BadRequestHttpException('ADMIN_AUDIT_LOG_INVALID_ADMIN');
+        }
 
-        $logs = $this->adminAuditLogRepository->findPaginated($limit, $offset, $action, $resourceType, $resourceId);
+        $logs = $this->adminAuditLogRepository->findPaginated($limit, $offset, $action, $resourceType, $resourceId, $adminId);
         $items = array_map(static fn (AdminAuditLog $log) => self::toItemOutput($log), $logs);
 
         return new AdminAuditLogListOutput(
@@ -53,7 +58,7 @@ final readonly class AdminAuditLogCollectionProvider implements ProviderInterfac
             items: $items,
             page: $page,
             limit: $limit,
-            total: $this->adminAuditLogRepository->countAll($action, $resourceType, $resourceId),
+            total: $this->adminAuditLogRepository->countAll($action, $resourceType, $resourceId, $adminId),
         );
     }
 
@@ -64,6 +69,7 @@ final readonly class AdminAuditLogCollectionProvider implements ProviderInterfac
             action: $log->getAction(),
             resourceType: $log->getResourceType(),
             resourceId: $log->getResourceId(),
+            summary: $log->getSummary(),
             metadata: $log->getMetadata(),
             adminId: $log->getAdminUser()->getId()->toRfc4122(),
             adminEmail: $log->getAdminUser()->getEmail(),

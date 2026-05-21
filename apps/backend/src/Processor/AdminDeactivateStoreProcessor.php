@@ -40,6 +40,7 @@ final readonly class AdminDeactivateStoreProcessor implements ProcessorInterface
             action: 'store.deactivate',
             resourceType: 'store',
             resourceId: $shop->getId()->toRfc4122(),
+            summary: \sprintf('Supérette "%s" désactivée.', $shop->getName()),
             metadata: ['name' => $shop->getName()],
         );
         $this->adminStoreRepository->save($shop);

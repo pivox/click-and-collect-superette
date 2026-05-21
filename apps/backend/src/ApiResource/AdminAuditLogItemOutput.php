@@ -24,6 +24,8 @@ final readonly class AdminAuditLogItemOutput
         #[SerializedName('resource_id')]
         public string $resourceId,
         #[Groups(['admin_audit_log_list:read'])]
+        public ?string $summary,
+        #[Groups(['admin_audit_log_list:read'])]
         public ?array $metadata,
         #[Groups(['admin_audit_log_list:read'])]
         #[SerializedName('admin_id')]

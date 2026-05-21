@@ -13,6 +13,7 @@ use App\Entity\Shop;
 use App\Entity\User;
 use App\Repository\AdminMerchantRepository;
 use App\Repository\AdminStoreRepository;
+use App\Service\AdminAuditLogger;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Uid\Uuid;
@@ -26,6 +27,7 @@ final readonly class CreateAdminStoreProcessor implements ProcessorInterface
         private AdminStoreRepository $adminStoreRepository,
         private AdminStoreOutputFactory $adminStoreOutputFactory,
         private AdminMerchantRepository $adminMerchantRepository,
+        private AdminAuditLogger $auditLogger,
     ) {
     }
 
@@ -54,6 +56,13 @@ final readonly class CreateAdminStoreProcessor implements ProcessorInterface
             ->setOwner($this->resolveMerchantOwner($data->ownerId))
             ->setActive(true);
 
+        $this->auditLogger->log(
+            action: 'store.create',
+            resourceType: 'store',
+            resourceId: $shop->getId()->toRfc4122(),
+            summary: \sprintf('Supérette "%s" créée.', $shop->getName()),
+            metadata: ['name' => $shop->getName()],
+        );
         $this->adminStoreRepository->save($shop);
 
         return $this->adminStoreOutputFactory->create($shop, productsCount: 0);
