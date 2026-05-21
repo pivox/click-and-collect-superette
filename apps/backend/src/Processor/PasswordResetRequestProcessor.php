@@ -41,7 +41,7 @@ final readonly class PasswordResetRequestProcessor implements ProcessorInterface
         $email = strtolower($data->email);
         $user = $this->userRepository->findOneBy(['email' => $email]);
 
-        if (null !== $user && \in_array('ROLE_CUSTOMER', $user->getRoles(), true)) {
+        if (null !== $user && \in_array('ROLE_CUSTOMER', $user->getRoles(), true) && null === $user->getDeletedAt()) {
             $rawToken = $this->tokenManager->createForUser($user);
             $this->entityManager->flush();
             $this->tokenSender->send($user, $rawToken);

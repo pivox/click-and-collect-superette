@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Patch;
 use App\Dto\CustomerProfilePatchInput;
 use App\Entity\User;
+use App\Processor\CustomerDeleteAccountProcessor;
 use App\Processor\CustomerProfileProcessor;
 use App\Provider\CustomerProfileProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -30,6 +32,15 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             normalizationContext: ['groups' => ['customer_profile:read']],
             read: false,
             processor: CustomerProfileProcessor::class,
+            security: "is_granted('ROLE_CUSTOMER')",
+        ),
+        new Delete(
+            uriTemplate: '/me/account',
+            formats: ['json' => ['application/json']],
+            output: false,
+            status: 204,
+            read: false,
+            processor: CustomerDeleteAccountProcessor::class,
             security: "is_granted('ROLE_CUSTOMER')",
         ),
     ],

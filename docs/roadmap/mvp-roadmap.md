@@ -387,7 +387,7 @@ Préparer la mise en production avec observabilité, localisation FR/AR et outil
 - **Localisation FR/AR/RTL** — sélecteur de langue, support RTL, persistance préférence.
 - **PWA installable et mode hors ligne** — manifest, service worker, cache catalogue, Kadhia hors ligne.
 - **Accessibilité WCAG 2.1 AA** — navigation clavier, lecteurs d'écran, contraste, cibles tactiles. *(contrainte transversale : à intégrer dès le début du développement frontend, pas uniquement en Sprint 7)*
-- **Conservation des données / RGPD** — suppression de compte client, purge automatique, politique de rétention.
+- **Conservation des données / RGPD** — suppression de compte client livrée côté backend (`DELETE /api/me/account`), politique de rétention documentée ; purge automatique reportée hors PR S7-003.
 - **Fermeture définitive d'une supérette** — archivage, annulation commandes actives, révocation QR code.
 - **Export CSV des commandes** par le marchand.
 - **Audit trail admin** — journal des actions critiques de l'administrateur.
@@ -402,13 +402,13 @@ Préparer la mise en production avec observabilité, localisation FR/AR et outil
 - **US-059** — PWA installable et mode hors ligne
 - **US-060** — Accessibilité WCAG 2.1 AA
 - **US-061** — Export données commandes marchand (CSV)
-- **US-062** — Politique de conservation et suppression des données
+- **US-062** — Politique de conservation et suppression des données *(backend S7-003 livré : suppression compte client + anonymisation minimale)*
 - **US-063** — Audit trail des actions admin
 
 ### Entités / migrations
 
 - `Shop` : ajouter `archivedAt`, `archiveReason`.
-- `User` : ajouter `deletedAt`, `lastLoginAt`.
+- `User` : `deletedAt`, `lastLoginAt` ajoutés par S7-003.
 - `AdminAuditLog` (nouvelle entité).
 
 ### Critère de sortie
