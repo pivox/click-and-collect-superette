@@ -1,15 +1,24 @@
-export type OrderStatus =
-  | 'draft'
-  | 'submitted'
-  | 'accepted'
-  | 'rejected'
-  | 'preparing'
-  | 'ready'
-  | 'pickup_pending'
-  | 'completed'
-  | 'cancelled';
+/**
+ * Domain types shared between frontend and backend.
+ *
+ * Aligned with apps/backend API contract (see docs/architecture/api-contract.md).
+ * The shape of these types is what the mock services return today AND what
+ * the real API will return tomorrow — services in lib/services swap their
+ * implementation, not their signature.
+ */
 
-export type UserRole = 'ROLE_CUSTOMER' | 'ROLE_MERCHANT' | 'ROLE_ADMIN';
+export type OrderStatus =
+  | "draft"
+  | "submitted"
+  | "accepted"
+  | "rejected"
+  | "preparing"
+  | "ready"
+  | "pickup_pending"
+  | "completed"
+  | "cancelled";
+
+export type UserRole = "ROLE_CUSTOMER" | "ROLE_MERCHANT" | "ROLE_ADMIN";
 
 export interface AuthUser {
   id: string;
@@ -26,7 +35,22 @@ export interface Shop {
   city: string | null;
   phone: string | null;
   isActive: boolean;
+  /** UI extras — optional, populated by mock data, may come from a /stores/{id}/summary endpoint */
+  distanceKm?: number;
+  rating?: number;
+  opensAt?: string;
+  closesAt?: string;
+  nextPickupAt?: string | null;
+  logoLetter?: string;
 }
+
+export type ProductCategory =
+  | "dairy"
+  | "drinks"
+  | "grocery"
+  | "hygiene"
+  | "snacks"
+  | "other";
 
 export interface ProductOffer {
   id: string;
@@ -39,7 +63,9 @@ export interface ProductOffer {
   priceTnd: string;
   isAvailable: boolean;
   photoUrl: string | null;
-  category: string;
+  category: ProductCategory;
+  /** Emoji fallback used by the prototype when no photo is provided. */
+  emoji?: string;
 }
 
 export interface KadhiaLine {
@@ -64,6 +90,8 @@ export interface PickupSlot {
   endsAt: string;
   capacity: number | null;
   available: boolean;
+  /** Optional label like "Complet bientôt" / "Disponible" */
+  label?: string;
 }
 
 export interface Order {
@@ -77,4 +105,17 @@ export interface Order {
   readyAt: string | null;
   completedAt: string | null;
   rejectionReason: string | null;
+  /** Order code shown to user, e.g. "CMD-4821". */
+  code: string;
+  lines: KadhiaLine[];
+  /** Optional note left by customer to the merchant. */
+  customerNote?: string | null;
+}
+
+/** Step shown on the customer order tracking timeline. */
+export interface TimelineStep {
+  key: "submitted" | "accepted" | "preparing" | "ready" | "completed";
+  label: string;
+  hint: string;
+  state: "done" | "current" | "todo";
 }
