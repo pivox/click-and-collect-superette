@@ -20,6 +20,15 @@ C'est le dernier sprint MVP identifié dans la roadmap actuelle.
   - Paramètres `date_from`/`date_to` obligatoires, plage max 92 jours
   - 17 tests fonctionnels (accès, filtres, données, privacy, escaping), PHPStan niveau 8 clean, CS Fixer clean
   - Aucune migration — pas de nouveau champ Doctrine
+- S7-003 — Conservation et suppression des données client : **livré côté backend**.
+  - `DELETE /api/me/account`
+  - Soft delete du `User` via `deletedAt`
+  - Anonymisation minimale du compte client
+  - Invalidation des `PasswordResetToken`
+  - Blocage de connexion via `DeletedUserChecker`
+  - `lastLoginAt` ajouté et alimenté après login JWT réussi
+  - Commandes et lignes de commande conservées pour l'historique marchand
+  - Politique documentée dans `docs/Sprint7/data-retention-policy.md`
 
 Sprint 7 en cours — ce document sera complété au fil des livraisons.
 
@@ -46,7 +55,7 @@ Sprint 7 en cours — ce document sera complété au fil des livraisons.
 | US-059 | PWA installable et mode hors ligne | À faire |
 | US-060 | Accessibilité WCAG 2.1 AA | À faire |
 | US-061 | Export données commandes marchand CSV | Livré (S7-002) |
-| US-062 | Politique de conservation et suppression des données | À faire |
+| US-062 | Politique de conservation et suppression des données | Livré backend S7-003 |
 | US-063 | Audit trail des actions admin | À faire |
 | US-066 | Garantir la fiabilité des automatisations différées en production via un transport Messenger persistant | À faire (S7-009) |
 
@@ -56,7 +65,7 @@ Sprint 7 en cours — ce document sera complété au fil des livraisons.
 |---|---|---|
 | S7-001 | Fermeture définitive d'une supérette | Backend admin — Livré, PR #122 |
 | S7-002 | Export CSV commandes marchand | Backend marchand — Livré |
-| S7-003 | Conservation et suppression des données | Backend conformité |
+| S7-003 | Conservation et suppression des données | Backend conformité — Livré |
 | S7-004 | Audit trail admin | Backend admin |
 | S7-005 | Observabilité production | Backend / infra |
 | S7-006 | PWA installable et offline | Frontend / PWA |
