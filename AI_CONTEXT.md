@@ -70,8 +70,8 @@ Exclus du MVP :
 - Backend MVP : 100 % (Sprint 5 audité et clôturé — S5-012 livré).
 - Produit terrain testable : environ 95 %.
 - Sprint 6 (personnalisation visuelle) : implémenté côté backend (`PlatformTheme`, `ShopTheme`, thème public par supérette).
-- Sprint 7 démarré : S7-001 livré — `PATCH /api/admin/stores/{storeId}/archive`, champs `Shop.archivedAt`/`Shop.archiveReason`, annulation des commandes actives, 19 tests.
-- Prochaine priorité recommandée : S7-002 (export CSV commandes) ou frontend MVP (Next.js).
+- Sprint 7 démarré : S7-001 livré — `PATCH /api/admin/stores/{storeId}/archive`, champs `Shop.archivedAt`/`Shop.archiveReason`, annulation des commandes actives, 19 tests. S7-003 livré côté backend — `DELETE /api/me/account`, champs `User.deletedAt`/`User.lastLoginAt`, anonymisation minimale du compte client, invalidation des `PasswordResetToken`, blocage login des comptes supprimés, commandes conservées pour l'historique marchand.
+- Prochaine priorité recommandée : S7-002 (export CSV commandes), S7-004 (audit trail admin) ou frontend MVP (Next.js).
 - 952 tests backend passants, PHPStan niveau 8 clean, CS Fixer clean.
 
 ## Limites connues
@@ -118,7 +118,7 @@ Entités présentes dans `apps/backend/src/Entity/` :
 - `Notification`
 - `PlatformTheme`
 - `ShopTheme`
-- `User`
+- `User` (`deletedAt` pour soft delete client, `lastLoginAt` alimenté après login JWT)
 
 ## Stack cible recommandée
 

@@ -135,6 +135,29 @@ Champs non modifiables :
 - `roles` ;
 - `password`.
 
+### Suppression du compte client
+
+Statut : **livré backend S7-003**.
+
+```http
+DELETE /api/me/account
+```
+
+Réponse succès : `204 No Content`.
+
+Règles :
+
+- route réservée au client connecté (`ROLE_CUSTOMER`) ;
+- anonyme : `401` ;
+- marchand, administrateur ou autre rôle : `403` ;
+- renseigne `User.deletedAt` ;
+- anonymise l'email avec une adresse technique `deleted-<uuid>@deleted.local` ;
+- anonymise `name`, `first_name` et `last_name` avec `[supprimé]` ;
+- supprime le téléphone (`phone = null`) ;
+- invalide les `PasswordResetToken` actifs ;
+- conserve physiquement le `User`, les `Order` et les `OrderLine` pour l'historique marchand ;
+- bloque les connexions futures via `DeletedUserChecker`.
+
 ### Réinitialisation de mot de passe
 
 Statut : **livré**.
