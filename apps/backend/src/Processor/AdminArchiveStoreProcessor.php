@@ -17,6 +17,7 @@ use App\Service\AdminAuditLogger;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -33,6 +34,7 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
         private OrderStatusLogRecorder $orderStatusLogRecorder,
         private AdminStoreOutputFactory $adminStoreOutputFactory,
         private AdminAuditLogger $auditLogger,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -89,6 +91,10 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
             );
             $this->adminStoreRepository->save($shop);
         });
+        $this->logger->info('store.archived', [
+            'store_id' => $shop->getId()->toRfc4122(),
+            'reason' => $reason,
+        ]);
 
         return $this->adminStoreOutputFactory->create(
             shop: $shop,
