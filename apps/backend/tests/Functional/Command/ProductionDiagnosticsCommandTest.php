@@ -9,7 +9,8 @@ use App\Tests\Functional\Api\FunctionalApiTestCase;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Transport\TransportInterface;
 
 final class ProductionDiagnosticsCommandTest extends FunctionalApiTestCase
 {
@@ -32,7 +33,9 @@ final class ProductionDiagnosticsCommandTest extends FunctionalApiTestCase
     {
         $previousServerValue = $_SERVER['JWT_PUBLIC_KEY'] ?? null;
         $previousEnvValue = $_ENV['JWT_PUBLIC_KEY'] ?? null;
+        $previousProcessValue = getenv('JWT_PUBLIC_KEY');
         unset($_SERVER['JWT_PUBLIC_KEY'], $_ENV['JWT_PUBLIC_KEY']);
+        putenv('JWT_PUBLIC_KEY');
 
         try {
             $commandTester = $this->runContainerCommand();
@@ -40,7 +43,7 @@ final class ProductionDiagnosticsCommandTest extends FunctionalApiTestCase
             self::assertSame(Command::FAILURE, $commandTester->getStatusCode(), $commandTester->getDisplay());
             self::assertStringContainsString('JWT_PUBLIC_KEY', $commandTester->getDisplay());
         } finally {
-            $this->restoreEnv('JWT_PUBLIC_KEY', $previousServerValue, $previousEnvValue);
+            $this->restoreEnv('JWT_PUBLIC_KEY', $previousServerValue, $previousEnvValue, $previousProcessValue);
         }
     }
 
@@ -48,7 +51,25 @@ final class ProductionDiagnosticsCommandTest extends FunctionalApiTestCase
     {
         $command = new ProductionDiagnosticsCommand(
             $this->entityManager,
-            new InMemoryTransport(),
+            new class implements TransportInterface {
+                public function get(): iterable
+                {
+                    return [];
+                }
+
+                public function ack(Envelope $envelope): void
+                {
+                }
+
+                public function reject(Envelope $envelope): void
+                {
+                }
+
+                public function send(Envelope $envelope): Envelope
+                {
+                    return $envelope;
+                }
+            },
         );
         $commandTester = new CommandTester($command);
 
@@ -68,7 +89,7 @@ final class ProductionDiagnosticsCommandTest extends FunctionalApiTestCase
         return $commandTester;
     }
 
-    private function restoreEnv(string $name, ?string $serverValue, ?string $envValue): void
+    private function restoreEnv(string $name, ?string $serverValue, ?string $envValue, string|false $processValue): void
     {
         if (null === $serverValue) {
             unset($_SERVER[$name]);
@@ -80,6 +101,12 @@ final class ProductionDiagnosticsCommandTest extends FunctionalApiTestCase
             unset($_ENV[$name]);
         } else {
             $_ENV[$name] = $envValue;
+        }
+
+        if (false === $processValue) {
+            putenv($name);
+        } else {
+            putenv($name.'='.$processValue);
         }
     }
 }

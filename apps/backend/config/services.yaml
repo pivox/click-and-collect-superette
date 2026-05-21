@@ -8,6 +8,7 @@ parameters:
     app.merchant_response_timeout_lead_seconds: 7200
     app.partial_acceptance_reminder_lead_seconds: 14400
     app.partial_acceptance_expiration_lead_seconds: 7200
+    app.diagnostics.allow_non_count_aware_messenger_transport: false
 
 services:
     # default configuration for services in *this* file

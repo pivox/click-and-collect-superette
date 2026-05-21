@@ -11,7 +11,6 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
@@ -25,8 +24,8 @@ final class ProductionDiagnosticsCommand extends Command
         private readonly EntityManagerInterface $entityManager,
         #[Autowire(service: 'messenger.transport.async')]
         private readonly TransportInterface $asyncTransport,
-        #[Autowire('%kernel.environment%')]
-        private readonly string $environment = 'prod',
+        #[Autowire('%app.diagnostics.allow_non_count_aware_messenger_transport%')]
+        private readonly bool $allowNonCountAwareMessengerTransport = false,
     ) {
         parent::__construct();
     }
@@ -78,7 +77,7 @@ final class ProductionDiagnosticsCommand extends Command
     {
         try {
             if (!$this->asyncTransport instanceof MessageCountAwareInterface) {
-                if ('test' === $this->environment && $this->asyncTransport instanceof InMemoryTransport) {
+                if ($this->allowNonCountAwareMessengerTransport) {
                     $io->writeln('messenger_transport: ok');
 
                     return true;
