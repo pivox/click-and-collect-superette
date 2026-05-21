@@ -52,7 +52,7 @@ Statut : **livré backend S7-005**.
 php bin/console app:diagnostics:check
 ```
 
-La commande vérifie la connexion base de données, le transport Messenger `async` et la présence des variables critiques `APP_SECRET`, `DATABASE_URL` et `JWT_SECRET_KEY`. Code de sortie `0` si tout est OK, `1` en cas d'anomalie.
+La commande vérifie la connexion base de données, le transport Messenger `async` et la présence des variables critiques `APP_SECRET`, `DATABASE_URL`, `JWT_SECRET_KEY` et `JWT_PUBLIC_KEY`. Code de sortie `0` si tout est OK, `1` en cas d'anomalie.
 
 ---
 

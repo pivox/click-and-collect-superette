@@ -11,8 +11,11 @@ use App\Entity\PickupSession;
 use App\Enum\OrderStatus;
 use App\Message\SendPickupReminderMessage;
 use App\MessageHandler\SendPickupReminderMessageHandler;
+use App\Repository\OrderRepository;
+use App\Repository\PickupSessionRepository;
 use App\Tests\Functional\Api\FunctionalApiTestCase;
 use App\Tests\Functional\OrderPickupFixtureTrait;
+use Psr\Log\NullLogger;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Uid\Uuid;
 
@@ -157,11 +160,12 @@ final class SendPickupReminderMessageHandlerTest extends FunctionalApiTestCase
     private function createHandler(\DateTimeImmutable $now): SendPickupReminderMessageHandler
     {
         return new SendPickupReminderMessageHandler(
-            $this->entityManager->getRepository(Order::class),
-            $this->entityManager->getRepository(PickupSession::class),
+            self::getContainer()->get(OrderRepository::class),
+            self::getContainer()->get(PickupSessionRepository::class),
             self::getContainer()->get(\App\Service\NotificationService::class),
             $this->entityManager,
             new MockClock($now),
+            new NullLogger(),
         );
     }
 

@@ -90,11 +90,11 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
                 metadata: ['name' => $shop->getName(), 'reason' => $reason],
             );
             $this->adminStoreRepository->save($shop);
+            $this->logger->info('store.archived', [
+                'store_id' => $shop->getId()->toRfc4122(),
+                'reason' => $reason,
+            ]);
         });
-        $this->logger->info('store.archived', [
-            'store_id' => $shop->getId()->toRfc4122(),
-            'reason' => $reason,
-        ]);
 
         return $this->adminStoreOutputFactory->create(
             shop: $shop,

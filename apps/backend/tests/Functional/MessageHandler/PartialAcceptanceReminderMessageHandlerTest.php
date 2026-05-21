@@ -10,9 +10,11 @@ use App\Entity\OrderLine;
 use App\Enum\OrderStatus;
 use App\Message\PartialAcceptanceReminderMessage;
 use App\MessageHandler\PartialAcceptanceReminderMessageHandler;
+use App\Repository\OrderRepository;
 use App\Service\NotificationService;
 use App\Tests\Functional\Api\FunctionalApiTestCase;
 use App\Tests\Functional\OrderPickupFixtureTrait;
+use Psr\Log\NullLogger;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Uid\Uuid;
 
@@ -152,12 +154,13 @@ final class PartialAcceptanceReminderMessageHandlerTest extends FunctionalApiTes
     private function createHandler(\DateTimeImmutable $now): PartialAcceptanceReminderMessageHandler
     {
         return new PartialAcceptanceReminderMessageHandler(
-            $this->entityManager->getRepository(Order::class),
+            self::getContainer()->get(OrderRepository::class),
             self::getContainer()->get(NotificationService::class),
             $this->entityManager,
             new MockClock($now),
             14400,
             7200,
+            new NullLogger(),
         );
     }
 

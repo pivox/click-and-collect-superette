@@ -207,6 +207,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $this->logger->info('order.submitted', [
             'order_id' => $order->getId()->toRfc4122(),
             'store_id' => $order->getShop()->getId()->toRfc4122(),
+            'submission_type' => 'first',
         ]);
 
         return new SubmittedOrderResult($order, $this->orderOutputFactory->toOutput($order));
@@ -290,6 +291,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $this->logger->info('order.submitted', [
             'order_id' => $order->getId()->toRfc4122(),
             'store_id' => $order->getShop()->getId()->toRfc4122(),
+            'submission_type' => 'resubmission',
         ]);
 
         return new SubmittedOrderResult($order, $this->orderOutputFactory->toOutput($order));

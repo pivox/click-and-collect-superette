@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
@@ -24,6 +25,8 @@ final class ProductionDiagnosticsCommand extends Command
         private readonly EntityManagerInterface $entityManager,
         #[Autowire(service: 'messenger.transport.async')]
         private readonly TransportInterface $asyncTransport,
+        #[Autowire('%kernel.environment%')]
+        private readonly string $environment = 'prod',
     ) {
         parent::__construct();
     }
@@ -74,10 +77,20 @@ final class ProductionDiagnosticsCommand extends Command
     private function checkMessengerTransport(SymfonyStyle $io): bool
     {
         try {
-            if ($this->asyncTransport instanceof MessageCountAwareInterface) {
-                $this->asyncTransport->getMessageCount();
+            if (!$this->asyncTransport instanceof MessageCountAwareInterface) {
+                if ('test' === $this->environment && $this->asyncTransport instanceof InMemoryTransport) {
+                    $io->writeln('messenger_transport: ok');
+
+                    return true;
+                }
+
+                $io->writeln('messenger_transport: error');
+                $io->writeln('messenger_transport_error: transport_not_count_aware');
+
+                return false;
             }
 
+            $this->asyncTransport->getMessageCount();
             $io->writeln('messenger_transport: ok');
 
             return true;
@@ -92,7 +105,7 @@ final class ProductionDiagnosticsCommand extends Command
     private function checkCriticalEnvironment(SymfonyStyle $io): bool
     {
         $missing = [];
-        foreach (['APP_SECRET', 'DATABASE_URL', 'JWT_SECRET_KEY'] as $name) {
+        foreach (['APP_SECRET', 'DATABASE_URL', 'JWT_SECRET_KEY', 'JWT_PUBLIC_KEY'] as $name) {
             if ('' === trim($this->getEnvValue($name))) {
                 $missing[] = $name;
             }
