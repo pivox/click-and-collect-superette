@@ -21,6 +21,41 @@ Ce contrat sert de source de vérité pour les prochains développements backend
 
 ---
 
+## Observabilité production
+
+### Healthcheck
+
+Statut : **livré backend S7-005**.
+
+Public.
+
+```http
+GET /api/health
+```
+
+Réponse `200` :
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-05-21T20:30:00+02:00"
+}
+```
+
+Décision d'accès : l'endpoint est public pour permettre un contrôle simple par reverse proxy, load balancer ou système d'alerting sans JWT. Il ne doit jamais exposer variables d'environnement, DSN, secrets, version interne ni détail d'infrastructure.
+
+### Diagnostics CLI
+
+Statut : **livré backend S7-005**.
+
+```bash
+php bin/console app:diagnostics:check
+```
+
+La commande vérifie la connexion base de données, le transport Messenger `async` et la présence des variables critiques `APP_SECRET`, `DATABASE_URL`, `JWT_SECRET_KEY` et `JWT_PUBLIC_KEY`. Code de sortie `0` si tout est OK, `1` en cas d'anomalie.
+
+---
+
 ## Authentification et profil
 
 ### Connexion

@@ -41,6 +41,13 @@ C'est le dernier sprint MVP identifié dans la roadmap actuelle.
   - Migration `Version20260521120000` : table `admin_audit_logs` avec FK RESTRICT sur `users`
   - Limite production : `ip_address` n'est fiable que si `trusted_proxies` est configuré côté Symfony ; sinon la colonne peut contenir l'IP du proxy ou `127.0.0.1`
 
+- S7-005 — Observabilité production MVP : **livré côté backend**.
+  - `GET /api/health` public, sans JWT, pour reverse proxy, load balancer ou alerting simple
+  - Réponse limitée à `status` et `timestamp`, sans variable d'environnement, DSN, secret ni version interne
+  - Logs structurés ajoutés sur actions critiques : `order.submitted`, `order.status_changed`, `store.archived`, `messenger.failure`
+  - Commande `php bin/console app:diagnostics:check` : base de données, transport Messenger `async`, variables critiques
+  - Checklist production créée dans `docs/production/readiness-checklist.md`
+
 Sprint 7 en cours — ce document sera complété au fil des livraisons.
 
 ## Fonctionnalités prévues
@@ -78,7 +85,7 @@ Sprint 7 en cours — ce document sera complété au fil des livraisons.
 | S7-002 | Export CSV commandes marchand | Backend marchand — Livré |
 | S7-003 | Conservation et suppression des données | Backend conformité — Livré |
 | S7-004 | Audit trail admin | Backend admin — Livré |
-| S7-005 | Observabilité production | Backend / infra |
+| S7-005 | Observabilité production | Backend / infra — Livré |
 | S7-006 | PWA installable et offline | Frontend / PWA |
 | S7-007 | Accessibilité WCAG 2.1 AA | Frontend / qualité |
 | S7-008 | Audit + clôture Sprint 7 | Documentation / audit |

@@ -22,6 +22,7 @@ use App\Service\MerchantResponseTimeoutScheduler;
 use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -47,6 +48,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         private MerchantResponseTimeoutScheduler $merchantResponseTimeoutScheduler,
         private ClockInterface $clock,
         private int $partialAcceptanceExpirationLeadSeconds,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -202,6 +204,11 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $kadhia->setStatus(KadhiaStatus::Submitted);
         $this->notificationService->notifyMerchantOrderSubmitted($order);
         $this->entityManager->flush();
+        $this->logger->info('order.submitted', [
+            'order_id' => $order->getId()->toRfc4122(),
+            'store_id' => $order->getShop()->getId()->toRfc4122(),
+            'submission_type' => 'first',
+        ]);
 
         return new SubmittedOrderResult($order, $this->orderOutputFactory->toOutput($order));
     }
@@ -281,6 +288,11 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $kadhia->setStatus(KadhiaStatus::Submitted);
         $this->notificationService->notifyMerchantOrderSubmitted($order);
         $this->entityManager->flush();
+        $this->logger->info('order.submitted', [
+            'order_id' => $order->getId()->toRfc4122(),
+            'store_id' => $order->getShop()->getId()->toRfc4122(),
+            'submission_type' => 'resubmission',
+        ]);
 
         return new SubmittedOrderResult($order, $this->orderOutputFactory->toOutput($order));
     }

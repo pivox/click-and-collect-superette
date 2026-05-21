@@ -1,3 +1,6 @@
+parameters:
+    app.diagnostics.allow_non_count_aware_messenger_transport: true
+
 services:
     App\Tests\Support\Security\TestAuthenticator:
         autowire: true
