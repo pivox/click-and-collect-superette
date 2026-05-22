@@ -90,6 +90,18 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  # ─── Scraper mg.tn (one-shot Python tool) ────────────────────────────────────
+  scraper:
+    profiles:
+      - tools
+    build:
+      context: .
+      dockerfile: docker/scraper/Dockerfile
+    container_name: cc_scraper
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+
 volumes:
   postgres_data:
   backend_vendor:
