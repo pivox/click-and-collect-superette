@@ -30,6 +30,27 @@ npm run lint     # ESLint
 npx tsc --noEmit # vérification TypeScript sans émission
 ```
 
+### Docker
+
+Depuis la **racine du monorepo** :
+
+```bash
+# Premier build de l'image
+docker compose build frontend
+
+# Rebuild forcé (sans cache — utile après changement de dépendances)
+docker compose build --no-cache frontend
+
+# Lancer avec hot reload (WATCHPACK_POLLING activé dans compose)
+docker compose up frontend
+
+# Rebuild + relance en une commande
+docker compose up --build frontend
+
+# Logs en temps réel
+docker compose logs -f frontend
+```
+
 ## Architecture
 
 ```
