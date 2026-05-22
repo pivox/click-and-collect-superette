@@ -21,7 +21,7 @@ export default function RootPage() {
 
       <div className="mt-8 grid w-full gap-4 sm:grid-cols-2">
         <Link
-          href="/"
+          href="/stores"
           className="rounded-xl border border-line bg-white p-6 text-left shadow-card transition hover:shadow-floating"
         >
           <strong className="text-h2 font-black block">📱 Parcours mobile</strong>

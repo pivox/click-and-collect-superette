@@ -10,7 +10,7 @@ export async function getOrder(orderId: string): Promise<Order | null> {
     }
     return mockDelay(MOCK_ORDER); // fall back to the demo order
   }
-  const { data } = await apiClient.get<Order>(`/orders/${orderId}`);
+  const { data } = await apiClient.get<Order>(`/me/orders/${orderId}`);
   return data;
 }
 

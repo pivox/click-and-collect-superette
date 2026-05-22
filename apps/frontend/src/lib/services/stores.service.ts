@@ -5,7 +5,7 @@ import { USE_MOCKS, mockDelay } from "./index";
 
 export async function listShops(): Promise<Shop[]> {
   if (USE_MOCKS) return mockDelay(MOCK_SHOPS);
-  const { data } = await apiClient.get<Shop[]>("/shops");
+  const { data } = await apiClient.get<Shop[]>("/stores");
   return data;
 }
 
@@ -13,15 +13,15 @@ export async function getShop(shopId: string): Promise<Shop | null> {
   if (USE_MOCKS) {
     return mockDelay(MOCK_SHOPS.find((s) => s.id === shopId) ?? null);
   }
-  const { data } = await apiClient.get<Shop>(`/shops/${shopId}`);
+  const { data } = await apiClient.get<Shop>(`/stores/${shopId}`);
   return data;
 }
 
-/** For the "shop reconnu après scan" flow. */
-export async function getShopBySlug(slug: string): Promise<Shop | null> {
+/** For the "shop reconnu après scan" flow — qrToken is the store's qrCodeToken. */
+export async function getShopBySlug(qrToken: string): Promise<Shop | null> {
   if (USE_MOCKS) {
-    return mockDelay(MOCK_SHOPS.find((s) => s.slug === slug) ?? null);
+    return mockDelay(MOCK_SHOPS.find((s) => s.slug === qrToken) ?? null);
   }
-  const { data } = await apiClient.get<Shop>(`/shops/by-slug/${slug}`);
+  const { data } = await apiClient.get<Shop>(`/stores/by-qr/${qrToken}`);
   return data;
 }
