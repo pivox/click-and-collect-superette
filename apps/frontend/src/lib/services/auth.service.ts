@@ -11,7 +11,11 @@ export function decodeJwtPayload(token: string): Record<string, unknown> {
   if (parts.length !== 3) throw new Error('Invalid JWT format');
   const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
   const json = atob(base64);
-  return JSON.parse(json) as Record<string, unknown>;
+  try {
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch {
+    throw new Error('Invalid JWT payload: cannot parse JSON');
+  }
 }
 
 export async function adminLogin(email: string, password: string): Promise<AdminUser> {
