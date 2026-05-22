@@ -9,7 +9,15 @@ La PR de scraper mg.tn a ajouté un flux technique complet :
 3. promotion vers `ProductReference` en statut `pending_review` ;
 4. conservation du lien d'origine via `ProductReference.sourceImportRaw`.
 
-Ce flux fonctionne techniquement en environnement de développement, mais il a été lancé dans le mauvais ordre produit : le scraper cible actuellement la page d'accueil / blog de `mg.tn`, pas des pages catalogue produit exploitables pour une supérette.
+Ce flux fonctionne techniquement en environnement de développement. Le premier essai a été lancé dans le mauvais ordre produit : il ciblait la page d'accueil / blog de `mg.tn`, pas les pages catalogue produit exploitables pour une supérette.
+
+La correction appliquée consiste à utiliser le mode `--site` :
+
+- lecture du sitemap `https://mg.tn/sitemap.xml` ;
+- crawl des URLs internes du site ;
+- extraction uniquement des cartes produit PrestaShop ;
+- exclusion des pages éditoriales sans bloc produit ;
+- insertion en staging `product_import_raw`, puis promotion contrôlée vers `ProductReference`.
 
 ## Résultat observé en dev
 
@@ -41,7 +49,7 @@ Les lignes créées dans `ProductReference` sont bien en `pending_review` et con
 
 ## Problème métier
 
-Les données récupérées ne sont pas des produits de supérette. Ce sont des titres d'articles / pages éditoriales, par exemple :
+Les données récupérées lors du premier essai n'étaient pas des produits de supérette. C'étaient des titres d'articles / pages éditoriales, par exemple :
 
 - actualités de marque ;
 - articles espace presse ;
@@ -49,7 +57,15 @@ Les données récupérées ne sont pas des produits de supérette. Ce sont des t
 
 Ces titres ne permettent pas de construire un catalogue client utile pour préparer une **Kadhia**.
 
-Il ne faut donc pas considérer ces lignes comme un seed produit fiable, même en `pending_review`.
+Il ne faut donc pas considérer ces anciennes lignes comme un seed produit fiable, même en `pending_review`.
+
+Le mode corrigé doit être lancé avec :
+
+```bash
+make scraper-db ARGS="--max-urls 500 --delay 0"
+```
+
+`make scraper-db` ajoute désormais `--site --db` par défaut. Les anciennes options `--pages` / `--category` restent disponibles pour diagnostiquer une URL ou une section précise, mais ne doivent pas être utilisées pour alimenter `product_import_raw`.
 
 ## Ce qui reste valable
 
@@ -74,13 +90,14 @@ Ne pas :
 - créer des `MerchantProduct` depuis ces données ;
 - inventer des codes-barres ;
 - utiliser des images, logos ou descriptions marketing récupérés depuis mg.tn ;
-- considérer le scraper actuel comme une source produit de production.
+- relancer l'ingestion `product_import_raw` sans le mode site ;
+- considérer le scraper mg.tn comme une source produit de production.
 
 ## Correction de trajectoire recommandée
 
 Avant de relancer une ingestion utile, il faut repartir de la source produit :
 
-1. identifier une page catalogue ou une API publique qui expose réellement des produits ;
+1. utiliser le crawl site sur les pages catalogue mg.tn ;
 2. vérifier que chaque bloc contient au minimum un nom produit ;
 3. extraire uniquement les champs factuels autorisés :
    - nom produit ;
@@ -105,4 +122,4 @@ La meilleure prochaine étape est de privilégier l'une de ces sources :
 - données fournies par marchands, fournisseurs ou marques ;
 - open data produit quand les droits et champs sont compatibles.
 
-Le scraping mg.tn peut rester un outil de développement, mais uniquement après avoir ciblé des pages produit réelles et en gardant les données non validées par défaut.
+Le scraping mg.tn peut rester un outil de développement, uniquement sur les pages produit réelles et en gardant les données non validées par défaut.

@@ -94,11 +94,11 @@ scraper-build: ## Build l'image Docker du scraper mg.tn
 scraper-check: ## Vérifie l'accès à mg.tn depuis le conteneur du scraper
 	$(SCRAPER) --check
 
-scraper: ## Lance le scraper mg.tn conteneurisé (ARGS="--pages 3 --output articles.json")
+scraper: ## Lance le scraper mg.tn conteneurisé (ARGS="--site --max-urls 500")
 	$(SCRAPER) $(ARGS)
 
-scraper-db: ## Scrape mg.tn et insère les observations dans product_import_raw (ARGS="--pages 3")
-	$(SCRAPER) --db $(ARGS)
+scraper-db: ## Scrape tout le site mg.tn et insère les produits dans product_import_raw
+	$(SCRAPER) --site --db $(ARGS)
 
 promote-raw-products: ## Promeut product_import_raw vers ProductReference pending_review
 	$(BACKEND) php bin/console app:product-import-raw:promote $(ARGS)

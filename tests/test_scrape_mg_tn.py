@@ -8,9 +8,14 @@ from scripts.scrape_mg_tn import (
     Article,
     GeoBlockedError,
     build_product_import_raw_rows,
+    discover_internal_links,
+    fetch_sitemap_urls,
     insert_product_import_raw,
     fetch_page,
     parse_articles,
+    parse_observations,
+    parse_products,
+    parse_site_observations,
 )
 
 
@@ -90,6 +95,139 @@ class ScrapeMgTnTest(unittest.TestCase):
             [
                 "https://mg.tn/article-1",
                 "https://mg.tn/article-2",
+            ],
+        )
+
+    def test_parse_products_detects_prestashop_product_cards(self):
+        soup = BeautifulSoup(
+            """
+            <html>
+              <body>
+                <nav class="breadcrumb">
+                  <ol>
+                    <li><a>Accueil</a></li>
+                    <li><a>Alimentaire</a></li>
+                  </ol>
+                </nav>
+                <article class="product-miniature">
+                  <h2 class="product-title">
+                    <a href="/alimentaire/271-ail-en-poudre-70-gr-mg-j-aime.html">
+                      Ail en poudre 70 gr MG J'AIME
+                    </a>
+                  </h2>
+                  <span class="price">5,250 DT</span>
+                  <img src="/img/ail.jpg" />
+                </article>
+                <article class="product-miniature">
+                  <h2 class="product-title">
+                    <a href="/alimentaire/273-romarin-sachet-de-20-gr-koll-youm.html">
+                      Romarin Sachet de 20 gr KOLL YOUM
+                    </a>
+                  </h2>
+                </article>
+              </body>
+            </html>
+            """,
+            "html.parser",
+        )
+
+        products = parse_products(soup, "https://mg.tn/15-alimentaire")
+
+        self.assertEqual(
+            [product.title for product in products],
+            [
+                "Ail en poudre 70 gr MG J'AIME",
+                "Romarin Sachet de 20 gr KOLL YOUM",
+            ],
+        )
+        self.assertEqual(
+            [product.url for product in products],
+            [
+                "https://mg.tn/alimentaire/271-ail-en-poudre-70-gr-mg-j-aime.html",
+                "https://mg.tn/alimentaire/273-romarin-sachet-de-20-gr-koll-youm.html",
+            ],
+        )
+        self.assertEqual(products[0].category, "Alimentaire")
+        self.assertEqual(products[0].excerpt, "5,250 DT")
+        self.assertEqual(products[0].image_url, "https://mg.tn/img/ail.jpg")
+
+    def test_parse_observations_prefers_products_over_articles(self):
+        soup = BeautifulSoup(
+            """
+            <html>
+              <body>
+                <article class="product-miniature">
+                  <h2 class="product-title">
+                    <a href="/alimentaire/271-ail-en-poudre-70-gr-mg-j-aime.html">Ail en poudre 70 gr MG J'AIME</a>
+                  </h2>
+                </article>
+                <h2><a href="/blog/post">Article blog</a></h2>
+              </body>
+            </html>
+            """,
+            "html.parser",
+        )
+
+        observations = parse_observations(soup, "https://mg.tn/15-alimentaire")
+
+        self.assertEqual(len(observations), 1)
+        self.assertEqual(observations[0].title, "Ail en poudre 70 gr MG J'AIME")
+
+    def test_parse_site_observations_ignores_editorial_links_without_products(self):
+        soup = BeautifulSoup(
+            """
+            <html>
+              <body>
+                <h2><a href="/bien-manger">Bien manger</a></h2>
+                <h2><a href="/consommer-responsable">Consommer responsable</a></h2>
+              </body>
+            </html>
+            """,
+            "html.parser",
+        )
+
+        observations = parse_site_observations(soup, "https://mg.tn/")
+
+        self.assertEqual(observations, [])
+
+    def test_fetch_sitemap_urls_reads_same_domain_locations(self):
+        session = FakeSession(FakeResponse(
+            200,
+            text="""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+              <url><loc>https://mg.tn/15-alimentaire</loc></url>
+              <url><loc>https://external.test/page</loc></url>
+            </urlset>
+            """,
+        ))
+
+        urls = fetch_sitemap_urls("https://mg.tn/sitemap.xml", session, "https://mg.tn")
+
+        self.assertEqual(urls, ["https://mg.tn/15-alimentaire"])
+
+    def test_discover_internal_links_filters_private_and_external_urls(self):
+        soup = BeautifulSoup(
+            """
+            <html>
+              <body>
+                <a href="/15-alimentaire">Alimentaire</a>
+                <a href="https://mg.tn/20-hygiene#content">Hygiène</a>
+                <a href="https://mg.tn/connexion?back=my-account">Connexion</a>
+                <a href="https://external.test/page">Externe</a>
+              </body>
+            </html>
+            """,
+            "html.parser",
+        )
+
+        urls = discover_internal_links(soup, "https://mg.tn/")
+
+        self.assertEqual(
+            urls,
+            [
+                "https://mg.tn/15-alimentaire",
+                "https://mg.tn/20-hygiene",
             ],
         )
 
