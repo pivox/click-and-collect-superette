@@ -27,7 +27,7 @@ export default async function OrderTrackingPage({
       <TopBar
         title={order.code}
         subtitle="Superette El Amel"
-        backHref="/kadhia/slot"
+        backHref="/orders"
       />
 
       <Card>

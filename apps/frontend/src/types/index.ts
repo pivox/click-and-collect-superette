@@ -11,6 +11,7 @@ export type OrderStatus =
   | "draft"
   | "submitted"
   | "accepted"
+  | "partially_accepted"
   | "rejected"
   | "preparing"
   | "ready"
@@ -116,6 +117,6 @@ export interface Order {
 export interface TimelineStep {
   key: "submitted" | "accepted" | "preparing" | "ready" | "completed";
   label: string;
-  hint: string;
+  hint?: string;
   state: "done" | "current" | "todo";
 }

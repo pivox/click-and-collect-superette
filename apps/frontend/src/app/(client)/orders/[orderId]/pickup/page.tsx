@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Badge, orderStatusBadge } from "@/components/ui/Badge";
@@ -14,6 +14,9 @@ export default async function PickupQrPage({
 }) {
   const order = await getOrder(params.orderId);
   if (!order) notFound();
+  if (order.status !== "ready" && order.status !== "pickup_pending") {
+    redirect(`/orders/${params.orderId}`);
+  }
   const badge = orderStatusBadge(order.status);
 
   return (

@@ -21,7 +21,7 @@ export function SearchInput({
         className,
       )}
     >
-      <Search size={18} />
+      <Search size={18} aria-hidden="true" />
       <input
         type="search"
         className="w-full flex-1 bg-transparent outline-none placeholder:text-muted"

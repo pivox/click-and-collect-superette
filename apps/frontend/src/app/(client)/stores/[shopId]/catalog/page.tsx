@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
 import { Pill, PillRow } from "@/components/ui/Pill";
@@ -10,23 +10,25 @@ import { ShoppingBasket } from "lucide-react";
 import {
   addLine,
   getCurrentKadhia,
+  getShop,
   listCatalog,
 } from "@/lib/services";
-import type { ProductOffer } from "@/types";
+import type { ProductOffer, Shop } from "@/types";
 import { PRODUCT_CATEGORIES } from "@/lib/mock/products.mock";
 
 export default function CatalogPage({
   params,
 }: {
-  params: Promise<{ shopId: string }>;
+  params: { shopId: string };
 }) {
-  const { shopId } = use(params);
+  const { shopId } = params;
   const [category, setCategory] = useState<
     "all" | ProductOffer["category"]
   >("all");
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<ProductOffer[]>([]);
   const [cartCount, setCartCount] = useState(0);
+  const [shop, setShop] = useState<Shop | null>(null);
 
   useEffect(() => {
     void listCatalog({ shopId, category, search }).then(setProducts);
@@ -36,6 +38,10 @@ export default function CatalogPage({
     void getCurrentKadhia(shopId).then((k) =>
       setCartCount(k.lines.reduce((acc, l) => acc + l.quantity, 0)),
     );
+  }, [shopId]);
+
+  useEffect(() => {
+    void getShop(shopId).then(setShop);
   }, [shopId]);
 
   const onAdd = async (p: ProductOffer) => {
@@ -52,7 +58,7 @@ export default function CatalogPage({
     <>
       <TopBar
         title="Catalogue"
-        subtitle="Superette El Amel"
+        subtitle={shop?.name}
         backHref={`/stores/${shopId}`}
         action={
           <Link

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { Pill, PillRow } from "@/components/ui/Pill";
 import { SlotTile } from "@/components/ui/SlotTile";
@@ -14,6 +14,7 @@ import type { PickupSlot } from "@/types";
 const DEMO_SHOP_ID = "shop-el-amel";
 
 export default function SlotPage() {
+  const router = useRouter();
   const [slots, setSlots] = useState<PickupSlot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [day, setDay] = useState<"today" | "tomorrow" | "after">("today");
@@ -51,18 +52,22 @@ export default function SlotPage() {
 
       <section className="mt-2">
         <h3 className="mb-2.5 text-h3 font-extrabold">Créneaux disponibles</h3>
-        <div className="grid grid-cols-2 gap-2.5">
-          {slots.map((s) => (
-            <SlotTile
-              key={s.id}
-              time={formatTime(s.startsAt)}
-              label={s.label}
-              disabled={!s.available}
-              active={activeId === s.id}
-              onClick={() => setActiveId(s.id)}
-            />
-          ))}
-        </div>
+        {slots.length === 0 ? (
+          <p className="text-sm text-muted">Aucun créneau disponible pour ce jour.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2.5">
+            {slots.map((s) => (
+              <SlotTile
+                key={s.id}
+                time={formatTime(s.startsAt)}
+                label={s.label}
+                disabled={!s.available}
+                active={activeId === s.id}
+                onClick={() => setActiveId(s.id)}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="mt-5">
@@ -75,11 +80,16 @@ export default function SlotPage() {
       </section>
 
       <StickyBottom>
-        <Link href="/orders/CMD-4821">
-          <Button full disabled={!activeId}>
-            Envoyer la commande
-          </Button>
-        </Link>
+        <Button
+          full
+          disabled={!activeId}
+          onClick={() => {
+            if (!activeId) return;
+            router.push("/orders/CMD-4821");
+          }}
+        >
+          Envoyer la commande
+        </Button>
       </StickyBottom>
     </>
   );

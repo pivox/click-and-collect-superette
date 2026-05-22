@@ -17,8 +17,9 @@ export function QtyControl({ value, min = 0, max = 99, onChange }: QtyControlPro
       <button
         type="button"
         onClick={dec}
+        disabled={value <= min}
         aria-label="Diminuer la quantité"
-        className="grid h-7 w-7 place-items-center rounded bg-primary text-white font-black hover:bg-primary-dark"
+        className="grid h-7 w-7 place-items-center rounded bg-primary text-white font-black hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Minus size={14} />
       </button>
@@ -26,8 +27,9 @@ export function QtyControl({ value, min = 0, max = 99, onChange }: QtyControlPro
       <button
         type="button"
         onClick={inc}
+        disabled={value >= max}
         aria-label="Augmenter la quantité"
-        className="grid h-7 w-7 place-items-center rounded bg-primary text-white font-black hover:bg-primary-dark"
+        className="grid h-7 w-7 place-items-center rounded bg-primary text-white font-black hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Plus size={14} />
       </button>

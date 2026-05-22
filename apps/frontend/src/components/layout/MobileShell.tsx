@@ -41,6 +41,7 @@ export function MobileShell({ children, bareLayout, className }: MobileShellProp
 }
 
 function StatusBar() {
+  if (process.env.NODE_ENV !== "development") return null;
   return (
     <div className="flex items-center justify-between px-1.5 pb-3 text-xs font-extrabold text-[#162418]">
       <span>22:14</span>

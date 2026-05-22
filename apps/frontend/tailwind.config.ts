@@ -25,12 +25,16 @@ const config: Config = {
         secondary: "var(--secondary)",
         danger: "var(--danger)",
 
-        // Status (order statuses)
+        // Status (order statuses — foreground + background)
         status: {
           wait: "var(--status-wait)",
+          "wait-bg": "var(--status-wait-bg)",
           prep: "var(--status-prep)",
+          "prep-bg": "var(--status-prep-bg)",
           ready: "var(--status-ready)",
+          "ready-bg": "var(--status-ready-bg)",
           cancel: "var(--status-cancel)",
+          "cancel-bg": "var(--status-cancel-bg)",
         },
 
         // Legacy tokens kept for parity with the bare Next template

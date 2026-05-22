@@ -20,6 +20,7 @@ export function projectTimeline(order: Order): TimelineStep[] {
     draft: -1,
     submitted: 0,
     accepted: 1,
+    partially_accepted: 0,
     preparing: 2,
     ready: 3,
     pickup_pending: 3,

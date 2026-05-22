@@ -39,7 +39,7 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
             >
               {s.label}
             </strong>
-            <span className="mt-1 block text-xs text-muted">{s.hint}</span>
+            {s.hint && <span className="mt-1 block text-xs text-muted">{s.hint}</span>}
           </div>
         </li>
       ))}

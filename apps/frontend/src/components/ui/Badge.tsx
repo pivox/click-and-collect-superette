@@ -49,6 +49,8 @@ export function orderStatusBadge(status: OrderStatus): {
       return { tone: "prep", label: "Soumise" };
     case "accepted":
       return { tone: "prep", label: "Acceptée" };
+    case "partially_accepted":
+      return { tone: "wait", label: "Partiellement acceptée" };
     case "rejected":
       return { tone: "cancel", label: "Refusée" };
     case "preparing":

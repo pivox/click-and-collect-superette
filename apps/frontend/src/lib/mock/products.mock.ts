@@ -126,4 +126,5 @@ export const PRODUCT_CATEGORIES: { key: "all" | ProductOffer["category"]; labelF
   { key: "grocery", labelFr: "Épicerie" },
   { key: "hygiene", labelFr: "Hygiène" },
   { key: "snacks", labelFr: "Snacks" },
+  { key: "other", labelFr: "Autre" },
 ];

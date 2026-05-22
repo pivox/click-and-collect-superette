@@ -31,6 +31,7 @@ export function BottomNav() {
           <Link
             key={href}
             href={href}
+            aria-current={active ? "page" : undefined}
             className={cn(
               "grid place-items-center gap-1 text-[10px] font-extrabold",
               active ? "text-primary" : "text-muted",
