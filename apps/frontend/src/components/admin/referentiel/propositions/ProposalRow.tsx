@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { approveProposal, rejectProposal } from '@/lib/services/admin/proposals.service';
 import { listProductReferences } from '@/lib/services/admin/product-references.service';
 import { listBrands } from '@/lib/services/admin/brands.service';
@@ -69,8 +70,9 @@ export function ProposalRow({ proposal, isExpanded, onToggle, onProcessed }: Pro
         await approveProposal(proposal.id, { productReferenceId: selectedRef.id });
         reset(); onToggle(proposal.id, null); onProcessed();
       } catch (e) {
-        const msg = String(e);
-        setError(msg.includes('409') ? 'Cette proposition a déjà été traitée.' : 'Une erreur est survenue.');
+        setError(axios.isAxiosError(e) && e.response?.status === 409
+          ? 'Cette proposition a déjà été traitée.'
+          : 'Une erreur est survenue.');
       } finally { setIsSubmitting(false); }
     } else {
       if (!newNameFr.trim() || !newBrandId || !newCategoryId) {
@@ -84,8 +86,9 @@ export function ProposalRow({ proposal, isExpanded, onToggle, onProcessed }: Pro
         });
         reset(); onToggle(proposal.id, null); onProcessed();
       } catch (e) {
-        const msg = String(e);
-        setError(msg.includes('409') ? 'Cette proposition a déjà été traitée.' : 'Une erreur est survenue.');
+        setError(axios.isAxiosError(e) && e.response?.status === 409
+          ? 'Cette proposition a déjà été traitée.'
+          : 'Une erreur est survenue.');
       } finally { setIsSubmitting(false); }
     }
   };

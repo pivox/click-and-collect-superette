@@ -208,12 +208,14 @@ export default function ProduitsPage() {
         sortDir={sortDir}
         onSort={(key) => toggleSort(key as keyof ProductReference)}
       />
-      <ProductReferenceDrawer
-        open={drawerOpen}
-        onClose={() => { setDrawerOpen(false); setEditTarget(null); }}
-        product={editTarget}
-        onSaved={() => { setDrawerOpen(false); setEditTarget(null); void load(); }}
-      />
+      {drawerOpen && (
+        <ProductReferenceDrawer
+          open={drawerOpen}
+          onClose={() => { setDrawerOpen(false); setEditTarget(null); }}
+          product={editTarget}
+          onSaved={() => { setDrawerOpen(false); setEditTarget(null); void load(); }}
+        />
+      )}
       <AdminConfirmDialog
         open={!!archiveTarget}
         onClose={() => setArchiveTarget(null)}
