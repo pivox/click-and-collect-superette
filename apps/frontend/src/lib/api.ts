@@ -10,10 +10,13 @@ export const apiClient = axios.create({
   },
 });
 
-// Attach JWT token from localStorage on each request
+// Attach JWT token — path-aware: admin pages use admin_token, client pages use jwt_token
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('jwt_token');
+    const isAdminPath = window.location.pathname.startsWith('/admin');
+    const token = isAdminPath
+      ? localStorage.getItem('admin_token')
+      : localStorage.getItem('jwt_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -21,13 +24,21 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Redirect to login on 401
+// Redirect to login on 401 — admin path → /admin/login, client path → /login
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('jwt_token');
-      window.location.href = '/login';
+      const isAdminPath = window.location.pathname.startsWith('/admin');
+      if (isAdminPath) {
+        localStorage.removeItem('admin_token');
+        document.cookie =
+          'admin_token=; path=/admin; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        window.location.href = '/admin/login';
+      } else {
+        localStorage.removeItem('jwt_token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   },

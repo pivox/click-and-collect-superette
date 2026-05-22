@@ -23,3 +23,4 @@ export * from "./catalog.service";
 export * from "./kadhia.service";
 export * from "./slots.service";
 export * from "./orders.service";
+export * from "./auth.service";
