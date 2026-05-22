@@ -122,7 +122,7 @@ def fetch_page(url: str, session: requests.Session, retries: int = 3) -> Optiona
             response = session.get(url, timeout=15)
             # mg.tn est géo-restreint : x-deny-reason: host_not_allowed pour les IPs hors Tunisie
             deny_reason = response.headers.get("x-deny-reason", "")
-            if deny_reason == "host_not_allowed" or response.status_code == 403:
+            if deny_reason == "host_not_allowed":
                 raise GeoBlockedError(
                     f"Accès refusé ({response.status_code}) — raison : '{deny_reason or 'inconnue'}'.\n"
                     "mg.tn bloque les requêtes depuis des IPs hors Tunisie.\n"
@@ -172,6 +172,12 @@ def _detect_article_blocks(soup: BeautifulSoup) -> list:
 
 def _extract_article_link(block) -> Optional[tuple[str, str]]:
     """Retourne (titre, url) depuis un bloc article."""
+    if getattr(block, "name", None) == "a":
+        title = block.get_text(strip=True)
+        href = block.get("href")
+        if title and href:
+            return title, href
+
     for sel in TITLE_SELECTORS:
         el = block.select_one(sel)
         if not el:
@@ -186,9 +192,9 @@ def _extract_article_link(block) -> Optional[tuple[str, str]]:
 def parse_articles(soup: BeautifulSoup, base_url: str) -> list[Article]:
     blocks = _detect_article_blocks(soup)
     if not blocks:
-        log.warning("Aucun bloc article détecté — tentative fallback sur <a> contenant <h2>/<h3>")
-        # fallback : chercher tous les liens qui contiennent un titre
-        blocks = [a.parent for a in soup.find_all("a") if a.find(["h2", "h3", "h4"])]
+        log.warning("Aucun bloc article détecté — tentative fallback sur titres contenant un lien")
+        # fallback : chercher les titres qui contiennent directement un lien d'article
+        blocks = soup.select("h1 a[href], h2 a[href], h3 a[href], h4 a[href]")
 
     articles: list[Article] = []
     seen_urls: set[str] = set()
