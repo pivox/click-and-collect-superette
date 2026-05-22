@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\ProductImportRaw;
 use App\Entity\ProductReference;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
@@ -158,6 +159,25 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         self::assertSame('piece', $payload['unit']);
         self::assertSame('TN', $payload['country']);
         self::assertSame('draft', $payload['status']);
+    }
+
+    public function testAdminGetsProductReferenceImportSource(): void
+    {
+        $admin = $this->createUser('admin-pr-source@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Source', 'marque-source');
+        $category = $this->createCategory('Catégorie Source', 'categorie-source');
+        $source = $this->createProductImportRaw();
+        $ref = $this->createProductReference($brand, $category, 'Produit importé')
+            ->setSourceImportRaw($source);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/product-references/%s', $ref->getId()), user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame($source->getId()->toRfc4122(), $payload['source_import_raw_id']);
+        self::assertSame('mg.tn', $payload['source_name']);
+        self::assertSame('https://mg.tn/source-produit', $payload['source_url']);
     }
 
     public function testGetProductReferenceReturns404WhenAbsent(): void
@@ -639,6 +659,20 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $category;
+    }
+
+    private function createProductImportRaw(): ProductImportRaw
+    {
+        $source = (new ProductImportRaw())
+            ->setSourceName('mg.tn')
+            ->setSourceUrl('https://mg.tn/source-produit')
+            ->setRawTitle('Produit importé')
+            ->setProductionUsable(false);
+
+        $this->entityManager->persist($source);
+        $this->entityManager->flush();
+
+        return $source;
     }
 
     /**
