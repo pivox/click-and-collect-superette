@@ -1,7 +1,7 @@
 .PHONY: help up down restart build logs bash-backend bash-frontend \
         migrate migrate-diff db-reset test-backend test-frontend lint-backend lint-frontend \
         jwt-keys cc phpunit \
-        scraper scraper-build scraper-check test-scraper \
+        scraper scraper-build scraper-check scraper-db test-scraper \
         import-products seed-prices seed-demo-store seed-demo-store-all products-stats setup-dev-data
 
 DOCKER_COMPOSE = docker compose
@@ -96,6 +96,9 @@ scraper-check: ## Vérifie l'accès à mg.tn depuis le conteneur du scraper
 
 scraper: ## Lance le scraper mg.tn conteneurisé (ARGS="--pages 3 --output articles.json")
 	$(SCRAPER) $(ARGS)
+
+scraper-db: ## Scrape mg.tn et insère les observations dans product_import_raw (ARGS="--pages 3")
+	$(SCRAPER) --db $(ARGS)
 
 # ─── Qualité ─────────────────────────────────────────────────────────────────
 

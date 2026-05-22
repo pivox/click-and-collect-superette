@@ -6,6 +6,7 @@ Usage:
     python scrape_mg_tn.py --pages 3              # scrape 3 pages
     python scrape_mg_tn.py --output articles.json # fichier de sortie JSON
     python scrape_mg_tn.py --csv articles.csv     # export CSV
+    python scrape_mg_tn.py --db                   # insertion PostgreSQL product_import_raw
     python scrape_mg_tn.py --category economie    # section spécifique
 """
 
@@ -13,16 +14,20 @@ import argparse
 import csv
 import json
 import logging
+import os
 import sys
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Optional
 from urllib.parse import urljoin, urlparse
+from uuid import uuid4
 
 import requests
 from bs4 import BeautifulSoup
 
 BASE_URL = "https://mg.tn"
+DEFAULT_DB_SOURCE_NAME = "mg.tn"
+DEFAULT_DATABASE_URL_ENV = "SCRAPER_DATABASE_URL"
 
 HEADERS = {
     "User-Agent": (
@@ -114,6 +119,43 @@ class Article:
 
 class GeoBlockedError(Exception):
     pass
+
+
+PRODUCT_IMPORT_RAW_UPSERT_SQL = """
+INSERT INTO product_import_raw (
+    id,
+    source_name,
+    source_url,
+    raw_title,
+    raw_brand,
+    raw_quantity,
+    raw_category,
+    raw_payload,
+    production_usable,
+    created_at,
+    updated_at
+) VALUES (
+    %(id)s,
+    %(source_name)s,
+    %(source_url)s,
+    %(raw_title)s,
+    %(raw_brand)s,
+    %(raw_quantity)s,
+    %(raw_category)s,
+    %(raw_payload)s::json,
+    %(production_usable)s,
+    NOW(),
+    NOW()
+)
+ON CONFLICT (source_name, source_url) DO UPDATE SET
+    raw_title = EXCLUDED.raw_title,
+    raw_brand = EXCLUDED.raw_brand,
+    raw_quantity = EXCLUDED.raw_quantity,
+    raw_category = EXCLUDED.raw_category,
+    raw_payload = EXCLUDED.raw_payload,
+    production_usable = EXCLUDED.production_usable,
+    updated_at = NOW()
+"""
 
 
 def fetch_page(url: str, session: requests.Session, retries: int = 3) -> Optional[BeautifulSoup]:
@@ -307,6 +349,69 @@ def write_csv(articles: list[Article], path: str) -> None:
     log.info("CSV écrit : %s (%d articles)", path, len(articles))
 
 
+def build_product_import_raw_rows(
+    articles: list[Article],
+    source_name: str = DEFAULT_DB_SOURCE_NAME,
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+
+    for article in articles:
+        payload = {
+            "title": article.title,
+            "url": article.url,
+        }
+        if article.date:
+            payload["date"] = article.date
+        if article.category:
+            payload["category"] = article.category
+
+        rows.append({
+            "source_name": source_name,
+            "source_url": article.url,
+            "raw_title": article.title,
+            "raw_brand": None,
+            "raw_quantity": None,
+            "raw_category": article.category,
+            "raw_payload": payload,
+            "production_usable": False,
+        })
+
+    return rows
+
+
+def insert_product_import_raw(connection, articles: list[Article]) -> int:
+    rows = build_product_import_raw_rows(articles)
+
+    with connection.cursor() as cursor:
+        for row in rows:
+            params = {
+                "id": str(uuid4()),
+                **row,
+                "raw_payload": json.dumps(row["raw_payload"], ensure_ascii=False),
+            }
+            cursor.execute(PRODUCT_IMPORT_RAW_UPSERT_SQL, params)
+
+    connection.commit()
+
+    return len(rows)
+
+
+def write_database(articles: list[Article], database_url: str) -> int:
+    try:
+        import psycopg
+    except ImportError as exc:
+        raise RuntimeError(
+            "Dépendance PostgreSQL absente. Rebuilder l'image scraper ou installer psycopg[binary]."
+        ) from exc
+
+    with psycopg.connect(database_url) as connection:
+        count = insert_product_import_raw(connection, articles)
+
+    log.info("BDD écrite : product_import_raw (%d observation(s) mg.tn)", count)
+
+    return count
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Scraper d'articles mg.tn",
@@ -319,6 +424,16 @@ def main() -> int:
     parser.add_argument("--csv", dest="csv_file", default=None, help="Fichier CSV de sortie")
     parser.add_argument("--delay", type=float, default=1.5, help="Délai entre les pages en secondes (défaut : 1.5)")
     parser.add_argument("--quiet", action="store_true", help="Supprimer les logs INFO")
+    parser.add_argument(
+        "--db",
+        action="store_true",
+        help="Insérer les observations dans PostgreSQL (table product_import_raw)",
+    )
+    parser.add_argument(
+        "--database-url",
+        default=None,
+        help=f"URL PostgreSQL (défaut : variable {DEFAULT_DATABASE_URL_ENV}, puis DATABASE_URL)",
+    )
     parser.add_argument(
         "--check",
         action="store_true",
@@ -369,6 +484,15 @@ def main() -> int:
         write_json(articles, args.output)
     if args.csv_file:
         write_csv(articles, args.csv_file)
+    if args.db:
+        database_url = args.database_url or os.getenv(DEFAULT_DATABASE_URL_ENV) or os.getenv("DATABASE_URL")
+        if not database_url:
+            log.error(
+                "Aucune URL PostgreSQL fournie. Utiliser --database-url ou définir %s.",
+                DEFAULT_DATABASE_URL_ENV,
+            )
+            return 1
+        write_database(articles, database_url)
 
     return 0
 
