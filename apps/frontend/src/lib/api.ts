@@ -10,11 +10,13 @@ export const apiClient = axios.create({
   },
 });
 
-// Attach JWT token — admin_token takes priority over customer jwt_token
+// Attach JWT token — path-aware: admin pages use admin_token, client pages use jwt_token
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token =
-      localStorage.getItem('admin_token') ?? localStorage.getItem('jwt_token');
+    const isAdminPath = window.location.pathname.startsWith('/admin');
+    const token = isAdminPath
+      ? localStorage.getItem('admin_token')
+      : localStorage.getItem('jwt_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
