@@ -11,5 +11,6 @@ export function isRtl(locale: Locale): boolean {
 }
 
 export default getRequestConfig(async ({ locale }) => ({
+  locale: locale!,
   messages: (await import(`../messages/${locale}.json`)).default,
 }));

@@ -40,6 +40,51 @@ Dernières PRs livrées :
 
 Prochaine étape recommandée : S5-003 — création/mise à jour admin des supérettes ou gestion admin des comptes marchands selon priorité produit.
 
+## Développement frontend avec Docker
+
+Le frontend Next.js peut être lancé, buildé et linté sans installer Node.js localement.
+
+### Lancer le frontend en watch / hot reload
+
+```bash
+# depuis la racine du repo
+docker compose up frontend
+```
+
+L'application est disponible sur :
+
+```text
+http://localhost:3000
+```
+
+Le service `frontend` monte `./apps/frontend:/app` et conserve `node_modules` dans le volume Docker `frontend_node_modules`.
+
+### Lancer uniquement le frontend sans les dépendances backend
+
+```bash
+docker compose run --rm --service-ports --no-deps frontend npm run dev
+```
+
+### Build frontend dans Docker
+
+```bash
+docker compose run --rm frontend npm run build
+```
+
+### Lint frontend dans Docker
+
+```bash
+docker compose run --rm frontend npm run lint
+```
+
+### Rebuild de l'image frontend
+
+À faire après une modification de `apps/frontend/package.json`, `package-lock.json` ou `docker/frontend/Dockerfile` :
+
+```bash
+docker compose build frontend
+```
+
 ## Principe général
 
 1. Le client scanne le QR code de la supérette.
