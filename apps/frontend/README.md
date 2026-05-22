@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend — Click & Collect Supérette
 
-## Getting Started
+Interface client de l'application click & collect pour les supérettes tunisiennes.
+Construite avec **Next.js 14** (App Router), **Tailwind CSS** et **React Query**.
 
-First, run the development server:
+## Démarrage rapide
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.local.dist .env.local   # configurer les variables d'environnement
+npm install
+npm run dev                     # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Variables d'environnement
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Description | Défaut |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | URL de base de l'API backend | `http://localhost:8000` |
+| `NEXT_PUBLIC_USE_MOCKS` | `1` = données mock, `0` = vraie API | `1` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copier `.env.local.dist` en `.env.local` et ajuster selon l'environnement.
 
-## Learn More
+## Commandes
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run dev      # serveur de développement (hot reload)
+npm run build    # build de production
+npm run start    # serveur de production (après build)
+npm run lint     # ESLint
+npx tsc --noEmit # vérification TypeScript sans émission
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Docker
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Depuis la **racine du monorepo** :
 
-## Deploy on Vercel
+```bash
+# Premier build de l'image
+docker compose build frontend
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Rebuild forcé (sans cache — utile après changement de dépendances)
+docker compose build --no-cache frontend
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Lancer avec hot reload (WATCHPACK_POLLING activé dans compose)
+docker compose up frontend
+
+# Rebuild + relance en une commande
+docker compose up --build frontend
+
+# Logs en temps réel
+docker compose logs -f frontend
+```
+
+## Architecture
+
+```
+src/
+├── app/
+│   ├── page.tsx               # Landing — choix parcours mobile / desktop
+│   ├── (client)/              # Parcours client mobile (phone shell)
+│   │   ├── layout.tsx         # MobileShell + BottomNav
+│   │   ├── page.tsx           # Accueil mobile
+│   │   ├── stores/            # Liste et fiche supérette
+│   │   ├── kadhia/            # Panier + sélection créneau
+│   │   └── orders/            # Suivi commande + QR retrait
+│   └── desktop/               # Parcours client desktop (sidebar)
+├── components/
+│   ├── ui/                    # Primitives : Button, Badge, Card, Pill…
+│   ├── layout/                # Shells : MobileShell, TopBar, BottomNav…
+│   ├── product/               # ProductCard, KadhiaLineRow
+│   └── store/                 # StoreCard
+├── lib/
+│   ├── services/              # Couche service (mock ↔ API réelle)
+│   ├── mock/                  # Données de développement
+│   ├── api.ts                 # Axios client (JWT Bearer)
+│   ├── cn.ts                  # Utilitaire clsx + tailwind-merge
+│   └── format.ts              # Formatage TND, dates, heures
+└── types/
+    └── index.ts               # Types partagés (Shop, Order, Kadhia…)
+```
+
+## Couche services
+
+Chaque service expose des fonctions async dont la signature ne change pas
+entre le mode mock et le mode API réelle. Pour basculer sur le vrai backend :
+
+```bash
+# .env.local
+NEXT_PUBLIC_USE_MOCKS=0
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+| Service | Fonctions |
+|---|---|
+| `stores.service` | `listShops`, `getShop`, `getShopBySlug` |
+| `catalog.service` | `listCatalog` |
+| `kadhia.service` | `getCurrentKadhia`, `addLine`, `updateLineQuantity`, `clearKadhia` |
+| `slots.service` | `listSlotsForShop` |
+| `orders.service` | `getOrder`, `projectTimeline` |
+
+## Design system
+
+Les tokens de design sont définis dans `tailwind.config.ts` et les variables
+CSS dans `src/app/globals.css`. Couleurs de marque : vert `#1f7a4d` + jaune `#ffcf5a`.
+Support RTL intégré (`html[dir="rtl"]`) pour le parcours arabe.
+
+## Stack
+
+| Outil | Usage |
+|---|---|
+| Next.js 14 | App Router, Server Components, Static/Dynamic rendering |
+| Tailwind CSS 3 | Styling, design tokens |
+| React Query 5 | Gestion d'état serveur (à brancher sur les services) |
+| next-intl | Internationalisation FR / AR |
+| Axios | Client HTTP + intercepteur JWT |
+| Vitest | Tests unitaires |
+| TypeScript 5 | Typage strict |

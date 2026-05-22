@@ -2,26 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design tokens — extracted from prototype-html/user-client-flow.css
+ * and user-web-flow.css. Keep these in sync with the figma/proto
+ * mockups when the design evolves.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surface */
+  --bg: #f6f7f2;
+  --card: #ffffff;
+  --ink: #172018;
+  --muted: #6c766f;
+  --line: #e4e8df;
+  --soft: #eef4ec;
+
+  /* Brand */
+  --primary: #1f7a4d;
+  --primary-dark: #155b38;
+  --secondary: #ffcf5a;
+  --danger: #c43d3d;
+
+  /* Status colors for order badges */
+  --status-wait: #b45309;
+  --status-wait-bg: #fff4df;
+  --status-prep: #1d4ed8;
+  --status-prep-bg: #eaf2ff;
+  --status-ready: #15803d;
+  --status-ready-bg: #dcfce7;
+  --status-cancel: #b91c1c;
+  --status-cancel-bg: #fee2e2;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
   }
-}
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    color: var(--ink);
+    background:
+      radial-gradient(circle at top left, rgba(31, 122, 77, 0.14), transparent 35%),
+      linear-gradient(135deg, #fbfbf7, var(--bg));
+    font-family:
+      Inter,
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    min-height: 100vh;
+  }
+
+  /* Arabic RTL support — applies when <html dir="rtl"> */
+  html[dir="rtl"] body {
+    font-family:
+      "IBM Plex Sans Arabic",
+      "Noto Naskh Arabic",
+      Inter,
+      sans-serif;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  /* Hide native scrollbars on horizontal pill rows */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
   }
 }
