@@ -1,11 +1,13 @@
 .PHONY: help up down restart build logs bash-backend bash-frontend \
         migrate migrate-diff db-reset test-backend test-frontend lint-backend lint-frontend \
         jwt-keys cc phpunit \
+        scraper scraper-build scraper-check test-scraper \
         import-products seed-prices seed-demo-store seed-demo-store-all products-stats setup-dev-data
 
 DOCKER_COMPOSE = docker compose
 BACKEND  = $(DOCKER_COMPOSE) exec backend
 FRONTEND = $(DOCKER_COMPOSE) exec frontend
+SCRAPER  = $(DOCKER_COMPOSE) run --rm scraper
 
 # Paramètre optionnel pour phpunit (ex: make phpunit ARGS="--filter monTest")
 ARGS ?=
@@ -80,6 +82,20 @@ phpunit: ## Lance PHPUnit via conteneur PHP 8.4 one-shot — pas besoin du stack
 		-e APP_ENV=test \
 		php:8.4-cli-alpine \
 		php bin/phpunit $(ARGS)
+
+test-scraper: ## Lance les tests Python du scraper dans le conteneur dédié
+	$(DOCKER_COMPOSE) run --rm --entrypoint python scraper -m unittest tests/test_scrape_mg_tn.py
+
+# ─── Scraper mg.tn ───────────────────────────────────────────────────────────
+
+scraper-build: ## Build l'image Docker du scraper mg.tn
+	$(DOCKER_COMPOSE) build scraper
+
+scraper-check: ## Vérifie l'accès à mg.tn depuis le conteneur du scraper
+	$(SCRAPER) --check
+
+scraper: ## Lance le scraper mg.tn conteneurisé (ARGS="--pages 3 --output articles.json")
+	$(SCRAPER) $(ARGS)
 
 # ─── Qualité ─────────────────────────────────────────────────────────────────
 
