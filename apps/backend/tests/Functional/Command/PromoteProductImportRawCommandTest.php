@@ -71,6 +71,62 @@ final class PromoteProductImportRawCommandTest extends FunctionalApiTestCase
         self::assertStringContainsString('created: 1', $commandTester->getDisplay());
     }
 
+    public function testDryRunUsesNextBatchInsteadOfReReadingFirstRows(): void
+    {
+        for ($i = 1; $i <= 200; ++$i) {
+            $this->createRawImport(
+                sourceUrl: \sprintf('https://mg.tn/valid-%03d', $i),
+                rawTitle: 'Produit valide '.$i,
+            );
+        }
+
+        $this->createRawImport(
+            sourceUrl: 'https://mg.tn/invalid-empty-title',
+            rawTitle: '',
+        );
+
+        $commandTester = $this->runCommand(['--dry-run' => true, '--limit' => 201]);
+
+        self::assertStringContainsString('processed: 201', $commandTester->getDisplay());
+        self::assertStringContainsString('created: 200', $commandTester->getDisplay());
+        self::assertStringContainsString('skipped: 1', $commandTester->getDisplay());
+        self::assertSame(0, $this->entityManager->getRepository(ProductReference::class)->count([]));
+    }
+
+    public function testPromoteConvertsCentilitresToMillilitres(): void
+    {
+        $this->createRawImport(
+            sourceUrl: 'https://mg.tn/jus-75cl',
+            rawTitle: 'Jus orange',
+            rawQuantity: '75 cl',
+        );
+
+        $this->runCommand();
+
+        /** @var ProductReference|null $productReference */
+        $productReference = $this->entityManager->getRepository(ProductReference::class)->findOneBy(['nameFr' => 'Jus orange']);
+        self::assertInstanceOf(ProductReference::class, $productReference);
+        self::assertSame('750', $productReference->getVolume());
+        self::assertSame(ProductUnit::Millilitre, $productReference->getUnit());
+    }
+
+    public function testPromoteConvertsDecilitresToMillilitres(): void
+    {
+        $this->createRawImport(
+            sourceUrl: 'https://mg.tn/boisson-2dl',
+            rawTitle: 'Boisson canette',
+            rawQuantity: '2 dl',
+        );
+
+        $this->runCommand();
+
+        /** @var ProductReference|null $productReference */
+        $productReference = $this->entityManager->getRepository(ProductReference::class)->findOneBy(['nameFr' => 'Boisson canette']);
+        self::assertInstanceOf(ProductReference::class, $productReference);
+        self::assertSame('200', $productReference->getVolume());
+        self::assertSame(ProductUnit::Millilitre, $productReference->getUnit());
+    }
+
     /**
      * @param array<string, mixed> $input
      */

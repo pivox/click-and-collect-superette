@@ -74,6 +74,7 @@ final class PromoteProductImportRawCommand extends Command
 
         $progressBar = new ProgressBar($output, $total);
         $progressBar->start();
+        $offset = 0;
 
         while (true) {
             if (0 < $limit && $stats['processed'] >= $limit) {
@@ -81,7 +82,7 @@ final class PromoteProductImportRawCommand extends Command
             }
 
             $remaining = 0 < $limit ? min(self::BATCH_SIZE, $limit - $stats['processed']) : self::BATCH_SIZE;
-            $batch = $this->fetchPendingRawRows($remaining);
+            $batch = $this->fetchPendingRawRows($remaining, $dryRun ? $offset : 0);
             if ([] === $batch) {
                 break;
             }
@@ -100,6 +101,8 @@ final class PromoteProductImportRawCommand extends Command
 
             if (!$dryRun) {
                 $this->entityManager->flush();
+            } else {
+                $offset += \count($batch);
             }
 
             if (\count($batch) < $remaining) {
@@ -214,7 +217,7 @@ final class PromoteProductImportRawCommand extends Command
         }
 
         if (preg_match('/^(\d+(?:[.,]\d+)?)\s*(ml|cl|dl|l|litre|litres|g|gr|gramme|grammes|kg|kilogramme|kilogrammes)$/i', trim($raw), $matches)) {
-            $value = str_replace(',', '.', $matches[1]);
+            $value = (float) str_replace(',', '.', $matches[1]);
             $rawUnit = strtolower($matches[2]);
 
             $unit = match (true) {
@@ -225,10 +228,22 @@ final class PromoteProductImportRawCommand extends Command
                 default => ProductUnit::Piece,
             };
 
-            return [$value, $unit];
+            if ('cl' === $rawUnit) {
+                $value *= 10;
+            }
+            if ('dl' === $rawUnit) {
+                $value *= 100;
+            }
+
+            return [$this->formatDecimal($value), $unit];
         }
 
         return [null, ProductUnit::Piece];
+    }
+
+    private function formatDecimal(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 3, '.', ''), '0'), '.');
     }
 
     private function cleanFirst(?string $raw): ?string
@@ -275,7 +290,7 @@ final class PromoteProductImportRawCommand extends Command
     /**
      * @return list<ProductImportRaw>
      */
-    private function fetchPendingRawRows(int $limit): array
+    private function fetchPendingRawRows(int $limit, int $offset = 0): array
     {
         /* @var list<ProductImportRaw> */
         return $this->entityManager->createQuery(
@@ -286,6 +301,7 @@ final class PromoteProductImportRawCommand extends Command
              ORDER BY raw.createdAt ASC, raw.id ASC'
         )
             ->setMaxResults($limit)
+            ->setFirstResult($offset)
             ->getResult();
     }
 }
