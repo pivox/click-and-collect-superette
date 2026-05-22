@@ -6,3 +6,10 @@
 
 # IDE
 .idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
