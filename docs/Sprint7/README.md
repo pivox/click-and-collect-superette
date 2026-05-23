@@ -48,6 +48,15 @@ C'est le dernier sprint MVP identifié dans la roadmap actuelle.
   - Commande `php bin/console app:diagnostics:check` : base de données, transport Messenger `async`, variables critiques
   - Checklist production créée dans `docs/production/readiness-checklist.md`
 
+- **Frontend admin backoffice** — livré. PRs #130, #131, #132.
+  - Auth JWT `ROLE_ADMIN`, middleware Next.js, `AdminShell` + `AdminSidebar`
+  - Référentiel produits : Catégories, Marques, Produits, Propositions (PRs #131)
+  - Marchands : CRUD + suspend/réactiver (PR #132)
+  - Supérettes : CRUD + archive (PR #132)
+  - Audit logs : lecture paginée, filtre UUID admin (PR #132)
+  - Dashboard : 4 KPI réels (marchands, supérettes actives, produits approuvés, propositions en attente)
+  - Documentation détaillée : `docs/SprintFrontend/admin-backoffice.md`
+
 Sprint 7 en cours — ce document sera complété au fil des livraisons.
 
 ## Fonctionnalités prévues
