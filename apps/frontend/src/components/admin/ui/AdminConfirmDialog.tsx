@@ -15,6 +15,7 @@ interface AdminConfirmDialogProps {
   title: string;
   message: string;
   confirmLabel?: string;
+  confirmDisabled?: boolean;
   variant?: 'danger' | 'warning';
   extraField?: ExtraField;
 }
@@ -26,12 +27,13 @@ export function AdminConfirmDialog({
   title,
   message,
   confirmLabel = 'Confirmer',
+  confirmDisabled: confirmDisabledProp = false,
   variant = 'danger',
   extraField,
 }: AdminConfirmDialogProps) {
   if (!open) return null;
 
-  const confirmDisabled = !!(extraField?.required && !extraField.value.trim());
+  const confirmDisabled = confirmDisabledProp || !!(extraField?.required && !extraField.value.trim());
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">

@@ -8,6 +8,8 @@ import { useSort } from '@/lib/hooks/useSort';
 import {
   listStores,
   archiveStore,
+  activateStore,
+  deactivateStore,
 } from '@/lib/services/admin/stores.service';
 import type { Store } from '@/lib/types/admin/stores.types';
 
@@ -23,6 +25,7 @@ export default function SuperettesPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Store | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<Store | null>(null);
+  const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
 
   const { sorted, sortKey, sortDir, toggleSort } = useSort(stores);
 
@@ -59,6 +62,34 @@ export default function SuperettesPage() {
     }
   };
 
+  const handleToggleActive = async (row: Store) => {
+    if (pendingToggleId) return;
+    setPendingToggleId(row.id);
+    const toggledId = row.id;
+    const originalIsActive = row.is_active;
+    setStores((current) =>
+      current.map((s) => (s.id === toggledId ? { ...s, is_active: !s.is_active } : s)),
+    );
+    try {
+      if (row.is_active) {
+        await deactivateStore(row.id);
+      } else {
+        await activateStore(row.id);
+      }
+      // When a status filter is active, the toggled row may no longer belong — reload.
+      if (isActiveFilter !== '') {
+        void load();
+      }
+    } catch {
+      setStores((current) =>
+        current.map((s) => (s.id === toggledId ? { ...s, is_active: originalIsActive } : s)),
+      );
+      setError('Impossible de modifier le statut de cette supérette.');
+    } finally {
+      setPendingToggleId(null);
+    }
+  };
+
   const columns: Column<Store>[] = [
     {
       key: 'name',
@@ -91,25 +122,40 @@ export default function SuperettesPage() {
       key: 'is_active',
       label: 'Statut',
       sortable: true,
-      render: (row) => (
-        <span
-          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-            row.archived_at
-              ? 'bg-gray-100 text-gray-500'
-              : row.is_active
-                ? 'bg-green-100 text-green-700'
-                : 'bg-status-cancel-bg text-status-cancel'
-          }`}
-        >
-          {row.archived_at ? 'Archivée' : row.is_active ? 'Active' : 'Inactive'}
-        </span>
-      ),
+      render: (row) =>
+        row.archived_at ? (
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-500">
+            Archivée
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void handleToggleActive(row)}
+            disabled={pendingToggleId === row.id}
+            aria-label={row.is_active ? 'Désactiver la supérette' : 'Activer la supérette'}
+            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+              pendingToggleId === row.id ? 'cursor-wait opacity-60' : 'cursor-pointer'
+            } ${row.is_active ? 'bg-green-500' : 'bg-gray-300'}`}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
+                row.is_active ? 'translate-x-4' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        ),
     },
     {
       key: 'actions',
       label: '',
       render: (row) => (
         <div className="flex justify-end gap-2">
+          <button
+            onClick={() => { setEditTarget(row); setDrawerOpen(true); }}
+            className="text-xs text-muted hover:text-ink"
+          >
+            QR
+          </button>
           <button
             onClick={() => { setEditTarget(row); setDrawerOpen(true); }}
             className="text-xs text-muted hover:text-ink"

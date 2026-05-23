@@ -11,6 +11,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@swc/helpers": "^0.5.21",
     "@tanstack/react-query": "^5.100.9",
     "axios": "^1.16.0",
     "clsx": "^2.1.1",
@@ -19,6 +20,7 @@
     "next-intl": "^4.11.0",
     "react": "^18",
     "react-dom": "^18",
+    "react-qr-code": "^2.0.21",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
