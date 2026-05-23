@@ -63,20 +63,20 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
     setError(null);
   }, [store, open]);
 
+  const storeId = store?.id;
   useEffect(() => {
-    if (!open || !store) {
+    if (!open || !storeId) {
       setQrData(null);
       setQrError(null);
       return;
     }
-    const storeId = store.id;
     setIsLoadingQr(true);
     setQrError(null);
     void getStoreQrCode(storeId)
       .then(setQrData)
       .catch(() => setQrError('Impossible de charger le QR code.'))
       .finally(() => setIsLoadingQr(false));
-  }, [open, store]);
+  }, [open, storeId]);
 
   const handleSubmit = async () => {
     if (!name.trim()) { setError('Le nom est obligatoire.'); return; }
