@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { approveProposal, rejectProposal } from '@/lib/services/admin/proposals.service';
 import { listProductReferences } from '@/lib/services/admin/product-references.service';
@@ -32,13 +32,18 @@ export function ProposalRow({ proposal, isExpanded, onToggle, onProcessed }: Pro
   const [rejectReason, setRejectReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isExpanded !== 'approve' || approveMode !== 'create') return;
-    void Promise.all([listBrands(1, 50), listCategories(1, 50)]).then(([b, c]) => {
-      setBrands(b.items);
-      setCategories(c.items);
-    });
+    void Promise.all([listBrands(1, 50), listCategories(1, 50)])
+      .then(([b, c]) => {
+        setBrands(b.items);
+        setCategories(c.items);
+      })
+      .catch(() => {
+        setError('Impossible de charger les marques et catégories.');
+      });
   }, [isExpanded, approveMode]);
 
   useEffect(() => {
@@ -48,12 +53,26 @@ export function ProposalRow({ proposal, isExpanded, onToggle, onProcessed }: Pro
       try {
         const data = await listProductReferences({ q: searchQuery, limit: 10 });
         setSearchResults(data.items);
+      } catch {
+        setError('Impossible de rechercher les produits. Réessayez.');
+        setSearchResults([]);
       } finally {
         setIsSearching(false);
       }
     }, 300);
     return () => clearTimeout(t);
   }, [searchQuery]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setSearchResults([]);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, []);
 
   const reset = () => {
     setSearchQuery(''); setSelectedRef(null); setSearchResults([]);
@@ -100,8 +119,10 @@ export function ProposalRow({ proposal, isExpanded, onToggle, onProcessed }: Pro
     try {
       await rejectProposal(proposal.id, rejectReason.trim());
       reset(); onToggle(proposal.id, null); onProcessed();
-    } catch {
-      setError('Une erreur est survenue.');
+    } catch (e) {
+      setError(axios.isAxiosError(e) && e.response?.status === 409
+        ? 'Cette proposition a déjà été traitée.'
+        : 'Une erreur est survenue.');
     } finally { setIsSubmitting(false); }
   };
 
@@ -163,7 +184,7 @@ export function ProposalRow({ proposal, isExpanded, onToggle, onProcessed }: Pro
 
             {approveMode === 'link' ? (
               <div className="flex items-start gap-3">
-                <div className="relative max-w-sm flex-1">
+                <div ref={searchContainerRef} className="relative max-w-sm flex-1">
                   <input
                     type="text"
                     value={selectedRef ? selectedRef.name_fr : searchQuery}

@@ -50,6 +50,7 @@ export async function updateProductReference(
 export async function archiveProductReference(id: string): Promise<ProductReference> {
   const { data } = await apiClient.patch<ProductReference>(
     `/api/admin/product-references/${id}/archive`,
+    {},
   );
   return data;
 }

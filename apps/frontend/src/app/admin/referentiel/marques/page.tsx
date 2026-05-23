@@ -8,12 +8,13 @@ import { useSort } from '@/lib/hooks/useSort';
 import { listBrands, deleteBrand } from '@/lib/services/admin/brands.service';
 import type { Brand } from '@/lib/types/admin/referentiel.types';
 
+const PAGE_SIZE = 20;
+
 export default function MarquesPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Brand | null>(null);
@@ -23,20 +24,24 @@ export default function MarquesPage() {
     search ? b.canonical_name.toLowerCase().includes(search.toLowerCase()) : true,
   );
   const { sorted, sortKey, sortDir, toggleSort } = useSort(filtered);
+  const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // Reset to first page when search changes
+  useEffect(() => { setPage(1); }, [search]);
+
+  // Load all brands upfront — client-side search per spec
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await listBrands(page, 20);
+      const data = await listBrands(1, 200);
       setBrands(data.items);
-      setTotal(data.total);
     } catch {
       setError('Impossible de charger les marques.');
     } finally {
       setIsLoading(false);
     }
-  }, [page]);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -49,6 +54,7 @@ export default function MarquesPage() {
     } catch {
       setError('Impossible de supprimer cette marque.');
       setDeleteTarget(null);
+      void load();
     }
   };
 
@@ -129,14 +135,14 @@ export default function MarquesPage() {
       )}
       <AdminTable
         columns={columns}
-        data={sorted}
+        data={pageItems}
         isLoading={isLoading}
         emptyMessage="Aucune marque trouvée."
         emptyAction={{
           label: '+ Créer la première marque',
           onClick: () => { setEditTarget(null); setDrawerOpen(true); },
         }}
-        pagination={{ page, total, limit: 20, onPageChange: setPage }}
+        pagination={{ page, total: sorted.length, limit: PAGE_SIZE, onPageChange: setPage }}
         sortKey={sortKey as string | null}
         sortDir={sortDir}
         onSort={(key) => toggleSort(key as keyof Brand)}

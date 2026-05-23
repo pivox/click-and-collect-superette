@@ -37,15 +37,19 @@ export function AdminDrawer({
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="drawer-title"
         className={cn(
           'relative flex h-full flex-col bg-card shadow-floating',
           size === 'md' ? 'w-full max-w-md' : 'w-full max-w-xl',
         )}
       >
         <div className="flex items-center justify-between border-b border-line px-6 py-4">
-          <h2 className="font-black text-ink">{title}</h2>
+          <h2 id="drawer-title" className="font-black text-ink">{title}</h2>
           <button
             onClick={onClose}
+            aria-label="Fermer"
             className="rounded p-1 text-muted hover:bg-soft hover:text-ink"
           >
             ✕

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { AdminDrawer } from '@/components/admin/ui/AdminDrawer';
 import { createBrand, updateBrand } from '@/lib/services/admin/brands.service';
 import type { Brand } from '@/lib/types/admin/referentiel.types';
@@ -19,6 +20,7 @@ function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) 
           <button
             type="button"
             onClick={() => onChange(tags.filter((x) => x !== t))}
+            aria-label={`Supprimer ${t}`}
             className="text-muted hover:text-danger"
           >
             ✕
@@ -95,8 +97,10 @@ export function BrandDrawer({ open, onClose, brand, onSaved }: BrandDrawerProps)
         });
       }
       onSaved();
-    } catch {
-      setError('Une erreur est survenue. Vérifiez les données.');
+    } catch (e) {
+      setError(axios.isAxiosError(e) && e.response?.status === 409
+        ? 'Un nom ou slug identique existe déjà.'
+        : 'Une erreur est survenue. Réessayez.');
     } finally {
       setIsSubmitting(false);
     }

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { AdminDrawer } from '@/components/admin/ui/AdminDrawer';
 import { createCategory, updateCategory } from '@/lib/services/admin/categories.service';
 import type { Category } from '@/lib/types/admin/referentiel.types';
@@ -52,8 +53,10 @@ export function CategoryDrawer({ open, onClose, category, onSaved }: CategoryDra
         });
       }
       onSaved();
-    } catch {
-      setError('Une erreur est survenue. Vérifiez les données.');
+    } catch (e) {
+      setError(axios.isAxiosError(e) && e.response?.status === 409
+        ? 'Un nom ou slug identique existe déjà.'
+        : 'Une erreur est survenue. Réessayez.');
     } finally {
       setIsSubmitting(false);
     }

@@ -8,12 +8,13 @@ import { useSort } from '@/lib/hooks/useSort';
 import { listCategories, deleteCategory } from '@/lib/services/admin/categories.service';
 import type { Category } from '@/lib/types/admin/referentiel.types';
 
+const PAGE_SIZE = 20;
+
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Category | null>(null);
@@ -26,20 +27,24 @@ export default function CategoriesPage() {
       : true,
   );
   const { sorted, sortKey, sortDir, toggleSort } = useSort(filtered);
+  const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // Reset to first page when search changes
+  useEffect(() => { setPage(1); }, [search]);
+
+  // Load all categories upfront — client-side search per spec
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await listCategories(page, 20);
+      const data = await listCategories(1, 200);
       setCategories(data.items);
-      setTotal(data.total);
     } catch {
       setError('Impossible de charger les catégories.');
     } finally {
       setIsLoading(false);
     }
-  }, [page]);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -52,6 +57,7 @@ export default function CategoriesPage() {
     } catch {
       setError('Impossible de supprimer cette catégorie.');
       setDeleteTarget(null);
+      void load();
     }
   };
 
@@ -120,14 +126,14 @@ export default function CategoriesPage() {
       )}
       <AdminTable
         columns={columns}
-        data={sorted}
+        data={pageItems}
         isLoading={isLoading}
         emptyMessage="Aucune catégorie trouvée."
         emptyAction={{
           label: '+ Créer la première catégorie',
           onClick: () => { setEditTarget(null); setDrawerOpen(true); },
         }}
-        pagination={{ page, total, limit: 20, onPageChange: setPage }}
+        pagination={{ page, total: sorted.length, limit: PAGE_SIZE, onPageChange: setPage }}
         sortKey={sortKey as string | null}
         sortDir={sortDir}
         onSort={(key) => toggleSort(key as keyof Category)}

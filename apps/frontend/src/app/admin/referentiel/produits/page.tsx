@@ -42,10 +42,14 @@ export default function ProduitsPage() {
   const { sorted, sortKey, sortDir, toggleSort } = useSort(products);
 
   useEffect(() => {
-    void Promise.all([listBrands(1, 50), listCategories(1, 50)]).then(([b, c]) => {
-      setFilterBrands(b.items);
-      setFilterCategories(c.items);
-    });
+    void Promise.all([listBrands(1, 50), listCategories(1, 50)])
+      .then(([b, c]) => {
+        setFilterBrands(b.items);
+        setFilterCategories(c.items);
+      })
+      .catch(() => {
+        setError('Impossible de charger les filtres marques/catégories.');
+      });
   }, []);
 
   useEffect(() => {
@@ -86,6 +90,7 @@ export default function ProduitsPage() {
     } catch {
       setError("Impossible d'archiver ce produit.");
       setArchiveTarget(null);
+      void load();
     }
   };
 
