@@ -31,6 +31,13 @@ final readonly class AdminMerchantRepository
         /** @var list<User> $users */
         $users = $this->userRepository->findBy(['id' => $ids]);
 
+        // findBy does not guarantee SQL ordering — re-apply (created_at DESC, id DESC).
+        usort($users, static function (User $a, User $b): int {
+            $cmp = $b->getCreatedAt() <=> $a->getCreatedAt();
+
+            return 0 !== $cmp ? $cmp : strcmp($b->getId()->toRfc4122(), $a->getId()->toRfc4122());
+        });
+
         return $users;
     }
 

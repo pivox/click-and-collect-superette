@@ -11,6 +11,7 @@ use App\ApiResource\AdminStoreOutputFactory;
 use App\Entity\Shop;
 use App\Repository\AdminStoreRepository;
 use App\Service\AdminAuditLogger;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -34,6 +35,10 @@ final readonly class AdminActivateStoreProcessor implements ProcessorInterface
     {
         $storeId = (string) ($uriVariables['storeId'] ?? '');
         $shop = $this->resolveShop($storeId);
+
+        if (null !== $shop->getArchivedAt()) {
+            throw new ConflictHttpException('ADMIN_STORE_ARCHIVED');
+        }
 
         $shop->setActive(true);
         $this->auditLogger->log(

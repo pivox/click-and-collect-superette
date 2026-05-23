@@ -70,12 +70,14 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
       setQrError(null);
       return;
     }
+    let cancelled = false;
     setIsLoadingQr(true);
     setQrError(null);
     void getStoreQrCode(storeId)
-      .then(setQrData)
-      .catch(() => setQrError('Impossible de charger le QR code.'))
-      .finally(() => setIsLoadingQr(false));
+      .then((data) => { if (!cancelled) setQrData(data); })
+      .catch(() => { if (!cancelled) setQrError('Impossible de charger le QR code.'); })
+      .finally(() => { if (!cancelled) setIsLoadingQr(false); });
+    return () => { cancelled = true; };
   }, [open, storeId]);
 
   const handleSubmit = async () => {

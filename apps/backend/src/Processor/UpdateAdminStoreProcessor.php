@@ -14,6 +14,7 @@ use App\Repository\AdminMerchantRepository;
 use App\Repository\AdminStoreRepository;
 use App\Service\AdminAuditLogger;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -70,6 +71,9 @@ final readonly class UpdateAdminStoreProcessor implements ProcessorInterface
             $shop->setPhone($this->normalizeNullableString($data->phone));
         }
         if (\array_key_exists('isActive', $payload) && null !== $data->isActive) {
+            if (null !== $shop->getArchivedAt()) {
+                throw new ConflictHttpException('ADMIN_STORE_ARCHIVED');
+            }
             $shop->setActive((bool) $data->isActive);
         }
         if (\array_key_exists('ownerId', $payload)) {

@@ -65,9 +65,10 @@ export default function SuperettesPage() {
   const handleToggleActive = async (row: Store) => {
     if (pendingToggleId) return;
     setPendingToggleId(row.id);
-    const prev = [...stores];
+    const toggledId = row.id;
+    const originalIsActive = row.is_active;
     setStores((current) =>
-      current.map((s) => (s.id === row.id ? { ...s, is_active: !s.is_active } : s)),
+      current.map((s) => (s.id === toggledId ? { ...s, is_active: !s.is_active } : s)),
     );
     try {
       if (row.is_active) {
@@ -75,8 +76,14 @@ export default function SuperettesPage() {
       } else {
         await activateStore(row.id);
       }
+      // When a status filter is active, the toggled row may no longer belong — reload.
+      if (isActiveFilter !== '') {
+        void load();
+      }
     } catch {
-      setStores(prev);
+      setStores((current) =>
+        current.map((s) => (s.id === toggledId ? { ...s, is_active: originalIsActive } : s)),
+      );
       setError('Impossible de modifier le statut de cette supérette.');
     } finally {
       setPendingToggleId(null);
