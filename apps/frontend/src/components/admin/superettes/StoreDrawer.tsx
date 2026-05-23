@@ -22,6 +22,7 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
   const [phone, setPhone] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
+  const [isActive, setIsActive] = useState(true);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +42,7 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
       setPhone(store.phone ?? '');
       setLogoUrl(store.logo_url ?? '');
       setCoverUrl(store.cover_url ?? '');
+      setIsActive(store.is_active);
     } else {
       setName('');
       setOwnerId('');
@@ -49,6 +51,7 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
       setPhone('');
       setLogoUrl('');
       setCoverUrl('');
+      setIsActive(true);
     }
     setError(null);
   }, [store, open]);
@@ -70,6 +73,7 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
           // send null to clear existing URL, undefined to leave unchanged
           logoUrl: logoUrl.trim() !== '' ? logoUrl.trim() : null,
           coverUrl: coverUrl.trim() !== '' ? coverUrl.trim() : null,
+          isActive,
         });
       } else {
         // no logoUrl/coverUrl in AdminStoreCreateInput
@@ -153,6 +157,22 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
                 URL cover <span className="font-normal text-muted">(max 2048 car.)</span>
               </label>
               <input type="url" value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} maxLength={2048} placeholder="https://…" className={inputClass} />
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="store-is-active"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                disabled={!!store.archived_at}
+                className="h-4 w-4 rounded border-line accent-primary"
+              />
+              <label htmlFor="store-is-active" className="text-sm font-semibold">
+                Supérette active
+                {store.archived_at && (
+                  <span className="ml-2 font-normal text-muted">(archivée — non modifiable)</span>
+                )}
+              </label>
             </div>
           </>
         )}
