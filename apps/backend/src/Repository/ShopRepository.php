@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Shop;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -26,6 +27,19 @@ class ShopRepository extends ServiceEntityRepository
             ->setParameter('token', $token)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    /**
+     * @return list<Shop>
+     */
+    public function findActiveByOwner(User $owner, int $limit = 20): array
+    {
+        /* @var list<Shop> */
+        return $this->findBy(
+            ['owner' => $owner, 'active' => true],
+            ['createdAt' => 'ASC'],
+            $limit,
+        );
     }
 
     /**
