@@ -16,21 +16,21 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (merchant) {
-      setFirstName(merchant.first_name);
-      setLastName(merchant.last_name);
+      setFirstName(merchant.first_name ?? '');
+      setLastName(merchant.last_name ?? '');
       setEmail(merchant.email);
-      setPassword('');
+      setPhone(merchant.phone ?? '');
     } else {
       setFirstName('');
       setLastName('');
       setEmail('');
-      setPassword('');
+      setPhone('');
     }
     setError(null);
   }, [merchant, open]);
@@ -38,24 +38,25 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
   const handleSubmit = async () => {
     if (!firstName.trim()) { setError('Le prénom est obligatoire.'); return; }
     if (!lastName.trim()) { setError('Le nom est obligatoire.'); return; }
-    if (!email.trim()) { setError("L'email est obligatoire."); return; }
-    if (!merchant && !password.trim()) { setError('Le mot de passe est obligatoire.'); return; }
+    if (!merchant && !email.trim()) { setError("L'email est obligatoire."); return; }
 
     setIsSubmitting(true);
     setError(null);
     try {
       if (merchant) {
+        // email not updatable (not in AdminUpdateMerchantInput)
         await updateMerchant(merchant.id, {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          email: email.trim(),
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          phone: phone.trim() || undefined,
         });
       } else {
+        // @SerializedName on backend DTO → snake_case keys in payload
         await createMerchant({
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
           email: email.trim(),
-          password: password.trim(),
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          phone: phone.trim() || undefined,
         });
       }
       onSaved();
@@ -69,6 +70,9 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
       setIsSubmitting(false);
     }
   };
+
+  const inputClass =
+    'w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
 
   return (
     <AdminDrawer
@@ -92,7 +96,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               maxLength={100}
-              className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className={inputClass}
             />
           </div>
           <div>
@@ -102,32 +106,41 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               maxLength={100}
-              className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className={inputClass}
             />
           </div>
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-semibold">Email *</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            maxLength={200}
-            className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
         </div>
         {!merchant && (
           <div>
-            <label className="mb-1 block text-sm font-semibold">Mot de passe *</label>
+            <label className="mb-1 block text-sm font-semibold">Email *</label>
             <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               maxLength={200}
-              className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className={inputClass}
             />
           </div>
         )}
+        {merchant && (
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-muted">Email</label>
+            <p className="rounded-md border border-line bg-soft px-3 py-2 text-sm text-muted">
+              {merchant.email}
+            </p>
+          </div>
+        )}
+        <div>
+          <label className="mb-1 block text-sm font-semibold">Téléphone</label>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            maxLength={30}
+            placeholder="+216 XX XXX XXX"
+            className={inputClass}
+          />
+        </div>
       </div>
     </AdminDrawer>
   );

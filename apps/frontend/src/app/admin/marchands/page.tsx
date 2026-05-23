@@ -25,7 +25,6 @@ export default function MarchandsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Merchant | null>(null);
   const [suspendTarget, setSuspendTarget] = useState<Merchant | null>(null);
-  const [suspendReason, setSuspendReason] = useState('');
   const [activateTarget, setActivateTarget] = useState<Merchant | null>(null);
 
   const { sorted, sortKey, sortDir, toggleSort } = useSort(merchants);
@@ -55,14 +54,12 @@ export default function MarchandsPage() {
   const handleSuspend = async () => {
     if (!suspendTarget) return;
     try {
-      await suspendMerchant(suspendTarget.id, suspendReason.trim());
+      await suspendMerchant(suspendTarget.id);
       setSuspendTarget(null);
-      setSuspendReason('');
       void load();
     } catch {
       setError('Impossible de suspendre ce marchand.');
       setSuspendTarget(null);
-      setSuspendReason('');
     }
   };
 
@@ -78,6 +75,9 @@ export default function MarchandsPage() {
     }
   };
 
+  const merchantName = (m: Merchant) =>
+    [m.first_name, m.last_name].filter(Boolean).join(' ') || m.email;
+
   const columns: Column<Merchant>[] = [
     {
       key: 'last_name',
@@ -85,32 +85,30 @@ export default function MarchandsPage() {
       sortable: true,
       render: (row) => (
         <div>
-          <div className="font-medium">
-            {row.first_name} {row.last_name}
-          </div>
+          <div className="font-medium">{merchantName(row)}</div>
           <div className="text-xs text-muted">{row.email}</div>
         </div>
       ),
     },
     {
-      key: 'shop_count',
+      key: 'stores_count',
       label: 'Supérettes',
       sortable: true,
-      render: (row) => <span className="tabular-nums">{row.shop_count}</span>,
+      render: (row) => <span className="tabular-nums">{row.stores_count}</span>,
     },
     {
-      key: 'is_suspended',
+      key: 'is_active',
       label: 'Statut',
       sortable: true,
       render: (row) => (
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-            row.is_suspended
-              ? 'bg-status-cancel-bg text-status-cancel'
-              : 'bg-green-100 text-green-700'
+            row.is_active
+              ? 'bg-green-100 text-green-700'
+              : 'bg-status-cancel-bg text-status-cancel'
           }`}
         >
-          {row.is_suspended ? 'Suspendu' : 'Actif'}
+          {row.is_active ? 'Actif' : 'Suspendu'}
         </span>
       ),
     },
@@ -131,19 +129,19 @@ export default function MarchandsPage() {
           >
             ✏ Modifier
           </button>
-          {row.is_suspended ? (
+          {row.is_active ? (
+            <button
+              onClick={() => setSuspendTarget(row)}
+              className="text-xs text-danger hover:brightness-90"
+            >
+              ⊘ Suspendre
+            </button>
+          ) : (
             <button
               onClick={() => setActivateTarget(row)}
               className="text-xs text-green-600 hover:brightness-90"
             >
               ✓ Réactiver
-            </button>
-          ) : (
-            <button
-              onClick={() => { setSuspendTarget(row); setSuspendReason(''); }}
-              className="text-xs text-danger hover:brightness-90"
-            >
-              ⊘ Suspendre
             </button>
           )}
         </div>
@@ -195,25 +193,19 @@ export default function MarchandsPage() {
       />
       <AdminConfirmDialog
         open={!!suspendTarget}
-        onClose={() => { setSuspendTarget(null); setSuspendReason(''); }}
+        onClose={() => setSuspendTarget(null)}
         onConfirm={handleSuspend}
         title="Suspendre le marchand"
-        message={`Suspendre le compte de ${suspendTarget?.first_name} ${suspendTarget?.last_name} ?`}
+        message={`Suspendre le compte de ${suspendTarget ? merchantName(suspendTarget) : ''} ?`}
         confirmLabel="Suspendre"
         variant="danger"
-        extraField={{
-          label: 'Raison',
-          value: suspendReason,
-          onChange: setSuspendReason,
-          required: true,
-        }}
       />
       <AdminConfirmDialog
         open={!!activateTarget}
         onClose={() => setActivateTarget(null)}
         onConfirm={handleActivate}
         title="Réactiver le marchand"
-        message={`Réactiver le compte de ${activateTarget?.first_name} ${activateTarget?.last_name} ?`}
+        message={`Réactiver le compte de ${activateTarget ? merchantName(activateTarget) : ''} ?`}
         confirmLabel="Réactiver"
         variant="warning"
       />

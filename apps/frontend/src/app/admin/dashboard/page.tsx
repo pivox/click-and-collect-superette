@@ -8,7 +8,6 @@ import { listProposals } from '@/lib/services/admin/proposals.service';
 interface KpiCard {
   label: string;
   value: string | number;
-  sub?: string;
 }
 
 export default function AdminDashboard() {
@@ -19,11 +18,12 @@ export default function AdminDashboard() {
     { label: 'Propositions en attente', value: '—' },
   ]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void Promise.all([
       listMerchants(1, 1),
-      listStores({ page: 1, limit: 1, status: 'active' }),
+      listStores({ page: 1, limit: 1, isActive: true }),
       listProductReferences({ status: 'approved', page: 1, limit: 1 }),
       listProposals('pending', 1),
     ])
@@ -32,8 +32,11 @@ export default function AdminDashboard() {
           { label: 'Marchands', value: merchants.total },
           { label: 'Supérettes actives', value: stores.total },
           { label: 'Produits approuvés', value: products.total },
-          { label: 'Propositions en attente', value: proposals.length },
+          { label: 'Propositions en attente', value: Array.isArray(proposals) ? proposals.length : 0 },
         ]);
+      })
+      .catch(() => {
+        setError('Impossible de charger les indicateurs.');
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -43,6 +46,12 @@ export default function AdminDashboard() {
       <h1 className="text-h1 font-black">Tableau de bord</h1>
       <p className="mt-1 text-muted">Bienvenue dans le backoffice Kadhia.</p>
 
+      {error && (
+        <div className="mt-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
+          {error}
+        </div>
+      )}
+
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (
           <div key={kpi.label} className="rounded-xl bg-card p-5 shadow-card">
@@ -50,7 +59,6 @@ export default function AdminDashboard() {
             <strong className={`mt-1 block text-h2 font-black ${isLoading ? 'text-muted' : ''}`}>
               {isLoading ? '…' : kpi.value}
             </strong>
-            {kpi.sub && <span className="text-xs text-muted">{kpi.sub}</span>}
           </div>
         ))}
       </div>

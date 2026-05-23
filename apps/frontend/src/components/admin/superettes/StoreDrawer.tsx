@@ -16,10 +16,10 @@ interface StoreDrawerProps {
 
 export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps) {
   const [name, setName] = useState('');
-  const [merchantId, setMerchantId] = useState('');
-  const [description, setDescription] = useState('');
+  const [ownerId, setOwnerId] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [phone, setPhone] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [merchants, setMerchants] = useState<Merchant[]>([]);
@@ -35,18 +35,18 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
   useEffect(() => {
     if (store) {
       setName(store.name);
-      setMerchantId(store.merchant_id);
-      setDescription(store.description ?? '');
+      setOwnerId(store.owner?.id ?? '');
       setAddress(store.address ?? '');
       setCity(store.city ?? '');
+      setPhone(store.phone ?? '');
       setLogoUrl(store.logo_url ?? '');
       setCoverUrl(store.cover_url ?? '');
     } else {
       setName('');
-      setMerchantId('');
-      setDescription('');
+      setOwnerId('');
       setAddress('');
       setCity('');
+      setPhone('');
       setLogoUrl('');
       setCoverUrl('');
     }
@@ -55,7 +55,7 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
 
   const handleSubmit = async () => {
     if (!name.trim()) { setError('Le nom est obligatoire.'); return; }
-    if (!store && !merchantId) { setError('Le marchand est obligatoire.'); return; }
+    if (!store && !ownerId) { setError('Le marchand est obligatoire.'); return; }
 
     setIsSubmitting(true);
     setError(null);
@@ -63,21 +63,21 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
       if (store) {
         await updateStore(store.id, {
           name: name.trim(),
-          description: description.trim() || undefined,
           address: address.trim() || undefined,
           city: city.trim() || undefined,
+          phone: phone.trim() || undefined,
+          ownerId: ownerId || undefined,
           logoUrl: logoUrl.trim() || undefined,
           coverUrl: coverUrl.trim() || undefined,
         });
       } else {
+        // no logoUrl/coverUrl in AdminStoreCreateInput
         await createStore({
           name: name.trim(),
-          merchantId,
-          description: description.trim() || undefined,
+          ownerId,
           address: address.trim() || undefined,
           city: city.trim() || undefined,
-          logoUrl: logoUrl.trim() || undefined,
-          coverUrl: coverUrl.trim() || undefined,
+          phone: phone.trim() || undefined,
         });
       }
       onSaved();
@@ -114,22 +114,16 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
           <label className="mb-1 block text-sm font-semibold">Nom *</label>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} maxLength={255} className={inputClass} />
         </div>
-        {!store && (
-          <div>
-            <label className="mb-1 block text-sm font-semibold">Marchand *</label>
-            <select value={merchantId} onChange={(e) => setMerchantId(e.target.value)} className={inputClass}>
-              <option value="">Choisir un marchand…</option>
-              {merchants.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.first_name} {m.last_name} ({m.email})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
         <div>
-          <label className="mb-1 block text-sm font-semibold">Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={1000} className={inputClass} />
+          <label className="mb-1 block text-sm font-semibold">Marchand {!store && '*'}</label>
+          <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className={inputClass}>
+            <option value="">Choisir un marchand…</option>
+            {merchants.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.first_name ?? ''} {m.last_name ?? ''} ({m.email})
+              </option>
+            ))}
+          </select>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -142,17 +136,25 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
           </div>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-semibold">
-            URL logo <span className="font-normal text-muted">(max 2048 car.)</span>
-          </label>
-          <input type="url" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} maxLength={2048} placeholder="https://…" className={inputClass} />
+          <label className="mb-1 block text-sm font-semibold">Téléphone</label>
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} placeholder="+216 XX XXX XXX" className={inputClass} />
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-semibold">
-            URL cover <span className="font-normal text-muted">(max 2048 car.)</span>
-          </label>
-          <input type="url" value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} maxLength={2048} placeholder="https://…" className={inputClass} />
-        </div>
+        {store && (
+          <>
+            <div>
+              <label className="mb-1 block text-sm font-semibold">
+                URL logo <span className="font-normal text-muted">(max 2048 car.)</span>
+              </label>
+              <input type="url" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} maxLength={2048} placeholder="https://…" className={inputClass} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold">
+                URL cover <span className="font-normal text-muted">(max 2048 car.)</span>
+              </label>
+              <input type="url" value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} maxLength={2048} placeholder="https://…" className={inputClass} />
+            </div>
+          </>
+        )}
       </div>
     </AdminDrawer>
   );

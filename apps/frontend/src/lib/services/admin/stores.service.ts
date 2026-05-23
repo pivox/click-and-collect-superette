@@ -8,14 +8,14 @@ import type {
 } from '@/lib/types/admin/stores.types';
 
 export async function listStores(filters: StoreFilters = {}): Promise<StoreListResponse> {
-  const { data } = await apiClient.get<StoreListResponse>('/api/admin/stores', {
-    params: {
-      page: filters.page ?? 1,
-      limit: filters.limit ?? 20,
-      ...(filters.merchant ? { merchant: filters.merchant } : {}),
-      ...(filters.status ? { status: filters.status } : {}),
-    },
-  });
+  const params: Record<string, unknown> = {
+    page: filters.page ?? 1,
+    limit: filters.limit ?? 20,
+  };
+  if (filters.isActive !== undefined) {
+    params.is_active = filters.isActive;
+  }
+  const { data } = await apiClient.get<StoreListResponse>('/api/admin/stores', { params });
   return data;
 }
 

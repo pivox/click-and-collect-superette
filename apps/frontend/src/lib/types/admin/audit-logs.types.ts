@@ -2,13 +2,16 @@
 
 export interface AuditLog {
   id: string;
+  admin_id: string;
+  admin_email: string;
   action: string;
   resource_type: string;
-  resource_id: string | null;
-  summary: string;
+  resource_id: string;
+  summary: string | null;
   ip_address: string | null;
+  user_agent: string | null;
+  metadata: Record<string, unknown> | null;
   created_at: string;
-  admin_email: string;
 }
 
 export interface AuditLogListResponse {

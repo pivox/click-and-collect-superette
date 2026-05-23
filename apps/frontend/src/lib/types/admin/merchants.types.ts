@@ -1,33 +1,39 @@
 // API responses use snake_case (backend @SerializedName annotations)
-// Request payloads use camelCase (PHP property names, no @SerializedName on inputs)
+// Create/Update payloads: some fields use snake_case because the backend DTO has @SerializedName
 
 export interface Merchant {
   id: string;
   email: string;
-  first_name: string;
-  last_name: string;
-  shop_count: number;
-  is_suspended: boolean;
-  suspended_at: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  is_active: boolean;
   created_at: string;
+  stores_count: number;
 }
 
 export interface MerchantListResponse {
+  id: string;
   items: Merchant[];
   page: number;
   limit: number;
   total: number;
 }
 
+// AdminCreateMerchantInput has @SerializedName on first_name/last_name/is_active → snake_case in payload
 export interface CreateMerchantPayload {
   email: string;
-  firstName: string;
-  lastName: string;
-  password: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  is_active?: boolean;
 }
 
+// AdminUpdateMerchantInput has @SerializedName on first_name/last_name/is_active → snake_case in payload
+// Note: email is not updatable (not in AdminUpdateMerchantInput)
 export interface UpdateMerchantPayload {
-  email?: string;
-  firstName?: string;
-  lastName?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  is_active?: boolean;
 }

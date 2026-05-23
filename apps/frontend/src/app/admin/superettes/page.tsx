@@ -9,9 +9,7 @@ import {
   listStores,
   archiveStore,
 } from '@/lib/services/admin/stores.service';
-import { listMerchants } from '@/lib/services/admin/merchants.service';
 import type { Store } from '@/lib/types/admin/stores.types';
-import type { Merchant } from '@/lib/types/admin/merchants.types';
 
 const PAGE_SIZE = 20;
 
@@ -21,22 +19,12 @@ export default function SuperettesPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [merchantFilter, setMerchantFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [filterMerchants, setFilterMerchants] = useState<Merchant[]>([]);
+  const [isActiveFilter, setIsActiveFilter] = useState<'' | 'true' | 'false'>('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Store | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<Store | null>(null);
 
   const { sorted, sortKey, sortDir, toggleSort } = useSort(stores);
-
-  useEffect(() => {
-    void listMerchants(1, 100)
-      .then((data) => setFilterMerchants(data.items))
-      .catch(() => {
-        setError('Impossible de charger la liste des marchands.');
-      });
-  }, []);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -45,8 +33,7 @@ export default function SuperettesPage() {
       const data = await listStores({
         page,
         limit: PAGE_SIZE,
-        merchant: merchantFilter || undefined,
-        status: statusFilter || undefined,
+        isActive: isActiveFilter === '' ? undefined : isActiveFilter === 'true',
       });
       setStores(data.items);
       setTotal(data.total);
@@ -55,10 +42,10 @@ export default function SuperettesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, merchantFilter, statusFilter]);
+  }, [page, isActiveFilter]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { setPage(1); }, [merchantFilter, statusFilter]);
+  useEffect(() => { setPage(1); }, [isActiveFilter]);
 
   const handleArchive = async () => {
     if (!archiveTarget) return;
@@ -80,17 +67,19 @@ export default function SuperettesPage() {
       render: (row) => (
         <div>
           <div className={`font-medium ${row.archived_at ? 'text-muted' : ''}`}>{row.name}</div>
-          {row.description && (
-            <div className="max-w-xs truncate text-xs text-muted">{row.description}</div>
+          {row.slug && (
+            <div className="max-w-xs truncate text-xs text-muted">{row.slug}</div>
           )}
         </div>
       ),
     },
     {
-      key: 'merchant_name',
+      key: 'owner' as keyof Store,
       label: 'Marchand',
-      sortable: true,
-      render: (row) => <span className="text-sm">{row.merchant_name}</span>,
+      sortable: false,
+      render: (row) => (
+        <span className="text-sm">{row.owner?.email ?? <span className="text-muted">—</span>}</span>
+      ),
     },
     {
       key: 'city',
@@ -99,7 +88,7 @@ export default function SuperettesPage() {
       render: (row) => row.city ?? <span className="text-muted">—</span>,
     },
     {
-      key: 'archived_at',
+      key: 'is_active',
       label: 'Statut',
       sortable: true,
       render: (row) => (
@@ -107,10 +96,12 @@ export default function SuperettesPage() {
           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
             row.archived_at
               ? 'bg-gray-100 text-gray-500'
-              : 'bg-green-100 text-green-700'
+              : row.is_active
+                ? 'bg-green-100 text-green-700'
+                : 'bg-status-cancel-bg text-status-cancel'
           }`}
         >
-          {row.archived_at ? 'Archivée' : 'Active'}
+          {row.archived_at ? 'Archivée' : row.is_active ? 'Active' : 'Inactive'}
         </span>
       ),
     },
@@ -146,27 +137,15 @@ export default function SuperettesPage() {
           + Nouvelle supérette
         </Button>
       </div>
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="mb-4">
         <select
-          value={merchantFilter}
-          onChange={(e) => setMerchantFilter(e.target.value)}
-          className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary"
-        >
-          <option value="">Tous les marchands</option>
-          {filterMerchants.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.first_name} {m.last_name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          value={isActiveFilter}
+          onChange={(e) => setIsActiveFilter(e.target.value as '' | 'true' | 'false')}
           className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary"
         >
           <option value="">Tous les statuts</option>
-          <option value="active">Active</option>
-          <option value="archived">Archivée</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
         </select>
       </div>
       {error && (

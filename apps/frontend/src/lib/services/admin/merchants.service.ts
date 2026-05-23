@@ -31,10 +31,11 @@ export async function updateMerchant(id: string, payload: UpdateMerchantPayload)
   return data;
 }
 
-export async function suspendMerchant(id: string, reason: string): Promise<void> {
-  await apiClient.post(`/api/admin/merchants/${id}/suspend`, { reason });
+// Both suspend and activate are PATCH with input: false (body ignored by backend)
+export async function suspendMerchant(id: string): Promise<void> {
+  await apiClient.patch(`/api/admin/merchants/${id}/suspend`, {});
 }
 
 export async function activateMerchant(id: string): Promise<void> {
-  await apiClient.post(`/api/admin/merchants/${id}/activate`, {});
+  await apiClient.patch(`/api/admin/merchants/${id}/activate`, {});
 }
