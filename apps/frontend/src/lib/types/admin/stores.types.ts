@@ -60,3 +60,12 @@ export interface UpdateStorePayload {
   logoUrl?: string | null;   // null to clear
   coverUrl?: string | null;  // null to clear
 }
+
+// Matches AdminStoreQrOutput from the backend
+export interface StoreQrCode {
+  store_id: string;
+  store_name: string;
+  slug: string;
+  qr_code_token: string;
+  target_url: string; // relative path: /api/stores/by-qr/{token}
+}
