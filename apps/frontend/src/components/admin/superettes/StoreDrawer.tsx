@@ -1,10 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import QRCode from 'react-qr-code';
 import { AdminDrawer } from '@/components/admin/ui/AdminDrawer';
-import { createStore, updateStore } from '@/lib/services/admin/stores.service';
+import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
+import { createStore, updateStore, getStoreQrCode, regenerateStoreQrCode } from '@/lib/services/admin/stores.service';
 import { listMerchants } from '@/lib/services/admin/merchants.service';
-import type { Store } from '@/lib/types/admin/stores.types';
+import type { Store, StoreQrCode } from '@/lib/types/admin/stores.types';
 import type { Merchant } from '@/lib/types/admin/merchants.types';
 
 interface StoreDrawerProps {
@@ -26,6 +28,11 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [qrData, setQrData] = useState<StoreQrCode | null>(null);
+  const [isLoadingQr, setIsLoadingQr] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [isRegenerateOpen, setIsRegenerateOpen] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   useEffect(() => {
     void listMerchants(1, 100).then((data) => setMerchants(data.items)).catch(() => {
@@ -55,6 +62,21 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
     }
     setError(null);
   }, [store, open]);
+
+  useEffect(() => {
+    if (!open || !store) {
+      setQrData(null);
+      setQrError(null);
+      return;
+    }
+    const storeId = store.id;
+    setIsLoadingQr(true);
+    setQrError(null);
+    void getStoreQrCode(storeId)
+      .then(setQrData)
+      .catch(() => setQrError('Impossible de charger le QR code.'))
+      .finally(() => setIsLoadingQr(false));
+  }, [open, store]);
 
   const handleSubmit = async () => {
     if (!name.trim()) { setError('Le nom est obligatoire.'); return; }
@@ -97,8 +119,27 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
     }
   };
 
+  const handleRegenerateQr = async () => {
+    if (!store) return;
+    setIsRegenerating(true);
+    setQrError(null);
+    try {
+      const newQr = await regenerateStoreQrCode(store.id);
+      setQrData(newQr);
+      setIsRegenerateOpen(false);
+    } catch {
+      setQrError('Impossible de régénérer le QR code.');
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const inputClass =
     'w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
+
+  const shareUrl = qrData
+    ? `${process.env.NEXT_PUBLIC_APP_URL ?? ''}${qrData.target_url}`
+    : '';
 
   return (
     <AdminDrawer
@@ -177,6 +218,88 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
           </>
         )}
       </div>
+
+      {store && (
+        <div className="mt-6 border-t border-line pt-5">
+          <h3 className="mb-3 text-sm font-semibold text-ink">QR code de la supérette</h3>
+
+          {isLoadingQr && (
+            <div className="flex h-24 items-center justify-center text-sm text-muted">
+              Chargement…
+            </div>
+          )}
+
+          {qrError && (
+            <div className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+              {qrError}
+            </div>
+          )}
+
+          {!isLoadingQr && qrData && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="rounded-lg border border-line bg-white p-3">
+                <QRCode value={shareUrl || qrData.qr_code_token} size={180} />
+              </div>
+
+              <div className="w-full space-y-2">
+                <div>
+                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
+                    Lien de partage
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 truncate rounded bg-gray-50 px-2 py-1 text-xs text-ink">
+                      {shareUrl || qrData.target_url}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void navigator.clipboard.writeText(shareUrl || qrData.target_url)}
+                      className="shrink-0 rounded px-2 py-1 text-xs text-muted hover:text-ink"
+                    >
+                      Copier
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
+                    Token
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 truncate rounded bg-gray-50 px-2 py-1 font-mono text-xs text-ink">
+                      {qrData.qr_code_token}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void navigator.clipboard.writeText(qrData.qr_code_token)}
+                      className="shrink-0 rounded px-2 py-1 text-xs text-muted hover:text-ink"
+                    >
+                      Copier
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsRegenerateOpen(true)}
+                className="text-sm text-muted underline hover:text-danger"
+              >
+                Régénérer le QR
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <AdminConfirmDialog
+        open={isRegenerateOpen}
+        onClose={() => setIsRegenerateOpen(false)}
+        onConfirm={() => void handleRegenerateQr()}
+        title="Régénérer le QR ?"
+        message="L'ancien QR imprimé ne fonctionnera plus. Cette action est irréversible."
+        confirmLabel={isRegenerating ? 'Régénération…' : 'Régénérer'}
+        variant="warning"
+      />
     </AdminDrawer>
   );
 }
