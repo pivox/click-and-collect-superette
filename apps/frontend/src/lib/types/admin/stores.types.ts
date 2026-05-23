@@ -57,6 +57,6 @@ export interface UpdateStorePayload {
   phone?: string;
   isActive?: boolean;
   ownerId?: string;
-  logoUrl?: string;
-  coverUrl?: string;
+  logoUrl?: string | null;   // null to clear
+  coverUrl?: string | null;  // null to clear
 }

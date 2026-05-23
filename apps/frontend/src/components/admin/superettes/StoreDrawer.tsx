@@ -67,8 +67,9 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
           city: city.trim() || undefined,
           phone: phone.trim() || undefined,
           ownerId: ownerId || undefined,
-          logoUrl: logoUrl.trim() || undefined,
-          coverUrl: coverUrl.trim() || undefined,
+          // send null to clear existing URL, undefined to leave unchanged
+          logoUrl: logoUrl.trim() !== '' ? logoUrl.trim() : null,
+          coverUrl: coverUrl.trim() !== '' ? coverUrl.trim() : null,
         });
       } else {
         // no logoUrl/coverUrl in AdminStoreCreateInput

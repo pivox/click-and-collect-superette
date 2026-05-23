@@ -6,6 +6,7 @@ import { listAuditLogs } from '@/lib/services/admin/audit-logs.service';
 import type { AuditLog } from '@/lib/types/admin/audit-logs.types';
 
 const PAGE_SIZE = 20;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function AuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -23,6 +24,10 @@ export default function AuditPage() {
     return () => clearTimeout(t);
   }, [adminFilter]);
 
+  // Backend only supports filtering by admin UUID, not email
+  const adminUuid = UUID_RE.test(debouncedAdmin.trim()) ? debouncedAdmin.trim() : undefined;
+  const isInvalidAdminInput = debouncedAdmin.trim() !== '' && adminUuid === undefined;
+
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -30,7 +35,7 @@ export default function AuditPage() {
       const data = await listAuditLogs({
         page,
         limit: PAGE_SIZE,
-        admin: debouncedAdmin || undefined,
+        admin: adminUuid,
       });
       setLogs(data.items);
       setTotal(data.total);
@@ -39,10 +44,10 @@ export default function AuditPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedAdmin]);
+  }, [page, adminUuid]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { setPage(1); }, [debouncedAdmin]);
+  useEffect(() => { setPage(1); }, [adminUuid]);
 
   const columns: Column<AuditLog>[] = [
     {
@@ -90,7 +95,7 @@ export default function AuditPage() {
     {
       key: 'summary',
       label: 'Résumé',
-      render: (row) => <span className="text-sm">{row.summary}</span>,
+      render: (row) => <span className="text-sm">{row.summary ?? '—'}</span>,
     },
     {
       key: 'ip_address',
@@ -113,11 +118,14 @@ export default function AuditPage() {
       <div className="mb-4">
         <input
           type="text"
-          placeholder="Filtrer par email admin…"
+          placeholder="Filtrer par UUID admin…"
           value={adminFilter}
           onChange={(e) => setAdminFilter(e.target.value)}
           className="w-full max-w-sm rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
+        {isInvalidAdminInput && (
+          <p className="mt-1 text-xs text-status-cancel">Entrez un UUID valide pour filtrer.</p>
+        )}
       </div>
       {error && (
         <div className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
