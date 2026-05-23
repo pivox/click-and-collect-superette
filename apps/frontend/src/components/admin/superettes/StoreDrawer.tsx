@@ -141,6 +141,10 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
     ? `${process.env.NEXT_PUBLIC_APP_URL ?? ''}${qrData.target_url}`
     : '';
 
+  if (qrData && !process.env.NEXT_PUBLIC_APP_URL) {
+    console.warn('[StoreDrawer] NEXT_PUBLIC_APP_URL is not set — QR share URL will be incomplete.');
+  }
+
   return (
     <AdminDrawer
       open={open}
@@ -298,6 +302,7 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
         title="Régénérer le QR ?"
         message="L'ancien QR imprimé ne fonctionnera plus. Cette action est irréversible."
         confirmLabel={isRegenerating ? 'Régénération…' : 'Régénérer'}
+        confirmDisabled={isRegenerating}
         variant="warning"
       />
     </AdminDrawer>

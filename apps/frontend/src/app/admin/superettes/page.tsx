@@ -25,6 +25,7 @@ export default function SuperettesPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Store | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<Store | null>(null);
+  const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
 
   const { sorted, sortKey, sortDir, toggleSort } = useSort(stores);
 
@@ -62,6 +63,8 @@ export default function SuperettesPage() {
   };
 
   const handleToggleActive = async (row: Store) => {
+    if (pendingToggleId) return;
+    setPendingToggleId(row.id);
     const prev = [...stores];
     setStores((current) =>
       current.map((s) => (s.id === row.id ? { ...s, is_active: !s.is_active } : s)),
@@ -75,6 +78,8 @@ export default function SuperettesPage() {
     } catch {
       setStores(prev);
       setError('Impossible de modifier le statut de cette supérette.');
+    } finally {
+      setPendingToggleId(null);
     }
   };
 
@@ -119,10 +124,11 @@ export default function SuperettesPage() {
           <button
             type="button"
             onClick={() => void handleToggleActive(row)}
+            disabled={pendingToggleId === row.id}
             aria-label={row.is_active ? 'Désactiver la supérette' : 'Activer la supérette'}
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
-              row.is_active ? 'bg-green-500' : 'bg-gray-300'
-            }`}
+            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+              pendingToggleId === row.id ? 'cursor-wait opacity-60' : 'cursor-pointer'
+            } ${row.is_active ? 'bg-green-500' : 'bg-gray-300'}`}
           >
             <span
               className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
