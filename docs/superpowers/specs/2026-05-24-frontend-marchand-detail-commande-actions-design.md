@@ -23,7 +23,7 @@ Le retrait sécurisé reste explicitement hors périmètre de cette PR.
 - Chargement du détail via `GET /api/merchant/stores/{storeId}/orders/{orderId}`.
 - Actions marchand :
   - accepter une commande `submitted` ;
-  - refuser une commande `submitted` avec motif ;
+  - refuser une commande `submitted`, avec motif optionnel ;
   - accepter partiellement une commande `submitted` ;
   - démarrer la préparation d'une commande `accepted` ;
   - marquer une ligne comme préparée pendant `preparing` ;
@@ -130,7 +130,7 @@ L'acceptation appelle :
 POST /api/merchant/stores/{storeId}/orders/{orderId}/accept
 ```
 
-Le refus ouvre une confirmation avec motif obligatoire, puis appelle :
+Le refus ouvre une confirmation avec motif optionnel, puis appelle :
 
 ```http
 POST /api/merchant/stores/{storeId}/orders/{orderId}/reject
@@ -197,7 +197,7 @@ Règles frontend minimales :
 
 - au moins une ligne doit rester acceptée ;
 - au moins une ligne doit être marquée non disponible ;
-- un motif court est demandé si le contrat backend l'exige ou si une ligne est refusée ;
+- une note courte peut être proposée pour expliquer les lignes refusées, sans être bloquante ;
 - le bouton de validation est désactivé pendant l'appel API.
 
 La mutation appelle :
