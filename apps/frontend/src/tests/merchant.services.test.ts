@@ -87,11 +87,17 @@ describe('merchant services', () => {
     vi.mocked(apiClient.get)
       .mockResolvedValueOnce({ data: { store_id: 'store-1', pickup_slots_today: [] } })
       .mockResolvedValueOnce({ data: { items: [], total: 0, page: 1, limit: 20 } })
-      .mockResolvedValueOnce({ data: { items: [], total: 0, page: 1, limit: 20 } });
+      .mockResolvedValueOnce({ data: { items: [], total: 0, page: 1, limit: 20 } })
+      .mockResolvedValueOnce({ data: { items: [], total: 0, page: 2, limit: 10 } });
 
     await getMerchantDashboardToday('store-1');
     await listMerchantOrders('store-1');
     await listMerchantOrderHistory('store-1');
+    await listMerchantOrderHistory('store-1', {
+      page: 2,
+      limit: 10,
+      status: 'ready,pickup_pending',
+    });
 
     expect(apiClient.get).toHaveBeenNthCalledWith(
       1,
@@ -106,6 +112,11 @@ describe('merchant services', () => {
       3,
       '/api/merchant/stores/store-1/orders/history',
       { params: { page: 1, limit: 20 } },
+    );
+    expect(apiClient.get).toHaveBeenNthCalledWith(
+      4,
+      '/api/merchant/stores/store-1/orders/history',
+      { params: { page: 2, limit: 10, status: 'ready,pickup_pending' } },
     );
   });
 
