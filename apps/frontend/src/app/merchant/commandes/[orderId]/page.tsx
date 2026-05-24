@@ -95,13 +95,18 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
   if (!order) {
     return (
       <div>
-        <p className="text-sm text-muted">Commande introuvable pour cette supérette.</p>
+        <p className="text-sm text-muted">
+          {error ?? 'Commande introuvable pour cette supérette.'}
+        </p>
         <Button className="mt-4" variant="ghost" size="md" onClick={() => void loadOrder()}>
           Réessayer
         </Button>
       </div>
     );
   }
+
+  const canMarkReady =
+    order.lines.length > 0 && order.lines.every((line) => line.prepared);
 
   return (
     <div>
@@ -226,15 +231,22 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
             </Button>
           )}
           {order.status === 'preparing' && (
-            <Button
-              size="md"
-              disabled={isMutating}
-              onClick={() =>
-                void runAction((storeId) => markMerchantOrderReady(storeId, params.orderId))
-              }
-            >
-              Commande prête
-            </Button>
+            <>
+              <Button
+                size="md"
+                disabled={isMutating || !canMarkReady}
+                onClick={() =>
+                  void runAction((storeId) => markMerchantOrderReady(storeId, params.orderId))
+                }
+              >
+                Commande prête
+              </Button>
+              {!canMarkReady && (
+                <p className="text-sm text-muted">
+                  Marque toutes les lignes comme préparées avant de passer la commande prête.
+                </p>
+              )}
+            </>
           )}
           {order.status === 'partially_accepted' && (
             <p className="text-sm text-muted">

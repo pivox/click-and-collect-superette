@@ -117,6 +117,7 @@ describe('MerchantOrderDetailPage', () => {
 
     render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
 
+    expect(await screen.findByRole('button', { name: 'Commande prête' })).toBeDisabled();
     fireEvent.click(await screen.findByRole('checkbox', { name: /marquer lait vitalait 1l préparé/i }));
     await waitFor(() =>
       expect(setMerchantOrderLinePrepared).toHaveBeenCalledWith('store-1', 'order-1', 'mp-1', {
@@ -126,6 +127,15 @@ describe('MerchantOrderDetailPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Commande prête' }));
     await waitFor(() => expect(markMerchantOrderReady).toHaveBeenCalledWith('store-1', 'order-1'));
+  });
+
+  it('shows the load failure message when the order cannot be loaded', async () => {
+    vi.mocked(getMerchantOrder).mockRejectedValue(new Error('API unavailable'));
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    expect(await screen.findByText('Impossible de charger cette commande.')).toBeInTheDocument();
+    expect(screen.queryByText('Commande introuvable pour cette supérette.')).not.toBeInTheDocument();
   });
 
   it('does not expose pickup actions for ready orders', async () => {
