@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import axios from 'axios';
 import { Button } from '@/components/ui/Button';
 import { formatTime, formatTnd } from '@/lib/format';
 import {
@@ -18,17 +19,25 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function apiErrorMessage(error: unknown): string {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof (error as { response?: { data?: { detail?: unknown } } }).response?.data?.detail ===
-      'string'
-  ) {
-    return (error as { response: { data: { detail: string } } }).response.data.detail;
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+    if (typeof detail === 'string') return detail;
   }
 
   return "L'action n'a pas pu être effectuée. Vérifie le QR code puis réessaie.";
+}
+
+function fallbackOrderLabel(orderId: string | undefined): string {
+  return orderId ? `#${orderId.slice(0, 8).toUpperCase()}` : '';
+}
+
+function lineTotalMillimes(line: MerchantPickupSessionScanResult['lines'][number]): number {
+  const unitPriceInMillimes = Math.round(Number.parseFloat(line.unit_price_tnd) * 1000);
+  return unitPriceInMillimes * line.quantity;
+}
+
+function lineTotalTnd(line: MerchantPickupSessionScanResult['lines'][number]): string {
+  return (lineTotalMillimes(line) / 1000).toFixed(3);
 }
 
 function customerName(session: MerchantPickupSessionScanResult): string {
@@ -59,23 +68,19 @@ export default function MerchantPickupPage() {
   const [isMutating, setIsMutating] = useState(false);
 
   const trimmedToken = token.trim();
-  const orderLabel = session?.order_number ?? session?.order_id ?? '';
+  const orderLabel = session?.order_number ?? fallbackOrderLabel(session?.order_id);
   const canForceComplete =
     !!actionResult?.merchant_confirmed_at &&
     !actionResult.customer_confirmed_at &&
     !actionResult.is_completed;
   const totalTnd = useMemo(() => {
     if (!session) return '0.000';
-    const total = session.lines.reduce(
-      (sum, line) => sum + Number.parseFloat(line.unit_price_tnd) * line.quantity,
-      0,
-    );
-    return total.toFixed(3);
+    const total = session.lines.reduce((sum, line) => sum + lineTotalMillimes(line), 0);
+    return (total / 1000).toFixed(3);
   }, [session]);
 
   const scan = async () => {
     setError(null);
-    setActionResult(null);
 
     if (!UUID_PATTERN.test(trimmedToken)) {
       setError('Le token QR doit être un UUID valide.');
@@ -85,6 +90,7 @@ export default function MerchantPickupPage() {
     setIsScanning(true);
     try {
       setSession(await scanMerchantPickupSession(trimmedToken));
+      setActionResult(null);
       setForceNote('');
     } catch (err) {
       setError(apiErrorMessage(err));
@@ -143,7 +149,7 @@ export default function MerchantPickupPage() {
           </p>
         </div>
         {session && (
-          <Button variant="ghost" size="md" onClick={reset}>
+          <Button variant="ghost" size="md" onClick={reset} disabled={isMutating}>
             Scanner un autre QR
           </Button>
         )}
@@ -164,7 +170,7 @@ export default function MerchantPickupPage() {
           />
           <Button
             size="md"
-            disabled={!trimmedToken || isScanning}
+            disabled={!trimmedToken || isScanning || isMutating}
             onClick={() => void scan()}
           >
             Identifier la Kadhia
@@ -176,7 +182,10 @@ export default function MerchantPickupPage() {
       </section>
 
       {error && (
-        <div className="mt-4 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
+        <div
+          role="alert"
+          className="mt-4 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel"
+        >
           {error}
         </div>
       )}
@@ -228,11 +237,7 @@ export default function MerchantPickupPage() {
                         {line.quantity} x {formatTnd(line.unit_price_tnd)}
                       </p>
                     </div>
-                    <strong>
-                      {formatTnd(
-                        (Number.parseFloat(line.unit_price_tnd) * line.quantity).toFixed(3),
-                      )}
-                    </strong>
+                    <strong>{formatTnd(lineTotalTnd(line))}</strong>
                   </div>
                 ))}
               </div>

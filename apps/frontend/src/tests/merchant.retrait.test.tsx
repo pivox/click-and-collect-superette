@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MerchantPickupPage from '@/app/merchant/retrait/page';
 import {
   confirmMerchantPickupSession,
@@ -42,6 +42,10 @@ const scanResult: MerchantPickupSessionScanResult = {
 };
 
 describe('MerchantPickupPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('blocks an invalid token before calling the API', async () => {
     render(<MerchantPickupPage />);
 
@@ -69,6 +73,39 @@ describe('MerchantPickupPage', () => {
     expect(screen.getByText('Lait Vitalait 1L')).toBeInTheDocument();
   });
 
+  it('displays a backend error message when the scan fails', async () => {
+    vi.mocked(scanMerchantPickupSession).mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { data: { detail: 'PICKUP_SESSION_TOKEN_NOT_FOUND' } },
+    });
+
+    render(<MerchantPickupPage />);
+
+    fireEvent.change(screen.getByLabelText('Token QR de retrait'), {
+      target: { value: '11111111-1111-4111-8111-111111111111' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Identifier la Kadhia' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('PICKUP_SESSION_TOKEN_NOT_FOUND');
+    expect(screen.queryByText(/Session de retrait/)).not.toBeInTheDocument();
+  });
+
+  it('displays a generic error message when the scan fails without backend detail', async () => {
+    vi.mocked(scanMerchantPickupSession).mockRejectedValueOnce(new Error('Network Error'));
+
+    render(<MerchantPickupPage />);
+
+    fireEvent.change(screen.getByLabelText('Token QR de retrait'), {
+      target: { value: '11111111-1111-4111-8111-111111111111' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Identifier la Kadhia' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "L'action n'a pas pu être effectuée. Vérifie le QR code puis réessaie.",
+    );
+    expect(screen.queryByText(/Session de retrait/)).not.toBeInTheDocument();
+  });
+
   it('confirms the merchant handoff and shows waiting customer state', async () => {
     vi.mocked(scanMerchantPickupSession).mockResolvedValueOnce(scanResult);
     vi.mocked(confirmMerchantPickupSession).mockResolvedValueOnce({
@@ -92,6 +129,78 @@ describe('MerchantPickupPage', () => {
 
     expect(await screen.findByText('Confirmation marchand enregistrée.')).toBeInTheDocument();
     expect(screen.getByText('En attente de confirmation client.')).toBeInTheDocument();
+  });
+
+  it('keeps the current action state when a new token is invalid', async () => {
+    vi.mocked(scanMerchantPickupSession).mockResolvedValueOnce(scanResult);
+    vi.mocked(confirmMerchantPickupSession).mockResolvedValueOnce({
+      id: 'session-1',
+      order_id: 'order-1',
+      order_status: 'pickup_pending',
+      scanned_at: '2026-05-24T10:00:00+00:00',
+      merchant_confirmed_at: '2026-05-24T10:01:00+00:00',
+      customer_confirmed_at: null,
+      is_used: false,
+      is_completed: false,
+    });
+
+    render(<MerchantPickupPage />);
+
+    fireEvent.change(screen.getByLabelText('Token QR de retrait'), {
+      target: { value: '11111111-1111-4111-8111-111111111111' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Identifier la Kadhia' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Remettre la Kadhia' }));
+    expect(await screen.findByText('Confirmation marchand enregistrée.')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Token QR de retrait'), {
+      target: { value: 'bad-token' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Identifier la Kadhia' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Le token QR doit être un UUID valide.',
+    );
+    expect(screen.getByText('Confirmation marchand enregistrée.')).toBeInTheDocument();
+    expect(screen.getByText('En attente de confirmation client.')).toBeInTheDocument();
+  });
+
+  it('blocks reset and scan while a pickup mutation is pending', async () => {
+    let resolveConfirm: (value: Awaited<ReturnType<typeof confirmMerchantPickupSession>>) => void;
+    const pendingConfirm = new Promise<Awaited<ReturnType<typeof confirmMerchantPickupSession>>>(
+      (resolve) => {
+        resolveConfirm = resolve;
+      },
+    );
+
+    vi.mocked(scanMerchantPickupSession).mockResolvedValueOnce(scanResult);
+    vi.mocked(confirmMerchantPickupSession).mockReturnValueOnce(pendingConfirm);
+
+    render(<MerchantPickupPage />);
+
+    fireEvent.change(screen.getByLabelText('Token QR de retrait'), {
+      target: { value: '11111111-1111-4111-8111-111111111111' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Identifier la Kadhia' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Remettre la Kadhia' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Scanner un autre QR' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Identifier la Kadhia' })).toBeDisabled();
+    });
+
+    resolveConfirm!({
+      id: 'session-1',
+      order_id: 'order-1',
+      order_status: 'pickup_pending',
+      scanned_at: '2026-05-24T10:00:00+00:00',
+      merchant_confirmed_at: '2026-05-24T10:01:00+00:00',
+      customer_confirmed_at: null,
+      is_used: false,
+      is_completed: false,
+    });
+
+    expect(await screen.findByText('Confirmation marchand enregistrée.')).toBeInTheDocument();
   });
 
   it('requires a force completion note', async () => {
@@ -166,5 +275,22 @@ describe('MerchantPickupPage', () => {
       );
     });
     expect(await screen.findByText('Retrait finalisé.')).toBeInTheDocument();
+  });
+
+  it('resets to initial state when "Scanner un autre QR" is clicked', async () => {
+    vi.mocked(scanMerchantPickupSession).mockResolvedValueOnce(scanResult);
+
+    render(<MerchantPickupPage />);
+
+    fireEvent.change(screen.getByLabelText('Token QR de retrait'), {
+      target: { value: '11111111-1111-4111-8111-111111111111' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Identifier la Kadhia' }));
+    await screen.findByText('Commande #0042');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Scanner un autre QR' }));
+
+    expect(screen.queryByText('Commande #0042')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Token QR de retrait')).toHaveValue('');
   });
 });

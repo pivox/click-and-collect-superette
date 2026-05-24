@@ -108,7 +108,7 @@ Le bouton est désactivé tant que le token est vide. Le format UUID est validé
 La page affiche :
 
 - numéro de commande ou identifiant ;
-- statut `pickup_pending` ;
+- statut retourné par le backend, normalement `pickup_pending` après un scan réussi ;
 - heure de scan ;
 - informations client disponibles ;
 - lignes de Kadhia ;
@@ -140,7 +140,9 @@ La page extrait `response.data.detail` quand disponible. Sinon elle affiche un m
 
 > "L'action n'a pas pu être effectuée. Vérifie le QR code puis réessaie."
 
-Les erreurs ne réinitialisent pas automatiquement la session courante afin que le marchand puisse relire l'état affiché.
+Les erreurs ne réinitialisent pas automatiquement la session courante afin que le marchand puisse relire l'état affiché. L'état de confirmation courant n'est effacé qu'après un nouveau scan réussi, pas après un token invalide ou une erreur réseau.
+
+Pendant une confirmation marchand ou une finalisation forcée en cours, les actions "Identifier la Kadhia" et "Scanner un autre QR" sont désactivées pour éviter de mélanger la réponse d'une mutation avec une autre session affichée.
 
 ## Tests
 
@@ -153,7 +155,11 @@ Ajouter ou mettre à jour :
 - `apps/frontend/src/tests/merchant.retrait.test.tsx` :
   - saisie token + scan réussi affiche la session ;
   - token vide ou invalide bloque l'action ;
+  - erreur backend ou réseau au scan affiche le message attendu sans session ;
   - confirmation marchand appelle le service et met à jour l'état ;
+  - l'état de confirmation courant reste affiché après un token invalide ;
+  - reset revient à l'état initial ;
+  - reset et scan sont bloqués pendant une mutation de retrait ;
   - force completion exige une note.
 
 Vérifications attendues :

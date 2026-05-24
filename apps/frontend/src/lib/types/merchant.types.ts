@@ -156,7 +156,7 @@ export interface MerchantPickupSessionScanResult {
   order_id: string;
   store_id: string;
   order_number: string | null;
-  status: 'pickup_pending';
+  status: MerchantOrderStatus;
   scanned_at: string;
   customer: MerchantPickupSessionCustomer;
   lines: MerchantPickupSessionLine[];
