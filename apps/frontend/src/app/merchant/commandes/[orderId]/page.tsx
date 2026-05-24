@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { OrderStatusBadge } from '@/components/merchant/OrderStatusBadge';
+import { PartialAcceptDialog } from '@/components/merchant/PartialAcceptDialog';
+import { RejectOrderDialog } from '@/components/merchant/RejectOrderDialog';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { formatTime, formatTnd } from '@/lib/format';
@@ -10,6 +12,8 @@ import {
   acceptMerchantOrder,
   getMerchantOrder,
   markMerchantOrderReady,
+  partiallyAcceptMerchantOrder,
+  rejectMerchantOrder,
   setMerchantOrderLinePrepared,
   startMerchantOrderPreparation,
 } from '@/lib/services/merchant-orders.service';
@@ -39,6 +43,8 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [isPartialOpen, setIsPartialOpen] = useState(false);
 
   const loadOrder = useCallback(async () => {
     if (!merchant) return;
@@ -179,15 +185,33 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
         <h2 className="text-lg font-black">Actions marchand</h2>
         <div className="mt-4 flex flex-wrap gap-3">
           {order.status === 'submitted' && (
-            <Button
-              size="md"
-              disabled={isMutating}
-              onClick={() =>
-                void runAction(() => acceptMerchantOrder(merchant!.store.id, params.orderId))
-              }
-            >
-              Accepter
-            </Button>
+            <>
+              <Button
+                size="md"
+                disabled={isMutating}
+                onClick={() =>
+                  void runAction(() => acceptMerchantOrder(merchant!.store.id, params.orderId))
+                }
+              >
+                Accepter
+              </Button>
+              <Button
+                variant="ghost"
+                size="md"
+                disabled={isMutating}
+                onClick={() => setIsRejectOpen(true)}
+              >
+                Refuser
+              </Button>
+              <Button
+                variant="ghost"
+                size="md"
+                disabled={isMutating}
+                onClick={() => setIsPartialOpen(true)}
+              >
+                Accepter partiellement
+              </Button>
+            </>
           )}
           {order.status === 'accepted' && (
             <Button
@@ -223,6 +247,28 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
           )}
         </div>
       </section>
+
+      <RejectOrderDialog
+        isOpen={isRejectOpen}
+        isSubmitting={isMutating}
+        onCancel={() => setIsRejectOpen(false)}
+        onConfirm={(reason) => {
+          setIsRejectOpen(false);
+          void runAction(() => rejectMerchantOrder(merchant!.store.id, params.orderId, { reason }));
+        }}
+      />
+      <PartialAcceptDialog
+        isOpen={isPartialOpen}
+        isSubmitting={isMutating}
+        lines={order.lines}
+        onCancel={() => setIsPartialOpen(false)}
+        onConfirm={(payload) => {
+          setIsPartialOpen(false);
+          void runAction(() =>
+            partiallyAcceptMerchantOrder(merchant!.store.id, params.orderId, payload),
+          );
+        }}
+      />
     </div>
   );
 }

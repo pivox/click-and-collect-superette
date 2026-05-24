@@ -6,6 +6,8 @@ import {
   acceptMerchantOrder,
   getMerchantOrder,
   markMerchantOrderReady,
+  partiallyAcceptMerchantOrder,
+  rejectMerchantOrder,
   setMerchantOrderLinePrepared,
   startMerchantOrderPreparation,
 } from '@/lib/services/merchant-orders.service';
@@ -63,7 +65,7 @@ function makeOrder(status: MerchantOrderDetail['status']): MerchantOrderDetail {
 
 describe('MerchantOrderDetailPage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('shows submitted actions and reloads after accept', async () => {
@@ -134,5 +136,66 @@ describe('MerchantOrderDetailPage', () => {
     expect(await screen.findByText('Commande prête pour le retrait.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /scan/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /confirmer retrait/i })).not.toBeInTheDocument();
+  });
+
+  it('rejects a submitted order with a reason and reloads', async () => {
+    vi.mocked(getMerchantOrder)
+      .mockResolvedValueOnce(makeOrder('submitted'))
+      .mockResolvedValueOnce(makeOrder('rejected'));
+    vi.mocked(rejectMerchantOrder).mockResolvedValue({ id: 'order-1', status: 'rejected' });
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Refuser' }));
+    fireEvent.change(screen.getByLabelText('Motif de refus'), {
+      target: { value: 'Produit indisponible' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer le refus' }));
+
+    await waitFor(() =>
+      expect(rejectMerchantOrder).toHaveBeenCalledWith('store-1', 'order-1', {
+        reason: 'Produit indisponible',
+      }),
+    );
+    expect(getMerchantOrder).toHaveBeenCalledTimes(2);
+  });
+
+  it('requires one accepted and one unavailable line before partial acceptance', async () => {
+    vi.mocked(getMerchantOrder).mockResolvedValue({
+      ...makeOrder('submitted'),
+      lines: [
+        makeOrder('submitted').lines[0],
+        {
+          merchant_product_id: 'mp-2',
+          product_name: 'Eau minérale 1.5L',
+          quantity: 1,
+          unit_price_tnd: '0.900',
+          line_total_tnd: '0.900',
+          prepared: false,
+        },
+      ],
+    });
+    vi.mocked(partiallyAcceptMerchantOrder).mockResolvedValue({
+      id: 'order-1',
+      status: 'partially_accepted',
+    });
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Accepter partiellement' }));
+    expect(screen.getByRole('button', { name: 'Confirmer l’acceptation partielle' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /eau minérale 1.5l disponible/i }));
+    fireEvent.change(screen.getByLabelText('Note pour le client'), {
+      target: { value: 'Eau indisponible.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer l’acceptation partielle' }));
+
+    await waitFor(() =>
+      expect(partiallyAcceptMerchantOrder).toHaveBeenCalledWith('store-1', 'order-1', {
+        rejected_merchant_product_ids: ['mp-2'],
+        notes: 'Eau indisponible.',
+      }),
+    );
   });
 });
