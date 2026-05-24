@@ -137,3 +137,44 @@ export interface MerchantOrderMutationResult {
   id: string;
   status: MerchantOrderStatus;
 }
+
+export interface MerchantPickupSessionCustomer {
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+}
+
+export interface MerchantPickupSessionLine {
+  merchant_product_id: string;
+  name: string;
+  quantity: number;
+  unit_price_tnd: string;
+}
+
+export interface MerchantPickupSessionScanResult {
+  id: string;
+  order_id: string;
+  store_id: string;
+  order_number: string | null;
+  status: 'pickup_pending';
+  scanned_at: string;
+  customer: MerchantPickupSessionCustomer;
+  lines: MerchantPickupSessionLine[];
+}
+
+export interface MerchantPickupSessionActionResult {
+  id: string;
+  order_id: string;
+  order_status: MerchantOrderStatus;
+  scanned_at: string;
+  merchant_confirmed_at: string | null;
+  customer_confirmed_at: string | null;
+  is_used: boolean;
+  is_completed: boolean;
+}
+
+export interface MerchantPickupSessionForceCompleteResult
+  extends MerchantPickupSessionActionResult {
+  force_completed_by_merchant: boolean;
+  force_note: string | null;
+}

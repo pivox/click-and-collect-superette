@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BarChart3, CalendarClock, Package, Settings, ShoppingBasket } from 'lucide-react';
+import { BarChart3, CalendarClock, Package, QrCode, Settings, ShoppingBasket } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn';
 const ACTIVE_NAV = [
   { href: '/merchant', label: 'Dashboard', icon: BarChart3 },
   { href: '/merchant/commandes', label: 'Commandes', icon: ShoppingBasket },
+  { href: '/merchant/retrait', label: 'Retrait', icon: QrCode },
 ];
 
 const DISABLED_NAV = [
