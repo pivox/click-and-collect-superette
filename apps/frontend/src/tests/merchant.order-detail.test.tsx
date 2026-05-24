@@ -138,6 +138,25 @@ describe('MerchantOrderDetailPage', () => {
     expect(screen.queryByRole('button', { name: /confirmer retrait/i })).not.toBeInTheDocument();
   });
 
+  it('shows the rejection reason for rejected orders', async () => {
+    vi.mocked(getMerchantOrder).mockResolvedValue({
+      ...makeOrder('rejected'),
+      rejection_reason: 'Produit indisponible',
+    });
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    expect(await screen.findByText('Commande refusée : Produit indisponible')).toBeInTheDocument();
+  });
+
+  it('shows a terminal message for cancelled orders', async () => {
+    vi.mocked(getMerchantOrder).mockResolvedValue(makeOrder('cancelled'));
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    expect(await screen.findByText('Commande annulée.')).toBeInTheDocument();
+  });
+
   it('rejects a submitted order with a reason and reloads', async () => {
     vi.mocked(getMerchantOrder)
       .mockResolvedValueOnce(makeOrder('submitted'))
@@ -147,6 +166,7 @@ describe('MerchantOrderDetailPage', () => {
     render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
 
     fireEvent.click(await screen.findByRole('button', { name: 'Refuser' }));
+    expect(screen.getByRole('dialog', { name: 'Refuser la commande' })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Motif de refus'), {
       target: { value: 'Produit indisponible' },
     });
@@ -158,6 +178,22 @@ describe('MerchantOrderDetailPage', () => {
       }),
     );
     expect(getMerchantOrder).toHaveBeenCalledTimes(2);
+  });
+
+  it('resets the rejection reason when the dialog reopens', async () => {
+    vi.mocked(getMerchantOrder).mockResolvedValue(makeOrder('submitted'));
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Refuser' }));
+    fireEvent.change(screen.getByLabelText('Motif de refus'), {
+      target: { value: 'Créneau indisponible' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refuser' }));
+
+    expect(screen.getByLabelText('Motif de refus')).toHaveValue('');
   });
 
   it('requires one accepted and one unavailable line before partial acceptance', async () => {
@@ -183,6 +219,9 @@ describe('MerchantOrderDetailPage', () => {
     render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
 
     fireEvent.click(await screen.findByRole('button', { name: 'Accepter partiellement' }));
+    expect(
+      screen.getByRole('dialog', { name: 'Accepter partiellement la Kadhia' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirmer l’acceptation partielle' })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('checkbox', { name: /eau minérale 1.5l disponible/i }));
@@ -197,5 +236,36 @@ describe('MerchantOrderDetailPage', () => {
         notes: 'Eau indisponible.',
       }),
     );
+  });
+
+  it('resets partial acceptance choices and notes when the dialog reopens', async () => {
+    vi.mocked(getMerchantOrder).mockResolvedValue({
+      ...makeOrder('submitted'),
+      lines: [
+        makeOrder('submitted').lines[0],
+        {
+          merchant_product_id: 'mp-2',
+          product_name: 'Eau minérale 1.5L',
+          quantity: 1,
+          unit_price_tnd: '0.900',
+          line_total_tnd: '0.900',
+          prepared: false,
+        },
+      ],
+    });
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Accepter partiellement' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /eau minérale 1.5l disponible/i }));
+    fireEvent.change(screen.getByLabelText('Note pour le client'), {
+      target: { value: 'Eau indisponible.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Accepter partiellement' }));
+
+    expect(screen.getByRole('checkbox', { name: /eau minérale 1.5l disponible/i })).toBeChecked();
+    expect(screen.getByLabelText('Note pour le client')).toHaveValue('');
   });
 });

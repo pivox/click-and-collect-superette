@@ -64,13 +64,14 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
     void loadOrder();
   }, [loadOrder]);
 
-  const runAction = async (action: () => Promise<unknown>) => {
+  const runAction = async (action: (storeId: string) => Promise<unknown>) => {
     if (!merchant) return;
 
+    const storeId = merchant.store.id;
     setIsMutating(true);
     setError(null);
     try {
-      await action();
+      await action(storeId);
       await loadOrder();
     } catch (err) {
       setError(apiErrorMessage(err));
@@ -80,8 +81,8 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
   };
 
   const togglePrepared = async (merchantProductId: string, prepared: boolean) => {
-    await runAction(() =>
-      setMerchantOrderLinePrepared(merchant!.store.id, params.orderId, merchantProductId, {
+    await runAction((storeId) =>
+      setMerchantOrderLinePrepared(storeId, params.orderId, merchantProductId, {
         prepared,
       }),
     );
@@ -190,7 +191,7 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
                 size="md"
                 disabled={isMutating}
                 onClick={() =>
-                  void runAction(() => acceptMerchantOrder(merchant!.store.id, params.orderId))
+                  void runAction((storeId) => acceptMerchantOrder(storeId, params.orderId))
                 }
               >
                 Accepter
@@ -218,9 +219,7 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
               size="md"
               disabled={isMutating}
               onClick={() =>
-                void runAction(() =>
-                  startMerchantOrderPreparation(merchant!.store.id, params.orderId),
-                )
+                void runAction((storeId) => startMerchantOrderPreparation(storeId, params.orderId))
               }
             >
               Démarrer préparation
@@ -231,7 +230,7 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
               size="md"
               disabled={isMutating}
               onClick={() =>
-                void runAction(() => markMerchantOrderReady(merchant!.store.id, params.orderId))
+                void runAction((storeId) => markMerchantOrderReady(storeId, params.orderId))
               }
             >
               Commande prête
@@ -245,6 +244,15 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
           {order.status === 'ready' && (
             <p className="text-sm font-bold text-primary">Commande prête pour le retrait.</p>
           )}
+          {order.status === 'rejected' && (
+            <p className="text-sm text-status-cancel">
+              Commande refusée
+              {order.rejection_reason ? ` : ${order.rejection_reason}` : '.'}
+            </p>
+          )}
+          {order.status === 'cancelled' && (
+            <p className="text-sm text-muted">Commande annulée.</p>
+          )}
         </div>
       </section>
 
@@ -254,7 +262,7 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
         onCancel={() => setIsRejectOpen(false)}
         onConfirm={(reason) => {
           setIsRejectOpen(false);
-          void runAction(() => rejectMerchantOrder(merchant!.store.id, params.orderId, { reason }));
+          void runAction((storeId) => rejectMerchantOrder(storeId, params.orderId, { reason }));
         }}
       />
       <PartialAcceptDialog
@@ -264,8 +272,8 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
         onCancel={() => setIsPartialOpen(false)}
         onConfirm={(payload) => {
           setIsPartialOpen(false);
-          void runAction(() =>
-            partiallyAcceptMerchantOrder(merchant!.store.id, params.orderId, payload),
+          void runAction((storeId) =>
+            partiallyAcceptMerchantOrder(storeId, params.orderId, payload),
           );
         }}
       />

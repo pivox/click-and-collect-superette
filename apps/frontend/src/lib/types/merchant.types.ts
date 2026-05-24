@@ -78,6 +78,7 @@ export interface MerchantOrderList {
 export type MerchantOrderHistoryList = MerchantOrderList;
 
 export type MerchantOrderStatus =
+  | 'draft'
   | 'submitted'
   | 'accepted'
   | 'partially_accepted'
@@ -134,10 +135,5 @@ export interface SetMerchantOrderLinePreparedPayload {
 
 export interface MerchantOrderMutationResult {
   id: string;
-  store_id?: string;
   status: MerchantOrderStatus;
-  total_tnd?: string;
-  rejection_reason?: string | null;
-  created_at?: string;
-  updated_at?: string;
 }
