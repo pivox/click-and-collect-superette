@@ -1,0 +1,138 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import MerchantOrderDetailPage from '@/app/merchant/commandes/[orderId]/page';
+import {
+  acceptMerchantOrder,
+  getMerchantOrder,
+  markMerchantOrderReady,
+  setMerchantOrderLinePrepared,
+  startMerchantOrderPreparation,
+} from '@/lib/services/merchant-orders.service';
+import type { MerchantOrderDetail } from '@/lib/types/merchant.types';
+
+const merchantContext = {
+  merchant: {
+    store: { id: 'store-1', name: 'Supérette Ezzahra', active: true },
+  },
+};
+
+vi.mock('@/lib/auth/MerchantAuthContext', () => ({
+  useMerchantAuth: () => merchantContext,
+}));
+
+vi.mock('@/lib/services/merchant-orders.service', () => ({
+  acceptMerchantOrder: vi.fn(),
+  getMerchantOrder: vi.fn(),
+  markMerchantOrderReady: vi.fn(),
+  partiallyAcceptMerchantOrder: vi.fn(),
+  rejectMerchantOrder: vi.fn(),
+  setMerchantOrderLinePrepared: vi.fn(),
+  startMerchantOrderPreparation: vi.fn(),
+}));
+
+function makeOrder(status: MerchantOrderDetail['status']): MerchantOrderDetail {
+  return {
+    id: 'order-1',
+    store_id: 'store-1',
+    status,
+    total_tnd: '18.500',
+    pickup_slot: {
+      id: 'slot-1',
+      starts_at: '2026-05-24T10:00:00+01:00',
+      ends_at: '2026-05-24T11:00:00+01:00',
+    },
+    notes: 'Sans sachet.',
+    lines: [
+      {
+        merchant_product_id: 'mp-1',
+        product_name: 'Lait Vitalait 1L',
+        quantity: 2,
+        unit_price_tnd: '1.700',
+        line_total_tnd: '3.400',
+        prepared: false,
+      },
+    ],
+    customer_name: 'Fatma Ben Ali',
+    customer_phone: '+21620111222',
+    rejection_reason: null,
+    created_at: '2026-05-24T08:00:00+01:00',
+    updated_at: '2026-05-24T08:00:00+01:00',
+  };
+}
+
+describe('MerchantOrderDetailPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows submitted actions and reloads after accept', async () => {
+    vi.mocked(getMerchantOrder)
+      .mockResolvedValueOnce(makeOrder('submitted'))
+      .mockResolvedValueOnce(makeOrder('accepted'));
+    vi.mocked(acceptMerchantOrder).mockResolvedValue({ id: 'order-1', status: 'accepted' });
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    expect(await screen.findByRole('heading', { name: /commande order-1/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Accepter' }));
+
+    await waitFor(() => expect(acceptMerchantOrder).toHaveBeenCalledWith('store-1', 'order-1'));
+    expect(getMerchantOrder).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows preparation action only for accepted orders', async () => {
+    vi.mocked(getMerchantOrder)
+      .mockResolvedValueOnce(makeOrder('accepted'))
+      .mockResolvedValueOnce(makeOrder('preparing'));
+    vi.mocked(startMerchantOrderPreparation).mockResolvedValue({
+      id: 'order-1',
+      status: 'preparing',
+    });
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Démarrer préparation' }));
+
+    await waitFor(() =>
+      expect(startMerchantOrderPreparation).toHaveBeenCalledWith('store-1', 'order-1'),
+    );
+  });
+
+  it('shows line preparation and ready action only for preparing orders', async () => {
+    vi.mocked(getMerchantOrder)
+      .mockResolvedValueOnce(makeOrder('preparing'))
+      .mockResolvedValueOnce({
+        ...makeOrder('preparing'),
+        lines: [{ ...makeOrder('preparing').lines[0], prepared: true }],
+      })
+      .mockResolvedValueOnce(makeOrder('ready'));
+    vi.mocked(setMerchantOrderLinePrepared).mockResolvedValue({
+      ...makeOrder('preparing'),
+      lines: [{ ...makeOrder('preparing').lines[0], prepared: true }],
+    });
+    vi.mocked(markMerchantOrderReady).mockResolvedValue({ id: 'order-1', status: 'ready' });
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: /marquer lait vitalait 1l préparé/i }));
+    await waitFor(() =>
+      expect(setMerchantOrderLinePrepared).toHaveBeenCalledWith('store-1', 'order-1', 'mp-1', {
+        prepared: true,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Commande prête' }));
+    await waitFor(() => expect(markMerchantOrderReady).toHaveBeenCalledWith('store-1', 'order-1'));
+  });
+
+  it('does not expose pickup actions for ready orders', async () => {
+    vi.mocked(getMerchantOrder).mockResolvedValue(makeOrder('ready'));
+
+    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+
+    expect(await screen.findByText('Commande prête pour le retrait.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /scan/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /confirmer retrait/i })).not.toBeInTheDocument();
+  });
+});
