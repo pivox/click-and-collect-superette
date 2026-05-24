@@ -50,10 +50,12 @@ describe('MerchantOrdersPage', () => {
     );
     expect(screen.getByRole('heading', { name: 'Commandes' })).toBeInTheDocument();
     expect(screen.getByText('order-1')).toBeInTheDocument();
-    expect(screen.getByText('submitted')).toBeInTheDocument();
+    expect(screen.getByText('Soumise')).toBeInTheDocument();
     expect(screen.getByText('18,500 TND')).toBeInTheDocument();
     expect(
       screen.getAllByText((_, node) => node?.textContent?.includes('4 produits') ?? false).length,
     ).toBeGreaterThan(0);
+    const detailLink = await screen.findByRole('link', { name: /voir la commande order-1/i });
+    expect(detailLink).toHaveAttribute('href', '/merchant/commandes/order-1');
   });
 });
