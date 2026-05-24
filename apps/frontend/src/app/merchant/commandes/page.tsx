@@ -1,6 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { OrderStatusBadge } from '@/components/merchant/OrderStatusBadge';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { formatTime, formatTnd } from '@/lib/format';
@@ -38,7 +40,7 @@ export default function MerchantOrdersPage() {
         <div>
           <h1 className="text-h1 font-black">Commandes</h1>
           <p className="mt-1 text-sm text-muted">
-            Liste réelle en lecture seule. Les actions marchand arrivent dans une prochaine PR.
+            Ouvre une commande pour traiter la Kadhia jusqu&apos;à sa préparation.
           </p>
         </div>
         <Button variant="ghost" size="md" onClick={() => void loadOrders()}>
@@ -65,13 +67,16 @@ export default function MerchantOrdersPage() {
         ) : orders && orders.items.length > 0 ? (
           <div className="divide-y divide-line">
             {orders.items.map((order) => (
-              <article key={order.id} className="grid gap-3 p-5 md:grid-cols-[1fr_auto]">
+              <Link
+                key={order.id}
+                href={`/merchant/commandes/${order.id}`}
+                aria-label={`Voir la commande ${order.order_number ?? order.id}`}
+                className="grid gap-3 p-5 transition hover:bg-soft focus:outline-none focus:ring-2 focus:ring-primary md:grid-cols-[1fr_auto]"
+              >
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <strong>{order.order_number ?? order.id}</strong>
-                    <span className="rounded-full bg-soft px-2 py-1 text-xs font-bold text-muted">
-                      {order.status}
-                    </span>
+                    <OrderStatusBadge status={order.status} />
                   </div>
                   <p className="mt-2 text-sm text-muted">
                     {order.line_count} produits
@@ -81,7 +86,7 @@ export default function MerchantOrdersPage() {
                   </p>
                 </div>
                 <strong className="text-right text-lg">{formatTnd(order.total_tnd)}</strong>
-              </article>
+              </Link>
             ))}
           </div>
         ) : (
