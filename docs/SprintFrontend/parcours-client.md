@@ -21,6 +21,8 @@ Ce document décrit le parcours complet du client dans l'app Kadhia : de l'ouver
 (client)/orders/[orderId]/pickup   → QR de retrait
 ```
 
+> `(client)` est un groupe de layout Next.js (route group). Ce préfixe n'apparaît pas dans les URLs réelles — `/` est accessible à la racine, `/stores` est accessible tel quel, etc.
+
 ---
 
 ## Flux nominal
@@ -81,7 +83,9 @@ Limitations connues :
 Flux nominal : fiche supérette avec horaires, distance, note, prochain créneau, bouton "Commencer ma Kadhia".
 
 Cas alternatif :
-- Supérette fermée (`isActive: false`) : badge "Fermée" affiché, le CTA reste présent (pas de blocage UI).
+- Supérette fermée : badge "Fermée" affiché, le CTA reste présent (pas de blocage UI).
+
+Note : le backend (Sprint 7, S7-001) distingue deux états — `archivedAt !== null` (archivée définitivement, ne réapparaît plus) et fermeture temporaire selon les horaires. Le frontend mappe `archivedAt !== null → isActive: false` pour l'affichage, mais les deux cas ont un sens métier différent et devront être traités séparément lors du branchement API.
 
 ---
 
@@ -158,7 +162,7 @@ Objectif : permettre au client de s'inscrire, se connecter et accéder à ses co
 - pages `/login` et `/register` ;
 - contexte `ClientAuthContext` avec JWT stocké côté client ;
 - protection des routes `/kadhia`, `/orders` (redirect si non connecté) ;
-- consommation `POST /api/auth/register`, `POST /api/auth/login`.
+- consommation `POST /api/auth/register/customer`, `POST /api/auth/login`.
 
 ---
 
@@ -168,9 +172,9 @@ Objectif : remplacer les mocks par les vrais appels backend.
 
 À livrer :
 - Kadhia liée dynamiquement au `shopId` actif (supprimer `DEMO_SHOP_ID`) ;
-- soumission réelle via `POST /api/me/stores/{shopId}/kadhias` puis `PATCH /{kadhiaId}/submit` ;
+- soumission réelle via `POST /api/me/stores/{shopId}/kadhias` puis `POST /api/me/kadhias/{kadhiaId}/submit` ;
 - liste des commandes `GET /api/me/orders` ;
-- suivi commande `GET /api/me/orders/{id}` avec polling simple.
+- suivi commande `GET /api/me/orders/{id}` avec polling simple (intervalle recommandé : 10 s, mis en pause sur `visibilitychange` quand la page est en arrière-plan pour limiter la charge backend).
 
 ---
 
@@ -179,8 +183,8 @@ Objectif : remplacer les mocks par les vrais appels backend.
 Objectif : afficher un QR scannable basé sur le token `PickupSession`.
 
 À livrer :
-- récupération du token via `GET /api/me/orders/{id}` (champ `pickupQrToken`) ;
-- génération QR côté frontend (ex. `qrcode.react`) ;
+- récupération du token via `GET /api/me/orders/{orderId}/pickup-session` (champs `token` et `qr_payload`) ;
+- génération QR côté frontend (ex. `qrcode.react`) à partir de `qr_payload` ;
 - remplacement de `QrPlaceholder` par le vrai composant.
 
 ---
@@ -208,7 +212,9 @@ Objectif : informer le client des changements de statut de sa commande sans push
 - page ou panneau `/notifications` ;
 - badge de notifications non lues ;
 - consommation `GET /api/me/notifications` ;
-- actions `PATCH /{id}/read` et `PATCH /read-all`.
+- actions `PATCH /api/me/notifications/{id}/read` et `PATCH /api/me/notifications/read-all`.
+
+Note : veiller à l'ordre de déclaration des routes côté backend pour éviter un conflit entre `{id}/read` et `read-all` (même problématique que PR #139 côté notifications marchand).
 
 ---
 
@@ -240,7 +246,7 @@ Objectif : rendre le parcours client disponible en arabe avec RTL.
 Objectif : filtrer les supérettes par nom côté serveur.
 
 À livrer :
-- paramètre `?search=` sur `GET /api/stores` ou équivalent public ;
+- endpoint `GET /api/stores/search?query=` (route dédiée backend `StoreSearchOutput`) ;
 - debounce 400 ms sur le `SearchInput` de `/stores`.
 
 ---
