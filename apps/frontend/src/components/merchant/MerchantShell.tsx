@@ -10,7 +10,7 @@ import {
   Settings,
   ShoppingBasket,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
@@ -34,21 +34,34 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
   const { merchant, logout } = useMerchantAuth();
   const pathname = usePathname();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const latestUnreadRequestId = useRef(0);
+  const isMounted = useRef(false);
 
   const refreshUnreadNotifications = useCallback(async () => {
+    const requestId = latestUnreadRequestId.current + 1;
+    latestUnreadRequestId.current = requestId;
     try {
       const data = await listMerchantNotifications({ unread: true });
+      if (!isMounted.current || requestId !== latestUnreadRequestId.current) {
+        return;
+      }
       setUnreadNotifications(data.total);
     } catch {
+      if (!isMounted.current || requestId !== latestUnreadRequestId.current) {
+        return;
+      }
       setUnreadNotifications(0);
     }
   }, []);
 
   useEffect(() => {
+    isMounted.current = true;
     void refreshUnreadNotifications();
 
     window.addEventListener('merchant-notifications:refresh', refreshUnreadNotifications);
     return () => {
+      isMounted.current = false;
+      latestUnreadRequestId.current += 1;
       window.removeEventListener('merchant-notifications:refresh', refreshUnreadNotifications);
     };
   }, [refreshUnreadNotifications]);
@@ -57,6 +70,7 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
     if (label !== 'notifications' || unreadNotifications <= 0) {
       return null;
     }
+    const badgeText = unreadNotifications > 99 ? '99+' : String(unreadNotifications);
 
     return (
       <span
@@ -65,7 +79,7 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
         } non lue${unreadNotifications > 1 ? 's' : ''}`}
         className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-black text-[#332500]"
       >
-        {unreadNotifications}
+        {badgeText}
       </span>
     );
   };

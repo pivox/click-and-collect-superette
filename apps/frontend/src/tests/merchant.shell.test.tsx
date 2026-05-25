@@ -24,6 +24,16 @@ vi.mock('@/lib/services/merchant-notifications.service', () => ({
   listMerchantNotifications: vi.fn(),
 }));
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('MerchantShell', () => {
   beforeEach(() => {
     pathname = '/merchant';
@@ -103,6 +113,45 @@ describe('MerchantShell', () => {
 
     expect(await screen.findByText('Page')).toBeInTheDocument();
     expect(screen.queryByLabelText(/notification non lue/i)).not.toBeInTheDocument();
+  });
+
+  it('ignores stale unread badge responses', async () => {
+    const initialRequest = createDeferred<{ items: []; total: number; page: number }>();
+    const refreshRequest = createDeferred<{ items: []; total: number; page: number }>();
+    vi.mocked(listMerchantNotifications)
+      .mockReturnValueOnce(initialRequest.promise)
+      .mockReturnValueOnce(refreshRequest.promise);
+
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+
+    window.dispatchEvent(new Event('merchant-notifications:refresh'));
+    refreshRequest.resolve({ items: [], total: 2, page: 1 });
+
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('2 notifications non lues')).toHaveLength(2),
+    );
+
+    initialRequest.resolve({ items: [], total: 5, page: 1 });
+
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('2 notifications non lues')).toHaveLength(2),
+    );
+    expect(screen.queryByLabelText('5 notifications non lues')).not.toBeInTheDocument();
+  });
+
+  it('caps large unread notification badge values', async () => {
+    vi.mocked(listMerchantNotifications).mockResolvedValue({
+      items: [],
+      total: 150,
+      page: 1,
+    });
+
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('150 notifications non lues')).toHaveLength(2),
+    );
+    expect(screen.getAllByText('99+')).toHaveLength(2);
   });
 
   it('keeps rendering the shell when unread badge loading fails', async () => {

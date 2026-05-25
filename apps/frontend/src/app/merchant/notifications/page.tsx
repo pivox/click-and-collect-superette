@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Bell, Check, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
@@ -46,6 +46,7 @@ export default function MerchantNotificationsPage() {
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const latestListRequestId = useRef(0);
 
   const unreadOnly = filter === 'unread';
   const hasNextPage = page * PAGE_SIZE < total;
@@ -54,19 +55,37 @@ export default function MerchantNotificationsPage() {
   const showMarkAllRead = hasUnreadOnPage || (unreadOnly && total > 0);
 
   const loadNotifications = useCallback(async () => {
+    const requestId = latestListRequestId.current + 1;
+    latestListRequestId.current = requestId;
+    const requestedPage = page;
     setIsLoading(true);
     setError(null);
     try {
       const data = await listMerchantNotifications({
-        page,
+        page: requestedPage,
         ...(unreadOnly ? { unread: true } : {}),
       });
+      if (requestId !== latestListRequestId.current) {
+        return;
+      }
+
+      const lastPage = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
+      if (requestedPage > lastPage) {
+        setPage(lastPage);
+        return;
+      }
+
       setItems(data.items);
       setTotal(data.total);
     } catch {
+      if (requestId !== latestListRequestId.current) {
+        return;
+      }
       setError(LOAD_ERROR);
     } finally {
-      setIsLoading(false);
+      if (requestId === latestListRequestId.current) {
+        setIsLoading(false);
+      }
     }
   }, [page, unreadOnly]);
 
