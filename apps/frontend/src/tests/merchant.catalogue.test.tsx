@@ -57,6 +57,15 @@ const products: MerchantCatalogProduct[] = [
   },
 ];
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+
+  return { promise, resolve };
+}
+
 describe('MerchantCatalogPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,6 +83,12 @@ describe('MerchantCatalogPage', () => {
     expect(screen.getByText('1,650 TND')).toBeInTheDocument();
     expect(screen.getByText('Disponible')).toBeInTheDocument();
     expect(screen.getByText('Visible')).toBeInTheDocument();
+    const editButtons = screen.getAllByRole('button', { name: 'Modifier' });
+    expect(editButtons).toHaveLength(2);
+    editButtons.forEach((button) => {
+      expect(button).toBeDisabled();
+      expect(button).toHaveAttribute('title', 'Prévu dans une prochaine étape');
+    });
   });
 
   it('filters merchant catalogue products locally after submit', async () => {
@@ -93,6 +108,20 @@ describe('MerchantCatalogPage', () => {
     expect(listMerchantCatalog).toHaveBeenCalledWith('store-1');
   });
 
+  it('renders a dedicated empty state when filters hide all products', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    expect(await screen.findByText('Lait demi-écrémé')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Rechercher dans le catalogue'), {
+      target: { value: 'introuvable' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Rechercher' }));
+
+    expect(screen.getByText('Aucun produit ne correspond aux filtres.')).toBeInTheDocument();
+    expect(screen.queryByText('Aucun produit dans ce catalogue.')).not.toBeInTheDocument();
+  });
+
   it('can retry after an error and render an empty catalogue', async () => {
     vi.mocked(listMerchantCatalog)
       .mockRejectedValueOnce(new Error('Network error'))
@@ -106,5 +135,20 @@ describe('MerchantCatalogPage', () => {
 
     expect(await screen.findByText('Aucun produit dans ce catalogue.')).toBeInTheDocument();
     await waitFor(() => expect(listMerchantCatalog).toHaveBeenCalledTimes(2));
+  });
+
+  it('disables retry while the catalogue is loading', async () => {
+    const pendingCatalog = deferred<MerchantCatalogProduct[]>();
+    vi.mocked(listMerchantCatalog).mockReturnValue(pendingCatalog.promise);
+
+    render(React.createElement(MerchantCatalogPage));
+
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeDisabled();
+
+    pendingCatalog.resolve(products);
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Réessayer' })).not.toBeDisabled(),
+    );
   });
 });

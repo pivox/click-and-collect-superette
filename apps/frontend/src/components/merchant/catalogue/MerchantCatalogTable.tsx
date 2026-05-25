@@ -7,6 +7,7 @@ import type { MerchantCatalogProduct } from '@/lib/types/merchant-catalog.types'
 
 interface MerchantCatalogTableProps {
   products: MerchantCatalogProduct[];
+  emptyMessage: string;
 }
 
 function statusBadge(label: string, active: boolean, tone: 'success' | 'muted') {
@@ -28,9 +29,9 @@ function productFormat(product: MerchantCatalogProduct): string {
   return [product.volume, product.unit].filter(Boolean).join(' ') || 'Format non renseigné';
 }
 
-export function MerchantCatalogTable({ products }: MerchantCatalogTableProps) {
+export function MerchantCatalogTable({ emptyMessage, products }: MerchantCatalogTableProps) {
   if (products.length === 0) {
-    return <p className="p-5 text-sm text-muted">Aucun produit dans ce catalogue.</p>;
+    return <p className="p-5 text-sm text-muted">{emptyMessage}</p>;
   }
 
   return (
@@ -72,7 +73,13 @@ export function MerchantCatalogTable({ products }: MerchantCatalogTableProps) {
                 {product.merchant_note || '—'}
               </td>
               <td className="px-4 py-4 text-right align-top">
-                <Button type="button" variant="ghost" size="md" onClick={() => undefined}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  disabled
+                  title="Prévu dans une prochaine étape"
+                >
                   Modifier
                 </Button>
               </td>

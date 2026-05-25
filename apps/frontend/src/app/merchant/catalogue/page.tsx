@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MerchantCatalogFilters } from '@/components/merchant/catalogue/MerchantCatalogFilters';
 import { MerchantCatalogTable } from '@/components/merchant/catalogue/MerchantCatalogTable';
 import { Button } from '@/components/ui/Button';
@@ -27,18 +27,28 @@ export default function MerchantCatalogPage() {
   const [appliedFilters, setAppliedFilters] = useState<MerchantCatalogListOptions>(defaultFilters);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
 
   const loadCatalog = useCallback(async () => {
     if (!merchant) return;
+    const nextRequestId = requestId.current + 1;
+    requestId.current = nextRequestId;
     setIsLoading(true);
     setError(null);
     try {
-      setProducts(await listMerchantCatalog(merchant.store.id));
+      const nextProducts = await listMerchantCatalog(merchant.store.id);
+      if (requestId.current === nextRequestId) {
+        setProducts(nextProducts);
+      }
     } catch {
-      setProducts([]);
-      setError('Impossible de charger le catalogue.');
+      if (requestId.current === nextRequestId) {
+        setProducts([]);
+        setError('Impossible de charger le catalogue.');
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId.current === nextRequestId) {
+        setIsLoading(false);
+      }
     }
   }, [merchant]);
 
@@ -61,7 +71,12 @@ export default function MerchantCatalogPage() {
             les clients qui préparent leur Kadhia avant le retrait.
           </p>
         </div>
-        <Button variant="ghost" size="md" onClick={() => void loadCatalog()}>
+        <Button
+          variant="ghost"
+          size="md"
+          disabled={isLoading}
+          onClick={() => void loadCatalog()}
+        >
           Réessayer
         </Button>
       </div>
@@ -82,7 +97,14 @@ export default function MerchantCatalogPage() {
         {isLoading ? (
           <p className="p-5 text-sm text-muted">Chargement du catalogue…</p>
         ) : (
-          <MerchantCatalogTable products={filteredProducts} />
+          <MerchantCatalogTable
+            products={filteredProducts}
+            emptyMessage={
+              products.length === 0
+                ? 'Aucun produit dans ce catalogue.'
+                : 'Aucun produit ne correspond aux filtres.'
+            }
+          />
         )}
       </section>
     </div>

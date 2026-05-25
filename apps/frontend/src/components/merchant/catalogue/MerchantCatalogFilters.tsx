@@ -59,8 +59,14 @@ export function MerchantCatalogFilters({
         </div>
 
         <div>
-          <span className="mb-1 block text-sm font-bold">Disponibilité</span>
-          <div className="flex flex-wrap gap-2">
+          <span id="merchant-catalog-availability-label" className="mb-1 block text-sm font-bold">
+            Disponibilité
+          </span>
+          <div
+            role="group"
+            aria-labelledby="merchant-catalog-availability-label"
+            className="flex flex-wrap gap-2"
+          >
             {availabilityOptions.map((option) => (
               <button
                 key={option.value}
@@ -78,7 +84,11 @@ export function MerchantCatalogFilters({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div
+          role="group"
+          aria-label="Visibilité catalogue"
+          className="flex flex-wrap gap-2"
+        >
           <button
             type="button"
             className={cn(
@@ -86,6 +96,11 @@ export function MerchantCatalogFilters({
               visibility === 'hidden' ? 'bg-primary text-white' : 'bg-soft text-muted',
             )}
             aria-pressed={visibility === 'hidden'}
+            aria-label={
+              visibility === 'hidden'
+                ? 'Afficher tous les produits visibles et masqués'
+                : 'Afficher uniquement les produits masqués'
+            }
             onClick={() => updateFilter({ visibility: visibility === 'hidden' ? 'all' : 'hidden' })}
           >
             Masqués
