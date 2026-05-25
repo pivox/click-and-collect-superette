@@ -11,10 +11,13 @@ import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import {
   bulkUpdateMerchantProductAvailability,
+  createMerchantCategory,
   filterMerchantCatalogProducts,
+  listMerchantCategories,
   listMerchantCatalog,
 } from '@/lib/services/merchant-catalog.service';
 import type {
+  MerchantCategory,
   MerchantCatalogListOptions,
   MerchantCatalogProduct,
 } from '@/lib/types/merchant-catalog.types';
@@ -28,6 +31,8 @@ const defaultFilters: MerchantCatalogListOptions = {
 export default function MerchantCatalogPage() {
   const { merchant } = useMerchantAuth();
   const [products, setProducts] = useState<MerchantCatalogProduct[]>([]);
+  const [categories, setCategories] = useState<MerchantCategory[]>([]);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const [draftFilters, setDraftFilters] = useState<MerchantCatalogListOptions>(defaultFilters);
   const [appliedFilters, setAppliedFilters] = useState<MerchantCatalogListOptions>(defaultFilters);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +47,7 @@ export default function MerchantCatalogPage() {
   const [bulkSuccessMessage, setBulkSuccessMessage] = useState<string | null>(null);
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const requestId = useRef(0);
+  const categoryRequestId = useRef(0);
 
   const loadCatalog = useCallback(async () => {
     if (!merchant) return;
@@ -70,6 +76,29 @@ export default function MerchantCatalogPage() {
   useEffect(() => {
     void loadCatalog();
   }, [loadCatalog]);
+
+  const loadCategories = useCallback(async () => {
+    if (!merchant) return;
+    const nextRequestId = categoryRequestId.current + 1;
+    categoryRequestId.current = nextRequestId;
+    setCategoryError(null);
+
+    try {
+      const nextCategories = await listMerchantCategories(merchant.store.id);
+      if (categoryRequestId.current === nextRequestId) {
+        setCategories(nextCategories);
+      }
+    } catch {
+      if (categoryRequestId.current === nextRequestId) {
+        setCategories([]);
+        setCategoryError('Impossible de charger les catégories marchand.');
+      }
+    }
+  }, [merchant]);
+
+  useEffect(() => {
+    void loadCategories();
+  }, [loadCategories]);
 
   const filteredProducts = useMemo(
     () => filterMerchantCatalogProducts(products, appliedFilters),
@@ -155,6 +184,23 @@ export default function MerchantCatalogPage() {
     void loadCatalog();
   };
 
+  const handleCreateCategory = async (nameFr: string) => {
+    if (!merchant) {
+      throw new Error('Missing merchant context');
+    }
+
+    const createdCategory = await createMerchantCategory(merchant.store.id, {
+      name_fr: nameFr,
+      name_ar: null,
+      active: true,
+    });
+
+    setCategories((currentCategories) => [...currentCategories, createdCategory]);
+    setCategoryError(null);
+
+    return createdCategory;
+  };
+
   const handleApplyFilters = () => {
     setAppliedFilters(draftFilters);
     setSelectedProductIds([]);
@@ -224,6 +270,12 @@ export default function MerchantCatalogPage() {
         </div>
       )}
 
+      {categoryError && (
+        <div className="mt-4 rounded-md bg-soft px-4 py-3 text-sm text-muted">
+          {categoryError}
+        </div>
+      )}
+
       {bulkSuccessMessage && (
         <div
           role="status"
@@ -255,6 +307,9 @@ export default function MerchantCatalogPage() {
 
       <MerchantCatalogEditDrawer
         product={editProduct}
+        categories={categories}
+        categoryMessage={categoryError}
+        onCreateCategory={merchant ? handleCreateCategory : undefined}
         onClose={() => setEditProduct(null)}
         onSaved={handleProductSaved}
       />
@@ -262,6 +317,9 @@ export default function MerchantCatalogPage() {
       <ProductReferenceSearchDrawer
         isOpen={isAddProductDrawerOpen}
         storeId={merchant?.store.id ?? null}
+        categories={categories}
+        categoryMessage={categoryError}
+        onCreateCategory={merchant ? handleCreateCategory : undefined}
         onClose={() => setIsAddProductDrawerOpen(false)}
         onAdded={handleProductAdded}
       />
@@ -269,6 +327,9 @@ export default function MerchantCatalogPage() {
       <MerchantLocalProductDrawer
         isOpen={isLocalProductDrawerOpen}
         storeId={merchant?.store.id ?? null}
+        categories={categories}
+        categoryMessage={categoryError}
+        onCreateCategory={merchant ? handleCreateCategory : undefined}
         onClose={() => setIsLocalProductDrawerOpen(false)}
         onCreated={handleLocalProductCreated}
       />

@@ -1,16 +1,23 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { MerchantCategorySelector } from '@/components/merchant/catalogue/MerchantCategorySelector';
 import { Button } from '@/components/ui/Button';
 import {
   addMerchantCatalogProduct,
   searchMerchantProductReferences,
 } from '@/lib/services/merchant-catalog.service';
-import type { MerchantProductReferenceSearchItem } from '@/lib/types/merchant-catalog.types';
+import type {
+  MerchantCategory,
+  MerchantProductReferenceSearchItem,
+} from '@/lib/types/merchant-catalog.types';
 
 interface ProductReferenceSearchDrawerProps {
   isOpen: boolean;
   storeId: string | null;
+  categories: MerchantCategory[];
+  categoryMessage?: string | null;
+  onCreateCategory?: (nameFr: string) => Promise<MerchantCategory>;
   onClose: () => void;
   onAdded: () => void;
 }
@@ -48,9 +55,12 @@ function isConflictError(error: unknown): boolean {
 }
 
 export function ProductReferenceSearchDrawer({
+  categories,
+  categoryMessage,
   isOpen,
   onAdded,
   onClose,
+  onCreateCategory,
   storeId,
 }: ProductReferenceSearchDrawerProps) {
   const [query, setQuery] = useState('');
@@ -61,6 +71,7 @@ export function ProductReferenceSearchDrawer({
   const [isAvailable, setIsAvailable] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [merchantNote, setMerchantNote] = useState('');
+  const [merchantCategoryId, setMerchantCategoryId] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const [hasPriceError, setHasPriceError] = useState(false);
@@ -99,6 +110,7 @@ export function ProductReferenceSearchDrawer({
     setIsAvailable(true);
     setIsVisible(true);
     setMerchantNote('');
+    setMerchantCategoryId(null);
     setSearchError(null);
     setAddError(null);
     setHasPriceError(false);
@@ -233,6 +245,7 @@ export function ProductReferenceSearchDrawer({
         is_available: isAvailable,
         is_visible: isVisible,
         merchant_note: merchantNote.trim() || null,
+        merchant_category_id: merchantCategoryId,
       });
       if (!isCurrentSession(sessionId)) return;
 
@@ -326,6 +339,7 @@ export function ProductReferenceSearchDrawer({
                           setIsAvailable(true);
                           setIsVisible(true);
                           setMerchantNote('');
+                          setMerchantCategoryId(null);
                           setAddError(null);
                           setHasPriceError(false);
                         }}
@@ -401,6 +415,16 @@ export function ProductReferenceSearchDrawer({
                 />
                 Visible
               </label>
+
+              <MerchantCategorySelector
+                categories={categories}
+                fallbackCategory={selectedProductReference.category}
+                value={merchantCategoryId}
+                onChange={setMerchantCategoryId}
+                onCreate={onCreateCategory}
+                disabled={isSubmitting}
+                message={categoryMessage}
+              />
 
               <div>
                 <label htmlFor="product-reference-note" className="mb-1 block text-sm font-bold">

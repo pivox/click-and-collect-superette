@@ -1,9 +1,11 @@
 import { apiClient } from '@/lib/api';
 import type {
   AddMerchantCatalogProductPayload,
+  CreateMerchantCategoryPayload,
   CreateMerchantLocalProductPayload,
   MerchantBulkAvailabilityPayload,
   MerchantBulkAvailabilityResult,
+  MerchantCategory,
   MerchantCatalogListOptions,
   MerchantCatalogProduct,
   MerchantLocalProductOutput,
@@ -29,6 +31,26 @@ export async function listMerchantCatalog(
 ): Promise<MerchantCatalogProduct[]> {
   const { data } = await apiClient.get<MerchantCatalogProduct[]>(
     `/api/merchant/stores/${storeId}/catalog`,
+  );
+
+  return data;
+}
+
+export async function listMerchantCategories(storeId: string): Promise<MerchantCategory[]> {
+  const { data } = await apiClient.get<MerchantCategory[]>(
+    `/api/merchant/stores/${storeId}/categories`,
+  );
+
+  return data;
+}
+
+export async function createMerchantCategory(
+  storeId: string,
+  payload: CreateMerchantCategoryPayload,
+): Promise<MerchantCategory> {
+  const { data } = await apiClient.post<MerchantCategory>(
+    `/api/merchant/stores/${storeId}/categories`,
+    payload,
   );
 
   return data;

@@ -5,12 +5,17 @@ import MerchantCatalogPage from '@/app/merchant/catalogue/page';
 import {
   addMerchantCatalogProduct,
   bulkUpdateMerchantProductAvailability,
+  createMerchantCategory,
   createMerchantLocalProduct,
+  listMerchantCategories,
   listMerchantCatalog,
   searchMerchantProductReferences,
   updateMerchantCatalogProduct,
 } from '@/lib/services/merchant-catalog.service';
-import type { MerchantCatalogProduct } from '@/lib/types/merchant-catalog.types';
+import type {
+  MerchantCatalogProduct,
+  MerchantCategory,
+} from '@/lib/types/merchant-catalog.types';
 
 const merchantContext = {
   merchant: {
@@ -31,7 +36,9 @@ vi.mock('@/lib/services/merchant-catalog.service', async () => {
     ...actual,
     addMerchantCatalogProduct: vi.fn(),
     bulkUpdateMerchantProductAvailability: vi.fn(),
+    createMerchantCategory: vi.fn(),
     createMerchantLocalProduct: vi.fn(),
+    listMerchantCategories: vi.fn(),
     listMerchantCatalog: vi.fn(),
     searchMerchantProductReferences: vi.fn(),
     updateMerchantCatalogProduct: vi.fn(),
@@ -66,6 +73,31 @@ const products: MerchantCatalogProduct[] = [
     is_available: false,
     is_visible: false,
     merchant_note: 'Rupture fournisseur',
+  },
+];
+
+const merchantCategories: MerchantCategory[] = [
+  {
+    id: 'merchant-cat-1',
+    name_fr: 'Produits frais',
+    name_ar: null,
+    slug: 'produits-frais',
+    parent_id: null,
+    sort_order: 10,
+    active: true,
+    created_at: '2026-05-25T08:00:00+00:00',
+    updated_at: '2026-05-25T08:00:00+00:00',
+  },
+  {
+    id: 'merchant-cat-2',
+    name_fr: 'Catégorie archivée',
+    name_ar: null,
+    slug: 'categorie-archivee',
+    parent_id: null,
+    sort_order: 20,
+    active: false,
+    created_at: '2026-05-25T08:00:00+00:00',
+    updated_at: '2026-05-25T08:00:00+00:00',
   },
 ];
 
@@ -133,11 +165,23 @@ describe('MerchantCatalogPage', () => {
       merchant_note: null,
     });
     vi.mocked(listMerchantCatalog).mockResolvedValue(products);
+    vi.mocked(listMerchantCategories).mockResolvedValue(merchantCategories);
     vi.mocked(searchMerchantProductReferences).mockResolvedValue({
       items: [],
       total: 0,
       page: 1,
       limit: 20,
+    });
+    vi.mocked(createMerchantCategory).mockResolvedValue({
+      id: 'merchant-cat-3',
+      name_fr: 'Petit déjeuner',
+      name_ar: null,
+      slug: 'petit-dejeuner',
+      parent_id: null,
+      sort_order: 30,
+      active: true,
+      created_at: '2026-05-25T08:00:00+00:00',
+      updated_at: '2026-05-25T08:00:00+00:00',
     });
     vi.mocked(updateMerchantCatalogProduct).mockResolvedValue(undefined);
   });
@@ -147,6 +191,7 @@ describe('MerchantCatalogPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Catalogue' })).toBeInTheDocument();
     expect(listMerchantCatalog).toHaveBeenCalledWith('store-1');
+    expect(listMerchantCategories).toHaveBeenCalledWith('store-1');
     expect(screen.getByText('Lait demi-écrémé')).toBeInTheDocument();
     expect(screen.getByText('Vitalait')).toBeInTheDocument();
     expect(screen.getByText('Lait & produits laitiers')).toBeInTheDocument();
@@ -183,10 +228,110 @@ describe('MerchantCatalogPage', () => {
         is_available: false,
         is_visible: false,
         merchant_note: 'Rupture temporaire',
+        merchant_category_id: null,
       }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('loads merchant categories and shows the selector in edit drawer', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Modifier' })[0]);
+
+    expect(screen.getByLabelText('Catégorie marchand')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Catégorie par défaut : Boissons' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Produits frais' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Catégorie archivée' })).not.toBeInTheDocument();
+  });
+
+  it('updates a merchant product with the selected merchant category', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Modifier' })[0]);
+    fireEvent.change(screen.getByLabelText('Catégorie marchand'), {
+      target: { value: 'merchant-cat-1' },
+    });
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '1.700' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(updateMerchantCatalogProduct).toHaveBeenCalledWith('mp-1', {
+        price_tnd: '1.700',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+        merchant_category_id: 'merchant-cat-1',
+      }),
+    );
+  });
+
+  it('updates a merchant product with null category when default category is selected', async () => {
+    const productWithMerchantCategory = {
+      ...products[0],
+      merchant_category_id: 'merchant-cat-1',
+      merchant_category_name: 'Produits frais',
+    };
+    vi.mocked(listMerchantCatalog).mockResolvedValue([productWithMerchantCategory]);
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.change(screen.getByLabelText('Catégorie marchand'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(updateMerchantCatalogProduct).toHaveBeenCalledWith('mp-1', {
+        price_tnd: '1.650',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+        merchant_category_id: null,
+      }),
+    );
+  });
+
+  it('creates a merchant category inline from the edit drawer and selects it', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Modifier' })[0]);
+    fireEvent.change(screen.getByLabelText('Nouvelle catégorie marchand'), {
+      target: { value: 'Petit déjeuner' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Créer la catégorie' }));
+
+    await waitFor(() =>
+      expect(createMerchantCategory).toHaveBeenCalledWith('store-1', {
+        name_fr: 'Petit déjeuner',
+        name_ar: null,
+        active: true,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(updateMerchantCatalogProduct).toHaveBeenCalledWith(
+        'mp-1',
+        expect.objectContaining({ merchant_category_id: 'merchant-cat-3' }),
+      ),
+    );
+  });
+
+  it('keeps the catalogue usable when merchant categories fail to load', async () => {
+    vi.mocked(listMerchantCategories).mockRejectedValue(new Error('Network error'));
+
+    render(React.createElement(MerchantCatalogPage));
+
+    expect(await screen.findByText('Lait demi-écrémé')).toBeInTheDocument();
+    expect(screen.getByText('Impossible de charger les catégories marchand.')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Modifier' })[0]);
+    expect(screen.getByText('Aucune catégorie marchand active disponible.')).toBeInTheDocument();
   });
 
   it('searches product references from the add product drawer', async () => {
@@ -282,6 +427,9 @@ describe('MerchantCatalogPage', () => {
     expect(screen.getByText('Catégorie référentiel : Epicerie')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '2.400' } });
+    fireEvent.change(screen.getByLabelText('Catégorie marchand'), {
+      target: { value: 'merchant-cat-1' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter à mon catalogue' }));
 
     await waitFor(() =>
@@ -291,6 +439,7 @@ describe('MerchantCatalogPage', () => {
         is_available: true,
         is_visible: true,
         merchant_note: null,
+        merchant_category_id: 'merchant-cat-1',
       }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -308,12 +457,15 @@ describe('MerchantCatalogPage', () => {
     fireEvent.change(screen.getByLabelText('Nom en français'), {
       target: { value: 'Harissa maison' },
     });
-    fireEvent.change(screen.getByLabelText('Catégorie marchand'), {
+    fireEvent.change(screen.getByLabelText('Catégorie par défaut'), {
       target: { value: 'Epicerie' },
     });
     fireEvent.change(screen.getByLabelText('Volume'), { target: { value: '350' } });
     fireEvent.change(screen.getByLabelText('Unité'), { target: { value: 'gramme' } });
     fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '4,5' } });
+    fireEvent.change(screen.getByLabelText('Catégorie marchand'), {
+      target: { value: 'merchant-cat-1' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Créer dans mon catalogue' }));
 
     await waitFor(() =>
@@ -329,6 +481,7 @@ describe('MerchantCatalogPage', () => {
         is_available: true,
         is_visible: true,
         merchant_note: null,
+        merchant_category_id: 'merchant-cat-1',
       }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -428,6 +581,7 @@ describe('MerchantCatalogPage', () => {
         is_available: true,
         is_visible: true,
         merchant_note: null,
+        merchant_category_id: null,
       }),
     );
   });

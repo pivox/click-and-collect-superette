@@ -3,8 +3,10 @@ import { apiClient } from '@/lib/api';
 import {
   addMerchantCatalogProduct,
   bulkUpdateMerchantProductAvailability,
+  createMerchantCategory,
   createMerchantLocalProduct,
   filterMerchantCatalogProducts,
+  listMerchantCategories,
   listMerchantCatalog,
   searchMerchantProductReferences,
   updateMerchantCatalogProduct,
@@ -169,6 +171,7 @@ describe('merchant catalogue service', () => {
       is_available: false,
       is_visible: true,
       merchant_note: 'Rupture temporaire',
+      merchant_category_id: 'merchant-cat-1',
     } satisfies UpdateMerchantCatalogProductPayload;
 
     await updateMerchantCatalogProduct('mp-1', payload);
@@ -178,7 +181,66 @@ describe('merchant catalogue service', () => {
       is_available: false,
       is_visible: true,
       merchant_note: 'Rupture temporaire',
+      merchant_category_id: 'merchant-cat-1',
     });
+  });
+
+  it('lists merchant categories for a store', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: [
+        {
+          id: 'merchant-cat-1',
+          name_fr: 'Lait & produits laitiers',
+          name_ar: null,
+          slug: 'lait-produits-laitiers',
+          parent_id: null,
+          sort_order: 10,
+          active: true,
+          created_at: '2026-05-25T08:00:00+00:00',
+          updated_at: '2026-05-25T08:00:00+00:00',
+        },
+      ],
+    });
+
+    const categories = await listMerchantCategories('store-1');
+
+    expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/categories');
+    expect(categories).toEqual([
+      expect.objectContaining({
+        id: 'merchant-cat-1',
+        name_fr: 'Lait & produits laitiers',
+        active: true,
+      }),
+    ]);
+  });
+
+  it('creates a merchant category for a store', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        id: 'merchant-cat-2',
+        name_fr: 'Petit déjeuner',
+        name_ar: null,
+        slug: 'petit-dejeuner',
+        parent_id: null,
+        sort_order: 20,
+        active: true,
+        created_at: '2026-05-25T08:00:00+00:00',
+        updated_at: '2026-05-25T08:00:00+00:00',
+      },
+    });
+
+    const category = await createMerchantCategory('store-1', {
+      name_fr: 'Petit déjeuner',
+      name_ar: null,
+      active: true,
+    });
+
+    expect(apiClient.post).toHaveBeenCalledWith('/api/merchant/stores/store-1/categories', {
+      name_fr: 'Petit déjeuner',
+      name_ar: null,
+      active: true,
+    });
+    expect(category.id).toBe('merchant-cat-2');
   });
 
   it('bulk updates availability for selected products', async () => {
@@ -242,6 +304,7 @@ describe('merchant catalogue service', () => {
       is_available: true,
       is_visible: true,
       merchant_note: null,
+      merchant_category_id: 'merchant-cat-1',
     });
 
     expect(apiClient.post).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog', {
@@ -250,6 +313,7 @@ describe('merchant catalogue service', () => {
       is_available: true,
       is_visible: true,
       merchant_note: null,
+      merchant_category_id: 'merchant-cat-1',
     });
   });
 
@@ -283,6 +347,7 @@ describe('merchant catalogue service', () => {
       is_available: true,
       is_visible: true,
       merchant_note: null,
+      merchant_category_id: 'merchant-cat-1',
     });
 
     expect(apiClient.post).toHaveBeenCalledWith('/api/merchant/stores/store-1/local-products', {
@@ -297,6 +362,7 @@ describe('merchant catalogue service', () => {
       is_available: true,
       is_visible: true,
       merchant_note: null,
+      merchant_category_id: 'merchant-cat-1',
     });
     expect(result.local_product_id).toBe('local-1');
   });

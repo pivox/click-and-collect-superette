@@ -1,13 +1,20 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { MerchantCategorySelector } from '@/components/merchant/catalogue/MerchantCategorySelector';
 import { Button } from '@/components/ui/Button';
 import { createMerchantLocalProduct } from '@/lib/services/merchant-catalog.service';
-import type { MerchantProductUnit } from '@/lib/types/merchant-catalog.types';
+import type {
+  MerchantCategory,
+  MerchantProductUnit,
+} from '@/lib/types/merchant-catalog.types';
 
 interface MerchantLocalProductDrawerProps {
   isOpen: boolean;
   storeId: string | null;
+  categories: MerchantCategory[];
+  categoryMessage?: string | null;
+  onCreateCategory?: (nameFr: string) => Promise<MerchantCategory>;
   onClose: () => void;
   onCreated: () => void;
 }
@@ -51,8 +58,11 @@ function optionalText(value: string): string | null {
 }
 
 export function MerchantLocalProductDrawer({
+  categories,
+  categoryMessage,
   isOpen,
   onClose,
+  onCreateCategory,
   onCreated,
   storeId,
 }: MerchantLocalProductDrawerProps) {
@@ -60,6 +70,7 @@ export function MerchantLocalProductDrawer({
   const [nameAr, setNameAr] = useState('');
   const [brandName, setBrandName] = useState('');
   const [categoryName, setCategoryName] = useState('');
+  const [merchantCategoryId, setMerchantCategoryId] = useState<string | null>(null);
   const [volume, setVolume] = useState('');
   const [unit, setUnit] = useState<MerchantProductUnit>('piece');
   const [barcode, setBarcode] = useState('');
@@ -98,6 +109,7 @@ export function MerchantLocalProductDrawer({
     setNameAr('');
     setBrandName('');
     setCategoryName('');
+    setMerchantCategoryId(null);
     setVolume('');
     setUnit('piece');
     setBarcode('');
@@ -224,6 +236,7 @@ export function MerchantLocalProductDrawer({
         is_available: isAvailable,
         is_visible: isVisible,
         merchant_note: optionalText(merchantNote),
+        merchant_category_id: merchantCategoryId,
       });
       if (!isCurrentSession(sessionId)) return;
 
@@ -314,7 +327,7 @@ export function MerchantLocalProductDrawer({
 
             <div>
               <label htmlFor="local-product-category" className="mb-1 block text-sm font-bold">
-                Catégorie marchand
+                Catégorie par défaut
               </label>
               <input
                 id="local-product-category"
@@ -324,6 +337,16 @@ export function MerchantLocalProductDrawer({
               />
             </div>
           </div>
+
+          <MerchantCategorySelector
+            categories={categories}
+            fallbackCategory={optionalText(categoryName) ?? 'Non renseignée'}
+            value={merchantCategoryId}
+            onChange={setMerchantCategoryId}
+            onCreate={onCreateCategory}
+            disabled={isSubmitting}
+            message={categoryMessage}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>

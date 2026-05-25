@@ -19,6 +19,26 @@ export interface MerchantCatalogProduct {
   merchant_note: string | null;
 }
 
+export interface MerchantCategory {
+  id: string;
+  name_fr: string;
+  name_ar: string | null;
+  slug: string;
+  parent_id: string | null;
+  sort_order: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateMerchantCategoryPayload {
+  name_fr: string;
+  name_ar?: string | null;
+  parent_id?: string | null;
+  sort_order?: number | null;
+  active?: boolean;
+}
+
 export interface MerchantCatalogListOptions {
   q?: string;
   availability?: MerchantCatalogAvailabilityFilter;
@@ -31,6 +51,7 @@ export interface UpdateMerchantCatalogProductPayload {
   is_available?: boolean;
   is_visible?: boolean;
   merchant_note?: string | null;
+  merchant_category_id?: string | null;
 }
 
 export interface MerchantProductReferenceSearchItem {
@@ -70,6 +91,7 @@ export interface AddMerchantCatalogProductPayload {
   is_available: boolean;
   is_visible: boolean;
   merchant_note: string | null;
+  merchant_category_id?: string | null;
 }
 
 export type MerchantProductUnit =
@@ -92,6 +114,7 @@ export interface CreateMerchantLocalProductPayload {
   is_available: boolean;
   is_visible: boolean;
   merchant_note: string | null;
+  merchant_category_id?: string | null;
 }
 
 export interface MerchantLocalProductOutput {

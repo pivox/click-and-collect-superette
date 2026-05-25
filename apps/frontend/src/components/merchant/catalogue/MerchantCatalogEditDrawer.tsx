@@ -1,12 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { MerchantCategorySelector } from '@/components/merchant/catalogue/MerchantCategorySelector';
 import { Button } from '@/components/ui/Button';
 import { updateMerchantCatalogProduct } from '@/lib/services/merchant-catalog.service';
-import type { MerchantCatalogProduct } from '@/lib/types/merchant-catalog.types';
+import type {
+  MerchantCatalogProduct,
+  MerchantCategory,
+} from '@/lib/types/merchant-catalog.types';
 
 interface MerchantCatalogEditDrawerProps {
   product: MerchantCatalogProduct | null;
+  categories: MerchantCategory[];
+  categoryMessage?: string | null;
+  onCreateCategory?: (nameFr: string) => Promise<MerchantCategory>;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -32,6 +39,9 @@ function validatePrice(value: string): string | null {
 }
 
 export function MerchantCatalogEditDrawer({
+  categories,
+  categoryMessage,
+  onCreateCategory,
   onClose,
   onSaved,
   product,
@@ -40,6 +50,7 @@ export function MerchantCatalogEditDrawer({
   const [isAvailable, setIsAvailable] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [merchantNote, setMerchantNote] = useState('');
+  const [merchantCategoryId, setMerchantCategoryId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasPriceError, setHasPriceError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +65,7 @@ export function MerchantCatalogEditDrawer({
     setIsAvailable(product.is_available);
     setIsVisible(product.is_visible);
     setMerchantNote(product.merchant_note ?? '');
+    setMerchantCategoryId(product.merchant_category_id ?? null);
     setError(null);
     setHasPriceError(false);
     setIsSubmitting(false);
@@ -145,6 +157,7 @@ export function MerchantCatalogEditDrawer({
         is_available: isAvailable,
         is_visible: isVisible,
         merchant_note: merchantNote.trim() || null,
+        merchant_category_id: merchantCategoryId,
       });
       onSaved();
     } catch {
@@ -225,6 +238,16 @@ export function MerchantCatalogEditDrawer({
             />
             Visible
           </label>
+
+          <MerchantCategorySelector
+            categories={categories}
+            fallbackCategory={product.category}
+            value={merchantCategoryId}
+            onChange={setMerchantCategoryId}
+            onCreate={onCreateCategory}
+            disabled={isSubmitting}
+            message={categoryMessage}
+          />
 
           <div>
             <label htmlFor="merchant-catalog-note" className="mb-1 block text-sm font-bold">
