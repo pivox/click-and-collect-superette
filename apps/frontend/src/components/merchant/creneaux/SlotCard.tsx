@@ -19,8 +19,9 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [togglingActive, setTogglingActive] = useState(false);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
-  const remaining = slot.capacity - slot.booked_count;
+  const remaining = Math.max(0, slot.capacity - slot.booked_count);
   const isFull = remaining <= 0;
 
   async function handleSaveCapacity() {
@@ -37,8 +38,11 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
 
   async function handleToggleActive() {
     setTogglingActive(true);
+    setToggleError(null);
     try {
       await onPatch(slot.id, { is_active: !slot.is_active });
+    } catch {
+      setToggleError('Impossible de modifier le statut.');
     } finally {
       setTogglingActive(false);
     }
@@ -96,6 +100,11 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
       {deleteError && (
         <p role="alert" className="mt-2 text-xs text-danger">
           {deleteError}
+        </p>
+      )}
+      {toggleError && (
+        <p role="alert" className="mt-1 text-xs text-danger">
+          {toggleError}
         </p>
       )}
 

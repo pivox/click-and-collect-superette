@@ -54,8 +54,12 @@ export function SlotCreateModal({
         capacity: cap,
       });
       onClose();
-    } catch {
-      setError("Impossible de créer le créneau. Vérifiez les données et réessayez.");
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : undefined;
+      setError(message ?? "Impossible de créer le créneau. Vérifiez les données et réessayez.");
     } finally {
       setSaving(false);
     }
