@@ -68,7 +68,10 @@ describe('MerchantShell', () => {
       'href',
       '/merchant/notifications',
     );
-    expect(screen.getByRole('button', { name: /Créneaux/i })).toBeDisabled();
+    expect(screen.getAllByRole('link', { name: /Créneaux/i })[0]).toHaveAttribute(
+      'href',
+      '/merchant/creneaux',
+    );
     expect(screen.getAllByRole('link', { name: /Catalogue/i })[0]).toHaveAttribute(
       'href',
       '/merchant/catalogue',
