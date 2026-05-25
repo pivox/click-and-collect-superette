@@ -1,10 +1,13 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MerchantShell } from '@/components/merchant/MerchantShell';
+import { listMerchantNotifications } from '@/lib/services/merchant-notifications.service';
+
+let pathname = '/merchant';
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/merchant',
+  usePathname: () => pathname,
 }));
 
 vi.mock('@/lib/auth/MerchantAuthContext', () => ({
@@ -17,8 +20,32 @@ vi.mock('@/lib/auth/MerchantAuthContext', () => ({
   }),
 }));
 
+vi.mock('@/lib/services/merchant-notifications.service', () => ({
+  listMerchantNotifications: vi.fn(),
+}));
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('MerchantShell', () => {
-  it('renders active merchant navigation and disabled future sections', () => {
+  beforeEach(() => {
+    pathname = '/merchant';
+    vi.clearAllMocks();
+    vi.mocked(listMerchantNotifications).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+    });
+  });
+
+  it('renders active merchant navigation and disabled future sections', async () => {
     render(
       React.createElement(
         MerchantShell,
@@ -37,9 +64,102 @@ describe('MerchantShell', () => {
       'href',
       '/merchant/commandes',
     );
+    expect(screen.getAllByRole('link', { name: /Notifications/i })[0]).toHaveAttribute(
+      'href',
+      '/merchant/notifications',
+    );
     expect(screen.getByRole('button', { name: /Créneaux/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Catalogue/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Paramètres/i })).toBeDisabled();
     expect(screen.getByText('Contenu marchand')).toBeInTheDocument();
+
+    expect(await screen.findByText('Contenu marchand')).toBeInTheDocument();
+    expect(listMerchantNotifications).toHaveBeenCalledWith({ unread: true });
+  });
+
+  it('shows unread notification badge when unread total is greater than zero', async () => {
+    vi.mocked(listMerchantNotifications).mockResolvedValue({
+      items: [],
+      total: 3,
+      page: 1,
+    });
+
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('3 notifications non lues')).toHaveLength(2),
+    );
+  });
+
+  it('does not show unread notification badge when unread total is zero', async () => {
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+
+    expect(await screen.findByText('Page')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/notifications non lues/i)).not.toBeInTheDocument();
+  });
+
+  it('refreshes unread notification badge when the refresh event is dispatched', async () => {
+    vi.mocked(listMerchantNotifications)
+      .mockResolvedValueOnce({ items: [], total: 1, page: 1 })
+      .mockResolvedValueOnce({ items: [], total: 0, page: 1 });
+
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('1 notification non lue')).toHaveLength(2),
+    );
+
+    window.dispatchEvent(new Event('merchant-notifications:refresh'));
+
+    expect(await screen.findByText('Page')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/notification non lue/i)).not.toBeInTheDocument();
+  });
+
+  it('ignores stale unread badge responses', async () => {
+    const initialRequest = createDeferred<{ items: []; total: number; page: number }>();
+    const refreshRequest = createDeferred<{ items: []; total: number; page: number }>();
+    vi.mocked(listMerchantNotifications)
+      .mockReturnValueOnce(initialRequest.promise)
+      .mockReturnValueOnce(refreshRequest.promise);
+
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+
+    window.dispatchEvent(new Event('merchant-notifications:refresh'));
+    refreshRequest.resolve({ items: [], total: 2, page: 1 });
+
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('2 notifications non lues')).toHaveLength(2),
+    );
+
+    initialRequest.resolve({ items: [], total: 5, page: 1 });
+
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('2 notifications non lues')).toHaveLength(2),
+    );
+    expect(screen.queryByLabelText('5 notifications non lues')).not.toBeInTheDocument();
+  });
+
+  it('caps large unread notification badge values', async () => {
+    vi.mocked(listMerchantNotifications).mockResolvedValue({
+      items: [],
+      total: 150,
+      page: 1,
+    });
+
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('150 notifications non lues')).toHaveLength(2),
+    );
+    expect(screen.getAllByText('99+')).toHaveLength(2);
+  });
+
+  it('keeps rendering the shell when unread badge loading fails', async () => {
+    vi.mocked(listMerchantNotifications).mockRejectedValue(new Error('Network error'));
+
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+
+    expect(await screen.findByText('Page')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/notifications non lues/i)).not.toBeInTheDocument();
   });
 });

@@ -1,16 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { BarChart3, CalendarClock, Package, QrCode, Settings, ShoppingBasket } from 'lucide-react';
+import {
+  BarChart3,
+  Bell,
+  CalendarClock,
+  Package,
+  QrCode,
+  Settings,
+  ShoppingBasket,
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { cn } from '@/lib/cn';
+import { listMerchantNotifications } from '@/lib/services/merchant-notifications.service';
 
 const ACTIVE_NAV = [
   { href: '/merchant', label: 'Dashboard', icon: BarChart3 },
   { href: '/merchant/commandes', label: 'Commandes', icon: ShoppingBasket },
   { href: '/merchant/retrait', label: 'Retrait', icon: QrCode },
+  { href: '/merchant/notifications', label: 'Notifications', icon: Bell, badge: 'notifications' },
 ];
 
 const DISABLED_NAV = [
@@ -22,6 +33,56 @@ const DISABLED_NAV = [
 export function MerchantShell({ children }: { children: React.ReactNode }) {
   const { merchant, logout } = useMerchantAuth();
   const pathname = usePathname();
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const latestUnreadRequestId = useRef(0);
+  const isMounted = useRef(false);
+
+  const refreshUnreadNotifications = useCallback(async () => {
+    const requestId = latestUnreadRequestId.current + 1;
+    latestUnreadRequestId.current = requestId;
+    try {
+      const data = await listMerchantNotifications({ unread: true });
+      if (!isMounted.current || requestId !== latestUnreadRequestId.current) {
+        return;
+      }
+      setUnreadNotifications(data.total);
+    } catch {
+      if (!isMounted.current || requestId !== latestUnreadRequestId.current) {
+        return;
+      }
+      setUnreadNotifications(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    isMounted.current = true;
+    void refreshUnreadNotifications();
+
+    window.addEventListener('merchant-notifications:refresh', refreshUnreadNotifications);
+    return () => {
+      isMounted.current = false;
+      latestUnreadRequestId.current += 1;
+      window.removeEventListener('merchant-notifications:refresh', refreshUnreadNotifications);
+    };
+  }, [refreshUnreadNotifications]);
+
+  const renderBadge = (label?: string) => {
+    if (label !== 'notifications' || unreadNotifications <= 0) {
+      return null;
+    }
+    const badgeText = unreadNotifications > 99 ? '99+' : String(unreadNotifications);
+
+    return (
+      <span
+        aria-label={`${unreadNotifications} notification${
+          unreadNotifications > 1 ? 's' : ''
+        } non lue${unreadNotifications > 1 ? 's' : ''}`}
+        className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-black text-[#332500]"
+      >
+        {badgeText}
+      </span>
+    );
+  };
 
   return (
     <div className="flex min-h-screen bg-bg">
@@ -50,8 +111,9 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
                     : 'text-white/70 hover:bg-white/5 hover:text-white',
                 )}
               >
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                {item.label}
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{item.label}</span>
+                {renderBadge(item.badge)}
               </Link>
             );
           })}
@@ -93,11 +155,12 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
               key={item.href}
               href={item.href}
               className={cn(
-                'rounded-md px-3 py-2 text-sm font-bold',
+                'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold',
                 pathname === item.href ? 'bg-primary text-white' : 'bg-soft text-ink',
               )}
             >
               {item.label}
+              {renderBadge(item.badge)}
             </Link>
           ))}
         </nav>
