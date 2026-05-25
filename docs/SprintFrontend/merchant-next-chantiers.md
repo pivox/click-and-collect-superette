@@ -27,7 +27,7 @@ Objectif : informer le marchand des nouvelles commandes, annulations client et r
 - actions `PATCH /api/merchant/notifications/{id}/read` et `PATCH /api/merchant/notifications/read-all` ;
 - polling simple ou bouton "Actualiser", sans WebSocket ni Mercure.
 
-Tests couverts :
+Tests attendus :
 
 - services notifications ;
 - liste vide / erreur / liste paginée ;
@@ -167,7 +167,7 @@ Points d'attention :
 - pas de mode lecture seule forcé par provenance historique : le détail reste déterminé par le statut courant ;
 - export CSV toujours traité comme chantier P2 séparé.
 
-Tests attendus :
+Tests couverts :
 
 - service `listMerchantOrderHistory` avec filtres ;
 - rendu de l'onglet historique ;
