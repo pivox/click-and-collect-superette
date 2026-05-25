@@ -196,7 +196,7 @@ describe('MerchantCatalogPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Chercher' }));
 
     expect(await screen.findByText('Déjà dans mon catalogue')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Ajouter Couscous fin' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ajouter Couscous fin' })).toBeDisabled();
   });
 
   it('adds a selected product reference to the merchant catalogue', async () => {

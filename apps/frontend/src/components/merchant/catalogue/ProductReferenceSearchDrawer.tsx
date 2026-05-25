@@ -260,14 +260,18 @@ export function ProductReferenceSearchDrawer({
                       <p className="mt-1 text-sm text-muted">{productReference.category}</p>
                       <p className="mt-1 text-sm text-muted">{productFormat(productReference)}</p>
                     </div>
-                    {productReference.already_in_catalog ? (
-                      <span className="inline-flex min-h-[28px] items-center rounded-md bg-soft px-2 text-xs font-black text-muted">
-                        Déjà dans mon catalogue
-                      </span>
-                    ) : (
+                    <div className="flex flex-col gap-2 sm:items-end">
+                      {productReference.already_in_catalog && (
+                        <span className="inline-flex min-h-[28px] items-center rounded-md bg-soft px-2 text-xs font-black text-muted">
+                          Déjà dans mon catalogue
+                        </span>
+                      )}
                       <Button
                         variant="ghost"
+                        disabled={productReference.already_in_catalog}
                         onClick={() => {
+                          if (productReference.already_in_catalog) return;
+
                           setSelectedProductReference(productReference);
                           setPriceTnd('');
                           setIsAvailable(true);
@@ -279,7 +283,7 @@ export function ProductReferenceSearchDrawer({
                       >
                         Ajouter {productReference.name_fr}
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </article>
               ))}
