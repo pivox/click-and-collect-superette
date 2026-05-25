@@ -49,44 +49,44 @@ export function DayStrip({
   onSelectDate,
 }: DayStripProps) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2" role="list" aria-label="Jours">
+    <ul className="flex gap-2 overflow-x-auto pb-2" aria-label="Jours">
       {days.map((date) => {
         const isSelected = isSameDay(date, selectedDate);
         const count = slotCountForDay(date, slots);
         const closed = hasClosure(date, closures);
 
         return (
-          <button
-            key={date.toISOString()}
-            role="listitem"
-            type="button"
-            onClick={() => onSelectDate(date)}
-            aria-pressed={isSelected}
-            className={cn(
-              'relative flex min-w-[64px] flex-col items-center rounded-lg border px-2 py-2.5 text-sm transition-colors',
-              isSelected
-                ? 'border-primary bg-[#eff8f1] font-bold text-primary'
-                : 'border-line bg-card text-ink hover:bg-soft',
-            )}
-          >
-            <span className="text-xs">{formatDayLabel(date)}</span>
-            {count > 0 && (
-              <span
-                aria-label={`${count} créneau${count > 1 ? 'x' : ''}`}
-                className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-black text-white"
-              >
-                {count}
-              </span>
-            )}
-            {closed && (
-              <span
-                aria-label="Fermeture exceptionnelle"
-                className="absolute right-1 top-1 h-2 w-2 rounded-full bg-danger"
-              />
-            )}
-          </button>
+          <li key={date.toISOString()}>
+            <button
+              type="button"
+              onClick={() => onSelectDate(date)}
+              aria-pressed={isSelected}
+              className={cn(
+                'relative flex min-w-[64px] flex-col items-center rounded-lg border px-2 py-2.5 text-sm transition-colors',
+                isSelected
+                  ? 'border-primary bg-[#eff8f1] font-bold text-primary'
+                  : 'border-line bg-card text-ink hover:bg-soft',
+              )}
+            >
+              <span className="text-xs">{formatDayLabel(date)}</span>
+              {count > 0 && (
+                <span
+                  aria-label={`${count} créneau${count > 1 ? 'x' : ''}`}
+                  className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-black text-white"
+                >
+                  {count}
+                </span>
+              )}
+              {closed && (
+                <span
+                  aria-label="Fermeture exceptionnelle"
+                  className="absolute right-1 top-1 h-2 w-2 rounded-full bg-danger"
+                />
+              )}
+            </button>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

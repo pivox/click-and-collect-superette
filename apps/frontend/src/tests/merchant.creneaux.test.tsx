@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -119,8 +119,8 @@ describe('DayStrip', () => {
       }),
     );
     const items = screen.getAllByRole('listitem');
-    expect(items[0]).toHaveAttribute('aria-pressed', 'true');
-    expect(items[1]).toHaveAttribute('aria-pressed', 'false');
+    expect(within(items[0]).getByRole('button')).toHaveAttribute('aria-pressed', 'true');
+    expect(within(items[1]).getByRole('button')).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('shows slot count badge for day with active slots', () => {
@@ -148,7 +148,7 @@ describe('DayStrip', () => {
         onSelectDate: onSelect,
       }),
     );
-    fireEvent.click(screen.getAllByRole('listitem')[1]);
+    fireEvent.click(within(screen.getAllByRole('listitem')[1]).getByRole('button'));
     expect(onSelect).toHaveBeenCalledWith(days[1]);
   });
 });
