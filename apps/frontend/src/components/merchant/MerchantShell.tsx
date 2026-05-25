@@ -22,11 +22,11 @@ const ACTIVE_NAV = [
   { href: '/merchant/commandes', label: 'Commandes', icon: ShoppingBasket },
   { href: '/merchant/catalogue', label: 'Catalogue', icon: Package },
   { href: '/merchant/retrait', label: 'Retrait', icon: QrCode },
+  { href: '/merchant/creneaux', label: 'Créneaux', icon: CalendarClock },
   { href: '/merchant/notifications', label: 'Notifications', icon: Bell, badge: 'notifications' },
 ];
 
 const DISABLED_NAV = [
-  { label: 'Créneaux', icon: CalendarClock },
   { label: 'Paramètres', icon: Settings },
 ];
 
