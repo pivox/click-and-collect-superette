@@ -45,12 +45,7 @@ describe('merchant catalogue service', () => {
       ],
     });
 
-    const products = await listMerchantCatalog('store-1', {
-      q: 'lait',
-      availability: 'available',
-      visibility: 'visible',
-      category: 'lait',
-    });
+    const products = await listMerchantCatalog('store-1');
 
     expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog');
     expect(products).toEqual([

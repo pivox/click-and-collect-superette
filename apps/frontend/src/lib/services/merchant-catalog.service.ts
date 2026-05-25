@@ -24,7 +24,6 @@ function normalizeFilterValue(value: string | null | undefined): string {
 
 export async function listMerchantCatalog(
   storeId: string,
-  _options: MerchantCatalogListOptions = {},
 ): Promise<MerchantCatalogProduct[]> {
   const { data } = await apiClient.get<MerchantCatalogProduct[]>(
     `/api/merchant/stores/${storeId}/catalog`,
