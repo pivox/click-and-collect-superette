@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { OrderStatusBadge } from '@/components/merchant/OrderStatusBadge';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
@@ -93,6 +93,7 @@ export default function MerchantOrdersPage() {
   const [historyOrders, setHistoryOrders] = useState<MerchantOrderHistoryList | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const historyRequestId = useRef(0);
 
   const loadOrders = useCallback(async () => {
     if (!merchant) return;
@@ -109,22 +110,35 @@ export default function MerchantOrdersPage() {
 
   const loadHistoryOrders = useCallback(async () => {
     if (!merchant) return;
+    const requestId = historyRequestId.current + 1;
+    historyRequestId.current = requestId;
     setIsHistoryLoading(true);
     setHistoryError(null);
     try {
-      setHistoryOrders(
-        await listMerchantOrderHistory(merchant.store.id, {
-          page: historyPage,
-          limit: ORDERS_PAGE_LIMIT,
-          status: historyStatusForFilter(historyFilter),
-        }),
-      );
+      const nextHistoryOrders = await listMerchantOrderHistory(merchant.store.id, {
+        page: historyPage,
+        limit: ORDERS_PAGE_LIMIT,
+        status: historyStatusForFilter(historyFilter),
+      });
+      if (historyRequestId.current === requestId) {
+        setHistoryOrders(nextHistoryOrders);
+      }
     } catch {
-      setHistoryError("Impossible de charger l'historique des commandes.");
+      if (historyRequestId.current === requestId) {
+        setHistoryOrders(null);
+        setHistoryError("Impossible de charger l'historique des commandes.");
+      }
     } finally {
-      setIsHistoryLoading(false);
+      if (historyRequestId.current === requestId) {
+        setIsHistoryLoading(false);
+      }
     }
   }, [historyFilter, historyPage, merchant]);
+
+  const switchTab = (tab: OrdersTab) => {
+    setSelectedTab(tab);
+    setHistoryPage(1);
+  };
 
   useEffect(() => {
     void loadOrders();
@@ -150,24 +164,30 @@ export default function MerchantOrdersPage() {
         </Button>
       </div>
 
-      <div className="mt-5 flex gap-2">
+      <div role="tablist" aria-label="Commandes marchand" className="mt-5 flex gap-2">
         <button
           type="button"
+          role="tab"
+          aria-selected={selectedTab === 'active'}
+          aria-controls="panel-active-orders"
           className={cn(
             'rounded-md px-3 py-2 text-sm font-bold transition-colors',
             selectedTab === 'active' ? 'bg-primary text-white' : 'bg-soft text-muted',
           )}
-          onClick={() => setSelectedTab('active')}
+          onClick={() => switchTab('active')}
         >
           Actives
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={selectedTab === 'history'}
+          aria-controls="panel-history-orders"
           className={cn(
             'rounded-md px-3 py-2 text-sm font-bold transition-colors',
             selectedTab === 'history' ? 'bg-primary text-white' : 'bg-soft text-muted',
           )}
-          onClick={() => setSelectedTab('history')}
+          onClick={() => switchTab('history')}
         >
           Historique
         </button>
@@ -180,7 +200,7 @@ export default function MerchantOrdersPage() {
       )}
 
       {selectedTab === 'active' && (
-        <section className="mt-5 rounded-md bg-card shadow-card">
+        <section id="panel-active-orders" role="tabpanel" className="mt-5 rounded-md bg-card shadow-card">
           {isLoading ? (
             <p className="p-5 text-sm text-muted">Chargement des commandes…</p>
           ) : orders && orders.items.length > 0 ? (
@@ -215,11 +235,13 @@ export default function MerchantOrdersPage() {
       )}
 
       {selectedTab === 'history' && (
-        <section className="mt-5 rounded-md bg-card shadow-card">
+        <section id="panel-history-orders" role="tabpanel" className="mt-5 rounded-md bg-card shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
-            <div className="flex gap-2">
+            <div role="tablist" aria-label="Filtres historique commandes" className="flex gap-2">
               <button
                 type="button"
+                role="tab"
+                aria-selected={historyFilter === 'pickup'}
                 className={cn(
                   'rounded-md px-3 py-2 text-sm font-bold transition-colors',
                   historyFilter === 'pickup' ? 'bg-primary text-white' : 'bg-soft text-muted',
@@ -233,6 +255,8 @@ export default function MerchantOrdersPage() {
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={historyFilter === 'closed'}
                 className={cn(
                   'rounded-md px-3 py-2 text-sm font-bold transition-colors',
                   historyFilter === 'closed' ? 'bg-primary text-white' : 'bg-soft text-muted',
@@ -245,14 +269,19 @@ export default function MerchantOrdersPage() {
                 Clôturées
               </button>
             </div>
-            <Button variant="ghost" size="md" onClick={() => void loadHistoryOrders()}>
-              Réessayer
-            </Button>
           </div>
 
           {historyError && (
-            <div className="m-4 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
-              {historyError}
+            <div className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
+              <span>{historyError}</span>
+              <Button
+                variant="ghost"
+                size="md"
+                disabled={isHistoryLoading}
+                onClick={() => void loadHistoryOrders()}
+              >
+                Réessayer
+              </Button>
             </div>
           )}
 

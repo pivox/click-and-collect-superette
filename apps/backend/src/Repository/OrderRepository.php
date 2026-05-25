@@ -169,6 +169,8 @@ class OrderRepository extends ServiceEntityRepository
             $queryBuilder
                 ->andWhere('o.status != :draftStatus')
                 ->setParameter('draftStatus', OrderStatus::Draft);
+        } elseif ([] === $statuses) {
+            $queryBuilder->andWhere('1 = 0');
         } else {
             $queryBuilder
                 ->andWhere('o.status IN (:statuses)')

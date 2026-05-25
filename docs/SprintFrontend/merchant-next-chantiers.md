@@ -9,14 +9,17 @@ Le front marchand dispose désormais des bases suivantes :
 - **PR #134** — fondations front marchand : login, contexte marchand, shell, dashboard, liste des commandes actives ;
 - **PR #135** — détail commande et actions jusqu'à `ready` : accepter, refuser, accepter partiellement, préparer les lignes, marquer la commande prête ;
 - **PR #136** — retrait sécurisé marchand : scan par token QR, passage en `pickup_pending`, confirmation marchand, force completion avec note.
+- **PR #138** — historique commandes marchand : onglet historique, filtres "À retirer" / "Clôturées", pagination, détail existant.
 
 Ce document liste les prochains chantiers front marchand, dans un ordre compatible avec le MVP Kadhia. Le périmètre reste strict : pas de paiement en ligne, pas de livraison, pas de programme de fidélité, pas de panier marketplace multi-marchands.
 
 ## Priorité recommandée
 
-### P1 — Historique complet des commandes marchand
+### Résolu — Historique complet des commandes marchand
 
 Objectif : permettre au marchand de retrouver les commandes terminées, annulées, refusées ou complétées.
+
+Statut : résolu dans la PR #138.
 
 À livrer :
 
@@ -176,13 +179,12 @@ Ces sujets sont utiles mais ne doivent pas bloquer le MVP marchand :
 
 ## Ordre de PR conseillé
 
-1. Historique commandes marchand.
-2. Notifications marchand.
-3. Catalogue marchand.
-4. Créneaux, horaires et fermetures.
-5. Onboarding marchand guidé.
-6. QR code magasin marchand.
-7. Paramètres et thème supérette.
-8. Export CSV.
+1. Notifications marchand.
+2. Catalogue marchand.
+3. Créneaux, horaires et fermetures.
+4. Onboarding marchand guidé.
+5. QR code magasin marchand.
+6. Paramètres et thème supérette.
+7. Export CSV.
 
 Cet ordre privilégie d'abord les opérations quotidiennes : retrouver une commande, être notifié, maintenir le catalogue, puis gérer les rendez-vous de retrait.

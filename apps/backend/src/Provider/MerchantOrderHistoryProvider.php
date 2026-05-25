@@ -99,7 +99,9 @@ final readonly class MerchantOrderHistoryProvider implements ProviderInterface
                 throw new UnprocessableEntityHttpException('ORDER_HISTORY_INVALID_STATUS');
             }
 
-            $statuses[] = $status;
+            if (!\in_array($status, $statuses, true)) {
+                $statuses[] = $status;
+            }
         }
 
         return $statuses;

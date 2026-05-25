@@ -210,6 +210,18 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
         self::assertContains('ready', $returnedStatuses);
         self::assertContains('pickup_pending', $returnedStatuses);
         self::assertNotContains('completed', $returnedStatuses);
+
+        $duplicateResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/history?status=ready,ready', $shop->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $duplicateResponse->getStatusCode());
+        $duplicatePayload = $this->decodeJson($duplicateResponse);
+        self::assertSame(1, $duplicatePayload['total']);
+        self::assertSame('ready', $duplicatePayload['items'][0]['status']);
     }
 
     public function testHistoryValidatesQueryParameters(): void
@@ -221,6 +233,7 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
             'status=unknown',
             'status=ready,unknown',
             'status=draft',
+            'status=ready,draft',
             'date_from=not-a-date',
             'date_from=2026-02-31',
             'date_from=2026-05-01T00:00:00',

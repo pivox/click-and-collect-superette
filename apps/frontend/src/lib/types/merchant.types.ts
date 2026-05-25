@@ -88,7 +88,7 @@ export interface MerchantOrderHistoryPickupSlot {
 
 export interface MerchantOrderHistoryItem {
   id: string;
-  status: string;
+  status: MerchantOrderStatus;
   status_label_fr: string;
   status_label_ar: string;
   customer: MerchantOrderHistoryCustomer;
