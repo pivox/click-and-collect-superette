@@ -1,6 +1,6 @@
 # Front marchand — prochains chantiers
 
-Date : 2026-05-24
+Date : 2026-05-25
 
 ## Contexte
 
@@ -8,32 +8,12 @@ Le front marchand dispose désormais des bases suivantes :
 
 - **PR #134** — fondations front marchand : login, contexte marchand, shell, dashboard, liste des commandes actives ;
 - **PR #135** — détail commande et actions jusqu'à `ready` : accepter, refuser, accepter partiellement, préparer les lignes, marquer la commande prête ;
-- **PR #136** — retrait sécurisé marchand : scan par token QR, passage en `pickup_pending`, confirmation marchand, force completion avec note.
+- **PR #136** — retrait sécurisé marchand : scan par token QR, passage en `pickup_pending`, confirmation marchand, force completion avec note ;
 - **PR #138** — historique commandes marchand : onglet historique, filtres "À retirer" / "Clôturées", pagination, détail existant.
 
-Ce document liste les prochains chantiers front marchand, dans un ordre compatible avec le MVP Kadhia. Le périmètre reste strict : pas de paiement en ligne, pas de livraison, pas de programme de fidélité, pas de panier marketplace multi-marchands.
+Ce document liste les prochains chantiers front marchand, dans un ordre compatible avec le MVP Kadhia. Les chantiers déjà couverts sont conservés en bas de document pour garder la trace des décisions. Le périmètre reste strict : pas de paiement en ligne, pas de livraison, pas de programme de fidélité, pas de panier marketplace multi-marchands.
 
 ## Priorité recommandée
-
-### Résolu — Historique complet des commandes marchand
-
-Objectif : permettre au marchand de retrouver les commandes terminées, annulées, refusées ou complétées.
-
-Statut : résolu dans la PR #138.
-
-À livrer :
-
-- activer l'onglet "Historique" sur `/merchant/commandes` ;
-- consommer `GET /api/merchant/stores/{storeId}/orders/history` ;
-- ajouter pagination et filtre statut ;
-- afficher les statuts `completed`, `cancelled`, `rejected`, `ready`, `pickup_pending` ;
-- permettre l'ouverture du détail existant `/merchant/commandes/{orderId}` en lecture seule pour les commandes terminées.
-
-Tests attendus :
-
-- service `listMerchantOrderHistory` avec filtres ;
-- rendu de l'onglet historique ;
-- navigation vers le détail.
 
 ### P1 — Notifications marchand
 
@@ -47,7 +27,7 @@ Objectif : informer le marchand des nouvelles commandes, annulations client et r
 - actions `PATCH /api/merchant/notifications/{id}/read` et `PATCH /api/merchant/notifications/read-all` ;
 - polling simple ou bouton "Actualiser", sans WebSocket ni Mercure.
 
-Tests attendus :
+Tests couverts :
 
 - services notifications ;
 - liste vide / erreur / liste paginée ;
@@ -165,6 +145,34 @@ Objectif : exposer côté UI l'export CSV déjà livré côté backend.
 - bouton "Exporter CSV" dans l'historique commandes ;
 - filtres alignés avec ceux de l'historique ;
 - gestion du téléchargement et des erreurs API.
+
+## Chantiers résolus
+
+### PR #138 — Historique complet des commandes marchand
+
+Objectif livré : permettre au marchand de retrouver les commandes terminées, annulées, refusées ou encore à retirer.
+
+Livré :
+
+- onglet "Historique" actif sur `/merchant/commandes` ;
+- consommation de `GET /api/merchant/stores/{storeId}/orders/history` ;
+- filtres "À retirer" (`ready`, `pickup_pending`) et "Clôturées" (`completed`, `cancelled`, `rejected`) ;
+- pagination simple ;
+- ouverture du détail existant `/merchant/commandes/{orderId}` ;
+- types frontend dédiés au payload historique ;
+- support backend des filtres multi-statuts CSV pour l'historique.
+
+Points d'attention :
+
+- pas de mode lecture seule forcé par provenance historique : le détail reste déterminé par le statut courant ;
+- export CSV toujours traité comme chantier P2 séparé.
+
+Tests attendus :
+
+- service `listMerchantOrderHistory` avec filtres ;
+- rendu de l'onglet historique ;
+- navigation vers le détail ;
+- test fonctionnel backend des filtres multi-statuts.
 
 ## Chantiers à reporter
 
