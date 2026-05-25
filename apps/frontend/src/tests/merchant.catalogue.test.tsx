@@ -162,6 +162,28 @@ describe('MerchantCatalogPage', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
+  it('keeps tab focus inside the edit drawer', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Modifier' })[0]);
+
+    const dialog = screen.getByRole('dialog', { name: 'Modifier Lait demi-écrémé' });
+    const priceInput = screen.getByLabelText('Prix TND');
+    const saveButton = screen.getByRole('button', { name: 'Enregistrer' });
+
+    expect(priceInput).toHaveFocus();
+
+    saveButton.focus();
+    fireEvent.keyDown(dialog, { key: 'Tab' });
+
+    expect(priceInput).toHaveFocus();
+
+    fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true });
+
+    expect(saveButton).toHaveFocus();
+  });
+
   it('limits bulk selection to 50 merchant products', async () => {
     const manyProducts = Array.from({ length: 51 }, (_, index) => ({
       ...products[0],
