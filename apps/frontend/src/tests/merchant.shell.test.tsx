@@ -81,7 +81,7 @@ describe('MerchantShell', () => {
   });
 
   it('renders Catalogue as the active merchant navigation link', async () => {
-    pathname = '/merchant/catalogue';
+    pathname = '/merchant/catalogue/produits';
 
     render(
       React.createElement(
@@ -93,11 +93,17 @@ describe('MerchantShell', () => {
 
     const catalogueLinks = screen.getAllByRole('link', { name: /Catalogue/i });
 
-    expect(catalogueLinks[0]).toHaveAttribute('href', '/merchant/catalogue');
-    expect(catalogueLinks[0]).toHaveClass('bg-white/10');
-    expect(catalogueLinks[0]).toHaveClass('font-semibold');
-    expect(catalogueLinks[1]).toHaveAttribute('href', '/merchant/catalogue');
-    expect(catalogueLinks[1]).toHaveClass('bg-primary');
+    expect(catalogueLinks.length).toBeGreaterThanOrEqual(2);
+    expect(catalogueLinks.every((link) => link.getAttribute('href') === '/merchant/catalogue')).toBe(
+      true,
+    );
+    expect(
+      catalogueLinks.some(
+        (link) =>
+          link.classList.contains('bg-white/10') && link.classList.contains('font-semibold'),
+      ),
+    ).toBe(true);
+    expect(catalogueLinks.some((link) => link.classList.contains('bg-primary'))).toBe(true);
     expect(screen.queryByRole('button', { name: /Catalogue/i })).not.toBeInTheDocument();
     expect(screen.getByText('Contenu catalogue')).toBeInTheDocument();
   });

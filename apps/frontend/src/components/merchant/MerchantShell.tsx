@@ -66,6 +66,9 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
     };
   }, [refreshUnreadNotifications]);
 
+  const isNavItemActive = (href: string) =>
+    pathname === href || (href !== '/merchant' && pathname.startsWith(href));
+
   const renderBadge = (label?: string) => {
     if (label !== 'notifications' || unreadNotifications <= 0) {
       return null;
@@ -98,8 +101,7 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 space-y-1 px-3">
           {ACTIVE_NAV.map((item) => {
             const Icon = item.icon;
-            const isActive =
-              pathname === item.href || (item.href !== '/merchant' && pathname.startsWith(item.href));
+            const isActive = isNavItemActive(item.href);
             return (
               <Link
                 key={item.href}
@@ -156,7 +158,7 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
               href={item.href}
               className={cn(
                 'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold',
-                pathname === item.href ? 'bg-primary text-white' : 'bg-soft text-ink',
+                isNavItemActive(item.href) ? 'bg-primary text-white' : 'bg-soft text-ink',
               )}
             >
               {item.label}
