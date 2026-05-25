@@ -33,5 +33,6 @@ Ce sprint frontend consume les API backend livrées en Sprint 5 (admin CRUD) et 
 
 ## Documents détaillés
 
+- [Parcours client — état actuel + roadmap](parcours-client.md)
 - [Admin backoffice — PRs #130, #131, #132](admin-backoffice.md)
 - [Front marchand — prochains chantiers](merchant-next-chantiers.md)
