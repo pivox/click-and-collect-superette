@@ -3,6 +3,7 @@ import { apiClient } from '@/lib/api';
 import {
   addMerchantCatalogProduct,
   bulkUpdateMerchantProductAvailability,
+  createMerchantLocalProduct,
   filterMerchantCatalogProducts,
   listMerchantCatalog,
   searchMerchantProductReferences,
@@ -250,5 +251,53 @@ describe('merchant catalogue service', () => {
       is_visible: true,
       merchant_note: null,
     });
+  });
+
+  it('creates a merchant local product and catalogue offer', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        merchant_product_id: 'mp-local-1',
+        local_product_id: 'local-1',
+        name_fr: 'Harissa maison',
+        name_ar: null,
+        brand: null,
+        category: 'Epicerie',
+        volume: '350.000',
+        unit: 'gramme',
+        price_tnd: '4.500',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+      },
+    });
+
+    const result = await createMerchantLocalProduct('store-1', {
+      name_fr: 'Harissa maison',
+      name_ar: null,
+      brand_name: null,
+      volume: '350',
+      unit: 'gramme',
+      barcode: null,
+      default_category_name: 'Epicerie',
+      price_tnd: '4.500',
+      is_available: true,
+      is_visible: true,
+      merchant_note: null,
+    });
+
+    expect(apiClient.post).toHaveBeenCalledWith('/api/merchant/stores/store-1/local-products', {
+      name_fr: 'Harissa maison',
+      name_ar: null,
+      brand_name: null,
+      volume: '350',
+      unit: 'gramme',
+      barcode: null,
+      default_category_name: 'Epicerie',
+      price_tnd: '4.500',
+      is_available: true,
+      is_visible: true,
+      merchant_note: null,
+    });
+    expect(result.local_product_id).toBe('local-1');
   });
 });

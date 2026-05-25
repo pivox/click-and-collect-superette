@@ -5,6 +5,7 @@ import MerchantCatalogPage from '@/app/merchant/catalogue/page';
 import {
   addMerchantCatalogProduct,
   bulkUpdateMerchantProductAvailability,
+  createMerchantLocalProduct,
   listMerchantCatalog,
   searchMerchantProductReferences,
   updateMerchantCatalogProduct,
@@ -30,6 +31,7 @@ vi.mock('@/lib/services/merchant-catalog.service', async () => {
     ...actual,
     addMerchantCatalogProduct: vi.fn(),
     bulkUpdateMerchantProductAvailability: vi.fn(),
+    createMerchantLocalProduct: vi.fn(),
     listMerchantCatalog: vi.fn(),
     searchMerchantProductReferences: vi.fn(),
     updateMerchantCatalogProduct: vi.fn(),
@@ -116,6 +118,20 @@ describe('MerchantCatalogPage', () => {
       merchant_product_ids: ['mp-1', 'mp-2'],
     });
     vi.mocked(addMerchantCatalogProduct).mockResolvedValue(undefined);
+    vi.mocked(createMerchantLocalProduct).mockResolvedValue({
+      merchant_product_id: 'mp-local-1',
+      local_product_id: 'local-1',
+      name_fr: 'Harissa maison',
+      name_ar: null,
+      brand: null,
+      category: 'Epicerie',
+      volume: '350.000',
+      unit: 'gramme',
+      price_tnd: '4.500',
+      is_available: true,
+      is_visible: true,
+      merchant_note: null,
+    });
     vi.mocked(listMerchantCatalog).mockResolvedValue(products);
     vi.mocked(searchMerchantProductReferences).mockResolvedValue({
       items: [],
@@ -177,7 +193,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });
@@ -219,7 +235,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });
@@ -256,7 +272,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });
@@ -281,6 +297,110 @@ describe('MerchantCatalogPage', () => {
     expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
   });
 
+  it('creates a local product in the merchant catalogue', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Produit local' }));
+
+    expect(screen.getByRole('dialog', { name: 'Créer un produit local' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Nom en français'), {
+      target: { value: 'Harissa maison' },
+    });
+    fireEvent.change(screen.getByLabelText('Catégorie marchand'), {
+      target: { value: 'Epicerie' },
+    });
+    fireEvent.change(screen.getByLabelText('Volume'), { target: { value: '350' } });
+    fireEvent.change(screen.getByLabelText('Unité'), { target: { value: 'gramme' } });
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '4,5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Créer dans mon catalogue' }));
+
+    await waitFor(() =>
+      expect(createMerchantLocalProduct).toHaveBeenCalledWith('store-1', {
+        name_fr: 'Harissa maison',
+        name_ar: null,
+        brand_name: null,
+        volume: '350.000',
+        unit: 'gramme',
+        barcode: null,
+        default_category_name: 'Epicerie',
+        price_tnd: '4.500',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects blank local product names without creating it', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Produit local' }));
+    fireEvent.change(screen.getByLabelText('Nom en français'), { target: { value: '   ' } });
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '4.500' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Créer dans mon catalogue' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Le nom en français est obligatoire.');
+    expect(createMerchantLocalProduct).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid local product prices without creating it', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Produit local' }));
+    fireEvent.change(screen.getByLabelText('Nom en français'), {
+      target: { value: 'Harissa maison' },
+    });
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Créer dans mon catalogue' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Le prix doit être supérieur à 0 avec au maximum 3 décimales.',
+    );
+    expect(createMerchantLocalProduct).not.toHaveBeenCalled();
+  });
+
+  it('keeps the local product drawer open while creation is submitting', async () => {
+    const pendingCreation = deferred<Awaited<ReturnType<typeof createMerchantLocalProduct>>>();
+    vi.mocked(createMerchantLocalProduct).mockReturnValue(pendingCreation.promise);
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Produit local' }));
+    fireEvent.change(screen.getByLabelText('Nom en français'), {
+      target: { value: 'Harissa maison' },
+    });
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '4.500' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Créer dans mon catalogue' }));
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('dialog', { name: 'Créer un produit local' })).toBeInTheDocument();
+
+    pendingCreation.resolve({
+      merchant_product_id: 'mp-local-1',
+      local_product_id: 'local-1',
+      name_fr: 'Harissa maison',
+      name_ar: null,
+      brand: null,
+      category: 'Epicerie',
+      volume: null,
+      unit: 'piece',
+      price_tnd: '4.500',
+      is_available: true,
+      is_visible: true,
+      merchant_note: null,
+    });
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
   it('normalizes comma decimal prices when adding a selected product reference', async () => {
     vi.mocked(searchMerchantProductReferences).mockResolvedValue({
       items: [productReference({ id: 'ref-1', name_fr: 'Couscous fin' })],
@@ -292,7 +412,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });
@@ -322,7 +442,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
 
     const searchInput = screen.getByLabelText('Rechercher dans le référentiel');
     const searchForm = searchInput.closest('form');
@@ -366,7 +486,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });
@@ -411,7 +531,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });

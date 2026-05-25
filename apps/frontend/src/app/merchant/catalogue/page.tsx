@@ -5,6 +5,7 @@ import { MerchantCatalogBulkActions } from '@/components/merchant/catalogue/Merc
 import { MerchantCatalogEditDrawer } from '@/components/merchant/catalogue/MerchantCatalogEditDrawer';
 import { MerchantCatalogFilters } from '@/components/merchant/catalogue/MerchantCatalogFilters';
 import { MerchantCatalogTable } from '@/components/merchant/catalogue/MerchantCatalogTable';
+import { MerchantLocalProductDrawer } from '@/components/merchant/catalogue/MerchantLocalProductDrawer';
 import { ProductReferenceSearchDrawer } from '@/components/merchant/catalogue/ProductReferenceSearchDrawer';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
@@ -33,6 +34,7 @@ export default function MerchantCatalogPage() {
   const [error, setError] = useState<string | null>(null);
   const [editProduct, setEditProduct] = useState<MerchantCatalogProduct | null>(null);
   const [isAddProductDrawerOpen, setIsAddProductDrawerOpen] = useState(false);
+  const [isLocalProductDrawerOpen, setIsLocalProductDrawerOpen] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
@@ -148,6 +150,11 @@ export default function MerchantCatalogPage() {
     void loadCatalog();
   };
 
+  const handleLocalProductCreated = () => {
+    setIsLocalProductDrawerOpen(false);
+    void loadCatalog();
+  };
+
   const handleApplyFilters = () => {
     setAppliedFilters(draftFilters);
     setSelectedProductIds([]);
@@ -172,7 +179,15 @@ export default function MerchantCatalogPage() {
             disabled={isLoading}
             onClick={() => setIsAddProductDrawerOpen(true)}
           >
-            Ajouter un produit
+            Depuis référentiel
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={() => setIsLocalProductDrawerOpen(true)}
+          >
+            Produit local
           </Button>
           <Button
             variant="ghost"
@@ -249,6 +264,13 @@ export default function MerchantCatalogPage() {
         storeId={merchant?.store.id ?? null}
         onClose={() => setIsAddProductDrawerOpen(false)}
         onAdded={handleProductAdded}
+      />
+
+      <MerchantLocalProductDrawer
+        isOpen={isLocalProductDrawerOpen}
+        storeId={merchant?.store.id ?? null}
+        onClose={() => setIsLocalProductDrawerOpen(false)}
+        onCreated={handleLocalProductCreated}
       />
     </div>
   );

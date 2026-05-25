@@ -1,10 +1,12 @@
 import { apiClient } from '@/lib/api';
 import type {
   AddMerchantCatalogProductPayload,
+  CreateMerchantLocalProductPayload,
   MerchantBulkAvailabilityPayload,
   MerchantBulkAvailabilityResult,
   MerchantCatalogListOptions,
   MerchantCatalogProduct,
+  MerchantLocalProductOutput,
   MerchantProductReferenceSearchOptions,
   MerchantProductReferenceSearchResult,
   UpdateMerchantCatalogProductPayload,
@@ -130,4 +132,16 @@ export async function addMerchantCatalogProduct(
   payload: AddMerchantCatalogProductPayload,
 ): Promise<void> {
   await apiClient.post(`/api/merchant/stores/${storeId}/catalog`, payload);
+}
+
+export async function createMerchantLocalProduct(
+  storeId: string,
+  payload: CreateMerchantLocalProductPayload,
+): Promise<MerchantLocalProductOutput> {
+  const { data } = await apiClient.post<MerchantLocalProductOutput>(
+    `/api/merchant/stores/${storeId}/local-products`,
+    payload,
+  );
+
+  return data;
 }
