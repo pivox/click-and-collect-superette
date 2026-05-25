@@ -14,7 +14,10 @@ final readonly class StoreCatalogProductOutput
         public string $id,
         #[Groups(['store_catalog:read'])]
         #[SerializedName('product_reference_id')]
-        public string $productReferenceId,
+        public ?string $productReferenceId,
+        #[Groups(['store_catalog:read'])]
+        #[SerializedName('local_product_id')]
+        public ?string $localProductId,
         #[Groups(['store_catalog:read'])]
         #[SerializedName('name_fr')]
         public string $nameFr,
@@ -22,7 +25,7 @@ final readonly class StoreCatalogProductOutput
         #[SerializedName('name_ar')]
         public ?string $nameAr,
         #[Groups(['store_catalog:read'])]
-        public string $brand,
+        public ?string $brand,
         #[Groups(['store_catalog:read'])]
         public string $category,
         #[Groups(['store_catalog:read'])]

@@ -12,15 +12,20 @@ final readonly class MerchantCatalogProductMapper
     public function toOutput(MerchantProduct $merchantProduct): MerchantCatalogProductOutput
     {
         $productReference = $merchantProduct->getProductReference();
+        $localProduct = $merchantProduct->getLocalProduct();
+        $merchantCategory = $merchantProduct->getActiveMerchantCategory();
 
         return new MerchantCatalogProductOutput(
             id: $merchantProduct->getId()->toRfc4122(),
-            productReferenceId: $productReference->getId()->toRfc4122(),
-            nameFr: $productReference->getNameFr(),
-            brand: $productReference->getBrand()->getCanonicalName(),
-            category: $productReference->getCategory()->getNameFr(),
-            volume: $productReference->getVolume(),
-            unit: $productReference->getUnit()->value,
+            productReferenceId: $productReference?->getId()->toRfc4122(),
+            localProductId: $localProduct?->getId()->toRfc4122(),
+            merchantCategoryId: $merchantCategory?->getId()->toRfc4122(),
+            merchantCategoryName: $merchantCategory?->getNameFr(),
+            nameFr: $merchantProduct->getDisplayNameFr(),
+            brand: $merchantProduct->getDisplayBrandName(),
+            category: $merchantProduct->getDisplayCategoryName(),
+            volume: $merchantProduct->getDisplayVolume(),
+            unit: $merchantProduct->getDisplayUnit()->value,
             priceTnd: $merchantProduct->getPriceTnd(),
             isAvailable: $merchantProduct->isAvailable(),
             isVisible: $merchantProduct->isVisible(),

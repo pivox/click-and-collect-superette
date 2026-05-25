@@ -7,9 +7,12 @@ namespace App\Processor;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\MerchantCatalogUpdateInput;
+use App\Repository\MerchantCategoryRepository;
 use App\Repository\MerchantProductRepository;
 use App\Security\MerchantShopAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -20,6 +23,7 @@ final readonly class UpdateMerchantCatalogProductProcessor implements ProcessorI
 {
     public function __construct(
         private MerchantProductRepository $merchantProductRepository,
+        private MerchantCategoryRepository $merchantCategoryRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
     ) {
@@ -58,6 +62,25 @@ final readonly class UpdateMerchantCatalogProductProcessor implements ProcessorI
         }
         if ($data->hasMerchantNote()) {
             $merchantProduct->setMerchantNote($data->getMerchantNote());
+        }
+        if ($data->hasMerchantCategoryId()) {
+            $merchantCategoryId = $data->getMerchantCategoryId();
+            if (null === $merchantCategoryId) {
+                $merchantProduct->setMerchantCategory(null);
+            } else {
+                $merchantCategory = $this->merchantCategoryRepository->find($merchantCategoryId);
+                if (null === $merchantCategory) {
+                    throw new NotFoundHttpException('MERCHANT_CATEGORY_NOT_FOUND');
+                }
+                if (!$merchantCategory->getShop()->getId()->equals($merchantProduct->getShop()->getId())) {
+                    throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'MERCHANT_CATEGORY_SHOP_INVALID');
+                }
+                if (!$merchantCategory->isActive()) {
+                    throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'MERCHANT_CATEGORY_INACTIVE');
+                }
+
+                $merchantProduct->setMerchantCategory($merchantCategory);
+            }
         }
 
         $this->entityManager->flush();

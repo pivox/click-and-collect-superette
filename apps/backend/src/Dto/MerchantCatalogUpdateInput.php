@@ -24,7 +24,12 @@ final class MerchantCatalogUpdateInput
     #[Assert\Length(max: 500)]
     private ?string $merchantNote = null;
 
+    #[Assert\Uuid]
+    private ?string $merchantCategoryId = null;
+
     private bool $merchantNoteProvided = false;
+
+    private bool $merchantCategoryIdProvided = false;
 
     public function getMerchantNote(): ?string
     {
@@ -41,5 +46,22 @@ final class MerchantCatalogUpdateInput
     public function hasMerchantNote(): bool
     {
         return $this->merchantNoteProvided;
+    }
+
+    public function getMerchantCategoryId(): ?string
+    {
+        return $this->merchantCategoryId;
+    }
+
+    #[SerializedName('merchant_category_id')]
+    public function setMerchantCategoryId(?string $merchantCategoryId): void
+    {
+        $this->merchantCategoryId = $merchantCategoryId;
+        $this->merchantCategoryIdProvided = true;
+    }
+
+    public function hasMerchantCategoryId(): bool
+    {
+        return $this->merchantCategoryIdProvided;
     }
 }

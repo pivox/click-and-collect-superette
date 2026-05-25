@@ -17,7 +17,7 @@ final readonly class KadhiaOutputFactory
             static fn (KadhiaLine $l): KadhiaLineOutput => new KadhiaLineOutput(
                 id: $l->getId()->toRfc4122(),
                 merchantProductId: $l->getMerchantProduct()->getId()->toRfc4122(),
-                productName: $l->getMerchantProduct()->getProductReference()->getNameFr(),
+                productName: $l->getMerchantProduct()->getDisplayNameFr(),
                 unitPriceTnd: $l->getUnitPriceTnd(),
                 quantity: $l->getQuantity(),
                 subtotalTnd: bcmul($l->getUnitPriceTnd(), (string) $l->getQuantity(), 3),

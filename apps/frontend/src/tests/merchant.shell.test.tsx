@@ -69,12 +69,43 @@ describe('MerchantShell', () => {
       '/merchant/notifications',
     );
     expect(screen.getByRole('button', { name: /Créneaux/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Catalogue/i })).toBeDisabled();
+    expect(screen.getAllByRole('link', { name: /Catalogue/i })[0]).toHaveAttribute(
+      'href',
+      '/merchant/catalogue',
+    );
     expect(screen.getByRole('button', { name: /Paramètres/i })).toBeDisabled();
     expect(screen.getByText('Contenu marchand')).toBeInTheDocument();
 
     expect(await screen.findByText('Contenu marchand')).toBeInTheDocument();
     expect(listMerchantNotifications).toHaveBeenCalledWith({ unread: true });
+  });
+
+  it('renders Catalogue as the active merchant navigation link', async () => {
+    pathname = '/merchant/catalogue/produits';
+
+    render(
+      React.createElement(
+        MerchantShell,
+        null,
+        React.createElement('p', null, 'Contenu catalogue'),
+      ),
+    );
+
+    const catalogueLinks = screen.getAllByRole('link', { name: /Catalogue/i });
+
+    expect(catalogueLinks.length).toBeGreaterThanOrEqual(2);
+    expect(catalogueLinks.every((link) => link.getAttribute('href') === '/merchant/catalogue')).toBe(
+      true,
+    );
+    expect(
+      catalogueLinks.some(
+        (link) =>
+          link.classList.contains('bg-white/10') && link.classList.contains('font-semibold'),
+      ),
+    ).toBe(true);
+    expect(catalogueLinks.some((link) => link.classList.contains('bg-primary'))).toBe(true);
+    expect(screen.queryByRole('button', { name: /Catalogue/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Contenu catalogue')).toBeInTheDocument();
   });
 
   it('shows unread notification badge when unread total is greater than zero', async () => {

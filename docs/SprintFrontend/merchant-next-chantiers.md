@@ -16,33 +16,6 @@ Ce document liste les prochains chantiers front marchand, dans un ordre compatib
 
 ## Priorité recommandée
 
-### P1 — Gestion catalogue marchand
-
-Objectif : permettre au marchand de gérer les produits proposés par sa supérette.
-
-À livrer :
-
-- entrée active "Catalogue" dans `MerchantShell` ;
-- page `/merchant/catalogue` ;
-- recherche dans le référentiel produit ;
-- ajout d'un produit référentiel au catalogue de la supérette ;
-- modification prix, disponibilité et visibilité ;
-- action de rupture en masse si elle reste utile pour le MVP terrain.
-
-Points d'attention :
-
-- conserver la distinction `ProductReference` / `MerchantProduct` ;
-- afficher les prix en TND ;
-- ne pas permettre au marchand de modifier directement un produit référentiel approuvé ;
-- gérer les états "déjà dans mon catalogue" et "produit indisponible".
-
-Tests attendus :
-
-- services catalogue marchand ;
-- ajout depuis référentiel ;
-- modification prix/disponibilité/visibilité ;
-- garde anti-doublon côté UI.
-
 ### P1 — Créneaux, horaires et fermetures
 
 Objectif : donner au marchand l'autonomie minimale pour organiser les rendez-vous de retrait.
@@ -131,6 +104,36 @@ Objectif : exposer côté UI l'export CSV déjà livré côté backend.
 
 ## Chantiers résolus
 
+### PR #141 — Gestion catalogue marchand
+
+Objectif livré : permettre au marchand de gérer les produits proposés par sa supérette, sans modifier le référentiel commun.
+
+Livré par checkpoints :
+
+- Checkpoint A : entrée "Catalogue" active, page `/merchant/catalogue`, liste, recherche, filtres, états chargement/vide/erreur ;
+- Checkpoint B : édition prix TND, disponibilité, visibilité, note marchand, rupture en masse limitée à 50 produits ;
+- Checkpoint C : recherche dans le référentiel, ajout au catalogue, garde "Déjà dans mon catalogue" ;
+- Checkpoint D : produit local marchand vendable immédiatement dans sa supérette, sans validation admin bloquante ;
+- Checkpoint E : catégories marchand propres à la supérette, fallback référentiel/local et override par produit ;
+- Checkpoint F : assistant guidé qui réutilise les flows référentiel et produit local.
+
+Points d'attention :
+
+- le marchand ne modifie jamais directement un `ProductReference` approuvé ;
+- la validation admin concerne uniquement l'enrichissement du référentiel commun ;
+- pas de paiement en ligne, livraison, fidélité ni panier multi-supérette ;
+- les catégories inactives restent listables côté API mais ne sont pas assignables côté interface.
+
+Tests couverts :
+
+- services catalogue marchand ;
+- rendu et filtres catalogue ;
+- édition produit et rupture en masse ;
+- ajout depuis référentiel et garde anti-doublon ;
+- création de produit local ;
+- catégories marchand et assistant guidé ;
+- tests fonctionnels backend produit local, catégories et catalogue public.
+
 ### PR #139 — Notifications marchand
 
 Objectif livré : informer le marchand des nouvelles commandes, annulations client et retraits finalisés sans push ni temps réel dans le MVP.
@@ -202,11 +205,10 @@ Ces sujets sont utiles mais ne doivent pas bloquer le MVP marchand :
 
 ## Ordre de PR conseillé
 
-1. Catalogue marchand.
-2. Créneaux, horaires et fermetures.
-3. Onboarding marchand guidé.
-4. QR code magasin marchand.
-5. Paramètres et thème supérette.
-6. Export CSV.
+1. Créneaux, horaires et fermetures.
+2. Onboarding marchand guidé.
+3. QR code magasin marchand.
+4. Paramètres et thème supérette.
+5. Export CSV.
 
-Après l'historique et les notifications, cet ordre privilégie les opérations quotidiennes restantes : maintenir le catalogue, puis gérer les rendez-vous de retrait.
+Après le catalogue, cet ordre privilégie les opérations quotidiennes restantes : gérer les rendez-vous de retrait, puis finaliser l'autonomie marchand.

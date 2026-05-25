@@ -37,6 +37,7 @@ final class PublicStoreCatalogApiTest extends FunctionalApiTestCase
         self::assertCount(1, $payload['items']);
         self::assertSame($merchantProduct->getId()->toRfc4122(), $payload['items'][0]['id']);
         self::assertSame($productReference->getId()->toRfc4122(), $payload['items'][0]['product_reference_id']);
+        self::assertNull($payload['items'][0]['local_product_id']);
         self::assertSame('Lait demi-écrémé', $payload['items'][0]['name_fr']);
         self::assertSame('حليب نصف دسم', $payload['items'][0]['name_ar']);
         self::assertSame('Vitalait', $payload['items'][0]['brand']);

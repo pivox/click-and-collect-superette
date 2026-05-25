@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Entity;
 
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\MerchantLocalProduct;
 use App\Entity\MerchantProduct;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
@@ -114,5 +115,35 @@ final class MerchantProductTest extends TestCase
     {
         self::assertFalse(method_exists(ProductReference::class, 'isVisible'));
         self::assertFalse(method_exists(ProductReference::class, 'setVisible'));
+    }
+
+    public function testLocalProductMustBelongToMerchantProductShop(): void
+    {
+        $localProduct = (new MerchantLocalProduct())
+            ->setShop(new Shop())
+            ->setNameFr('Produit local');
+
+        $product = (new MerchantProduct())
+            ->setShop($this->shop);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Merchant local product must belong to the same shop.');
+
+        $product->setLocalProduct($localProduct);
+    }
+
+    public function testShopCannotChangeToAnotherShopWhenLocalProductIsAlreadySet(): void
+    {
+        $localProduct = (new MerchantLocalProduct())
+            ->setShop($this->shop)
+            ->setNameFr('Produit local');
+
+        $product = (new MerchantProduct())
+            ->setLocalProduct($localProduct);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Merchant local product must belong to the same shop.');
+
+        $product->setShop(new Shop());
     }
 }
