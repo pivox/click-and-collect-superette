@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\ProductUnit;
 use App\Repository\MerchantProductRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
@@ -25,9 +26,12 @@ class MerchantProduct
     private Shop $shop;
 
     #[ORM\ManyToOne(targetEntity: ProductReference::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Assert\NotNull]
-    private ProductReference $productReference;
+    #[ORM\JoinColumn(nullable: true)]
+    private ?ProductReference $productReference = null;
+
+    #[ORM\ManyToOne(targetEntity: MerchantLocalProduct::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?MerchantLocalProduct $localProduct = null;
 
     // Price owned by the merchant offer, not the shared product reference.
     #[ORM\Column(type: 'decimal', precision: 10, scale: 3)]
@@ -80,21 +84,131 @@ class MerchantProduct
         return $this;
     }
 
-    public function getProductReference(): ProductReference
+    public function getProductReference(): ?ProductReference
     {
         return $this->productReference;
     }
 
-    public function setProductReference(ProductReference $productReference): static
+    public function setProductReference(?ProductReference $productReference): static
     {
         $this->productReference = $productReference;
+        if (null !== $productReference) {
+            $this->localProduct = null;
+        }
 
         return $this;
     }
 
+    public function getLocalProduct(): ?MerchantLocalProduct
+    {
+        return $this->localProduct;
+    }
+
+    public function setLocalProduct(?MerchantLocalProduct $localProduct): static
+    {
+        $this->localProduct = $localProduct;
+        if (null !== $localProduct) {
+            $this->productReference = null;
+        }
+
+        return $this;
+    }
+
+    public function hasExactlyOneProductSource(): bool
+    {
+        return (null !== $this->productReference) xor (null !== $this->localProduct);
+    }
+
+    public function getDisplayNameFr(): string
+    {
+        return $this->productReference?->getNameFr() ?? $this->requireLocalProduct()->getNameFr();
+    }
+
+    public function getDisplayNameAr(): ?string
+    {
+        return $this->productReference?->getNameAr() ?? $this->localProduct?->getNameAr();
+    }
+
+    public function getDisplayBrandName(): ?string
+    {
+        return $this->productReference?->getBrand()->getCanonicalName() ?? $this->localProduct?->getBrandName();
+    }
+
+    public function getDisplayCategoryName(): string
+    {
+        return $this->productReference?->getCategory()->getNameFr() ?? $this->requireLocalProduct()->getCatalogCategoryName();
+    }
+
+    public function getDisplayCategoryNameAr(): ?string
+    {
+        return $this->productReference?->getCategory()->getNameAr();
+    }
+
+    public function getDisplayCategorySlug(): string
+    {
+        $referenceCategory = $this->productReference?->getCategory();
+        if (null !== $referenceCategory) {
+            return $referenceCategory->getSlug();
+        }
+
+        return $this->slugify($this->requireLocalProduct()->getCatalogCategoryName());
+    }
+
+    public function getDisplayVolume(): ?string
+    {
+        $volume = $this->productReference?->getVolume() ?? $this->localProduct?->getVolume();
+        if (null === $volume) {
+            return null;
+        }
+
+        return bcadd($volume, '0', 3);
+    }
+
+    public function getDisplayUnit(): ProductUnit
+    {
+        return $this->productReference?->getUnit() ?? $this->requireLocalProduct()->getUnit();
+    }
+
+    private function requireLocalProduct(): MerchantLocalProduct
+    {
+        if (null === $this->localProduct) {
+            throw new \LogicException('Merchant product must have exactly one product source.');
+        }
+
+        return $this->localProduct;
+    }
+
+    private function slugify(string $value): string
+    {
+        $value = strtolower($value);
+        $value = strtr($value, [
+            'à' => 'a',
+            'â' => 'a',
+            'ä' => 'a',
+            'ç' => 'c',
+            'é' => 'e',
+            'è' => 'e',
+            'ê' => 'e',
+            'ë' => 'e',
+            'î' => 'i',
+            'ï' => 'i',
+            'ô' => 'o',
+            'ö' => 'o',
+            'ù' => 'u',
+            'û' => 'u',
+            'ü' => 'u',
+        ]);
+        $transliterated = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+        $normalized = false === $transliterated ? $value : $transliterated;
+        $slug = preg_replace('/[^a-z0-9]+/', '-', strtolower($normalized)) ?? '';
+        $slug = trim($slug, '-');
+
+        return '' === $slug ? 'produit-local' : $slug;
+    }
+
     public function getPriceTnd(): string
     {
-        return $this->priceTnd;
+        return bcadd($this->priceTnd, '0', 3);
     }
 
     public function setPriceTnd(string $priceTnd): static

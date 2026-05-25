@@ -83,12 +83,15 @@ final readonly class MerchantCatalogProductOutput
         public string $id,
         #[Groups(['merchant_catalog:read'])]
         #[SerializedName('product_reference_id')]
-        public string $productReferenceId,
+        public ?string $productReferenceId,
+        #[Groups(['merchant_catalog:read'])]
+        #[SerializedName('local_product_id')]
+        public ?string $localProductId,
         #[Groups(['merchant_catalog:read'])]
         #[SerializedName('name_fr')]
         public string $nameFr,
         #[Groups(['merchant_catalog:read'])]
-        public string $brand,
+        public ?string $brand,
         #[Groups(['merchant_catalog:read'])]
         public string $category,
         #[Groups(['merchant_catalog:read'])]

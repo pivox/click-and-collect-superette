@@ -73,7 +73,7 @@ final readonly class MerchantOrderItemProvider implements ProviderInterface
         $lines = array_map(
             static fn (OrderLine $line): MerchantOrderLineOutput => new MerchantOrderLineOutput(
                 merchantProductId: $line->getMerchantProduct()->getId()->toRfc4122(),
-                productName: $line->getMerchantProduct()->getProductReference()->getNameFr(),
+                productName: $line->getMerchantProduct()->getDisplayNameFr(),
                 quantity: $line->getQuantity(),
                 unitPriceTnd: $line->getUnitPriceTnd(),
                 lineTotalTnd: $line->getLineTotalTnd(),

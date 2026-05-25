@@ -79,14 +79,12 @@ class MerchantProductRepository extends ServiceEntityRepository
             $merchantProducts,
             function (MerchantProduct $merchantProduct) use ($normalizedQuery, $normalizedCategorySlug): bool {
                 $productReference = $merchantProduct->getProductReference();
-                $brand = $productReference->getBrand();
-                $category = $productReference->getCategory();
 
-                if (ProductReferenceStatus::Approved !== $productReference->getStatus()) {
+                if (null !== $productReference && ProductReferenceStatus::Approved !== $productReference->getStatus()) {
                     return false;
                 }
 
-                if (null !== $normalizedCategorySlug && strtolower($category->getSlug()) !== $normalizedCategorySlug) {
+                if (null !== $normalizedCategorySlug && strtolower($merchantProduct->getDisplayCategorySlug()) !== $normalizedCategorySlug) {
                     return false;
                 }
 
@@ -101,11 +99,11 @@ class MerchantProductRepository extends ServiceEntityRepository
         usort(
             $merchantProducts,
             static fn (MerchantProduct $left, MerchantProduct $right): int => [
-                $left->getProductReference()->getNameFr(),
-                $left->getProductReference()->getBrand()->getCanonicalName(),
+                $left->getDisplayNameFr(),
+                $left->getDisplayBrandName() ?? '',
             ] <=> [
-                $right->getProductReference()->getNameFr(),
-                $right->getProductReference()->getBrand()->getCanonicalName(),
+                $right->getDisplayNameFr(),
+                $right->getDisplayBrandName() ?? '',
             ],
         );
 
@@ -139,20 +137,33 @@ class MerchantProductRepository extends ServiceEntityRepository
      */
     private function buildPublicSearchTerms(MerchantProduct $merchantProduct): array
     {
-        $productReference = $merchantProduct->getProductReference();
         $terms = [
-            $productReference->getNameFr(),
-            $productReference->getBrand()->getCanonicalName(),
-            $productReference->getUnit()->value,
+            $merchantProduct->getDisplayNameFr(),
+            $merchantProduct->getDisplayUnit()->value,
         ];
 
-        foreach ([$productReference->getNameAr(), $productReference->getVariantFr(), $productReference->getVariantAr(), $productReference->getVolume()] as $optionalTerm) {
+        $brand = $merchantProduct->getDisplayBrandName();
+        if (null !== $brand && '' !== trim($brand)) {
+            $terms[] = $brand;
+        }
+
+        $productReference = $merchantProduct->getProductReference();
+        $optionalTerms = [
+            $merchantProduct->getDisplayNameAr(),
+            $merchantProduct->getDisplayVolume(),
+        ];
+        if (null !== $productReference) {
+            $optionalTerms[] = $productReference->getVariantFr();
+            $optionalTerms[] = $productReference->getVariantAr();
+        }
+
+        foreach ($optionalTerms as $optionalTerm) {
             if (null !== $optionalTerm && '' !== trim($optionalTerm)) {
                 $terms[] = $optionalTerm;
             }
         }
 
-        $compactFormat = $this->buildCompactFormat($productReference->getVolume(), $productReference->getUnit());
+        $compactFormat = $this->buildCompactFormat($merchantProduct->getDisplayVolume(), $merchantProduct->getDisplayUnit());
         if (null !== $compactFormat) {
             $terms[] = $compactFormat;
         }

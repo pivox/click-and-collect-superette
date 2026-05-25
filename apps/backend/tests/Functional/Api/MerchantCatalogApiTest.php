@@ -31,6 +31,7 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         self::assertCount(1, $payload);
         self::assertSame($merchantProduct->getId()->toRfc4122(), $payload[0]['id']);
         self::assertSame($productReference->getId()->toRfc4122(), $payload[0]['product_reference_id']);
+        self::assertNull($payload[0]['local_product_id']);
         self::assertSame('Lait demi-écrémé', $payload[0]['name_fr']);
         self::assertSame('Vitalait', $payload[0]['brand']);
         self::assertSame('Lait & produits laitiers', $payload[0]['category']);
