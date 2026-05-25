@@ -150,6 +150,69 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
         self::assertSame('Lait & produits laitiers', $catalogAfterClear[0]['category']);
     }
 
+    public function testMerchantCanAssignCategoryWhenAddingReferenceProduct(): void
+    {
+        $merchant = $this->createUser('merchant-category-create-reference@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Boga', 'Boissons', 'boissons', 'Boisson gazeuse');
+        $categoryId = $this->createMerchantCategory($shop, $merchant, 'Rayon boissons');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()),
+            [
+                'product_reference_id' => $productReference->getId()->toRfc4122(),
+                'price_tnd' => '2.500',
+                'is_available' => true,
+                'is_visible' => true,
+                'merchant_note' => null,
+                'merchant_category_id' => $categoryId,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+        $catalog = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant));
+        self::assertSame($categoryId, $catalog[0]['merchant_category_id']);
+        self::assertSame('Rayon boissons', $catalog[0]['merchant_category_name']);
+        self::assertSame('Rayon boissons', $catalog[0]['category']);
+    }
+
+    public function testMerchantCanAssignCategoryWhenCreatingLocalProduct(): void
+    {
+        $merchant = $this->createUser('merchant-category-create-local@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $categoryId = $this->createMerchantCategory($shop, $merchant, 'Produits maison');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/local-products', $shop->getId()),
+            [
+                'name_fr' => 'Bsissa maison',
+                'name_ar' => null,
+                'brand_name' => null,
+                'volume' => '500',
+                'unit' => 'gramme',
+                'barcode' => null,
+                'default_category_name' => 'Epicerie locale',
+                'price_tnd' => '6.900',
+                'is_available' => true,
+                'is_visible' => true,
+                'merchant_note' => null,
+                'merchant_category_id' => $categoryId,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        $catalog = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant));
+        self::assertSame($payload['merchant_product_id'], $catalog[0]['id']);
+        self::assertSame($categoryId, $catalog[0]['merchant_category_id']);
+        self::assertSame('Produits maison', $catalog[0]['merchant_category_name']);
+        self::assertSame('Produits maison', $catalog[0]['category']);
+    }
+
     public function testMerchantCannotAssignCategoryFromAnotherShop(): void
     {
         $owner = $this->createUser('merchant-category-owner-a@example.test', ['ROLE_MERCHANT']);

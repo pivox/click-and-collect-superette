@@ -9,6 +9,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Dto\MerchantCatalogCreateInput;
 use App\Entity\MerchantProduct;
 use App\Enum\ProductReferenceStatus;
+use App\Repository\MerchantCategoryRepository;
 use App\Repository\MerchantProductRepository;
 use App\Repository\ProductReferenceRepository;
 use App\Repository\ShopRepository;
@@ -30,6 +31,7 @@ final readonly class CreateMerchantCatalogProductProcessor implements ProcessorI
         private ShopRepository $shopRepository,
         private ProductReferenceRepository $productReferenceRepository,
         private MerchantProductRepository $merchantProductRepository,
+        private MerchantCategoryRepository $merchantCategoryRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
     ) {
@@ -77,6 +79,21 @@ final readonly class CreateMerchantCatalogProductProcessor implements ProcessorI
             ->setAvailable($data->isAvailable)
             ->setVisible($data->isVisible)
             ->setMerchantNote($data->merchantNote);
+
+        if (null !== $data->merchantCategoryId) {
+            $merchantCategory = $this->merchantCategoryRepository->find($data->merchantCategoryId);
+            if (null === $merchantCategory) {
+                throw new NotFoundHttpException('MERCHANT_CATEGORY_NOT_FOUND');
+            }
+            if (!$merchantCategory->getShop()->getId()->equals($shop->getId())) {
+                throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'MERCHANT_CATEGORY_SHOP_INVALID');
+            }
+            if (!$merchantCategory->isActive()) {
+                throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'MERCHANT_CATEGORY_INACTIVE');
+            }
+
+            $merchantProduct->setMerchantCategory($merchantCategory);
+        }
 
         $this->entityManager->persist($merchantProduct);
 

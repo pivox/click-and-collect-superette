@@ -10,9 +10,12 @@ use App\ApiResource\MerchantLocalProductOutput;
 use App\Dto\MerchantLocalProductCreateInput;
 use App\Entity\MerchantLocalProduct;
 use App\Entity\MerchantProduct;
+use App\Repository\MerchantCategoryRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -23,6 +26,7 @@ final readonly class CreateMerchantLocalProductProcessor implements ProcessorInt
 {
     public function __construct(
         private ShopRepository $shopRepository,
+        private MerchantCategoryRepository $merchantCategoryRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
     ) {
@@ -67,6 +71,21 @@ final readonly class CreateMerchantLocalProductProcessor implements ProcessorInt
             ->setAvailable($data->isAvailable)
             ->setVisible($data->isVisible)
             ->setMerchantNote($this->normalizeOptionalText($data->merchantNote));
+
+        if (null !== $data->merchantCategoryId) {
+            $merchantCategory = $this->merchantCategoryRepository->find($data->merchantCategoryId);
+            if (null === $merchantCategory) {
+                throw new NotFoundHttpException('MERCHANT_CATEGORY_NOT_FOUND');
+            }
+            if (!$merchantCategory->getShop()->getId()->equals($shop->getId())) {
+                throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'MERCHANT_CATEGORY_SHOP_INVALID');
+            }
+            if (!$merchantCategory->isActive()) {
+                throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'MERCHANT_CATEGORY_INACTIVE');
+            }
+
+            $merchantProduct->setMerchantCategory($merchantCategory);
+        }
 
         if (!$merchantProduct->hasExactlyOneProductSource()) {
             throw new \LogicException('Merchant product must have exactly one product source.');

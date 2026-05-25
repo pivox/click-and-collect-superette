@@ -41,6 +41,9 @@ final readonly class MerchantLocalProductCreateInput
         #[Assert\Length(max: 500)]
         #[SerializedName('merchant_note')]
         public ?string $merchantNote = null,
+        #[Assert\Uuid]
+        #[SerializedName('merchant_category_id')]
+        public ?string $merchantCategoryId = null,
     ) {
     }
 }
