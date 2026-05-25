@@ -8,6 +8,10 @@ import type { MerchantCatalogProduct } from '@/lib/types/merchant-catalog.types'
 interface MerchantCatalogTableProps {
   products: MerchantCatalogProduct[];
   emptyMessage: string;
+  isSelectionMode?: boolean;
+  selectedProductIds?: string[];
+  onEditProduct: (product: MerchantCatalogProduct) => void;
+  onToggleProductSelection?: (productId: string) => void;
 }
 
 function statusBadge(label: string, active: boolean, tone: 'success' | 'muted') {
@@ -29,16 +33,24 @@ function productFormat(product: MerchantCatalogProduct): string {
   return [product.volume, product.unit].filter(Boolean).join(' ') || 'Format non renseigné';
 }
 
-export function MerchantCatalogTable({ emptyMessage, products }: MerchantCatalogTableProps) {
+export function MerchantCatalogTable({
+  emptyMessage,
+  isSelectionMode = false,
+  onEditProduct,
+  onToggleProductSelection,
+  products,
+  selectedProductIds = [],
+}: MerchantCatalogTableProps) {
   if (products.length === 0) {
     return <p className="p-5 text-sm text-muted">{emptyMessage}</p>;
   }
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] text-left text-sm">
+      <table className="w-full min-w-[820px] text-left text-sm">
         <thead className="border-b border-line text-xs uppercase text-muted">
           <tr>
+            {isSelectionMode && <th className="px-4 py-3 font-black">Sélection</th>}
             <th className="px-4 py-3 font-black">Produit</th>
             <th className="px-4 py-3 font-black">Catégorie</th>
             <th className="px-4 py-3 font-black">Prix</th>
@@ -50,6 +62,17 @@ export function MerchantCatalogTable({ emptyMessage, products }: MerchantCatalog
         <tbody className="divide-y divide-line">
           {products.map((product) => (
             <tr key={product.id}>
+              {isSelectionMode && (
+                <td className="px-4 py-4 align-top">
+                  <input
+                    type="checkbox"
+                    aria-label={`Sélectionner ${product.name_fr}`}
+                    checked={selectedProductIds.includes(product.id)}
+                    onChange={() => onToggleProductSelection?.(product.id)}
+                    className="h-5 w-5 rounded border-line"
+                  />
+                </td>
+              )}
               <td className="px-4 py-4 align-top">
                 <strong className="block text-base">{product.name_fr}</strong>
                 <span className="mt-1 block text-muted">{product.brand}</span>
@@ -77,8 +100,7 @@ export function MerchantCatalogTable({ emptyMessage, products }: MerchantCatalog
                   type="button"
                   variant="ghost"
                   size="md"
-                  disabled
-                  title="Prévu dans une prochaine étape"
+                  onClick={() => onEditProduct(product)}
                 >
                   Modifier
                 </Button>

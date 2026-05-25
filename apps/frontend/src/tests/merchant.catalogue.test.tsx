@@ -2,7 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MerchantCatalogPage from '@/app/merchant/catalogue/page';
-import { listMerchantCatalog } from '@/lib/services/merchant-catalog.service';
+import {
+  bulkUpdateMerchantProductAvailability,
+  listMerchantCatalog,
+  updateMerchantCatalogProduct,
+} from '@/lib/services/merchant-catalog.service';
 import type { MerchantCatalogProduct } from '@/lib/types/merchant-catalog.types';
 
 const merchantContext = {
@@ -22,7 +26,9 @@ vi.mock('@/lib/services/merchant-catalog.service', async () => {
 
   return {
     ...actual,
+    bulkUpdateMerchantProductAvailability: vi.fn(),
     listMerchantCatalog: vi.fn(),
+    updateMerchantCatalogProduct: vi.fn(),
   };
 });
 
@@ -69,7 +75,14 @@ function deferred<T>() {
 describe('MerchantCatalogPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(bulkUpdateMerchantProductAvailability).mockResolvedValue({
+      updated_count: 2,
+      is_available: false,
+      merchant_note: 'Rupture temporaire',
+      merchant_product_ids: ['mp-1', 'mp-2'],
+    });
     vi.mocked(listMerchantCatalog).mockResolvedValue(products);
+    vi.mocked(updateMerchantCatalogProduct).mockResolvedValue(undefined);
   });
 
   it('renders a merchant catalogue product', async () => {
@@ -86,9 +99,79 @@ describe('MerchantCatalogPage', () => {
     const editButtons = screen.getAllByRole('button', { name: 'Modifier' });
     expect(editButtons).toHaveLength(2);
     editButtons.forEach((button) => {
-      expect(button).toBeDisabled();
-      expect(button).toHaveAttribute('title', 'Prévu dans une prochaine étape');
+      expect(button).not.toBeDisabled();
     });
+  });
+
+  it('edits a merchant catalogue product from the drawer', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Modifier' })[0]);
+
+    expect(screen.getByRole('dialog', { name: 'Modifier Lait demi-écrémé' })).toBeInTheDocument();
+    expect(screen.getByText('Catégorie : Lait & produits laitiers')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '1.700' } });
+    fireEvent.click(screen.getByLabelText('Disponible'));
+    fireEvent.change(screen.getByLabelText('Note marchand'), {
+      target: { value: 'Rupture temporaire' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(updateMerchantCatalogProduct).toHaveBeenCalledWith('mp-1', {
+        price_tnd: '1.700',
+        is_available: false,
+        is_visible: true,
+        merchant_note: 'Rupture temporaire',
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('limits bulk selection to 50 merchant products', async () => {
+    const manyProducts = Array.from({ length: 51 }, (_, index) => ({
+      ...products[0],
+      id: `mp-${index + 1}`,
+      product_reference_id: `ref-${index + 1}`,
+      name_fr: `Produit ${index + 1}`,
+    }));
+    vi.mocked(listMerchantCatalog).mockResolvedValue(manyProducts);
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Produit 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mode sélection' }));
+
+    for (const checkbox of screen.getAllByRole('checkbox', { name: /Sélectionner Produit/ })) {
+      fireEvent.click(checkbox);
+    }
+
+    expect(screen.getByText('La sélection est limitée à 50 produits.')).toBeInTheDocument();
+  });
+
+  it('marks selected merchant products unavailable in bulk', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Mode sélection' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Lait demi-écrémé' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Couscous fin' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Marquer indisponible' }));
+
+    await waitFor(() =>
+      expect(bulkUpdateMerchantProductAvailability).toHaveBeenCalledWith('store-1', {
+        merchant_product_ids: ['mp-1', 'mp-2'],
+        is_available: false,
+        merchant_note: 'Rupture temporaire',
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('checkbox', { name: 'Sélectionner Lait demi-écrémé' })).not.toBeInTheDocument(),
+    );
+    expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
   });
 
   it('filters merchant catalogue products locally after submit', async () => {
