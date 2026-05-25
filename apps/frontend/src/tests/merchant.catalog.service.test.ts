@@ -3,10 +3,15 @@ import { apiClient } from '@/lib/api';
 import {
   addMerchantCatalogProduct,
   bulkUpdateMerchantProductAvailability,
+  filterMerchantCatalogProducts,
   listMerchantCatalog,
   searchMerchantProductReferences,
   updateMerchantCatalogProduct,
 } from '@/lib/services/merchant-catalog.service';
+import type {
+  MerchantCatalogProduct,
+  UpdateMerchantCatalogProductPayload,
+} from '@/lib/types/merchant-catalog.types';
 
 vi.mock('@/lib/api', () => ({
   apiClient: {
@@ -21,12 +26,26 @@ describe('merchant catalogue service', () => {
     vi.clearAllMocks();
   });
 
-  it('lists merchant catalogue products with filters', async () => {
+  it('lists merchant catalogue products without unsupported backend filters', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
-      data: { items: [], total: 0, page: 1, limit: 20 },
+      data: [
+        {
+          id: 'mp-1',
+          product_reference_id: 'ref-1',
+          name_fr: 'Lait Vitalait 1L',
+          brand: 'Vitalait',
+          category: 'lait',
+          volume: '1',
+          unit: 'litre',
+          price_tnd: '1.700',
+          is_available: true,
+          is_visible: true,
+          merchant_note: null,
+        },
+      ],
     });
 
-    await listMerchantCatalog('store-1', {
+    const products = await listMerchantCatalog('store-1', {
       q: 'lait',
       availability: 'available',
       visibility: 'visible',
@@ -35,49 +54,88 @@ describe('merchant catalogue service', () => {
       limit: 10,
     });
 
-    expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog', {
-      params: {
-        q: 'lait',
-        availability: 'available',
-        visibility: 'visible',
-        category: 'lait',
-        page: 2,
-        limit: 10,
-      },
-    });
+    expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog');
+    expect(products).toEqual([
+      expect.objectContaining({
+        id: 'mp-1',
+        product_reference_id: 'ref-1',
+        brand: 'Vitalait',
+      }),
+    ]);
   });
 
-  it('omits empty catalogue filters', async () => {
-    vi.mocked(apiClient.get).mockResolvedValue({
-      data: { items: [], total: 0, page: 1, limit: 20 },
-    });
-
-    await listMerchantCatalog('store-1', {
-      q: '',
-      availability: 'all',
-      visibility: 'all',
-      category: undefined,
-      page: 1,
-      limit: 20,
-    });
-
-    expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog', {
-      params: {
-        page: 1,
-        limit: 20,
+  it('filters merchant catalogue products locally', () => {
+    const products: MerchantCatalogProduct[] = [
+      {
+        id: 'mp-1',
+        product_reference_id: 'ref-1',
+        name_fr: 'Lait Vitalait 1L',
+        brand: 'Vitalait',
+        category: 'Boissons',
+        merchant_category_name: 'Lait',
+        volume: '1',
+        unit: 'litre',
+        price_tnd: '1.700',
+        is_available: true,
+        is_visible: true,
+        merchant_note: 'Rayon frais',
       },
-    });
+      {
+        id: 'mp-2',
+        product_reference_id: 'ref-2',
+        name_fr: 'Couscous fin',
+        brand: 'Rose Blanche',
+        category: 'Epicerie',
+        volume: '1',
+        unit: 'kg',
+        price_tnd: '2.400',
+        is_available: false,
+        is_visible: true,
+        merchant_note: 'Rupture fournisseur',
+      },
+      {
+        id: 'mp-3',
+        product_reference_id: 'ref-3',
+        name_fr: 'Thon entier',
+        brand: 'Sidi Daoud',
+        category: 'Conserves',
+        volume: '160',
+        unit: 'g',
+        price_tnd: '4.900',
+        is_available: true,
+        is_visible: false,
+        merchant_note: null,
+      },
+    ];
+
+    expect(filterMerchantCatalogProducts(products, { q: 'vitalait' })).toEqual([
+      products[0],
+    ]);
+    expect(filterMerchantCatalogProducts(products, { q: 'rupture' })).toEqual([
+      products[1],
+    ]);
+    expect(filterMerchantCatalogProducts(products, { availability: 'unavailable' })).toEqual([
+      products[1],
+    ]);
+    expect(filterMerchantCatalogProducts(products, { visibility: 'hidden' })).toEqual([
+      products[2],
+    ]);
+    expect(filterMerchantCatalogProducts(products, { category: 'Lait' })).toEqual([
+      products[0],
+    ]);
   });
 
   it('updates a merchant product', async () => {
     vi.mocked(apiClient.patch).mockResolvedValue({ data: null });
 
-    await updateMerchantCatalogProduct('mp-1', {
+    const payload = {
       price_tnd: '1.700',
       is_available: false,
       is_visible: true,
       merchant_note: 'Rupture temporaire',
-    });
+    } satisfies UpdateMerchantCatalogProductPayload;
+
+    await updateMerchantCatalogProduct('mp-1', payload);
 
     expect(apiClient.patch).toHaveBeenCalledWith('/api/merchant/catalog/mp-1', {
       price_tnd: '1.700',

@@ -3,8 +3,8 @@ import type {
   AddMerchantCatalogProductPayload,
   MerchantBulkAvailabilityPayload,
   MerchantBulkAvailabilityResult,
-  MerchantCatalogList,
   MerchantCatalogListOptions,
+  MerchantCatalogProduct,
   MerchantProductReferenceSearchOptions,
   MerchantProductReferenceSearchResult,
   UpdateMerchantCatalogProductPayload,
@@ -20,23 +20,65 @@ function cleanFilterParams<T extends Record<string, unknown>>(params: T): Partia
 
 export async function listMerchantCatalog(
   storeId: string,
-  options: MerchantCatalogListOptions = {},
-): Promise<MerchantCatalogList> {
-  const { data } = await apiClient.get<MerchantCatalogList>(
+  _options: MerchantCatalogListOptions = {},
+): Promise<MerchantCatalogProduct[]> {
+  const { data } = await apiClient.get<MerchantCatalogProduct[]>(
     `/api/merchant/stores/${storeId}/catalog`,
-    {
-      params: cleanFilterParams({
-        q: options.q,
-        availability: options.availability,
-        visibility: options.visibility,
-        category: options.category,
-        page: options.page,
-        limit: options.limit,
-      }),
-    },
   );
 
   return data;
+}
+
+export function filterMerchantCatalogProducts(
+  products: MerchantCatalogProduct[],
+  options: MerchantCatalogListOptions = {},
+): MerchantCatalogProduct[] {
+  const query = options.q?.trim().toLowerCase();
+  const category = options.category?.trim().toLowerCase();
+
+  return products.filter((product) => {
+    if (query) {
+      const searchableFields = [
+        product.name_fr,
+        product.brand,
+        product.category,
+        product.merchant_category_name,
+        product.merchant_note,
+      ];
+      const matchesQuery = searchableFields.some((value) => {
+        return value?.toLowerCase().includes(query);
+      });
+
+      if (!matchesQuery) {
+        return false;
+      }
+    }
+
+    if (options.availability === 'available' && !product.is_available) {
+      return false;
+    }
+
+    if (options.availability === 'unavailable' && product.is_available) {
+      return false;
+    }
+
+    if (options.visibility === 'visible' && !product.is_visible) {
+      return false;
+    }
+
+    if (options.visibility === 'hidden' && product.is_visible) {
+      return false;
+    }
+
+    if (category) {
+      const productCategory = (product.merchant_category_name ?? product.category).toLowerCase();
+      if (productCategory !== category) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 }
 
 export async function updateMerchantCatalogProduct(

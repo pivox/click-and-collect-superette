@@ -3,11 +3,11 @@ export type MerchantCatalogVisibilityFilter = 'all' | 'visible' | 'hidden';
 
 export interface MerchantCatalogProduct {
   id: string;
-  product_reference_id: string | null;
+  product_reference_id: string;
   local_product_id?: string | null;
   name_fr: string;
   name_ar?: string | null;
-  brand: string | null;
+  brand: string;
   category: string;
   merchant_category_id?: string | null;
   merchant_category_name?: string | null;
@@ -17,13 +17,6 @@ export interface MerchantCatalogProduct {
   is_available: boolean;
   is_visible: boolean;
   merchant_note: string | null;
-}
-
-export interface MerchantCatalogList {
-  items: MerchantCatalogProduct[];
-  total: number;
-  page: number;
-  limit: number;
 }
 
 export interface MerchantCatalogListOptions {
@@ -40,7 +33,6 @@ export interface UpdateMerchantCatalogProductPayload {
   is_available?: boolean;
   is_visible?: boolean;
   merchant_note?: string | null;
-  merchant_category_id?: string | null;
 }
 
 export interface MerchantProductReferenceSearchItem {
