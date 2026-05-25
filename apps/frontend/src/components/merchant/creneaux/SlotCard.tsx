@@ -18,6 +18,7 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
   const [capacity, setCapacity] = useState(String(slot.capacity));
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [togglingActive, setTogglingActive] = useState(false);
 
   const remaining = slot.capacity - slot.booked_count;
   const isFull = remaining <= 0;
@@ -34,6 +35,15 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
     }
   }
 
+  async function handleToggleActive() {
+    setTogglingActive(true);
+    try {
+      await onPatch(slot.id, { is_active: !slot.is_active });
+    } finally {
+      setTogglingActive(false);
+    }
+  }
+
   async function handleDelete() {
     if (slot.booked_count > 0) {
       setDeleteError('Ce créneau a des réservations, impossible de le supprimer.');
@@ -46,7 +56,7 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
     <div
       className={cn(
         'rounded-lg border bg-card p-3 shadow-card',
-        !slot.is_active && 'opacity-60',
+        (!slot.is_active || isFull) && 'opacity-60',
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -56,7 +66,9 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
           </p>
           <p className="mt-0.5 text-xs text-muted">
             {slot.booked_count}/{slot.capacity} réservé
-            {slot.booked_count > 1 ? 's' : ''}
+            {slot.booked_count > 1 ? 's' : ''} · {remaining} place
+            {remaining > 1 ? 's' : ''} restante
+            {remaining > 1 ? 's' : ''}
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -113,13 +125,23 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
             </Button>
           </>
         ) : (
-          <button
-            type="button"
-            onClick={() => setEditingCapacity(true)}
-            className="text-xs text-primary hover:underline"
-          >
-            Modifier capacité
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => setEditingCapacity(true)}
+              className="text-xs text-primary hover:underline"
+            >
+              Modifier capacité
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleActive}
+              disabled={togglingActive}
+              className="text-xs text-primary hover:underline"
+            >
+              {slot.is_active ? 'Désactiver' : 'Activer'}
+            </button>
+          </>
         )}
       </div>
     </div>
