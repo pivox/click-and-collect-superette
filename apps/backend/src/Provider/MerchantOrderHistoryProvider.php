@@ -56,7 +56,7 @@ final readonly class MerchantOrderHistoryProvider implements ProviderInterface
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
 
         $request = $this->requestStack->getCurrentRequest();
-        $status = $this->parseStatus($request?->query->get('status'));
+        $statuses = $this->parseStatus($request?->query->get('status'));
         $dateFrom = $this->parseDate($request?->query->get('date_from'), false, 'ORDER_HISTORY_INVALID_DATE_FROM');
         $dateTo = $this->parseDate($request?->query->get('date_to'), true, 'ORDER_HISTORY_INVALID_DATE_TO');
         if (null !== $dateFrom && null !== $dateTo && $dateFrom > $dateTo) {
@@ -70,8 +70,8 @@ final readonly class MerchantOrderHistoryProvider implements ProviderInterface
         $limit = min(self::MAX_LIMIT, $limit);
         $offset = ($page - 1) * $limit;
 
-        $orders = $this->orderRepository->findHistoryForShop($shop, $status, $dateFrom, $dateTo, $query, $limit, $offset);
-        $total = $this->orderRepository->countHistoryForShop($shop, $status, $dateFrom, $dateTo, $query);
+        $orders = $this->orderRepository->findHistoryForShop($shop, $statuses, $dateFrom, $dateTo, $query, $limit, $offset);
+        $total = $this->orderRepository->countHistoryForShop($shop, $statuses, $dateFrom, $dateTo, $query);
 
         return new MerchantOrderHistoryOutput(
             id: $storeId,
@@ -82,19 +82,29 @@ final readonly class MerchantOrderHistoryProvider implements ProviderInterface
         );
     }
 
-    private function parseStatus(?string $raw): ?OrderStatus
+    /**
+     * @return list<OrderStatus>|null
+     */
+    private function parseStatus(?string $raw): ?array
     {
         $raw = trim((string) $raw);
         if ('' === $raw) {
             return null;
         }
 
-        $status = OrderStatus::tryFrom($raw);
-        if (null === $status || OrderStatus::Draft === $status) {
-            throw new UnprocessableEntityHttpException('ORDER_HISTORY_INVALID_STATUS');
+        $statuses = [];
+        foreach (explode(',', $raw) as $rawStatus) {
+            $status = OrderStatus::tryFrom(trim($rawStatus));
+            if (null === $status || OrderStatus::Draft === $status) {
+                throw new UnprocessableEntityHttpException('ORDER_HISTORY_INVALID_STATUS');
+            }
+
+            if (!\in_array($status, $statuses, true)) {
+                $statuses[] = $status;
+            }
         }
 
-        return $status;
+        return $statuses;
     }
 
     private function parseDate(?string $raw, bool $endOfDay, string $errorCode): ?\DateTimeImmutable

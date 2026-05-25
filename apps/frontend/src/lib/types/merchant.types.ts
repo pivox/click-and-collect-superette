@@ -75,7 +75,36 @@ export interface MerchantOrderList {
   limit: number;
 }
 
-export type MerchantOrderHistoryList = MerchantOrderList;
+export interface MerchantOrderHistoryCustomer {
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+}
+
+export interface MerchantOrderHistoryPickupSlot {
+  starts_at: string;
+  ends_at: string;
+}
+
+export interface MerchantOrderHistoryItem {
+  id: string;
+  status: MerchantOrderStatus;
+  status_label_fr: string;
+  status_label_ar: string;
+  customer: MerchantOrderHistoryCustomer;
+  total: string;
+  pickup_slot: MerchantOrderHistoryPickupSlot | null;
+  created_at: string;
+  updated_at: string;
+  order_number?: string;
+}
+
+export interface MerchantOrderHistoryList {
+  items: MerchantOrderHistoryItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 export type MerchantOrderStatus =
   | 'draft'

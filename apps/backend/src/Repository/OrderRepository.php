@@ -106,18 +106,20 @@ class OrderRepository extends ServiceEntityRepository
     }
 
     /**
+     * @param list<OrderStatus>|null $statuses
+     *
      * @return list<Order>
      */
     public function findHistoryForShop(
         Shop $shop,
-        ?OrderStatus $status,
+        ?array $statuses,
         ?\DateTimeImmutable $createdFrom,
         ?\DateTimeImmutable $createdTo,
         ?string $query,
         int $limit,
         int $offset,
     ): array {
-        $queryBuilder = $this->createHistoryQueryBuilder($shop, $status, $createdFrom, $createdTo, $query)
+        $queryBuilder = $this->createHistoryQueryBuilder($shop, $statuses, $createdFrom, $createdTo, $query)
             ->addOrderBy('o.createdAt', 'DESC')
             ->addOrderBy('o.id', 'DESC')
             ->setMaxResults($limit)
@@ -129,23 +131,29 @@ class OrderRepository extends ServiceEntityRepository
         return $orders;
     }
 
+    /**
+     * @param list<OrderStatus>|null $statuses
+     */
     public function countHistoryForShop(
         Shop $shop,
-        ?OrderStatus $status,
+        ?array $statuses,
         ?\DateTimeImmutable $createdFrom,
         ?\DateTimeImmutable $createdTo,
         ?string $query,
     ): int {
-        return (int) $this->createHistoryQueryBuilder($shop, $status, $createdFrom, $createdTo, $query)
+        return (int) $this->createHistoryQueryBuilder($shop, $statuses, $createdFrom, $createdTo, $query)
             ->select('COUNT(DISTINCT o.id)')
             ->resetDQLPart('orderBy')
             ->getQuery()
             ->getSingleScalarResult();
     }
 
+    /**
+     * @param list<OrderStatus>|null $statuses
+     */
     private function createHistoryQueryBuilder(
         Shop $shop,
-        ?OrderStatus $status,
+        ?array $statuses,
         ?\DateTimeImmutable $createdFrom,
         ?\DateTimeImmutable $createdTo,
         ?string $query,
@@ -155,14 +163,18 @@ class OrderRepository extends ServiceEntityRepository
             ->leftJoin('o.pickupSlot', 'pickupSlot')
             ->addSelect('customer', 'pickupSlot')
             ->andWhere('IDENTITY(o.shop) = :shopId')
-            ->andWhere('o.status != :draftStatus')
-            ->setParameter('shopId', $shop->getId(), 'uuid')
-            ->setParameter('draftStatus', OrderStatus::Draft);
+            ->setParameter('shopId', $shop->getId(), 'uuid');
 
-        if (null !== $status) {
+        if (null === $statuses) {
             $queryBuilder
-                ->andWhere('o.status = :status')
-                ->setParameter('status', $status);
+                ->andWhere('o.status != :draftStatus')
+                ->setParameter('draftStatus', OrderStatus::Draft);
+        } elseif ([] === $statuses) {
+            $queryBuilder->andWhere('1 = 0');
+        } else {
+            $queryBuilder
+                ->andWhere('o.status IN (:statuses)')
+                ->setParameter('statuses', array_map(static fn (OrderStatus $status): string => $status->value, $statuses));
         }
 
         if (null !== $createdFrom) {
@@ -299,7 +311,7 @@ class OrderRepository extends ServiceEntityRepository
         \DateTimeImmutable $createdTo,
     ): array {
         /** @var list<Order> $orders */
-        $orders = $this->createHistoryQueryBuilder($shop, $status, $createdFrom, $createdTo, null)
+        $orders = $this->createHistoryQueryBuilder($shop, null === $status ? null : [$status], $createdFrom, $createdTo, null)
             ->addOrderBy('o.createdAt', 'DESC')
             ->addOrderBy('o.id', 'DESC')
             ->getQuery()

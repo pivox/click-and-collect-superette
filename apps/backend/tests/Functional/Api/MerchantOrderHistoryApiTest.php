@@ -180,6 +180,50 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
         self::assertSame(3, $this->decodeJson($emptyQueryResponse)['total']);
     }
 
+    public function testHistoryFiltersByMultipleCsvStatuses(): void
+    {
+        $merchant = $this->createUser('merchant-history-status-csv@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createCustomer('customer-history-status-csv@example.test');
+
+        $ready = $this->createOrder($customer, $shop, OrderStatus::Ready, new \DateTimeImmutable('2026-05-10T10:00:00+01:00'));
+        $pickupPending = $this->createOrder($customer, $shop, OrderStatus::PickupPending, new \DateTimeImmutable('2026-05-11T10:00:00+01:00'));
+        $this->createOrder($customer, $shop, OrderStatus::Completed, new \DateTimeImmutable('2026-05-12T10:00:00+01:00'));
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/history?status=ready,pickup_pending', $shop->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(2, $payload['total']);
+        self::assertCount(2, $payload['items']);
+
+        $returnedIds = array_column($payload['items'], 'id');
+        $returnedStatuses = array_column($payload['items'], 'status');
+
+        self::assertContains($ready->getId()->toRfc4122(), $returnedIds);
+        self::assertContains($pickupPending->getId()->toRfc4122(), $returnedIds);
+        self::assertContains('ready', $returnedStatuses);
+        self::assertContains('pickup_pending', $returnedStatuses);
+        self::assertNotContains('completed', $returnedStatuses);
+
+        $duplicateResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/orders/history?status=ready,ready', $shop->getId()),
+            null,
+            $merchant,
+        );
+
+        self::assertSame(200, $duplicateResponse->getStatusCode());
+        $duplicatePayload = $this->decodeJson($duplicateResponse);
+        self::assertSame(1, $duplicatePayload['total']);
+        self::assertSame('ready', $duplicatePayload['items'][0]['status']);
+    }
+
     public function testHistoryValidatesQueryParameters(): void
     {
         $merchant = $this->createUser('merchant-history-validation@example.test', ['ROLE_MERCHANT']);
@@ -187,7 +231,9 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
 
         foreach ([
             'status=unknown',
+            'status=ready,unknown',
             'status=draft',
+            'status=ready,draft',
             'date_from=not-a-date',
             'date_from=2026-02-31',
             'date_from=2026-05-01T00:00:00',
