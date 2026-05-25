@@ -91,6 +91,10 @@ final readonly class UpdateMerchantCategoryProcessor implements ProcessorInterfa
             return null;
         }
 
+        if (!Uuid::isValid($parentId)) {
+            throw new NotFoundHttpException('MERCHANT_CATEGORY_PARENT_NOT_FOUND');
+        }
+
         if ($merchantCategory->getId()->equals(Uuid::fromString($parentId))) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'MERCHANT_CATEGORY_PARENT_SELF_INVALID');
         }

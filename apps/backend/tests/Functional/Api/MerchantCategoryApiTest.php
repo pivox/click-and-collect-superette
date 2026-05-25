@@ -397,6 +397,22 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
     }
 
+    public function testMerchantCategoryRejectsMalformedParentIdOnUpdate(): void
+    {
+        $merchant = $this->createUser('merchant-category-malformed-parent@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $categoryId = $this->createMerchantCategory($shop, $merchant, 'Rayon caisse');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/categories/%s', $categoryId),
+            ['parent_id' => 'not-a-uuid'],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     public function testMerchantCategorySlugsAreStableAndUniquePerShop(): void
     {
         $merchant = $this->createUser('merchant-category-slug@example.test', ['ROLE_MERCHANT']);

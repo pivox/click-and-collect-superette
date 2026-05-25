@@ -91,6 +91,10 @@ final readonly class CreateMerchantCategoryProcessor implements ProcessorInterfa
             return null;
         }
 
+        if (!Uuid::isValid($parentId)) {
+            throw new NotFoundHttpException('MERCHANT_CATEGORY_PARENT_NOT_FOUND');
+        }
+
         $parent = $this->merchantCategoryRepository->find($parentId);
         if (null === $parent) {
             throw new NotFoundHttpException('MERCHANT_CATEGORY_PARENT_NOT_FOUND');
