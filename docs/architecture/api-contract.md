@@ -607,9 +607,70 @@ Payload :
   "price_tnd": "1.650",
   "is_available": true,
   "is_visible": true,
+  "merchant_note": null,
+  "merchant_category_id": null
+}
+```
+
+Règles :
+
+- `product_reference_id` doit référencer un `ProductReference` approuvé ;
+- `merchant_category_id` est optionnel et nullable ;
+- si `merchant_category_id` est renseigné, la catégorie doit appartenir à la même supérette et être active ;
+- le prix est exprimé en TND avec au maximum 3 décimales ;
+- le marchand ne modifie jamais directement le référentiel commun.
+
+### Créer un produit local marchand
+
+```http
+POST /api/merchant/stores/{storeId}/local-products
+```
+
+Payload :
+
+```json
+{
+  "name_fr": "Harissa maison",
+  "name_ar": null,
+  "brand_name": null,
+  "volume": "350",
+  "unit": "gramme",
+  "barcode": null,
+  "default_category_name": "Epicerie",
+  "price_tnd": "4.500",
+  "is_available": true,
+  "is_visible": true,
+  "merchant_note": null,
+  "merchant_category_id": null
+}
+```
+
+Réponse `201` :
+
+```json
+{
+  "merchant_product_id": "merchant_product_uuid",
+  "local_product_id": "local_product_uuid",
+  "name_fr": "Harissa maison",
+  "name_ar": null,
+  "brand": null,
+  "category": "Epicerie",
+  "volume": "350.000",
+  "unit": "gramme",
+  "price_tnd": "4.500",
+  "is_available": true,
+  "is_visible": true,
   "merchant_note": null
 }
 ```
+
+Règles :
+
+- réservé au marchand propriétaire de la supérette ;
+- le produit local est vendable immédiatement dans cette supérette ;
+- aucun `ProductReference` commun n'est créé automatiquement ;
+- l'administration peut traiter séparément l'enrichissement du référentiel commun ;
+- `merchant_category_id` suit les mêmes règles que l'ajout d'un produit référentiel.
 
 ### Modifier un produit marchand
 
@@ -624,15 +685,82 @@ Payload :
   "price_tnd": "1.700",
   "is_available": false,
   "is_visible": true,
-  "merchant_note": "Rupture temporaire"
+  "merchant_note": "Rupture temporaire",
+  "merchant_category_id": null
 }
 ```
+
+Règles :
+
+- `merchant_category_id` peut être mis à `null` pour revenir à la catégorie par défaut du référentiel ou du produit local ;
+- une catégorie marchand inactive ou d'une autre supérette est refusée.
 
 ### Supprimer un produit du catalogue marchand
 
 ```http
 DELETE /api/merchant/catalog/{merchantProductId}
 ```
+
+Si le produit du catalogue repose sur un produit local, la suppression retire aussi le produit local associé.
+
+### Gérer les catégories marchand
+
+```http
+GET    /api/merchant/stores/{storeId}/categories
+POST   /api/merchant/stores/{storeId}/categories
+PATCH  /api/merchant/categories/{categoryId}
+DELETE /api/merchant/categories/{categoryId}
+```
+
+Payload `POST` :
+
+```json
+{
+  "name_fr": "Rayon frais",
+  "name_ar": null,
+  "parent_id": null,
+  "sort_order": 10,
+  "active": true
+}
+```
+
+Payload `PATCH` :
+
+```json
+{
+  "name_fr": "Frais du jour",
+  "name_ar": null,
+  "parent_id": null,
+  "sort_order": 20,
+  "active": true
+}
+```
+
+Réponse :
+
+```json
+{
+  "id": "merchant_category_uuid",
+  "name_fr": "Rayon frais",
+  "name_ar": null,
+  "slug": "rayon-frais",
+  "parent_id": null,
+  "sort_order": 10,
+  "active": true,
+  "created_at": "2026-05-25T10:00:00+00:00",
+  "updated_at": "2026-05-25T10:00:00+00:00"
+}
+```
+
+Règles :
+
+- les catégories marchand sont propres à une supérette ;
+- elles ne modifient jamais les catégories du référentiel commun ;
+- la liste inclut les catégories inactives pour permettre la réactivation ;
+- seules les catégories actives peuvent être assignées à un produit ;
+- le slug est généré à la création, unique par supérette et stable après renommage ;
+- le parent doit appartenir à la même supérette, être actif, et ne peut pas créer de cycle ;
+- supprimer une catégorie attachée détache les produits et restaure le fallback référentiel/local.
 
 ---
 
