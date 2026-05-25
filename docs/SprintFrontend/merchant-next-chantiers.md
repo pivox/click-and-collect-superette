@@ -9,29 +9,12 @@ Le front marchand dispose désormais des bases suivantes :
 - **PR #134** — fondations front marchand : login, contexte marchand, shell, dashboard, liste des commandes actives ;
 - **PR #135** — détail commande et actions jusqu'à `ready` : accepter, refuser, accepter partiellement, préparer les lignes, marquer la commande prête ;
 - **PR #136** — retrait sécurisé marchand : scan par token QR, passage en `pickup_pending`, confirmation marchand, force completion avec note ;
-- **PR #138** — historique commandes marchand : onglet historique, filtres "À retirer" / "Clôturées", pagination, détail existant.
+- **PR #138** — historique commandes marchand : onglet historique, filtres "À retirer" / "Clôturées", pagination, détail existant ;
+- **PR #139** — notifications marchand : page notifications, badge non lu, filtres, rafraîchissement manuel, marquage lu et liens commandes.
 
 Ce document liste les prochains chantiers front marchand, dans un ordre compatible avec le MVP Kadhia. Les chantiers déjà couverts sont conservés en bas de document pour garder la trace des décisions. Le périmètre reste strict : pas de paiement en ligne, pas de livraison, pas de programme de fidélité, pas de panier marketplace multi-marchands.
 
 ## Priorité recommandée
-
-### P1 — Notifications marchand
-
-Objectif : informer le marchand des nouvelles commandes, annulations client et retraits finalisés sans push ni temps réel dans le MVP.
-
-À livrer :
-
-- page ou panneau `/merchant/notifications` ;
-- badge de notifications non lues dans `MerchantShell` si l'API retourne l'information nécessaire ;
-- lecture paginée `GET /api/merchant/notifications?page=1&unread=true` ;
-- actions `PATCH /api/merchant/notifications/{id}/read` et `PATCH /api/merchant/notifications/read-all` ;
-- polling simple ou bouton "Actualiser", sans WebSocket ni Mercure.
-
-Tests attendus :
-
-- services notifications ;
-- liste vide / erreur / liste paginée ;
-- marquage lu unitaire et global.
 
 ### P1 — Gestion catalogue marchand
 
@@ -148,6 +131,38 @@ Objectif : exposer côté UI l'export CSV déjà livré côté backend.
 
 ## Chantiers résolus
 
+### PR #139 — Notifications marchand
+
+Objectif livré : informer le marchand des nouvelles commandes, annulations client et retraits finalisés sans push ni temps réel dans le MVP.
+
+Livré :
+
+- service API notifications marchand et contrat frontend typé ;
+- entrée "Notifications" dans `MerchantShell` ;
+- badge de notifications non lues dans la navigation marchand ;
+- page `/merchant/notifications` ;
+- filtres "Toutes" / "Non lues" ;
+- rafraîchissement manuel ;
+- actions de marquage lu unitaire et global ;
+- pagination ;
+- liens vers les commandes liées ;
+- états vide et erreur.
+
+Points d'attention :
+
+- pas de changement backend dans cette tranche ;
+- pas de polling automatique, push, SMS, email, WebSocket ni Mercure ;
+- la notification reste un écran consultatif MVP, basé sur l'API existante.
+
+Tests couverts :
+
+- service notifications marchand ;
+- rendu de la page notifications ;
+- filtres toutes / non lues ;
+- marquage lu unitaire et global ;
+- badge non lu dans `MerchantShell` ;
+- `tsc --noEmit`, lint et build frontend.
+
 ### PR #138 — Historique complet des commandes marchand
 
 Objectif livré : permettre au marchand de retrouver les commandes terminées, annulées, refusées ou encore à retirer.
@@ -187,12 +202,11 @@ Ces sujets sont utiles mais ne doivent pas bloquer le MVP marchand :
 
 ## Ordre de PR conseillé
 
-1. Notifications marchand.
-2. Catalogue marchand.
-3. Créneaux, horaires et fermetures.
-4. Onboarding marchand guidé.
-5. QR code magasin marchand.
-6. Paramètres et thème supérette.
-7. Export CSV.
+1. Catalogue marchand.
+2. Créneaux, horaires et fermetures.
+3. Onboarding marchand guidé.
+4. QR code magasin marchand.
+5. Paramètres et thème supérette.
+6. Export CSV.
 
-Cet ordre privilégie d'abord les opérations quotidiennes : retrouver une commande, être notifié, maintenir le catalogue, puis gérer les rendez-vous de retrait.
+Après l'historique et les notifications, cet ordre privilégie les opérations quotidiennes restantes : maintenir le catalogue, puis gérer les rendez-vous de retrait.
