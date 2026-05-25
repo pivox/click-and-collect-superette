@@ -5,6 +5,7 @@ import { MerchantCatalogBulkActions } from '@/components/merchant/catalogue/Merc
 import { MerchantCatalogEditDrawer } from '@/components/merchant/catalogue/MerchantCatalogEditDrawer';
 import { MerchantCatalogFilters } from '@/components/merchant/catalogue/MerchantCatalogFilters';
 import { MerchantCatalogTable } from '@/components/merchant/catalogue/MerchantCatalogTable';
+import { ProductReferenceSearchDrawer } from '@/components/merchant/catalogue/ProductReferenceSearchDrawer';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import {
@@ -31,6 +32,7 @@ export default function MerchantCatalogPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editProduct, setEditProduct] = useState<MerchantCatalogProduct | null>(null);
+  const [isAddProductDrawerOpen, setIsAddProductDrawerOpen] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
@@ -141,6 +143,11 @@ export default function MerchantCatalogPage() {
     void loadCatalog();
   };
 
+  const handleProductAdded = () => {
+    setIsAddProductDrawerOpen(false);
+    void loadCatalog();
+  };
+
   const handleApplyFilters = () => {
     setAppliedFilters(draftFilters);
     setSelectedProductIds([]);
@@ -159,14 +166,23 @@ export default function MerchantCatalogPage() {
             les clients qui préparent leur Kadhia avant le retrait.
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="md"
-          disabled={isLoading}
-          onClick={() => void loadCatalog()}
-        >
-          Réessayer
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button
+            size="md"
+            disabled={isLoading}
+            onClick={() => setIsAddProductDrawerOpen(true)}
+          >
+            Ajouter un produit
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={() => void loadCatalog()}
+          >
+            Réessayer
+          </Button>
+        </div>
       </div>
 
       <MerchantCatalogFilters
@@ -226,6 +242,13 @@ export default function MerchantCatalogPage() {
         product={editProduct}
         onClose={() => setEditProduct(null)}
         onSaved={handleProductSaved}
+      />
+
+      <ProductReferenceSearchDrawer
+        isOpen={isAddProductDrawerOpen}
+        storeId={merchant?.store.id ?? null}
+        onClose={() => setIsAddProductDrawerOpen(false)}
+        onAdded={handleProductAdded}
       />
     </div>
   );

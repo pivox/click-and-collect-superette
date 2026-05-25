@@ -3,8 +3,10 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MerchantCatalogPage from '@/app/merchant/catalogue/page';
 import {
+  addMerchantCatalogProduct,
   bulkUpdateMerchantProductAvailability,
   listMerchantCatalog,
+  searchMerchantProductReferences,
   updateMerchantCatalogProduct,
 } from '@/lib/services/merchant-catalog.service';
 import type { MerchantCatalogProduct } from '@/lib/types/merchant-catalog.types';
@@ -26,8 +28,10 @@ vi.mock('@/lib/services/merchant-catalog.service', async () => {
 
   return {
     ...actual,
+    addMerchantCatalogProduct: vi.fn(),
     bulkUpdateMerchantProductAvailability: vi.fn(),
     listMerchantCatalog: vi.fn(),
+    searchMerchantProductReferences: vi.fn(),
     updateMerchantCatalogProduct: vi.fn(),
   };
 });
@@ -81,7 +85,14 @@ describe('MerchantCatalogPage', () => {
       merchant_note: 'Rupture temporaire',
       merchant_product_ids: ['mp-1', 'mp-2'],
     });
+    vi.mocked(addMerchantCatalogProduct).mockResolvedValue(undefined);
     vi.mocked(listMerchantCatalog).mockResolvedValue(products);
+    vi.mocked(searchMerchantProductReferences).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+    });
     vi.mocked(updateMerchantCatalogProduct).mockResolvedValue(undefined);
   });
 
@@ -130,6 +141,156 @@ describe('MerchantCatalogPage', () => {
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('searches product references from the add product drawer', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
+      target: { value: 'couscous' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Chercher' }));
+
+    await waitFor(() =>
+      expect(searchMerchantProductReferences).toHaveBeenCalledWith('store-1', {
+        q: 'couscous',
+        page: 1,
+        limit: 20,
+      }),
+    );
+  });
+
+  it('marks already catalogued product references as unavailable for add', async () => {
+    vi.mocked(searchMerchantProductReferences).mockResolvedValue({
+      items: [
+        {
+          id: 'ref-1',
+          name_fr: 'Couscous fin',
+          name_ar: null,
+          brand_id: 'brand-1',
+          brand: 'Rose Blanche',
+          category_id: 'cat-1',
+          category: 'Epicerie',
+          category_ar: null,
+          category_slug: 'epicerie',
+          volume: '1',
+          unit: 'kg',
+          barcode: null,
+          already_in_catalog: true,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
+      target: { value: 'couscous' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Chercher' }));
+
+    expect(await screen.findByText('Déjà dans mon catalogue')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ajouter Couscous fin' })).not.toBeInTheDocument();
+  });
+
+  it('adds a selected product reference to the merchant catalogue', async () => {
+    vi.mocked(searchMerchantProductReferences).mockResolvedValue({
+      items: [
+        {
+          id: 'ref-1',
+          name_fr: 'Couscous fin',
+          name_ar: null,
+          brand_id: 'brand-1',
+          brand: 'Rose Blanche',
+          category_id: 'cat-1',
+          category: 'Epicerie',
+          category_ar: null,
+          category_slug: 'epicerie',
+          volume: '1',
+          unit: 'kg',
+          barcode: null,
+          already_in_catalog: false,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
+      target: { value: 'couscous' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Chercher' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter Couscous fin' }));
+
+    expect(screen.getByText('Catégorie référentiel : Epicerie')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '2.400' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter à mon catalogue' }));
+
+    await waitFor(() =>
+      expect(addMerchantCatalogProduct).toHaveBeenCalledWith('store-1', {
+        product_reference_id: 'ref-1',
+        price_tnd: '2.400',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects an invalid add price without adding the product reference', async () => {
+    vi.mocked(searchMerchantProductReferences).mockResolvedValue({
+      items: [
+        {
+          id: 'ref-1',
+          name_fr: 'Couscous fin',
+          name_ar: null,
+          brand_id: 'brand-1',
+          brand: 'Rose Blanche',
+          category_id: 'cat-1',
+          category: 'Epicerie',
+          category_ar: null,
+          category_slug: 'epicerie',
+          volume: '1',
+          unit: 'kg',
+          barcode: null,
+          already_in_catalog: false,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
+      target: { value: 'couscous' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Chercher' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter Couscous fin' }));
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '2.4009' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter à mon catalogue' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Le prix doit être supérieur à 0 avec au maximum 3 décimales.',
+    );
+    expect(addMerchantCatalogProduct).not.toHaveBeenCalled();
   });
 
   it('rejects a price with more than 3 decimals without updating the product', async () => {
