@@ -207,3 +207,27 @@ export interface MerchantPickupSessionForceCompleteResult
   force_completed_by_merchant: boolean;
   force_note: string | null;
 }
+
+export interface MerchantNotificationItem {
+  id: string;
+  order_id: string | null;
+  title_fr: string;
+  title_ar: string;
+  body_fr: string;
+  body_ar: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface MerchantNotificationList {
+  items: MerchantNotificationItem[];
+  total: number;
+  page: number;
+}
+
+export interface MerchantNotificationListOptions {
+  page?: number;
+  unread?: boolean;
+}
+
+export type MerchantNotificationReadResult = MerchantNotificationItem;
