@@ -114,6 +114,7 @@ class MerchantProduct
         return $this;
     }
 
+    #[Assert\IsTrue(message: 'MERCHANT_PRODUCT_SOURCE_INVALID')]
     public function hasExactlyOneProductSource(): bool
     {
         return (null !== $this->productReference) xor (null !== $this->localProduct);
