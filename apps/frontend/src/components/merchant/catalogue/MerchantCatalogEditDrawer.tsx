@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { updateMerchantCatalogProduct } from '@/lib/services/merchant-catalog.service';
 import type { MerchantCatalogProduct } from '@/lib/types/merchant-catalog.types';
@@ -15,8 +15,14 @@ function productCategory(product: MerchantCatalogProduct): string {
   return product.merchant_category_name ?? product.category;
 }
 
-function normalizePrice(value: string): string | null {
-  const parsedPrice = Number(value.replace(',', '.'));
+function validatePrice(value: string): string | null {
+  const trimmedValue = value.trim();
+
+  if (!/^\d+(?:[.,]\d{1,3})?$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const parsedPrice = Number(trimmedValue.replace(',', '.'));
 
   if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
     return null;
@@ -35,7 +41,10 @@ export function MerchantCatalogEditDrawer({
   const [isVisible, setIsVisible] = useState(true);
   const [merchantNote, setMerchantNote] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [hasPriceError, setHasPriceError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const priceInputRef = useRef<HTMLInputElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!product) return;
@@ -45,7 +54,24 @@ export function MerchantCatalogEditDrawer({
     setIsVisible(product.is_visible);
     setMerchantNote(product.merchant_note ?? '');
     setError(null);
+    setHasPriceError(false);
     setIsSubmitting(false);
+  }, [product]);
+
+  useEffect(() => {
+    if (!product) return;
+
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    priceInputRef.current?.focus();
+
+    return () => {
+      const previousFocus = previousFocusRef.current;
+      if (previousFocus && document.contains(previousFocus)) {
+        previousFocus.focus();
+      }
+      previousFocusRef.current = null;
+    };
   }, [product]);
 
   useEffect(() => {
@@ -62,15 +88,17 @@ export function MerchantCatalogEditDrawer({
   if (!product) return null;
 
   const handleSubmit = async () => {
-    const normalizedPrice = normalizePrice(priceTnd);
+    const normalizedPrice = validatePrice(priceTnd);
 
     if (!normalizedPrice) {
-      setError('Le prix doit être positif.');
+      setHasPriceError(true);
+      setError('Le prix doit être supérieur à 0 avec au maximum 3 décimales.');
       return;
     }
 
     setIsSubmitting(true);
     setError(null);
+    setHasPriceError(false);
 
     try {
       await updateMerchantCatalogProduct(product.id, {
@@ -105,7 +133,11 @@ export function MerchantCatalogEditDrawer({
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
           {error && (
-            <div className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+            <div
+              id="merchant-catalog-edit-error"
+              role="alert"
+              className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel"
+            >
               {error}
             </div>
           )}
@@ -115,13 +147,21 @@ export function MerchantCatalogEditDrawer({
               Prix TND
             </label>
             <input
+              ref={priceInputRef}
               id="merchant-catalog-price"
-              type="number"
-              min="0.001"
-              step="0.001"
+              type="text"
+              inputMode="decimal"
               required
               value={priceTnd}
-              onChange={(event) => setPriceTnd(event.target.value)}
+              aria-invalid={hasPriceError}
+              aria-describedby={hasPriceError ? 'merchant-catalog-edit-error' : undefined}
+              onChange={(event) => {
+                setPriceTnd(event.target.value);
+                if (hasPriceError) {
+                  setHasPriceError(false);
+                  setError(null);
+                }
+              }}
               className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>

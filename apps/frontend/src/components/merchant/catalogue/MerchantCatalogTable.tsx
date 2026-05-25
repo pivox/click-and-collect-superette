@@ -9,6 +9,7 @@ interface MerchantCatalogTableProps {
   products: MerchantCatalogProduct[];
   emptyMessage: string;
   isSelectionMode?: boolean;
+  isSelectionDisabled?: boolean;
   selectedProductIds?: string[];
   onEditProduct: (product: MerchantCatalogProduct) => void;
   onToggleProductSelection?: (productId: string) => void;
@@ -35,6 +36,7 @@ function productFormat(product: MerchantCatalogProduct): string {
 
 export function MerchantCatalogTable({
   emptyMessage,
+  isSelectionDisabled = false,
   isSelectionMode = false,
   onEditProduct,
   onToggleProductSelection,
@@ -68,6 +70,7 @@ export function MerchantCatalogTable({
                     type="checkbox"
                     aria-label={`Sélectionner ${product.name_fr}`}
                     checked={selectedProductIds.includes(product.id)}
+                    disabled={isSelectionDisabled}
                     onChange={() => onToggleProductSelection?.(product.id)}
                     className="h-5 w-5 rounded border-line"
                   />

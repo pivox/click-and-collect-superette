@@ -76,12 +76,18 @@ export function MerchantCatalogBulkActions({
       </div>
 
       {selectionError && (
-        <div className="mt-3 rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+        <div
+          role="alert"
+          className="mt-3 rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel"
+        >
           {selectionError}
         </div>
       )}
       {bulkError && (
-        <div className="mt-3 rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+        <div
+          role="alert"
+          className="mt-3 rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel"
+        >
           {bulkError}
         </div>
       )}

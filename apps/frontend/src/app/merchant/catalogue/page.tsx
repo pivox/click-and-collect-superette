@@ -48,6 +48,7 @@ export default function MerchantCatalogPage() {
       const nextProducts = await listMerchantCatalog(merchant.store.id);
       if (requestId.current === nextRequestId) {
         setProducts(nextProducts);
+        setSelectedProductIds([]);
       }
     } catch {
       if (requestId.current === nextRequestId) {
@@ -102,14 +103,19 @@ export default function MerchantCatalogPage() {
   };
 
   const handleBulkAvailability = async (isAvailable: boolean) => {
-    if (!merchant || selectedProductIds.length === 0) return;
+    const visibleProductIds = new Set(filteredProducts.map((product) => product.id));
+    const visibleSelectedProductIds = selectedProductIds.filter((productId) =>
+      visibleProductIds.has(productId),
+    );
+
+    if (!merchant || visibleSelectedProductIds.length === 0) return;
 
     setIsBulkSubmitting(true);
     setBulkError(null);
 
     try {
       await bulkUpdateMerchantProductAvailability(merchant.store.id, {
-        merchant_product_ids: selectedProductIds,
+        merchant_product_ids: visibleSelectedProductIds,
         is_available: isAvailable,
         merchant_note: isAvailable ? null : 'Rupture temporaire',
       });
@@ -126,6 +132,13 @@ export default function MerchantCatalogPage() {
   const handleProductSaved = () => {
     setEditProduct(null);
     void loadCatalog();
+  };
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(draftFilters);
+    setSelectedProductIds([]);
+    setSelectionError(null);
+    setBulkError(null);
   };
 
   return (
@@ -151,7 +164,7 @@ export default function MerchantCatalogPage() {
       <MerchantCatalogFilters
         filters={draftFilters}
         onFiltersChange={setDraftFilters}
-        onSubmit={() => setAppliedFilters(draftFilters)}
+        onSubmit={handleApplyFilters}
       />
 
       <MerchantCatalogBulkActions
@@ -184,6 +197,7 @@ export default function MerchantCatalogPage() {
                 : 'Aucun produit ne correspond aux filtres.'
             }
             isSelectionMode={isSelectionMode}
+            isSelectionDisabled={isBulkSubmitting}
             selectedProductIds={selectedProductIds}
             onEditProduct={setEditProduct}
             onToggleProductSelection={handleToggleProductSelection}
