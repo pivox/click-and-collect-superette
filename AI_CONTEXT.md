@@ -72,7 +72,8 @@ Exclus du MVP :
 - Sprint 6 (personnalisation visuelle) : implémenté côté backend (`PlatformTheme`, `ShopTheme`, thème public par supérette).
 - Sprint 7 démarré : S7-001 livré — `PATCH /api/admin/stores/{storeId}/archive`, champs `Shop.archivedAt`/`Shop.archiveReason`, annulation des commandes actives, 19 tests. S7-002 livré côté backend — export CSV des commandes marchand. S7-003 livré côté backend — `DELETE /api/me/account`, champs `User.deletedAt`/`User.lastLoginAt`, anonymisation minimale du compte client, invalidation des `PasswordResetToken`, blocage login des comptes supprimés, commandes conservées pour l'historique marchand. S7-004 livré côté backend — `GET /api/admin/audit-logs`, entité `AdminAuditLog` append-only avec `summary`, filtre `admin`, service `AdminAuditLogger` injecté dans 15 processors, 28 tests, PHPStan niveau 8 clean.
 - Prochaine priorité recommandée : S7-005 (observabilité production), S7-006 (PWA installable/offline) ou frontend MVP (Next.js).
-- 1009 tests backend passants, PHPStan niveau 8 clean, CS Fixer clean.
+- Documentation API OpenAPI exposée publiquement : `docs_formats` configuré dans `api_platform.yaml` (`json`, `html`, `jsonopenapi`, `yamlopenapi`) — endpoints accessibles sans auth sur `/api/docs.json`, `/api/docs.html`, `/api/docs.jsonopenapi`, `/api/docs.yamlopenapi`.
+- 1011 tests backend passants, PHPStan niveau 8 clean, CS Fixer clean.
 
 ## Limites connues
 

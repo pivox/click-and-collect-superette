@@ -26,3 +26,15 @@ Transformer le cadrage produit en code maintenable, testé et compatible Symfony
 - Préférer les groupes de normalisation/dénormalisation explicites.
 - Ne pas exposer plus de données que nécessaire.
 - Préférer Provider/Processor quand le comportement dépasse un CRUD simple.
+
+## Documentation API (OpenAPI)
+
+Les endpoints de documentation OpenAPI sont accessibles publiquement (sans token JWT) :
+
+- `/api/docs.json` — spec OpenAPI 3.x JSON
+- `/api/docs.html` — Swagger UI
+- `/api/docs.jsonopenapi` — spec OpenAPI (`application/vnd.openapi+json`)
+- `/api/docs.yamlopenapi` — spec OpenAPI YAML
+
+Les formats sont déclarés dans `docs_formats` (`apps/backend/config/packages/api_platform.yaml`).
+L'accès public est garanti par la règle `^/api/docs(?:\..+)?$` → `PUBLIC_ACCESS` dans `security.yaml`.

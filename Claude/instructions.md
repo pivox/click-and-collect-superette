@@ -41,6 +41,18 @@ Aider à concevoir, documenter et développer l'application click & collect pour
 - Tests : ajouter au minimum tests unitaires ou fonctionnels pour les règles métier importantes.
 - Sécurité : séparer clairement client, marchand et administrateur.
 
+## Documentation API (OpenAPI)
+
+Les endpoints de documentation sont publics (aucune authentification requise) :
+
+- `/api/docs.json` — spec OpenAPI 3.x JSON (`application/json`)
+- `/api/docs.html` — interface Swagger UI HTML
+- `/api/docs.jsonopenapi` — spec OpenAPI (`application/vnd.openapi+json`)
+- `/api/docs.yamlopenapi` — spec OpenAPI YAML
+
+Configuré via `docs_formats` dans `apps/backend/config/packages/api_platform.yaml`.
+Règle de sécurité : `^/api/docs(?:\..+)?$` → `PUBLIC_ACCESS` (ligne 41, `security.yaml`).
+
 ## Doctrine/PostgreSQL
 
 - Utiliser des noms de colonnes et d'entités explicites et orientés métier.
