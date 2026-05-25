@@ -18,6 +18,10 @@ function cleanFilterParams<T extends Record<string, unknown>>(params: T): Partia
   ) as Partial<T>;
 }
 
+function normalizeFilterValue(value: string | null | undefined): string {
+  return value?.trim().toLowerCase() ?? '';
+}
+
 export async function listMerchantCatalog(
   storeId: string,
   _options: MerchantCatalogListOptions = {},
@@ -33,8 +37,8 @@ export function filterMerchantCatalogProducts(
   products: MerchantCatalogProduct[],
   options: MerchantCatalogListOptions = {},
 ): MerchantCatalogProduct[] {
-  const query = options.q?.trim().toLowerCase();
-  const category = options.category?.trim().toLowerCase();
+  const query = normalizeFilterValue(options.q);
+  const category = normalizeFilterValue(options.category);
 
   return products.filter((product) => {
     if (query) {
@@ -46,7 +50,7 @@ export function filterMerchantCatalogProducts(
         product.merchant_note,
       ];
       const matchesQuery = searchableFields.some((value) => {
-        return value?.toLowerCase().includes(query);
+        return normalizeFilterValue(value).includes(query);
       });
 
       if (!matchesQuery) {
@@ -71,7 +75,9 @@ export function filterMerchantCatalogProducts(
     }
 
     if (category) {
-      const productCategory = (product.merchant_category_name ?? product.category).toLowerCase();
+      const productCategory = normalizeFilterValue(
+        product.merchant_category_name ?? product.category,
+      );
       if (productCategory !== category) {
         return false;
       }

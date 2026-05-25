@@ -50,8 +50,6 @@ describe('merchant catalogue service', () => {
       availability: 'available',
       visibility: 'visible',
       category: 'lait',
-      page: 2,
-      limit: 10,
     });
 
     expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog');
@@ -122,6 +120,48 @@ describe('merchant catalogue service', () => {
     ]);
     expect(filterMerchantCatalogProducts(products, { category: 'Lait' })).toEqual([
       products[0],
+    ]);
+  });
+
+  it('filters safely when optional catalogue fields are null or undefined', () => {
+    const products = [
+      {
+        id: 'mp-1',
+        product_reference_id: 'ref-1',
+        name_fr: 'Lait demi-écrémé',
+        brand: 'Vitalait',
+        category: undefined,
+        merchant_category_name: null,
+        volume: '1',
+        unit: 'litre',
+        price_tnd: '1.700',
+        is_available: true,
+        is_visible: true,
+        merchant_note: undefined,
+      },
+      {
+        id: 'mp-2',
+        product_reference_id: 'ref-2',
+        name_fr: 'Café moulu',
+        brand: 'Bondin',
+        category: 'Epicerie',
+        merchant_category_name: undefined,
+        volume: '250',
+        unit: 'g',
+        price_tnd: '6.900',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+      },
+    ] as unknown as MerchantCatalogProduct[];
+
+    expect(() => filterMerchantCatalogProducts(products, { q: 'bondin' })).not.toThrow();
+    expect(filterMerchantCatalogProducts(products, { q: 'bondin' })).toEqual([
+      products[1],
+    ]);
+    expect(() => filterMerchantCatalogProducts(products, { category: 'Epicerie' })).not.toThrow();
+    expect(filterMerchantCatalogProducts(products, { category: 'Epicerie' })).toEqual([
+      products[1],
     ]);
   });
 

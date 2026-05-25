@@ -24,8 +24,6 @@ export interface MerchantCatalogListOptions {
   availability?: MerchantCatalogAvailabilityFilter;
   visibility?: MerchantCatalogVisibilityFilter;
   category?: string;
-  page?: number;
-  limit?: number;
 }
 
 export interface UpdateMerchantCatalogProductPayload {
