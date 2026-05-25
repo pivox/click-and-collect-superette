@@ -44,13 +44,14 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule }: RuleAccordi
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between px-4 py-3 text-left"
         aria-expanded={open}
+        aria-controls="rule-accordion-panel"
       >
         <span className="font-bold">Règles récurrentes</span>
         {open ? <ChevronUp className="h-4 w-4 text-muted" /> : <ChevronDown className="h-4 w-4 text-muted" />}
       </button>
 
       {open && (
-        <div className="border-t border-line px-4 pb-4 pt-3">
+        <div id="rule-accordion-panel" className="border-t border-line px-4 pb-4 pt-3">
           {rules.length === 0 && !showForm && (
             <p className="mb-3 text-sm text-muted">
               Aucune règle — les règles définissent les créneaux récurrents de votre supérette.

@@ -18,6 +18,7 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
   const [capacity, setCapacity] = useState(String(slot.capacity));
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [togglingActive, setTogglingActive] = useState(false);
   const [toggleError, setToggleError] = useState<string | null>(null);
 
@@ -31,6 +32,8 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
     try {
       await onPatch(slot.id, { capacity: val });
       setEditingCapacity(false);
+    } catch {
+      setSaveError('Impossible de modifier la capacité.');
     } finally {
       setSaving(false);
     }
@@ -108,7 +111,8 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
         </p>
       )}
 
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-2">
+        <div className="flex items-center gap-2">
         {editingCapacity ? (
           <>
             <input
@@ -128,6 +132,7 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
               onClick={() => {
                 setCapacity(String(slot.capacity));
                 setEditingCapacity(false);
+                setSaveError(null);
               }}
             >
               Annuler
@@ -151,6 +156,12 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
               {slot.is_active ? 'Désactiver' : 'Activer'}
             </button>
           </>
+        )}
+        </div>
+        {editingCapacity && saveError && (
+          <p role="alert" className="mt-1 text-xs text-danger">
+            {saveError}
+          </p>
         )}
       </div>
     </div>

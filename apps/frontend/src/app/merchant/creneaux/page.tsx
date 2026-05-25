@@ -56,13 +56,12 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-const DAYS = buildDays(14);
-
 export default function MerchantCreneauxPage() {
   const { merchant } = useMerchantAuth();
   const storeId = merchant?.store.id ?? '';
 
-  const [selectedDate, setSelectedDate] = useState<Date>(DAYS[0]);
+  const [days] = useState(() => buildDays(14));
+  const [selectedDate, setSelectedDate] = useState<Date>(days[0]!);
   const [rules, setRules] = useState<MerchantPickupSlotRule[]>([]);
   const [slots, setSlots] = useState<MerchantPickupSlot[]>([]);
   const [closures, setClosures] = useState<MerchantExceptionalClosure[]>([]);
@@ -172,7 +171,7 @@ export default function MerchantCreneauxPage() {
       )}
 
       <DayStrip
-        days={DAYS}
+        days={days}
         selectedDate={selectedDate}
         slots={slots}
         closures={closures}

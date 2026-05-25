@@ -11,11 +11,10 @@ export interface SlotCreateModalProps {
   onClose: () => void;
 }
 
-function toDatetimeLocal(date: Date, time: string): string {
-  const d = new Date(date);
+function toDatetimeLocal(dateString: string, time: string): string {
+  const [year, month, day] = dateString.split('-').map(Number);
   const [h, m] = time.split(':').map(Number);
-  d.setHours(h, m, 0, 0);
-  return d.toISOString();
+  return new Date(year, month - 1, day, h, m, 0, 0).toISOString();
 }
 
 export function SlotCreateModal({
@@ -47,10 +46,9 @@ export function SlotCreateModal({
     setError(null);
     setSaving(true);
     try {
-      const selectedDate = new Date(date);
       await onSubmit({
-        starts_at: toDatetimeLocal(selectedDate, startTime),
-        ends_at: toDatetimeLocal(selectedDate, endTime),
+        starts_at: toDatetimeLocal(date, startTime),
+        ends_at: toDatetimeLocal(date, endTime),
         capacity: cap,
       });
       onClose();
@@ -71,6 +69,7 @@ export function SlotCreateModal({
       aria-modal="true"
       aria-label="Créer un créneau ponctuel"
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
       <div className="w-full max-w-md rounded-t-2xl bg-card p-5 shadow-xl sm:rounded-2xl">
         <div className="mb-4 flex items-center justify-between">
@@ -96,6 +95,7 @@ export function SlotCreateModal({
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
+              autoFocus
               className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none"
             />
           </div>

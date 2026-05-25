@@ -54,6 +54,7 @@ export function ClosureAccordion({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between px-4 py-3 text-left"
         aria-expanded={open}
+        aria-controls="closure-accordion-panel"
       >
         <span className="font-bold">
           Fermetures exceptionnelles
@@ -67,7 +68,7 @@ export function ClosureAccordion({
       </button>
 
       {open && (
-        <div className="border-t border-line px-4 pb-4 pt-3">
+        <div id="closure-accordion-panel" className="border-t border-line px-4 pb-4 pt-3">
           {closures.length === 0 && !showForm && (
             <p className="mb-3 text-sm text-muted">
               Aucune fermeture exceptionnelle planifiée.

@@ -49,6 +49,7 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
       });
     } catch {
       setError("Impossible de créer la règle. Vérifiez les données et réessayez.");
+    } finally {
       setSaving(false);
     }
   }

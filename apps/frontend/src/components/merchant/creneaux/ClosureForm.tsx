@@ -36,6 +36,7 @@ export function ClosureForm({ onSubmit, onCancel }: ClosureFormProps) {
       });
     } catch {
       setError("Impossible de créer la fermeture. Réessayez.");
+    } finally {
       setSaving(false);
     }
   }
