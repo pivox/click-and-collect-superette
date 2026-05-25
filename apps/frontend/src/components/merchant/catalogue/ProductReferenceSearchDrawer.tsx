@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import {
   addMerchantCatalogProduct,
@@ -34,7 +34,17 @@ function validatePrice(value: string): string | null {
     return null;
   }
 
-  return trimmedValue;
+  return parsedPrice.toFixed(3);
+}
+
+function isConflictError(error: unknown): boolean {
+  if (!error || typeof error !== 'object' || !('response' in error)) {
+    return false;
+  }
+
+  const response = (error as { response?: { status?: number } }).response;
+
+  return response?.status === 409;
 }
 
 export function ProductReferenceSearchDrawer({
@@ -60,8 +70,26 @@ export function ProductReferenceSearchDrawer({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const priceInputRef = useRef<HTMLInputElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const sessionRef = useRef(0);
+  const searchRequestRef = useRef(0);
+  const isOpenRef = useRef(isOpen);
+
+  const isCurrentSession = useCallback((sessionId: number) => {
+    return isOpenRef.current && sessionRef.current === sessionId;
+  }, []);
+
+  const handleClose = useCallback(() => {
+    isOpenRef.current = false;
+    sessionRef.current += 1;
+    searchRequestRef.current += 1;
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
+    isOpenRef.current = isOpen;
+    sessionRef.current += 1;
+    searchRequestRef.current += 1;
+
     if (!isOpen) return;
 
     setQuery('');
@@ -105,7 +133,7 @@ export function ProductReferenceSearchDrawer({
 
     const handler = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        handleClose();
         return;
       }
 
@@ -147,12 +175,16 @@ export function ProductReferenceSearchDrawer({
     document.addEventListener('keydown', handler);
 
     return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  }, [handleClose, isOpen]);
 
   if (!isOpen || !storeId) return null;
 
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const sessionId = sessionRef.current;
+    const searchRequestId = searchRequestRef.current + 1;
+    searchRequestRef.current = searchRequestId;
+
     setIsSearching(true);
     setSearchError(null);
     setSelectedProductReference(null);
@@ -163,17 +195,24 @@ export function ProductReferenceSearchDrawer({
         page: 1,
         limit: 20,
       });
+      if (!isCurrentSession(sessionId) || searchRequestRef.current !== searchRequestId) return;
+
       setResults(searchResult.items);
     } catch {
+      if (!isCurrentSession(sessionId) || searchRequestRef.current !== searchRequestId) return;
+
       setResults([]);
       setSearchError('Impossible de rechercher dans le référentiel.');
     } finally {
+      if (!isCurrentSession(sessionId) || searchRequestRef.current !== searchRequestId) return;
+
       setIsSearching(false);
     }
   };
 
   const handleSubmit = async () => {
     if (!selectedProductReference) return;
+    const sessionId = sessionRef.current;
 
     const normalizedPrice = validatePrice(priceTnd);
 
@@ -195,17 +234,27 @@ export function ProductReferenceSearchDrawer({
         is_visible: isVisible,
         merchant_note: merchantNote.trim() || null,
       });
+      if (!isCurrentSession(sessionId)) return;
+
       onAdded();
-    } catch {
-      setAddError("Impossible d'ajouter le produit au catalogue.");
+    } catch (error) {
+      if (!isCurrentSession(sessionId)) return;
+
+      setAddError(
+        isConflictError(error)
+          ? 'Ce produit est déjà dans mon catalogue.'
+          : "Impossible d'ajouter le produit au catalogue.",
+      );
     } finally {
+      if (!isCurrentSession(sessionId)) return;
+
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
       <div
         ref={dialogRef}
         role="dialog"
@@ -370,7 +419,7 @@ export function ProductReferenceSearchDrawer({
         </div>
 
         <div className="flex gap-3 border-t border-line px-6 py-4">
-          <Button variant="ghost" onClick={onClose} disabled={isSubmitting} full>
+          <Button variant="ghost" onClick={handleClose} disabled={isSubmitting} full>
             Fermer
           </Button>
           <Button

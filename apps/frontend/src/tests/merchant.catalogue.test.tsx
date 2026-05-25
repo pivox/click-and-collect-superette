@@ -69,11 +69,41 @@ const products: MerchantCatalogProduct[] = [
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((promiseResolve) => {
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
     resolve = promiseResolve;
+    reject = promiseReject;
   });
 
-  return { promise, resolve };
+  return { promise, resolve, reject };
+}
+
+function productReference(overrides: Partial<{
+  id: string;
+  name_fr: string;
+  brand: string;
+  category: string;
+  volume: string | null;
+  unit: string;
+  already_in_catalog: boolean;
+}> = {}) {
+  const id = overrides.id ?? 'ref-1';
+
+  return {
+    id,
+    name_fr: overrides.name_fr ?? 'Couscous fin',
+    name_ar: null,
+    brand_id: `brand-${id}`,
+    brand: overrides.brand ?? 'Rose Blanche',
+    category_id: `cat-${id}`,
+    category: overrides.category ?? 'Epicerie',
+    category_ar: null,
+    category_slug: overrides.category?.toLowerCase() ?? 'epicerie',
+    volume: overrides.volume ?? '1',
+    unit: overrides.unit ?? 'kg',
+    barcode: null,
+    already_in_catalog: overrides.already_in_catalog ?? false,
+  };
 }
 
 describe('MerchantCatalogPage', () => {
@@ -249,6 +279,109 @@ describe('MerchantCatalogPage', () => {
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('normalizes comma decimal prices when adding a selected product reference', async () => {
+    vi.mocked(searchMerchantProductReferences).mockResolvedValue({
+      items: [productReference({ id: 'ref-1', name_fr: 'Couscous fin' })],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
+      target: { value: 'couscous' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Chercher' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter Couscous fin' }));
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '2,4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter à mon catalogue' }));
+
+    await waitFor(() =>
+      expect(addMerchantCatalogProduct).toHaveBeenCalledWith('store-1', {
+        product_reference_id: 'ref-1',
+        price_tnd: '2.400',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+      }),
+    );
+  });
+
+  it('keeps the latest product reference search results when an older search resolves later', async () => {
+    const olderSearch = deferred<Awaited<ReturnType<typeof searchMerchantProductReferences>>>();
+    const latestSearch = deferred<Awaited<ReturnType<typeof searchMerchantProductReferences>>>();
+    vi.mocked(searchMerchantProductReferences)
+      .mockReturnValueOnce(olderSearch.promise)
+      .mockReturnValueOnce(latestSearch.promise);
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+
+    const searchInput = screen.getByLabelText('Rechercher dans le référentiel');
+    const searchForm = searchInput.closest('form');
+    if (!searchForm) throw new Error('Search form missing');
+
+    fireEvent.change(searchInput, { target: { value: 'couscous' } });
+    fireEvent.submit(searchForm);
+    fireEvent.change(searchInput, { target: { value: 'lait' } });
+    fireEvent.submit(searchForm);
+
+    latestSearch.resolve({
+      items: [productReference({ id: 'ref-lait', name_fr: 'Lait entier', brand: 'Vitalait' })],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    expect(await screen.findByText('Lait entier')).toBeInTheDocument();
+
+    olderSearch.resolve({
+      items: [productReference({ id: 'ref-old', name_fr: 'Semoule ancienne' })],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    await waitFor(() => expect(screen.getByText('Lait entier')).toBeInTheDocument());
+    expect(screen.queryByText('Semoule ancienne')).not.toBeInTheDocument();
+  });
+
+  it('does not reload the catalogue when an obsolete add resolves after the drawer is closed', async () => {
+    const pendingAdd = deferred<Awaited<ReturnType<typeof addMerchantCatalogProduct>>>();
+    vi.mocked(searchMerchantProductReferences).mockResolvedValue({
+      items: [productReference({ id: 'ref-1', name_fr: 'Couscous fin' })],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+    vi.mocked(addMerchantCatalogProduct).mockReturnValue(pendingAdd.promise);
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit' }));
+    fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
+      target: { value: 'couscous' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Chercher' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter Couscous fin' }));
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '2.400' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter à mon catalogue' }));
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    pendingAdd.resolve(undefined);
+
+    await waitFor(() => expect(addMerchantCatalogProduct).toHaveBeenCalledTimes(1));
+    expect(listMerchantCatalog).toHaveBeenCalledTimes(1);
   });
 
   it('rejects an invalid add price without adding the product reference', async () => {
