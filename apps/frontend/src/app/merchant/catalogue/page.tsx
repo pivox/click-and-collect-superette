@@ -35,6 +35,7 @@ export default function MerchantCatalogPage() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [bulkError, setBulkError] = useState<string | null>(null);
+  const [bulkSuccessMessage, setBulkSuccessMessage] = useState<string | null>(null);
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const requestId = useRef(0);
 
@@ -76,6 +77,7 @@ export default function MerchantCatalogPage() {
     setSelectedProductIds([]);
     setSelectionError(null);
     setBulkError(null);
+    setBulkSuccessMessage(null);
   };
 
   const handleCancelSelectionMode = () => {
@@ -83,6 +85,7 @@ export default function MerchantCatalogPage() {
     setSelectedProductIds([]);
     setSelectionError(null);
     setBulkError(null);
+    setBulkSuccessMessage(null);
   };
 
   const handleToggleProductSelection = (productId: string) => {
@@ -112,9 +115,10 @@ export default function MerchantCatalogPage() {
 
     setIsBulkSubmitting(true);
     setBulkError(null);
+    setBulkSuccessMessage(null);
 
     try {
-      await bulkUpdateMerchantProductAvailability(merchant.store.id, {
+      const result = await bulkUpdateMerchantProductAvailability(merchant.store.id, {
         merchant_product_ids: visibleSelectedProductIds,
         is_available: isAvailable,
         merchant_note: isAvailable ? null : 'Rupture temporaire',
@@ -122,6 +126,9 @@ export default function MerchantCatalogPage() {
       setSelectedProductIds([]);
       setIsSelectionMode(false);
       await loadCatalog();
+      setBulkSuccessMessage(
+        `${result.updated_count} produit${result.updated_count > 1 ? 's' : ''} mis à jour.`,
+      );
     } catch {
       setBulkError('Impossible de mettre à jour les produits sélectionnés.');
     } finally {
@@ -139,6 +146,7 @@ export default function MerchantCatalogPage() {
     setSelectedProductIds([]);
     setSelectionError(null);
     setBulkError(null);
+    setBulkSuccessMessage(null);
   };
 
   return (
@@ -182,6 +190,15 @@ export default function MerchantCatalogPage() {
       {error && (
         <div className="mt-4 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
           {error}
+        </div>
+      )}
+
+      {bulkSuccessMessage && (
+        <div
+          role="status"
+          className="mt-4 rounded-md bg-status-ready-bg px-4 py-3 text-sm text-status-ready"
+        >
+          {bulkSuccessMessage}
         </div>
       )}
 

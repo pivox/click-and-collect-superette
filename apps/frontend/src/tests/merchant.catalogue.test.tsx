@@ -114,6 +114,7 @@ describe('MerchantCatalogPage', () => {
 
     fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '1.700' } });
     fireEvent.click(screen.getByLabelText('Disponible'));
+    fireEvent.click(screen.getByLabelText('Visible'));
     fireEvent.change(screen.getByLabelText('Note marchand'), {
       target: { value: 'Rupture temporaire' },
     });
@@ -123,7 +124,7 @@ describe('MerchantCatalogPage', () => {
       expect(updateMerchantCatalogProduct).toHaveBeenCalledWith('mp-1', {
         price_tnd: '1.700',
         is_available: false,
-        is_visible: true,
+        is_visible: false,
         merchant_note: 'Rupture temporaire',
       }),
     );
@@ -223,6 +224,7 @@ describe('MerchantCatalogPage', () => {
     await waitFor(() =>
       expect(screen.queryByRole('checkbox', { name: 'Sélectionner Lait demi-écrémé' })).not.toBeInTheDocument(),
     );
+    expect(screen.getByText('2 produits mis à jour.')).toBeInTheDocument();
     expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
   });
 
