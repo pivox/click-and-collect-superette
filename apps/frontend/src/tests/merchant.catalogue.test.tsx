@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MerchantCatalogPage from '@/app/merchant/catalogue/page';
@@ -351,6 +351,52 @@ describe('MerchantCatalogPage', () => {
         limit: 20,
       }),
     );
+  });
+
+  it('opens guided assistant for catalogue enrichment', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Assistant guidé' }));
+
+    expect(screen.getByRole('dialog', { name: 'Assistant catalogue' })).toBeInTheDocument();
+    expect(screen.getByText('1. Chercher')).toBeInTheDocument();
+    expect(screen.getByText('2. Configurer')).toBeInTheDocument();
+    expect(screen.getByText('3. Publier')).toBeInTheDocument();
+  });
+
+  it('keeps tab focus inside the guided assistant', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Assistant guidé' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Assistant catalogue' });
+    const closeButton = within(dialog).getByRole('button', { name: 'Fermer' });
+    const referenceButton = within(dialog).getByRole('button', { name: 'Depuis référentiel' });
+
+    expect(closeButton).toHaveFocus();
+
+    referenceButton.focus();
+    fireEvent.keyDown(dialog, { key: 'Tab' });
+
+    expect(closeButton).toHaveFocus();
+
+    fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true });
+
+    expect(referenceButton).toHaveFocus();
+  });
+
+  it('opens the existing product reference drawer from the guided assistant', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Assistant guidé' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Assistant catalogue' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Depuis référentiel' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Assistant catalogue' })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole('dialog', { name: 'Ajouter un produit' })).toBeInTheDocument();
   });
 
   it('marks already catalogued product references as unavailable for add', async () => {

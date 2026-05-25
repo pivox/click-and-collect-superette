@@ -5,6 +5,7 @@ import { MerchantCatalogBulkActions } from '@/components/merchant/catalogue/Merc
 import { MerchantCatalogEditDrawer } from '@/components/merchant/catalogue/MerchantCatalogEditDrawer';
 import { MerchantCatalogFilters } from '@/components/merchant/catalogue/MerchantCatalogFilters';
 import { MerchantCatalogTable } from '@/components/merchant/catalogue/MerchantCatalogTable';
+import { MerchantCatalogWizard } from '@/components/merchant/catalogue/MerchantCatalogWizard';
 import { MerchantLocalProductDrawer } from '@/components/merchant/catalogue/MerchantLocalProductDrawer';
 import { ProductReferenceSearchDrawer } from '@/components/merchant/catalogue/ProductReferenceSearchDrawer';
 import { Button } from '@/components/ui/Button';
@@ -38,6 +39,7 @@ export default function MerchantCatalogPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editProduct, setEditProduct] = useState<MerchantCatalogProduct | null>(null);
+  const [isCatalogWizardOpen, setIsCatalogWizardOpen] = useState(false);
   const [isAddProductDrawerOpen, setIsAddProductDrawerOpen] = useState(false);
   const [isLocalProductDrawerOpen, setIsLocalProductDrawerOpen] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -221,6 +223,14 @@ export default function MerchantCatalogPage() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={() => setIsCatalogWizardOpen(true)}
+          >
+            Assistant guidé
+          </Button>
+          <Button
             size="md"
             disabled={isLoading}
             onClick={() => setIsAddProductDrawerOpen(true)}
@@ -312,6 +322,13 @@ export default function MerchantCatalogPage() {
         onCreateCategory={merchant ? handleCreateCategory : undefined}
         onClose={() => setEditProduct(null)}
         onSaved={handleProductSaved}
+      />
+
+      <MerchantCatalogWizard
+        isOpen={isCatalogWizardOpen}
+        onClose={() => setIsCatalogWizardOpen(false)}
+        onOpenReferenceSearch={() => setIsAddProductDrawerOpen(true)}
+        onOpenLocalProduct={() => setIsLocalProductDrawerOpen(true)}
       />
 
       <ProductReferenceSearchDrawer
