@@ -69,12 +69,37 @@ describe('MerchantShell', () => {
       '/merchant/notifications',
     );
     expect(screen.getByRole('button', { name: /Créneaux/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Catalogue/i })).toBeDisabled();
+    expect(screen.getAllByRole('link', { name: /Catalogue/i })[0]).toHaveAttribute(
+      'href',
+      '/merchant/catalogue',
+    );
     expect(screen.getByRole('button', { name: /Paramètres/i })).toBeDisabled();
     expect(screen.getByText('Contenu marchand')).toBeInTheDocument();
 
     expect(await screen.findByText('Contenu marchand')).toBeInTheDocument();
     expect(listMerchantNotifications).toHaveBeenCalledWith({ unread: true });
+  });
+
+  it('renders Catalogue as the active merchant navigation link', async () => {
+    pathname = '/merchant/catalogue';
+
+    render(
+      React.createElement(
+        MerchantShell,
+        null,
+        React.createElement('p', null, 'Contenu catalogue'),
+      ),
+    );
+
+    const catalogueLinks = screen.getAllByRole('link', { name: /Catalogue/i });
+
+    expect(catalogueLinks[0]).toHaveAttribute('href', '/merchant/catalogue');
+    expect(catalogueLinks[0]).toHaveClass('bg-white/10');
+    expect(catalogueLinks[0]).toHaveClass('font-semibold');
+    expect(catalogueLinks[1]).toHaveAttribute('href', '/merchant/catalogue');
+    expect(catalogueLinks[1]).toHaveClass('bg-primary');
+    expect(screen.queryByRole('button', { name: /Catalogue/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Contenu catalogue')).toBeInTheDocument();
   });
 
   it('shows unread notification badge when unread total is greater than zero', async () => {

@@ -20,13 +20,13 @@ import { listMerchantNotifications } from '@/lib/services/merchant-notifications
 const ACTIVE_NAV = [
   { href: '/merchant', label: 'Dashboard', icon: BarChart3 },
   { href: '/merchant/commandes', label: 'Commandes', icon: ShoppingBasket },
+  { href: '/merchant/catalogue', label: 'Catalogue', icon: Package },
   { href: '/merchant/retrait', label: 'Retrait', icon: QrCode },
   { href: '/merchant/notifications', label: 'Notifications', icon: Bell, badge: 'notifications' },
 ];
 
 const DISABLED_NAV = [
   { label: 'Créneaux', icon: CalendarClock },
-  { label: 'Catalogue', icon: Package },
   { label: 'Paramètres', icon: Settings },
 ];
 
