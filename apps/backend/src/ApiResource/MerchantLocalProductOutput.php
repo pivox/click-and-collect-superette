@@ -46,6 +46,9 @@ final readonly class MerchantLocalProductOutput
         #[SerializedName('name_fr')]
         public string $nameFr,
         #[Groups(['merchant_local_product:read'])]
+        #[SerializedName('name_ar')]
+        public ?string $nameAr,
+        #[Groups(['merchant_local_product:read'])]
         public ?string $brand,
         #[Groups(['merchant_local_product:read'])]
         public string $category,

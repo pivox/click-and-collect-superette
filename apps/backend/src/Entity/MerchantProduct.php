@@ -13,6 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: MerchantProductRepository::class)]
 #[ORM\Table(name: 'merchant_products')]
 #[ORM\UniqueConstraint(name: 'UNIQ_MERCHANT_PRODUCTS_SHOP_REF', columns: ['shop_id', 'product_reference_id'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_MERCHANT_PRODUCTS_LOCAL_PRODUCT', columns: ['local_product_id'])]
 #[ORM\HasLifecycleCallbacks]
 class MerchantProduct
 {
@@ -79,6 +80,7 @@ class MerchantProduct
 
     public function setShop(Shop $shop): static
     {
+        $this->assertLocalProductBelongsToShop($shop, $this->localProduct);
         $this->shop = $shop;
 
         return $this;
@@ -106,6 +108,7 @@ class MerchantProduct
 
     public function setLocalProduct(?MerchantLocalProduct $localProduct): static
     {
+        $this->assertLocalProductBelongsToShop(isset($this->shop) ? $this->shop : null, $localProduct);
         $this->localProduct = $localProduct;
         if (null !== $localProduct) {
             $this->productReference = null;
@@ -118,6 +121,16 @@ class MerchantProduct
     public function hasExactlyOneProductSource(): bool
     {
         return (null !== $this->productReference) xor (null !== $this->localProduct);
+    }
+
+    #[Assert\IsTrue(message: 'MERCHANT_PRODUCT_LOCAL_SOURCE_SHOP_INVALID')]
+    public function hasLocalProductBelongsToSameShop(): bool
+    {
+        if (null === $this->localProduct || !isset($this->shop) || !$this->localProduct->hasShop()) {
+            return true;
+        }
+
+        return $this->shop->getId()->equals($this->localProduct->getShop()->getId());
     }
 
     public function getDisplayNameFr(): string
@@ -177,6 +190,17 @@ class MerchantProduct
         }
 
         return $this->localProduct;
+    }
+
+    private function assertLocalProductBelongsToShop(?Shop $shop, ?MerchantLocalProduct $localProduct): void
+    {
+        if (null === $shop || null === $localProduct || !$localProduct->hasShop()) {
+            return;
+        }
+
+        if (!$shop->getId()->equals($localProduct->getShop()->getId())) {
+            throw new \LogicException('Merchant local product must belong to the same shop.');
+        }
     }
 
     private function slugify(string $value): string

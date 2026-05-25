@@ -34,6 +34,7 @@ final class MerchantLocalProductApiTest extends FunctionalApiTestCase
         self::assertArrayHasKey('merchant_product_id', $payload);
         self::assertArrayHasKey('local_product_id', $payload);
         self::assertSame('Harissa maison', $payload['name_fr']);
+        self::assertNull($payload['name_ar']);
         self::assertNull($payload['brand']);
         self::assertSame('Epicerie', $payload['category']);
         self::assertSame('350.000', $payload['volume']);
@@ -154,6 +155,23 @@ final class MerchantLocalProductApiTest extends FunctionalApiTestCase
         $persistedReference = $this->entityManager->getRepository(ProductReference::class)->find($existingReference->getId());
         self::assertInstanceOf(ProductReference::class, $persistedReference);
         self::assertSame(ProductReferenceStatus::Approved, $persistedReference->getStatus());
+    }
+
+    public function testCreatingLocalProductRejectsBlankFrenchNameAfterTrim(): void
+    {
+        $merchant = $this->createUser('merchant-local-product-blank-name@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/local-products', $shop->getId()),
+            $this->validLocalProductPayload(['name_fr' => '   ']),
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame(0, $this->entityManager->getRepository(MerchantLocalProduct::class)->count([]));
+        self::assertSame(0, $this->entityManager->getRepository(MerchantProduct::class)->count([]));
     }
 
     /**

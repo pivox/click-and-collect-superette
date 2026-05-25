@@ -75,6 +75,11 @@ class MerchantLocalProduct
         return $this->shop;
     }
 
+    public function hasShop(): bool
+    {
+        return isset($this->shop);
+    }
+
     public function setShop(Shop $shop): static
     {
         $this->shop = $shop;

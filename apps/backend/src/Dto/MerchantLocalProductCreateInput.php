@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 final readonly class MerchantLocalProductCreateInput
 {
     public function __construct(
-        #[Assert\NotBlank]
+        #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Length(max: 255)]
         #[SerializedName('name_fr')]
         public string $nameFr,

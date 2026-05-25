@@ -80,6 +80,7 @@ final readonly class CreateMerchantLocalProductProcessor implements ProcessorInt
             merchantProductId: $merchantProduct->getId()->toRfc4122(),
             localProductId: $localProduct->getId()->toRfc4122(),
             nameFr: $localProduct->getNameFr(),
+            nameAr: $localProduct->getNameAr(),
             brand: $localProduct->getBrandName(),
             category: $localProduct->getCatalogCategoryName(),
             volume: $localProduct->getVolume(),

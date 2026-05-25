@@ -42,15 +42,23 @@ final class Version20260525120000 extends AbstractMigration
         $this->addSql('COMMENT ON COLUMN merchant_products.local_product_id IS \'(DC2Type:uuid)\'');
         $this->addSql('ALTER TABLE merchant_products ADD CONSTRAINT FK_MERCHANT_PRODUCTS_LOCAL_PRODUCT FOREIGN KEY (local_product_id) REFERENCES merchant_local_products (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('CREATE INDEX IDX_MERCHANT_PRODUCTS_LOCAL_PRODUCT ON merchant_products (local_product_id)');
-        $this->addSql('CREATE UNIQUE INDEX UNIQ_MERCHANT_PRODUCTS_SHOP_LOCAL ON merchant_products (shop_id, local_product_id)');
+        $this->addSql('CREATE UNIQUE INDEX UNIQ_MERCHANT_PRODUCTS_LOCAL_PRODUCT ON merchant_products (local_product_id)');
         $this->addSql('ALTER TABLE merchant_products ADD CONSTRAINT CHK_MERCHANT_PRODUCTS_EXACTLY_ONE_SOURCE CHECK ((product_reference_id IS NOT NULL AND local_product_id IS NULL) OR (product_reference_id IS NULL AND local_product_id IS NOT NULL))');
     }
 
     public function down(Schema $schema): void
     {
+        $this->abortIf(
+            false !== $this->connection->fetchOne('SELECT 1 FROM kadhia_lines kl INNER JOIN merchant_products mp ON mp.id = kl.merchant_product_id WHERE mp.product_reference_id IS NULL LIMIT 1'),
+            'Cannot rollback merchant local products while local products are present in Kadhia lines.',
+        );
+        $this->abortIf(
+            false !== $this->connection->fetchOne('SELECT 1 FROM order_lines ol INNER JOIN merchant_products mp ON mp.id = ol.merchant_product_id WHERE mp.product_reference_id IS NULL LIMIT 1'),
+            'Cannot rollback merchant local products while local products are present in order history.',
+        );
         $this->addSql('DELETE FROM merchant_products WHERE product_reference_id IS NULL');
         $this->addSql('ALTER TABLE merchant_products DROP CONSTRAINT CHK_MERCHANT_PRODUCTS_EXACTLY_ONE_SOURCE');
-        $this->addSql('DROP INDEX UNIQ_MERCHANT_PRODUCTS_SHOP_LOCAL');
+        $this->addSql('DROP INDEX UNIQ_MERCHANT_PRODUCTS_LOCAL_PRODUCT');
         $this->addSql('DROP INDEX IDX_MERCHANT_PRODUCTS_LOCAL_PRODUCT');
         $this->addSql('ALTER TABLE merchant_products DROP CONSTRAINT FK_MERCHANT_PRODUCTS_LOCAL_PRODUCT');
         $this->addSql('ALTER TABLE merchant_products DROP local_product_id');

@@ -42,7 +42,11 @@ final readonly class DeleteMerchantCatalogProductProcessor implements ProcessorI
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($merchantProduct->getShop());
 
+        $localProduct = $merchantProduct->getLocalProduct();
         $this->entityManager->remove($merchantProduct);
+        if (null !== $localProduct) {
+            $this->entityManager->remove($localProduct);
+        }
         $this->entityManager->flush();
     }
 }

@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\MerchantLocalProduct;
 use App\Entity\MerchantProduct;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
@@ -92,6 +93,32 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         $deleteResponse = $this->requestJson('DELETE', \sprintf('/api/merchant/catalog/%s', $createdMerchantProduct->getId()), user: $merchant);
         self::assertSame(204, $deleteResponse->getStatusCode());
         self::assertSame(0, $this->entityManager->getRepository(MerchantProduct::class)->count(['shop' => $shop]));
+    }
+
+    public function testDeletingLocalCatalogProductRemovesLocalProduct(): void
+    {
+        $merchant = $this->createUser('merchant-local-catalog-delete@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $localProduct = (new MerchantLocalProduct())
+            ->setShop($shop)
+            ->setNameFr('Produit local à supprimer')
+            ->setUnit(ProductUnit::Piece);
+        $merchantProduct = (new MerchantProduct())
+            ->setShop($shop)
+            ->setLocalProduct($localProduct)
+            ->setPriceTnd('2.000');
+
+        $this->entityManager->persist($localProduct);
+        $this->entityManager->persist($merchantProduct);
+        $this->entityManager->flush();
+        $merchantProductId = $merchantProduct->getId();
+        $localProductId = $localProduct->getId();
+
+        $deleteResponse = $this->requestJson('DELETE', \sprintf('/api/merchant/catalog/%s', $merchantProductId), user: $merchant);
+
+        self::assertSame(204, $deleteResponse->getStatusCode());
+        self::assertNull($this->entityManager->getRepository(MerchantProduct::class)->find($merchantProductId));
+        self::assertNull($this->entityManager->getRepository(MerchantLocalProduct::class)->find($localProductId));
     }
 
     public function testNonOwnerMerchantIsDeniedOnCatalogRoutes(): void
