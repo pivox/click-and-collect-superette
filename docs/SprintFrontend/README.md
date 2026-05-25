@@ -1,10 +1,10 @@
-# Sprint Frontend — Backoffice admin et design system
+# Sprint Frontend — Backoffice admin, parcours client et front marchand
 
 ## Objectif
 
-Livrer l'interface d'administration Kadhia permettant aux opérateurs plateforme de gérer les marchands, supérettes, le référentiel produits et de consulter l'audit trail, sans accès direct à la base de données.
+Livrer les interfaces frontend Kadhia nécessaires au MVP : parcours client mobile-first, backoffice admin et front marchand opérationnel, sans accès direct à la base de données.
 
-Ce sprint frontend consume les API backend livrées en Sprint 5 (admin CRUD) et Sprint 7 (audit trail).
+Ce sprint frontend consume les API backend livrées en Sprint 4 (commandes, suivi, retrait), Sprint 5 (admin CRUD) et Sprint 7 (audit trail), puis prépare les prochains chantiers marchand autour du catalogue, des créneaux et des paramètres.
 
 ## État actuel
 
@@ -23,10 +23,21 @@ Ce sprint frontend consume les API backend livrées en Sprint 5 (admin CRUD) et 
   - Audit logs (lecture seule, filtre UUID admin)
   - Dashboard 4 KPI réels
 
+- **Front marchand — socle opérationnel commandes** — livré. PRs #134, #135, #136, #138, #139.
+  - Connexion marchand, contexte marchand, shell, dashboard et commandes actives
+  - Détail commande et actions jusqu'à `ready`
+  - Retrait sécurisé par token QR, confirmation marchand et force completion
+  - Historique commandes avec filtres "À retirer" / "Clôturées" et pagination
+  - Notifications marchand avec badge non lu, filtres, rafraîchissement manuel et marquage lu
+
 ## Fonctionnalités prévues
 
-- Parcours client complet (scan QR, commande, suivi, retrait)
-- Interface marchand (commandes reçues, préparation, validation retrait)
+- Gestion catalogue marchand
+- Créneaux, horaires et fermetures marchand
+- Onboarding marchand guidé
+- QR code magasin marchand
+- Paramètres et thème supérette
+- Export CSV commandes côté UI
 - PWA installable et mode hors ligne
 - Accessibilité WCAG 2.1 AA
 - Localisation FR/AR avec RTL
