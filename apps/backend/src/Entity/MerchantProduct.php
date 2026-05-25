@@ -34,6 +34,10 @@ class MerchantProduct
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?MerchantLocalProduct $localProduct = null;
 
+    #[ORM\ManyToOne(targetEntity: MerchantCategory::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?MerchantCategory $merchantCategory = null;
+
     // Price owned by the merchant offer, not the shared product reference.
     #[ORM\Column(type: 'decimal', precision: 10, scale: 3)]
     #[Assert\NotNull]
@@ -81,6 +85,7 @@ class MerchantProduct
     public function setShop(Shop $shop): static
     {
         $this->assertLocalProductBelongsToShop($shop, $this->localProduct);
+        $this->assertMerchantCategoryBelongsToShop($shop, $this->merchantCategory);
         $this->shop = $shop;
 
         return $this;
@@ -113,6 +118,28 @@ class MerchantProduct
         if (null !== $localProduct) {
             $this->productReference = null;
         }
+
+        return $this;
+    }
+
+    public function getMerchantCategory(): ?MerchantCategory
+    {
+        return $this->merchantCategory;
+    }
+
+    public function getActiveMerchantCategory(): ?MerchantCategory
+    {
+        if (null === $this->merchantCategory || !$this->merchantCategory->isActive()) {
+            return null;
+        }
+
+        return $this->merchantCategory;
+    }
+
+    public function setMerchantCategory(?MerchantCategory $merchantCategory): static
+    {
+        $this->assertMerchantCategoryBelongsToShop(isset($this->shop) ? $this->shop : null, $merchantCategory);
+        $this->merchantCategory = $merchantCategory;
 
         return $this;
     }
@@ -150,16 +177,31 @@ class MerchantProduct
 
     public function getDisplayCategoryName(): string
     {
+        $merchantCategory = $this->getActiveMerchantCategory();
+        if (null !== $merchantCategory) {
+            return $merchantCategory->getNameFr();
+        }
+
         return $this->productReference?->getCategory()->getNameFr() ?? $this->requireLocalProduct()->getCatalogCategoryName();
     }
 
     public function getDisplayCategoryNameAr(): ?string
     {
+        $merchantCategory = $this->getActiveMerchantCategory();
+        if (null !== $merchantCategory) {
+            return $merchantCategory->getNameAr();
+        }
+
         return $this->productReference?->getCategory()->getNameAr();
     }
 
     public function getDisplayCategorySlug(): string
     {
+        $merchantCategory = $this->getActiveMerchantCategory();
+        if (null !== $merchantCategory) {
+            return $merchantCategory->getSlug();
+        }
+
         $referenceCategory = $this->productReference?->getCategory();
         if (null !== $referenceCategory) {
             return $referenceCategory->getSlug();
@@ -200,6 +242,17 @@ class MerchantProduct
 
         if (!$shop->getId()->equals($localProduct->getShop()->getId())) {
             throw new \LogicException('Merchant local product must belong to the same shop.');
+        }
+    }
+
+    private function assertMerchantCategoryBelongsToShop(?Shop $shop, ?MerchantCategory $merchantCategory): void
+    {
+        if (null === $shop || null === $merchantCategory) {
+            return;
+        }
+
+        if (!$shop->getId()->equals($merchantCategory->getShop()->getId())) {
+            throw new \LogicException('Merchant category must belong to the same shop.');
         }
     }
 
