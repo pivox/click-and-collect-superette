@@ -26,7 +26,7 @@ export async function listCatalog(q: CatalogQuery): Promise<ProductOffer[]> {
     return mockDelay(items);
   }
   const { data } = await apiClient.get<ProductOffer[]>(
-    `/shops/${q.shopId}/catalog`,
+    `/api/stores/${q.shopId}/products`,
     { params: { category: q.category, search: q.search } },
   );
   return data;

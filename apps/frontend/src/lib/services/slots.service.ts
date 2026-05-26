@@ -12,7 +12,7 @@ export async function listSlotsForShop(
     return mockDelay(MOCK_SLOTS_TODAY);
   }
   const { data } = await apiClient.get<PickupSlot[]>(
-    `/shops/${shopId}/slots`,
+    `/api/stores/${shopId}/pickup-slots`,
     { params: { date } },
   );
   return data;

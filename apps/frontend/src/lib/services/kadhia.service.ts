@@ -60,7 +60,7 @@ export async function getCurrentKadhia(shopId: string): Promise<Kadhia> {
     write(fresh);
     return mockDelay(fresh);
   }
-  const { data } = await apiClient.get<Kadhia>(`/shops/${shopId}/kadhia`);
+  const { data } = await apiClient.get<Kadhia>(`/api/shops/${shopId}/kadhia`);
   return data;
 }
 
@@ -86,7 +86,7 @@ export async function addLine(
     return mockDelay(next);
   }
   const { data } = await apiClient.post<Kadhia>(
-    `/shops/${shopId}/kadhia/lines`,
+    `/api/shops/${shopId}/kadhia/lines`,
     { productOfferId: product.id, quantity },
   );
   return data;
@@ -115,7 +115,7 @@ export async function updateLineQuantity(
     return mockDelay(next);
   }
   const { data } = await apiClient.patch<Kadhia>(
-    `/shops/${shopId}/kadhia/lines/${lineId}`,
+    `/api/shops/${shopId}/kadhia/lines/${lineId}`,
     { quantity },
   );
   return data;
@@ -126,7 +126,7 @@ export async function clearKadhia(): Promise<void> {
     write(null);
     return;
   }
-  await apiClient.delete(`/kadhia/current`);
+  await apiClient.delete(`/api/kadhia/current`);
 }
 
 export interface SubmitKadhiaParams {
