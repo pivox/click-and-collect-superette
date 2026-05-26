@@ -55,12 +55,12 @@ class ShopRepository extends ServiceEntityRepository
             ->orderBy('s.name', 'ASC');
 
         if (null !== $query) {
-            $qb->andWhere('LOWER(s.name) LIKE LOWER(:query) OR LOWER(s.city) LIKE LOWER(:query)')
+            $qb->andWhere('LOWER(UNACCENT(s.name)) LIKE LOWER(UNACCENT(:query)) OR LOWER(UNACCENT(s.city)) LIKE LOWER(UNACCENT(:query))')
                ->setParameter('query', '%'.$query.'%');
         }
 
         if (null !== $city) {
-            $qb->andWhere('LOWER(s.city) = LOWER(:city)')
+            $qb->andWhere('LOWER(UNACCENT(s.city)) = LOWER(UNACCENT(:city))')
                ->setParameter('city', $city);
         }
 
