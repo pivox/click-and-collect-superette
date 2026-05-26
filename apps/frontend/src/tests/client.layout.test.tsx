@@ -2,7 +2,10 @@ import { render } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/' }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 vi.mock('@/components/layout/MobileShell', () => ({
   MobileShell: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="mobile-shell">{children}</div>
