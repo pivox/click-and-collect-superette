@@ -1,0 +1,35 @@
+import { render, screen } from '@testing-library/react';
+import React from 'react';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+vi.mock('@/components/layout/DesktopNav', () => ({
+  DesktopNav: () => <aside data-testid="desktop-nav" />,
+}));
+vi.mock('@/components/layout/BottomNav', () => ({
+  BottomNav: () => <nav data-testid="bottom-nav" />,
+}));
+
+import ClientLayout from '@/app/(client)/layout';
+
+describe('ClientLayout', () => {
+  it('rend la DesktopNav et la BottomNav', () => {
+    render(<ClientLayout>page</ClientLayout>);
+    expect(screen.getByTestId('desktop-nav')).toBeTruthy();
+    expect(screen.getByTestId('bottom-nav')).toBeTruthy();
+  });
+
+  it('rend les children une seule fois', () => {
+    const { container } = render(<ClientLayout><span data-testid="child">content</span></ClientLayout>);
+    expect(container.querySelectorAll('[data-testid="child"]')).toHaveLength(1);
+  });
+
+  it('les children sont dans un <main>', () => {
+    const { container } = render(<ClientLayout>page</ClientLayout>);
+    expect(container.querySelector('main')).toBeTruthy();
+    expect(container.querySelector('main')?.textContent).toContain('page');
+  });
+});

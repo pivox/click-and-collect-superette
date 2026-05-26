@@ -7,28 +7,70 @@ import { Pill, PillRow } from "@/components/ui/Pill";
 import { SlotTile } from "@/components/ui/SlotTile";
 import { Button } from "@/components/ui/Button";
 import { StickyBottom } from "@/components/layout/StickyBottom";
-import { listSlotsForShop } from "@/lib/services";
+import { listSlotsForShop, submitKadhia, readLocalKadhia } from "@/lib/services";
 import { formatTime } from "@/lib/format";
 import type { PickupSlot } from "@/types";
-
-const DEMO_SHOP_ID = "shop-el-amel";
+import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 
 export default function SlotPage() {
   const router = useRouter();
+  const { user, isLoading } = useClientAuth();
+  const [shopId, setShopId] = useState<string | null>(null);
   const [slots, setSlots] = useState<PickupSlot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [day, setDay] = useState<"today" | "tomorrow" | "after">("today");
   const [note, setNote] = useState(
     "Si un produit est absent, remplacer par une marque proche.",
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    void listSlotsForShop(DEMO_SHOP_ID, day).then((s) => {
+    if (!isLoading && !user) {
+      router.push('/login?redirect=/kadhia/slot');
+    }
+  }, [isLoading, user, router]);
+
+  useEffect(() => {
+    if (isLoading || !user) return;
+    const kadhia = readLocalKadhia();
+    if (!kadhia?.shopId) {
+      router.push('/kadhia');
+      return;
+    }
+    setShopId(kadhia.shopId);
+  }, [isLoading, user, router]);
+
+  useEffect(() => {
+    if (isLoading || !user || !shopId) return;
+    void listSlotsForShop(shopId, day).then((s) => {
       setSlots(s);
       const firstAvail = s.find((x) => x.available);
       setActiveId(firstAvail?.id ?? null);
     });
-  }, [day]);
+  }, [day, isLoading, user, shopId]);
+
+  const handleSubmit = async () => {
+    if (!activeId || !shopId) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const result = await submitKadhia({
+        shopId,
+        pickupSlotId: activeId,
+        customerNote: note.trim() || undefined,
+      });
+      router.push(`/orders/${result.orderCode}`);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'Erreur lors de la soumission',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading || !user) return null;
 
   return (
     <>
@@ -80,15 +122,17 @@ export default function SlotPage() {
       </section>
 
       <StickyBottom>
+        {submitError && (
+          <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+            {submitError}
+          </p>
+        )}
         <Button
           full
-          disabled={!activeId}
-          onClick={() => {
-            if (!activeId) return;
-            router.push("/orders/CMD-4821");
-          }}
+          disabled={!activeId || !shopId || isSubmitting}
+          onClick={handleSubmit}
         >
-          Envoyer la commande
+          {isSubmitting ? 'Envoi en cours…' : 'Envoyer la commande'}
         </Button>
       </StickyBottom>
     </>

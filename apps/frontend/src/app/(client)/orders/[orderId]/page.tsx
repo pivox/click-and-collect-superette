@@ -30,42 +30,64 @@ export default async function OrderTrackingPage({
         backHref="/orders"
       />
 
-      <Card>
-        <Badge tone={badge.tone}>{badge.label}</Badge>
-        <div className="mt-3">
-          <Summary>
-            <SummaryRow
-              label="Retrait"
-              value={
-                order.pickupSlot
-                  ? `Aujourd'hui · ${formatTime(order.pickupSlot.startsAt)}`
-                  : "—"
-              }
-            />
-            <SummaryRow
-              label="Total"
-              value={formatTnd(order.totalAmountTnd)}
-            />
-            <SummaryRow label="Code" value={order.code} />
-          </Summary>
+      <div className="md:grid md:grid-cols-2 md:gap-5 md:items-start">
+        {/* Colonne gauche : timeline */}
+        <div>
+          <Card>
+            <Badge tone={badge.tone}>{badge.label}</Badge>
+            <div className="mt-3">
+              <Summary>
+                <SummaryRow
+                  label="Retrait"
+                  value={
+                    order.pickupSlot
+                      ? `Aujourd'hui · ${formatTime(order.pickupSlot.startsAt)}`
+                      : "—"
+                  }
+                />
+                <SummaryRow
+                  label="Total"
+                  value={formatTnd(order.totalAmountTnd)}
+                />
+                <SummaryRow label="Code" value={order.code} />
+              </Summary>
+            </div>
+          </Card>
+
+          <section className="mt-4">
+            <h3 className="mb-2.5 text-h3 font-extrabold">Suivi</h3>
+            <Card>
+              <Timeline steps={steps} />
+            </Card>
+          </section>
         </div>
-      </Card>
 
-      <section className="mt-4">
-        <h3 className="mb-2.5 text-h3 font-extrabold">Suivi</h3>
-        <Card>
-          <Timeline steps={steps} />
-        </Card>
-      </section>
+        {/* Colonne droite : note + CTA */}
+        <div>
+          {order.customerNote && (
+            <section className="mt-4 md:mt-0">
+              <h3 className="mb-2.5 text-h3 font-extrabold">Ta note</h3>
+              <Card className="text-sm text-muted">{order.customerNote}</Card>
+            </section>
+          )}
 
-      {order.customerNote && (
-        <section className="mt-4">
-          <h3 className="mb-2.5 text-h3 font-extrabold">Ta note</h3>
-          <Card className="text-sm text-muted">{order.customerNote}</Card>
-        </section>
-      )}
+          {/* CTA inline sur desktop */}
+          <div className="hidden md:block mt-4">
+            {showQrCta ? (
+              <Link href={`/orders/${order.code}/pickup`}>
+                <Button full>Afficher le QR retrait</Button>
+              </Link>
+            ) : (
+              <Button full disabled>
+                QR retrait — disponible quand prête
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
 
-      <StickyBottom>
+      {/* CTA sticky sur mobile */}
+      <StickyBottom className="md:hidden">
         {showQrCta ? (
           <Link href={`/orders/${order.code}/pickup`}>
             <Button full>Afficher le QR retrait</Button>

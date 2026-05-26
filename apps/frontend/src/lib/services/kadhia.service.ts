@@ -46,6 +46,11 @@ function makeLine(p: ProductOffer, quantity: number): KadhiaLine {
   };
 }
 
+/** Read the current kadhia's shopId from localStorage (works in both mock and real modes). */
+export function readLocalKadhia(): Kadhia | null {
+  return read();
+}
+
 export async function getCurrentKadhia(shopId: string): Promise<Kadhia> {
   if (USE_MOCKS) {
     const existing = read();
@@ -60,7 +65,7 @@ export async function getCurrentKadhia(shopId: string): Promise<Kadhia> {
     write(fresh);
     return mockDelay(fresh);
   }
-  const { data } = await apiClient.get<Kadhia>(`/shops/${shopId}/kadhia`);
+  const { data } = await apiClient.get<Kadhia>(`/api/me/stores/${shopId}/kadhias`);
   return data;
 }
 
@@ -85,9 +90,10 @@ export async function addLine(
     write(next);
     return mockDelay(next);
   }
-  const { data } = await apiClient.post<Kadhia>(
-    `/shops/${shopId}/kadhia/lines`,
-    { productOfferId: product.id, quantity },
+  const kadhia = await getCurrentKadhia(shopId);
+  const { data } = await apiClient.put<Kadhia>(
+    `/api/me/kadhias/${kadhia.id}/lines/${product.id}`,
+    { quantity },
   );
   return data;
 }
@@ -114,17 +120,88 @@ export async function updateLineQuantity(
     write(next);
     return mockDelay(next);
   }
+  const kadhia = await getCurrentKadhia(shopId);
   const { data } = await apiClient.patch<Kadhia>(
-    `/shops/${shopId}/kadhia/lines/${lineId}`,
+    `/api/me/kadhias/${kadhia.id}/lines/${lineId}`,
     { quantity },
   );
   return data;
 }
 
-export async function clearKadhia(): Promise<void> {
+export async function clearKadhia(shopId?: string): Promise<void> {
   if (USE_MOCKS) {
     write(null);
     return;
   }
-  await apiClient.delete(`/kadhia/current`);
+  // Resolve shopId from localStorage if not provided
+  const sid = shopId ?? read()?.shopId;
+  if (sid) {
+    const kadhia = await getCurrentKadhia(sid).catch(() => null);
+    if (kadhia?.id) {
+      await apiClient.delete(`/api/me/kadhias/${kadhia.id}`).catch(() => undefined);
+    }
+  }
+  write(null);
+}
+
+export interface SubmitKadhiaParams {
+  shopId: string;
+  pickupSlotId: string;
+  customerNote?: string;
+}
+
+export interface SubmittedOrder {
+  orderId: string;
+  orderCode: string;
+}
+
+const MOCK_SUBMIT_ORDER_ID = 'order-demo-4821';
+
+export async function submitKadhia(params: SubmitKadhiaParams): Promise<SubmittedOrder> {
+  const { shopId, pickupSlotId, customerNote } = params;
+
+  if (USE_MOCKS) {
+    write(null);
+    return mockDelay({ orderId: MOCK_SUBMIT_ORDER_ID, orderCode: 'CMD-4821' });
+  }
+
+  // 1. Read Kadhia from localStorage
+  const local = read();
+  if (!local || local.lines.length === 0) {
+    throw new Error('Kadhia vide');
+  }
+
+  // 2. Create Kadhia on backend
+  const { data: backendKadhia } = await apiClient.post<{ id: string }>(
+    `/api/me/stores/${shopId}/kadhias`,
+    {},
+  );
+
+  try {
+    // 3. Sync lines in parallel
+    await Promise.all(
+      local.lines.map((line) =>
+        apiClient.put(
+          `/api/me/kadhias/${backendKadhia.id}/lines/${line.productOffer.id}`,
+          { quantity: line.quantity },
+        ),
+      ),
+    );
+
+    // 4. Submit
+    const { data: order } = await apiClient.post<{ id: string; code: string }>(
+      `/api/me/kadhias/${backendKadhia.id}/submit`,
+      { pickupSlotId, customerNote },
+    );
+
+    // 5. Clear localStorage
+    write(null);
+
+    return { orderId: order.id, orderCode: order.code };
+  } catch (err) {
+    // Clean up the orphaned backend Kadhia if sync or submit fails.
+    // localStorage remains intact so the user can retry.
+    await apiClient.delete(`/api/me/kadhias/${backendKadhia.id}`).catch(() => undefined);
+    throw err;
+  }
 }

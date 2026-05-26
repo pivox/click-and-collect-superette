@@ -1,23 +1,24 @@
 import type { Metadata } from "next";
-import { MobileShell } from "@/components/layout/MobileShell";
+import { DesktopNav } from "@/components/layout/DesktopNav";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { ClientAuthProvider } from "@/lib/auth/ClientAuthContext";
 
 export const metadata: Metadata = {
-  title: "Kadhia · Parcours client",
+  title: "Kadhia · Click & Collect",
 };
 
-/**
- * Client-side mobile shell layout. Wraps every customer-facing screen in
- * the phone frame and adds the bottom tab bar. The home, store, catalog,
- * cart, slot, tracking and pickup pages all share this layout.
- *
- * Switch `bareLayout` to `true` to drop the bezel for PWA / native builds.
- */
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
-    <MobileShell>
-      {children}
+    <ClientAuthProvider>
+      {/* Responsive grid: sidebar (md+) + main. Children rendered once. */}
+      <div className="min-h-screen md:grid md:grid-cols-[280px_1fr]">
+        <DesktopNav />
+        <main className="relative px-4 pt-4 pb-24 md:p-7">
+          {children}
+        </main>
+      </div>
+      {/* Bottom navigation — hidden on desktop via BottomNav's own md:hidden */}
       <BottomNav />
-    </MobileShell>
+    </ClientAuthProvider>
   );
 }

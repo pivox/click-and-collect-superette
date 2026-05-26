@@ -6,6 +6,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Pill, PillRow } from "@/components/ui/Pill";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ProductCard } from "@/components/product/ProductCard";
+import { KadhiaPanel } from "@/components/product/KadhiaPanel";
 import { ShoppingBasket } from "lucide-react";
 import {
   addLine,
@@ -13,7 +14,7 @@ import {
   getShop,
   listCatalog,
 } from "@/lib/services";
-import type { ProductOffer, Shop } from "@/types";
+import type { Kadhia, ProductOffer, Shop } from "@/types";
 import { PRODUCT_CATEGORIES } from "@/lib/mock/products.mock";
 
 export default function CatalogPage({
@@ -22,12 +23,10 @@ export default function CatalogPage({
   params: { shopId: string };
 }) {
   const { shopId } = params;
-  const [category, setCategory] = useState<
-    "all" | ProductOffer["category"]
-  >("all");
+  const [category, setCategory] = useState<"all" | ProductOffer["category"]>("all");
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<ProductOffer[]>([]);
-  const [cartCount, setCartCount] = useState(0);
+  const [kadhia, setKadhia] = useState<Kadhia | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
 
   useEffect(() => {
@@ -35,9 +34,7 @@ export default function CatalogPage({
   }, [shopId, category, search]);
 
   useEffect(() => {
-    void getCurrentKadhia(shopId).then((k) =>
-      setCartCount(k.lines.reduce((acc, l) => acc + l.quantity, 0)),
-    );
+    void getCurrentKadhia(shopId).then(setKadhia);
   }, [shopId]);
 
   useEffect(() => {
@@ -46,13 +43,17 @@ export default function CatalogPage({
 
   const onAdd = async (p: ProductOffer) => {
     const next = await addLine(shopId, p, 1);
-    setCartCount(next.lines.reduce((acc, l) => acc + l.quantity, 0));
+    setKadhia(next);
   };
 
-  const cartLabel = useMemo(
-    () => (cartCount === 0 ? "Kadhia vide" : `${cartCount} article${cartCount > 1 ? "s" : ""}`),
-    [cartCount],
+  const cartCount = useMemo(
+    () => kadhia?.lines.reduce((acc, l) => acc + l.quantity, 0) ?? 0,
+    [kadhia],
   );
+
+  const cartLabel = cartCount === 0
+    ? "Kadhia vide"
+    : `${cartCount} article${cartCount > 1 ? "s" : ""}`;
 
   return (
     <>
@@ -64,7 +65,7 @@ export default function CatalogPage({
           <Link
             href="/kadhia"
             aria-label="Voir ma Kadhia"
-            className="relative grid h-10 w-10 place-items-center rounded-[15px] border border-line bg-card shadow-[0_8px_18px_rgba(18,30,20,.06)]"
+            className="relative grid h-10 w-10 place-items-center rounded-[15px] border border-line bg-card shadow-[0_8px_18px_rgba(18,30,20,.06)] md:hidden"
           >
             <ShoppingBasket size={18} />
             {cartCount > 0 && (
@@ -95,22 +96,26 @@ export default function CatalogPage({
         ))}
       </PillRow>
 
-      <section>
-        <header className="mb-2.5 flex items-baseline justify-between">
-          <h3 className="m-0 text-h3 font-extrabold">Produits</h3>
-          <Link
-            href="/kadhia"
-            className="text-xs font-extrabold text-primary"
-          >
-            {cartLabel}
-          </Link>
-        </header>
-        <div className="grid grid-cols-2 gap-2.5">
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} onAdd={onAdd} />
-          ))}
+      {/* Desktop : catalogue + KadhiaPanel sticky */}
+      <div className="md:grid md:grid-cols-[1fr_360px] md:gap-5 md:items-start">
+        <section>
+          <header className="mb-2.5 flex items-baseline justify-between">
+            <h3 className="m-0 text-h3 font-extrabold">Produits</h3>
+            <Link href="/kadhia" className="text-xs font-extrabold text-primary md:hidden">
+              {cartLabel}
+            </Link>
+          </header>
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
+            {products.map((p) => (
+              <ProductCard key={p.id} product={p} onAdd={onAdd} />
+            ))}
+          </div>
+        </section>
+
+        <div className="hidden md:block">
+          <KadhiaPanel kadhia={kadhia} />
         </div>
-      </section>
+      </div>
     </>
   );
 }

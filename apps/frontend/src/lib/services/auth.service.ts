@@ -34,3 +34,34 @@ export async function adminLogin(email: string, password: string): Promise<Admin
     name: typeof payload.name === 'string' ? payload.name : email,
   };
 }
+
+export interface ClientUser {
+  token: string;
+  email: string;
+  name: string;
+}
+
+export async function clientLogin(email: string, password: string): Promise<ClientUser> {
+  const { data } = await apiClient.post<{ token: string }>('/api/auth/login', {
+    email,
+    password,
+  });
+  const payload = decodeJwtPayload(data.token);
+  const roles = Array.isArray(payload.roles) ? (payload.roles as string[]) : [];
+  if (!roles.includes('ROLE_CUSTOMER')) {
+    throw new Error('Accès réservé aux clients');
+  }
+  return {
+    token: data.token,
+    email: typeof payload.email === 'string' ? payload.email : email,
+    name: typeof payload.name === 'string' ? payload.name : email,
+  };
+}
+
+export async function clientRegister(
+  email: string,
+  password: string,
+  name: string,
+): Promise<void> {
+  await apiClient.post('/api/auth/register', { email, password, name });
+}
