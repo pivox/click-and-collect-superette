@@ -30,7 +30,14 @@ function LoginForm() {
       await login(email, password);
       router.push(redirect);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Identifiants incorrects');
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === 401) {
+        setError('Email ou mot de passe incorrect.');
+      } else if (status === 429) {
+        setError('Trop de tentatives. Réessaie dans quelques minutes.');
+      } else {
+        setError('Une erreur est survenue. Réessaie plus tard.');
+      }
     } finally {
       setIsSubmitting(false);
     }
