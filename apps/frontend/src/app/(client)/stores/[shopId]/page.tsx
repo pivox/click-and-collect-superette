@@ -41,7 +41,7 @@ export default async function StoreDetailPage({
             <Card compact>
               <strong className="block text-sm">Horaires</strong>
               <span className="mt-1 block text-xs text-muted">
-                {shop.opensAt} — {shop.closesAt}
+                {shop.opensAt && shop.closesAt ? `${shop.opensAt} — ${shop.closesAt}` : "—"}
               </span>
             </Card>
             <Card compact>
