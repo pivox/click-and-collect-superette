@@ -6,19 +6,15 @@ import {
   Home,
   Search,
   ShoppingBasket,
-  Clock,
   ClipboardList,
-  QrCode,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const NAV = [
-  { href: "/desktop", label: "Accueil", icon: Home },
-  { href: "/desktop/catalog", label: "Catalogue", icon: Search },
-  { href: "/desktop/kadhia", label: "Ma Kadhia", icon: ShoppingBasket },
-  { href: "/desktop/slot", label: "Créneau", icon: Clock },
-  { href: "/desktop/orders", label: "Commande", icon: ClipboardList },
-  { href: "/desktop/pickup", label: "QR retrait", icon: QrCode },
+  { href: "/",        label: "Accueil",    icon: Home },
+  { href: "/stores",  label: "Stores",     icon: Search },
+  { href: "/kadhia",  label: "Ma Kadhia",  icon: ShoppingBasket },
+  { href: "/orders",  label: "Commandes",  icon: ClipboardList },
 ] as const;
 
 /**
@@ -34,7 +30,7 @@ export function DesktopShell({
   featuredShopName?: string;
   featuredShopHours?: string;
 }) {
-  const pathname = usePathname() ?? "/desktop";
+  const pathname = usePathname() ?? "/";
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-[280px_1fr]">
       <aside className="sticky top-0 hidden h-screen overflow-y-auto border-r border-line bg-white p-6 md:block">
