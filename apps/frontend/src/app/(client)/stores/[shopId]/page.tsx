@@ -16,6 +16,10 @@ export default async function StoreDetailPage({
   const shop = await getShop(params.shopId);
   if (!shop) notFound();
 
+  const badgeText = shop.isActive
+    ? `Ouverte · Retrait dès ${shop.nextPickupAt ?? "—"}`
+    : "Fermée";
+
   return (
     <>
       <TopBar
@@ -24,43 +28,52 @@ export default async function StoreDetailPage({
         backHref="/"
       />
 
-      <Hero
-        badge={
-          shop.isActive
-            ? `Ouverte · Retrait dès ${shop.nextPickupAt ?? "—"}`
-            : "Fermée"
-        }
-        title={shop.name}
-        subtitle="Produits du quotidien, boissons, lait, pâtes, conserves, hygiène et snacks."
-      />
+      {/* Desktop : hero gauche + infos droite */}
+      <div className="md:grid md:grid-cols-[1.3fr_0.7fr] md:gap-5">
+        <Hero
+          badge={badgeText}
+          title={shop.name}
+          subtitle="Produits du quotidien, boissons, lait, pâtes, conserves, hygiène et snacks."
+        />
 
-      <div className="mt-4 grid grid-cols-2 gap-2.5">
-        <Card compact>
-          <strong className="block text-sm">Horaires</strong>
-          <span className="mt-1 block text-xs text-muted">
-            {shop.opensAt} — {shop.closesAt}
-          </span>
-        </Card>
-        <Card compact>
-          <strong className="block text-sm">Distance</strong>
-          <span className="mt-1 block text-xs text-muted">
-            {shop.distanceKm != null ? `${shop.distanceKm} km` : "—"}
-          </span>
-        </Card>
+        <div className="mt-4 md:mt-0 space-y-3">
+          <div className="grid grid-cols-2 gap-2.5">
+            <Card compact>
+              <strong className="block text-sm">Horaires</strong>
+              <span className="mt-1 block text-xs text-muted">
+                {shop.opensAt} — {shop.closesAt}
+              </span>
+            </Card>
+            <Card compact>
+              <strong className="block text-sm">Distance</strong>
+              <span className="mt-1 block text-xs text-muted">
+                {shop.distanceKm != null ? `${shop.distanceKm} km` : "—"}
+              </span>
+            </Card>
+          </div>
+
+          <Card>
+            <Summary>
+              <SummaryRow label="Paiement" value="Sur place" />
+              <SummaryRow
+                label="Créneau"
+                value={shop.nextPickupAt ? `Dès ${shop.nextPickupAt}` : "—"}
+              />
+              <SummaryRow label="Note" value={shop.rating?.toFixed(1) ?? "—"} />
+            </Summary>
+          </Card>
+
+          {/* CTA inline sur desktop */}
+          <div className="hidden md:block">
+            <Link href={`/stores/${shop.id}/catalog`}>
+              <Button full>Commencer ma Kadhia</Button>
+            </Link>
+          </div>
+        </div>
       </div>
 
-      <Card className="mt-4">
-        <Summary>
-          <SummaryRow label="Paiement" value="Sur place" />
-          <SummaryRow
-            label="Créneau"
-            value={shop.nextPickupAt ? `Dès ${shop.nextPickupAt}` : "—"}
-          />
-          <SummaryRow label="Note" value={shop.rating?.toFixed(1) ?? "—"} />
-        </Summary>
-      </Card>
-
-      <StickyBottom>
+      {/* CTA sticky sur mobile */}
+      <StickyBottom className="md:hidden">
         <Link href={`/stores/${shop.id}/catalog`}>
           <Button full>Commencer ma Kadhia</Button>
         </Link>
