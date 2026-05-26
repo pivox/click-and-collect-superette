@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
-import { SearchInput } from "@/components/ui/SearchInput";
+import { StoreSearchCombobox } from "@/components/store/StoreSearchCombobox";
 import { StoreCard } from "@/components/store/StoreCard";
 import { listShops } from "@/lib/services";
 import type { Shop } from "@/types";
@@ -21,7 +21,7 @@ export default async function StoresPage() {
         subtitle="Scan QR ou recherche par nom"
         backHref="/"
       />
-      <SearchInput placeholder="Nom de la supérette, quartier…" className="mb-4 md:max-w-lg" />
+      <StoreSearchCombobox />
       <div className="grid gap-2.5 md:grid-cols-3">
         {shops.map((s) => (
           <StoreCard key={s.id} shop={s} href={`/stores/${s.id}`} />

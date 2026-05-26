@@ -7,8 +7,12 @@ export async function listOrders(): Promise<Order[]> {
   if (USE_MOCKS) {
     return mockDelay([MOCK_ORDER]);
   }
-  const { data } = await apiClient.get<{ 'hydra:member': Order[] }>('/api/me/orders');
-  return data['hydra:member'];
+  try {
+    const { data } = await apiClient.get<{ 'hydra:member': Order[] }>('/api/me/orders');
+    return data['hydra:member'] ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getOrder(orderId: string): Promise<Order | null> {

@@ -48,30 +48,30 @@ const mockKadhiaWithLines: Kadhia = {
 
 describe('KadhiaPanel', () => {
   it('affiche un état vide quand la kadhia est vide', () => {
-    render(<KadhiaPanel kadhia={mockKadhiaEmpty} shopId="shop-1" />);
+    render(<KadhiaPanel kadhia={mockKadhiaEmpty} />);
     expect(screen.getByText(/kadhia vide/i)).toBeTruthy();
   });
 
   it('affiche les lignes quand la kadhia a des articles', () => {
-    render(<KadhiaPanel kadhia={mockKadhiaWithLines} shopId="shop-1" />);
+    render(<KadhiaPanel kadhia={mockKadhiaWithLines} />);
     expect(screen.getByText('Lait Vitalait 1L')).toBeTruthy();
     // fr-FR locale: comma decimal separator
     expect(screen.getByText('6,000 TND')).toBeTruthy();
   });
 
   it('affiche le total', () => {
-    render(<KadhiaPanel kadhia={mockKadhiaWithLines} shopId="shop-1" />);
+    render(<KadhiaPanel kadhia={mockKadhiaWithLines} />);
     expect(screen.getByText(/total/i)).toBeTruthy();
   });
 
   it('le CTA pointe vers /kadhia/slot quand la kadhia a des lignes', () => {
-    render(<KadhiaPanel kadhia={mockKadhiaWithLines} shopId="shop-1" />);
+    render(<KadhiaPanel kadhia={mockKadhiaWithLines} />);
     const cta = screen.getByRole('link', { name: /créneau/i });
     expect(cta.getAttribute('href')).toBe('/kadhia/slot');
   });
 
   it('le CTA est désactivé quand la kadhia est vide', () => {
-    render(<KadhiaPanel kadhia={mockKadhiaEmpty} shopId="shop-1" />);
+    render(<KadhiaPanel kadhia={mockKadhiaEmpty} />);
     const btn = screen.getByRole('button', { name: /créneau/i });
     expect(btn).toBeDisabled();
   });

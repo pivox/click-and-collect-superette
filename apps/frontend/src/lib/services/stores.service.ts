@@ -11,10 +11,16 @@ export async function listShops(): Promise<Shop[]> {
 
 export async function getShop(shopId: string): Promise<Shop | null> {
   if (USE_MOCKS) {
-    return mockDelay(MOCK_SHOPS.find((s) => s.id === shopId) ?? null);
+    const mock = MOCK_SHOPS.find((s) => s.id === shopId);
+    if (mock) return mockDelay(mock);
+    // Real UUID from search: fall through to real API
   }
-  const { data } = await apiClient.get<Shop>(`/api/stores/${shopId}`);
-  return data;
+  try {
+    const { data } = await apiClient.get<Shop>(`/api/stores/${shopId}`);
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 /** For the "shop reconnu après scan" flow — qrToken is the store's qrCodeToken. */
