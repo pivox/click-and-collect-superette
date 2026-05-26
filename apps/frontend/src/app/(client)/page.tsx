@@ -4,9 +4,17 @@ import { Button } from "@/components/ui/Button";
 import { StoreCard } from "@/components/store/StoreCard";
 import { Card } from "@/components/ui/Card";
 import { listShops } from "@/lib/services";
+import type { Shop } from "@/types";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const shops = await listShops();
+  let shops: Shop[] = [];
+  try {
+    shops = await listShops();
+  } catch {
+    // backend unavailable in this env — show empty state
+  }
   const featured = shops.slice(0, 3);
   const featuredShop = shops[0];
 

@@ -3,9 +3,17 @@ import { TopBar } from "@/components/layout/TopBar";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { StoreCard } from "@/components/store/StoreCard";
 import { listShops } from "@/lib/services";
+import type { Shop } from "@/types";
+
+export const dynamic = "force-dynamic";
 
 export default async function StoresPage() {
-  const shops = await listShops();
+  let shops: Shop[] = [];
+  try {
+    shops = await listShops();
+  } catch {
+    // backend unavailable — render empty state
+  }
   return (
     <>
       <TopBar
