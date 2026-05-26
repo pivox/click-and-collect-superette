@@ -6,7 +6,7 @@ import { USE_MOCKS, mockDelay } from "./index";
 export async function listShops(): Promise<Shop[]> {
   if (USE_MOCKS) return mockDelay(MOCK_SHOPS);
   const { data } = await apiClient.get<StoreSearchResult>("/api/stores/search");
-  return data.items.map((item) => ({
+  return (data.items ?? []).map((item) => ({
     id: item.store_id,
     name: item.name,
     slug: item.slug,
