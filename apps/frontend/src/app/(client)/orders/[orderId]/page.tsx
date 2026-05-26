@@ -15,7 +15,12 @@ export default async function OrderTrackingPage({
 }: {
   params: { orderId: string };
 }) {
-  const order = await getOrder(params.orderId);
+  let order;
+  try {
+    order = await getOrder(params.orderId);
+  } catch {
+    notFound();
+  }
   if (!order) notFound();
 
   const badge = orderStatusBadge(order.status);

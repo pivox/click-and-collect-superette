@@ -28,9 +28,13 @@ export default function CatalogPage({
   const [products, setProducts] = useState<ProductOffer[]>([]);
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
   useEffect(() => {
-    void listCatalog({ shopId, category, search }).then(setProducts);
+    setCatalogError(null);
+    void listCatalog({ shopId, category, search })
+      .then(setProducts)
+      .catch(() => setCatalogError("Impossible de charger le catalogue. Veuillez réessayer."));
   }, [shopId, category, search]);
 
   useEffect(() => {
@@ -105,11 +109,15 @@ export default function CatalogPage({
               {cartLabel}
             </Link>
           </header>
-          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} onAdd={onAdd} />
-            ))}
-          </div>
+          {catalogError ? (
+            <p className="py-8 text-center text-sm text-muted">{catalogError}</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
+              {products.map((p) => (
+                <ProductCard key={p.id} product={p} onAdd={onAdd} />
+              ))}
+            </div>
+          )}
         </section>
 
         <div className="hidden md:block">
