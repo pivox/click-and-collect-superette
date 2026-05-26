@@ -102,6 +102,15 @@ final readonly class AdminProductReferenceOutput
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         public string $status,
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[SerializedName('source_import_raw_id')]
+        public ?string $sourceImportRawId,
+        #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[SerializedName('source_name')]
+        public ?string $sourceName,
+        #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[SerializedName('source_url')]
+        public ?string $sourceUrl,
+        #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         #[SerializedName('created_at')]
         public string $createdAt,
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]

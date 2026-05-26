@@ -101,8 +101,13 @@ services:
       dockerfile: docker/scraper/Dockerfile
     container_name: cc_scraper
     working_dir: /workspace
+    environment:
+      SCRAPER_DATABASE_URL: "postgresql://app:app@postgres:5432/clickcollect"
     volumes:
       - .:/workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

@@ -8,6 +8,8 @@ Ce document explique comment alimenter la base de développement avec ~50 000 pr
 
 Les prix sont fictifs, générés aléatoirement en TND. Les données produit (nom, marque, image, nutriscore…) sont réelles et proviennent des bases open data.
 
+Pour le retour d'expérience sur le scraper mg.tn et la table `product_import_raw`, voir `docs/dev-data/mg-tn-scraper-retour-experience.md`. Point important : le flux technique est réservé au développement. Le mode utile pour mg.tn est le crawl catalogue `--site`, qui extrait uniquement les cartes produit avant insertion en staging.
+
 ## Sources utilisées
 
 | Clé   | Source                 | Contenu                          | URL de base                            |

@@ -6,23 +6,55 @@ Usage:
     python scrape_mg_tn.py --pages 3              # scrape 3 pages
     python scrape_mg_tn.py --output articles.json # fichier de sortie JSON
     python scrape_mg_tn.py --csv articles.csv     # export CSV
+    python scrape_mg_tn.py --db                   # insertion PostgreSQL product_import_raw
     python scrape_mg_tn.py --category economie    # section spécifique
+    python scrape_mg_tn.py --site --max-urls 500  # scrape les URLs internes du site
 """
 
 import argparse
 import csv
 import json
 import logging
+import os
 import sys
 import time
-from dataclasses import asdict, dataclass, field
+import xml.etree.ElementTree as ET
+from collections import deque
+from dataclasses import asdict, dataclass
 from typing import Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qsl, urljoin, urlparse, urlunparse
+from uuid import uuid4
 
 import requests
 from bs4 import BeautifulSoup
 
 BASE_URL = "https://mg.tn"
+DEFAULT_DB_SOURCE_NAME = "mg.tn"
+DEFAULT_DATABASE_URL_ENV = "SCRAPER_DATABASE_URL"
+DEFAULT_SITEMAP_URL = "https://mg.tn/sitemap.xml"
+
+PRIVATE_QUERY_KEYS = {
+    "order",
+    "tag",
+    "id_currency",
+    "search_query",
+    "back",
+    "n",
+}
+
+PRIVATE_PATH_PARTS = {
+    "/connexion",
+    "/mon-compte",
+    "/panier",
+    "/commande",
+    "/adresse",
+    "/identite",
+}
+
+STATIC_EXTENSIONS = (
+    ".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg",
+    ".ico", ".pdf", ".zip", ".woff", ".woff2", ".ttf",
+)
 
 HEADERS = {
     "User-Agent": (
@@ -94,6 +126,24 @@ EXCERPT_SELECTORS = [
     "p.excerpt", "div.excerpt",
 ]
 
+PRODUCT_SELECTORS = [
+    "article.product-miniature",
+    ".product-miniature",
+    "article[data-id-product]",
+]
+
+PRODUCT_TITLE_SELECTORS = [
+    ".product-title a[href]",
+    "h2.product-title a[href]",
+    "h3.product-title a[href]",
+]
+
+PRODUCT_PRICE_SELECTORS = [
+    ".price",
+    ".product-price",
+    "[itemprop='price']",
+]
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -114,6 +164,43 @@ class Article:
 
 class GeoBlockedError(Exception):
     pass
+
+
+PRODUCT_IMPORT_RAW_UPSERT_SQL = """
+INSERT INTO product_import_raw (
+    id,
+    source_name,
+    source_url,
+    raw_title,
+    raw_brand,
+    raw_quantity,
+    raw_category,
+    raw_payload,
+    production_usable,
+    created_at,
+    updated_at
+) VALUES (
+    %(id)s,
+    %(source_name)s,
+    %(source_url)s,
+    %(raw_title)s,
+    %(raw_brand)s,
+    %(raw_quantity)s,
+    %(raw_category)s,
+    %(raw_payload)s::json,
+    %(production_usable)s,
+    NOW(),
+    NOW()
+)
+ON CONFLICT (source_name, source_url) DO UPDATE SET
+    raw_title = EXCLUDED.raw_title,
+    raw_brand = EXCLUDED.raw_brand,
+    raw_quantity = EXCLUDED.raw_quantity,
+    raw_category = EXCLUDED.raw_category,
+    raw_payload = EXCLUDED.raw_payload,
+    production_usable = EXCLUDED.production_usable,
+    updated_at = NOW()
+"""
 
 
 def fetch_page(url: str, session: requests.Session, retries: int = 3) -> Optional[BeautifulSoup]:
@@ -157,6 +244,74 @@ def _first_attr(element, selectors: list[str], attr: str) -> Optional[str]:
         if found and found.get(attr):
             return found[attr]
     return None
+
+
+def normalize_site_url(url: str, base_url: str = BASE_URL) -> Optional[str]:
+    absolute = urljoin(base_url, url)
+    parsed = urlparse(absolute)
+    base = urlparse(base_url)
+
+    if parsed.scheme not in ("http", "https"):
+        return None
+    if parsed.netloc != base.netloc:
+        return None
+
+    path = parsed.path or "/"
+    lower_path = path.lower()
+    if lower_path.endswith(STATIC_EXTENSIONS):
+        return None
+    if any(part in lower_path for part in PRIVATE_PATH_PARTS):
+        return None
+
+    query_items = parse_qsl(parsed.query, keep_blank_values=True)
+    if any(key in PRIVATE_QUERY_KEYS or key.startswith("controller") for key, _ in query_items):
+        return None
+
+    query = "&".join(f"{key}={value}" if value else key for key, value in query_items)
+
+    return urlunparse((parsed.scheme, parsed.netloc, path, "", query, ""))
+
+
+def discover_internal_links(soup: BeautifulSoup, base_url: str) -> list[str]:
+    urls: list[str] = []
+    seen: set[str] = set()
+
+    for link in soup.select("a[href]"):
+        normalized = normalize_site_url(link["href"], base_url)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        urls.append(normalized)
+
+    return urls
+
+
+def fetch_sitemap_urls(sitemap_url: str, session: requests.Session, base_url: str) -> list[str]:
+    try:
+        response = session.get(sitemap_url, timeout=20)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        log.warning("Impossible de charger le sitemap %s : %s", sitemap_url, e)
+        return []
+
+    try:
+        root = ET.fromstring(response.text.strip())
+    except ET.ParseError as e:
+        log.warning("Sitemap XML invalide %s : %s", sitemap_url, e)
+        return []
+
+    urls: list[str] = []
+    seen: set[str] = set()
+    for loc in root.findall(".//{*}loc"):
+        if loc.text is None:
+            continue
+        normalized = normalize_site_url(loc.text.strip(), base_url)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        urls.append(normalized)
+
+    return urls
 
 
 def _detect_article_blocks(soup: BeautifulSoup) -> list:
@@ -242,6 +397,83 @@ def parse_articles(soup: BeautifulSoup, base_url: str) -> list[Article]:
     return articles
 
 
+def _page_category(soup: BeautifulSoup) -> Optional[str]:
+    breadcrumb_items = [
+        item.get_text(" ", strip=True)
+        for item in soup.select(".breadcrumb li, nav.breadcrumb li")
+        if item.get_text(strip=True)
+    ]
+    if breadcrumb_items:
+        return breadcrumb_items[-1]
+
+    title = soup.select_one("h1")
+    if title and title.get_text(strip=True):
+        return title.get_text(strip=True)
+
+    return None
+
+
+def parse_products(soup: BeautifulSoup, base_url: str) -> list[Article]:
+    products: list[Article] = []
+    seen_urls: set[str] = set()
+    page_category = _page_category(soup)
+
+    blocks = []
+    for selector in PRODUCT_SELECTORS:
+        blocks = soup.select(selector)
+        if blocks:
+            break
+
+    for block in blocks:
+        link = None
+        for selector in PRODUCT_TITLE_SELECTORS:
+            link = block.select_one(selector)
+            if link:
+                break
+        if not link:
+            continue
+
+        title = link.get_text(" ", strip=True)
+        href = link.get("href")
+        if not title or not href:
+            continue
+
+        normalized = normalize_site_url(href, base_url)
+        if not normalized or normalized in seen_urls:
+            continue
+        seen_urls.add(normalized)
+
+        price = _first_text(block, PRODUCT_PRICE_SELECTORS)
+        image_src = None
+        for selector in IMAGE_SELECTORS:
+            image = block.select_one(selector)
+            if image:
+                image_src = image.get("src") or image.get("data-src") or image.get("data-lazy-src")
+                break
+
+        products.append(Article(
+            title=title,
+            url=normalized,
+            category=page_category,
+            image_url=urljoin(base_url, image_src) if image_src and not image_src.startswith("data:") else None,
+            excerpt=price,
+        ))
+
+    return products
+
+
+def parse_observations(soup: BeautifulSoup, base_url: str) -> list[Article]:
+    products = parse_products(soup, base_url)
+    if products:
+        return products
+
+    return parse_articles(soup, base_url)
+
+
+def parse_site_observations(soup: BeautifulSoup, base_url: str) -> list[Article]:
+    return parse_products(soup, base_url)
+
+
 def build_page_url(base_url: str, category: Optional[str], page: int) -> str:
     if category:
         path = f"/{category.strip('/')}"
@@ -256,12 +488,56 @@ def scrape(
     pages: int = 1,
     category: Optional[str] = None,
     delay: float = 1.5,
+    site: bool = False,
+    max_urls: int = 500,
+    sitemap_url: str = DEFAULT_SITEMAP_URL,
 ) -> list[Article]:
     session = requests.Session()
     session.headers.update(HEADERS)
 
     all_articles: list[Article] = []
     seen_urls: set[str] = set()
+
+    if site:
+        seed_urls = fetch_sitemap_urls(sitemap_url, session, BASE_URL)
+        if not seed_urls:
+            seed_urls = [BASE_URL]
+
+        queue = deque(seed_urls)
+        queued = set(seed_urls)
+        visited: set[str] = set()
+
+        while queue and (max_urls <= 0 or len(visited) < max_urls):
+            url = queue.popleft()
+            if url in visited:
+                continue
+            visited.add(url)
+            log.info("Scraping URL %d/%s : %s", len(visited), max_urls if max_urls > 0 else "∞", url)
+
+            try:
+                soup = fetch_page(url, session)
+            except GeoBlockedError as e:
+                log.error("%s", e)
+                break
+            if soup is None:
+                continue
+
+            page_articles = parse_site_observations(soup, url)
+            new = [a for a in page_articles if a.url not in seen_urls]
+            seen_urls.update(a.url for a in new)
+            all_articles.extend(new)
+            log.info("  → %d observation(s) trouvée(s) (total : %d)", len(new), len(all_articles))
+
+            for discovered_url in discover_internal_links(soup, url):
+                if discovered_url in visited or discovered_url in queued:
+                    continue
+                queue.append(discovered_url)
+                queued.add(discovered_url)
+
+            if delay > 0 and queue and (max_urls <= 0 or len(visited) < max_urls):
+                time.sleep(delay)
+
+        return all_articles
 
     for page_num in range(1, pages + 1):
         url = build_page_url(BASE_URL, category, page_num)
@@ -276,7 +552,7 @@ def scrape(
             log.error("Impossible de charger la page %d — arrêt", page_num)
             break
 
-        page_articles = parse_articles(soup, BASE_URL)
+        page_articles = parse_observations(soup, url)
         new = [a for a in page_articles if a.url not in seen_urls]
         seen_urls.update(a.url for a in new)
         all_articles.extend(new)
@@ -307,6 +583,69 @@ def write_csv(articles: list[Article], path: str) -> None:
     log.info("CSV écrit : %s (%d articles)", path, len(articles))
 
 
+def build_product_import_raw_rows(
+    articles: list[Article],
+    source_name: str = DEFAULT_DB_SOURCE_NAME,
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+
+    for article in articles:
+        payload = {
+            "title": article.title,
+            "url": article.url,
+        }
+        if article.date:
+            payload["date"] = article.date
+        if article.category:
+            payload["category"] = article.category
+
+        rows.append({
+            "source_name": source_name,
+            "source_url": article.url,
+            "raw_title": article.title,
+            "raw_brand": None,
+            "raw_quantity": None,
+            "raw_category": article.category,
+            "raw_payload": payload,
+            "production_usable": False,
+        })
+
+    return rows
+
+
+def insert_product_import_raw(connection, articles: list[Article]) -> int:
+    rows = build_product_import_raw_rows(articles)
+
+    with connection.cursor() as cursor:
+        for row in rows:
+            params = {
+                "id": str(uuid4()),
+                **row,
+                "raw_payload": json.dumps(row["raw_payload"], ensure_ascii=False),
+            }
+            cursor.execute(PRODUCT_IMPORT_RAW_UPSERT_SQL, params)
+
+    connection.commit()
+
+    return len(rows)
+
+
+def write_database(articles: list[Article], database_url: str) -> int:
+    try:
+        import psycopg
+    except ImportError as exc:
+        raise RuntimeError(
+            "Dépendance PostgreSQL absente. Rebuilder l'image scraper ou installer psycopg[binary]."
+        ) from exc
+
+    with psycopg.connect(database_url) as connection:
+        count = insert_product_import_raw(connection, articles)
+
+    log.info("BDD écrite : product_import_raw (%d observation(s) mg.tn)", count)
+
+    return count
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Scraper d'articles mg.tn",
@@ -315,10 +654,36 @@ def main() -> int:
     )
     parser.add_argument("--pages", type=int, default=1, help="Nombre de pages à scraper (défaut : 1)")
     parser.add_argument("--category", default=None, help="Section du site (ex: economie, sport)")
+    parser.add_argument(
+        "--site",
+        action="store_true",
+        help="Découvrir et scraper les URLs internes du site mg.tn (sitemap puis liens internes)",
+    )
+    parser.add_argument(
+        "--max-urls",
+        type=int,
+        default=500,
+        help="Nombre maximum d'URLs internes à visiter avec --site (0 = sans limite, défaut : 500)",
+    )
+    parser.add_argument(
+        "--sitemap-url",
+        default=DEFAULT_SITEMAP_URL,
+        help=f"URL du sitemap à utiliser avec --site (défaut : {DEFAULT_SITEMAP_URL})",
+    )
     parser.add_argument("--output", default=None, help="Fichier JSON de sortie")
     parser.add_argument("--csv", dest="csv_file", default=None, help="Fichier CSV de sortie")
     parser.add_argument("--delay", type=float, default=1.5, help="Délai entre les pages en secondes (défaut : 1.5)")
     parser.add_argument("--quiet", action="store_true", help="Supprimer les logs INFO")
+    parser.add_argument(
+        "--db",
+        action="store_true",
+        help="Insérer les observations dans PostgreSQL (table product_import_raw)",
+    )
+    parser.add_argument(
+        "--database-url",
+        default=None,
+        help=f"URL PostgreSQL (défaut : variable {DEFAULT_DATABASE_URL_ENV}, puis DATABASE_URL)",
+    )
     parser.add_argument(
         "--check",
         action="store_true",
@@ -346,7 +711,14 @@ def main() -> int:
             print(f"ERREUR réseau : {e}")
         return 0
 
-    articles = scrape(pages=args.pages, category=args.category, delay=args.delay)
+    articles = scrape(
+        pages=args.pages,
+        category=args.category,
+        delay=args.delay,
+        site=args.site,
+        max_urls=args.max_urls,
+        sitemap_url=args.sitemap_url,
+    )
 
     if not articles:
         log.warning("Aucun article récupéré.")
@@ -369,6 +741,15 @@ def main() -> int:
         write_json(articles, args.output)
     if args.csv_file:
         write_csv(articles, args.csv_file)
+    if args.db:
+        database_url = args.database_url or os.getenv(DEFAULT_DATABASE_URL_ENV) or os.getenv("DATABASE_URL")
+        if not database_url:
+            log.error(
+                "Aucune URL PostgreSQL fournie. Utiliser --database-url ou définir %s.",
+                DEFAULT_DATABASE_URL_ENV,
+            )
+            return 1
+        write_database(articles, database_url)
 
     return 0
 

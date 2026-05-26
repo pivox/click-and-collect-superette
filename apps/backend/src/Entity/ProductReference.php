@@ -13,6 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProductReferenceRepository::class)]
 #[ORM\Table(name: 'product_references')]
+#[ORM\UniqueConstraint(name: 'UNIQ_PRODUCT_REFERENCES_SOURCE_IMPORT_RAW', columns: ['source_import_raw_id'])]
 #[ORM\HasLifecycleCallbacks]
 class ProductReference
 {
@@ -61,6 +62,10 @@ class ProductReference
 
     #[ORM\Column(length: 32, enumType: ProductReferenceStatus::class)]
     private ProductReferenceStatus $status = ProductReferenceStatus::Draft;
+
+    #[ORM\ManyToOne(targetEntity: ProductImportRaw::class)]
+    #[ORM\JoinColumn(name: 'source_import_raw_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?ProductImportRaw $sourceImportRaw = null;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -232,6 +237,18 @@ class ProductReference
     public function setStatus(ProductReferenceStatus $status): static
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getSourceImportRaw(): ?ProductImportRaw
+    {
+        return $this->sourceImportRaw;
+    }
+
+    public function setSourceImportRaw(?ProductImportRaw $sourceImportRaw): static
+    {
+        $this->sourceImportRaw = $sourceImportRaw;
 
         return $this;
     }

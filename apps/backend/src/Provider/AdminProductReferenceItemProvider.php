@@ -43,6 +43,8 @@ final readonly class AdminProductReferenceItemProvider implements ProviderInterf
 
     public static function toOutput(ProductReference $productReference): AdminProductReferenceOutput
     {
+        $sourceImportRaw = $productReference->getSourceImportRaw();
+
         return new AdminProductReferenceOutput(
             id: $productReference->getId()->toRfc4122(),
             nameFr: $productReference->getNameFr(),
@@ -60,6 +62,9 @@ final readonly class AdminProductReferenceItemProvider implements ProviderInterf
             aliases: $productReference->getAliases(),
             country: $productReference->getCountry(),
             status: $productReference->getStatus()->value,
+            sourceImportRawId: $sourceImportRaw?->getId()->toRfc4122(),
+            sourceName: $sourceImportRaw?->getSourceName(),
+            sourceUrl: $sourceImportRaw?->getSourceUrl(),
             createdAt: $productReference->getCreatedAt()->format(\DateTimeInterface::ATOM),
             updatedAt: $productReference->getUpdatedAt()->format(\DateTimeInterface::ATOM),
         );
