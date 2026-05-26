@@ -44,16 +44,12 @@ class ShopRepository extends ServiceEntityRepository
 
     /**
      * Returns active stores matching the given search criteria.
-     * Returns an empty list when both parameters are null.
+     * Returns all active stores when both parameters are null.
      *
      * @return list<Shop>
      */
     public function findActiveBySearchCriteria(?string $query, ?string $city): array
     {
-        if (null === $query && null === $city) {
-            return [];
-        }
-
         $qb = $this->createQueryBuilder('s')
             ->where('s.active = true')
             ->orderBy('s.name', 'ASC');
