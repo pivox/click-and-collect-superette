@@ -5,8 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StoreSearchCombobox } from '@/components/store/StoreSearchCombobox';
 import * as storeSearchService from '@/lib/services/store-search.service';
 
+const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
 }));
 
 vi.mock('@/lib/services/store-search.service', () => ({
@@ -25,20 +26,20 @@ describe('StoreSearchCombobox', () => {
 
   it('renders the search input', () => {
     render(<StoreSearchCombobox />, { wrapper });
-    expect(screen.getByRole('searchbox')).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
   it('does not show dropdown when input is empty', () => {
     render(<StoreSearchCombobox />, { wrapper });
-    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
   it('does not show dropdown when query is 1 character', async () => {
     render(<StoreSearchCombobox />, { wrapper });
-    const input = screen.getByRole('searchbox');
+    const input = screen.getByRole('combobox');
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: 'a' } });
-    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
   it('shows "aucune supérette" message when API returns empty results', async () => {
@@ -47,11 +48,13 @@ describe('StoreSearchCombobox', () => {
       total: 0,
     });
     render(<StoreSearchCombobox />, { wrapper });
-    const input = screen.getByRole('searchbox');
+    const input = screen.getByRole('combobox');
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: 'xyz' } });
-    await waitFor(() =>
-      expect(screen.getByText(/aucune supérette trouvée/i)).toBeInTheDocument(),
+    // waitFor retries until the debounce fires (400ms) and the API promise resolves
+    await waitFor(
+      () => expect(screen.getByText(/aucune supérette trouvée/i)).toBeInTheDocument(),
+      { timeout: 2000 },
     );
   });
 
@@ -70,12 +73,41 @@ describe('StoreSearchCombobox', () => {
       total: 1,
     });
     render(<StoreSearchCombobox />, { wrapper });
-    const input = screen.getByRole('searchbox');
+    const input = screen.getByRole('combobox');
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: 'mar' } });
-    await waitFor(() =>
-      expect(screen.getByText('Marjé El Amel')).toBeInTheDocument(),
+    // waitFor retries until the debounce fires (400ms) and the API promise resolves
+    await waitFor(
+      () => expect(screen.getByText('Marjé El Amel')).toBeInTheDocument(),
+      { timeout: 2000 },
     );
     expect(screen.getByText('Tunis')).toBeInTheDocument();
+  });
+
+  it('calls router.push with correct store path when a suggestion is selected', async () => {
+    vi.mocked(storeSearchService.searchStores).mockResolvedValue({
+      items: [
+        {
+          store_id: 'uuid-1',
+          name: 'Marjé El Amel',
+          slug: 'marje-el-amel',
+          city: 'Tunis',
+          country: 'TN',
+          is_active: true,
+        },
+      ],
+      total: 1,
+    });
+    render(<StoreSearchCombobox />, { wrapper });
+    const input = screen.getByRole('combobox');
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'mar' } });
+    // Wait for suggestion to appear after debounce + API call
+    await waitFor(
+      () => expect(screen.getByText('Marjé El Amel')).toBeInTheDocument(),
+      { timeout: 2000 },
+    );
+    fireEvent.mouseDown(screen.getByText('Marjé El Amel').closest('button')!);
+    expect(mockPush).toHaveBeenCalledWith('/stores/uuid-1');
   });
 });

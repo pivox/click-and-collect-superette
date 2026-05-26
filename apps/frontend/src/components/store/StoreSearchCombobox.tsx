@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { searchStores } from "@/lib/services/store-search.service";
 import type { StoreSearchItem } from "@/types";
 
+const MAX_RESULTS = 8;
+
 export function StoreSearchCombobox() {
   const [inputValue, setInputValue] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -18,11 +21,23 @@ export function StoreSearchCombobox() {
     return () => clearTimeout(timer);
   }, [inputValue]);
 
+  // Cancel blur timer on unmount to avoid state updates on an unmounted component
+  useEffect(() => {
+    return () => {
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    };
+  }, []);
+
   const { data, isLoading } = useQuery({
     queryKey: ["store-search", debouncedQuery],
     queryFn: () => searchStores(debouncedQuery),
     enabled: debouncedQuery.trim().length >= 2,
   });
+
+  // True when the user has typed enough but the debounce hasn't fired yet
+  const isPending =
+    inputValue.trim().length >= 2 &&
+    inputValue.trim() !== debouncedQuery.trim();
 
   const showDropdown = isOpen && inputValue.trim().length >= 2;
 
@@ -37,16 +52,22 @@ export function StoreSearchCombobox() {
       <SearchInput
         placeholder="Nom de la supérette, quartier…"
         value={inputValue}
+        role="combobox"
+        aria-expanded={showDropdown}
+        aria-haspopup="listbox"
+        aria-label="Rechercher une supérette"
         onChange={(e) => {
           setInputValue(e.target.value);
           setIsOpen(true);
         }}
         onFocus={() => setIsOpen(true)}
-        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+        onBlur={() => {
+          blurTimerRef.current = setTimeout(() => setIsOpen(false), 200);
+        }}
       />
       {showDropdown && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-md border border-line bg-white shadow-card">
-          {isLoading && (
+          {(isLoading || isPending) && (
             <div className="space-y-2 p-3">
               {[1, 2, 3].map((i) => (
                 <div
@@ -56,14 +77,14 @@ export function StoreSearchCombobox() {
               ))}
             </div>
           )}
-          {!isLoading && data?.items.length === 0 && (
+          {!isLoading && !isPending && data?.items.length === 0 && (
             <p className="px-4 py-3 text-sm text-muted">
               Aucune supérette trouvée pour «&nbsp;{debouncedQuery}&nbsp;»
             </p>
           )}
-          {!isLoading && data && data.items.length > 0 && (
-            <ul role="list">
-              {data.items.slice(0, 8).map((item) => (
+          {!isLoading && !isPending && data && data.items.length > 0 && (
+            <ul role="listbox">
+              {data.items.slice(0, MAX_RESULTS).map((item) => (
                 <li key={item.store_id}>
                   <button
                     type="button"
