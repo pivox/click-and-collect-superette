@@ -84,7 +84,7 @@ final class StoreSearchApiTest extends FunctionalApiTestCase
         self::assertSame([], $payload['items']);
     }
 
-    public function testSearchWithNoCriteriaReturnsEmptyList(): void
+    public function testSearchWithNoCriteriaReturnsAllActiveStores(): void
     {
         $this->createShopWithName('Supérette El Amen', 'Tunis');
 
@@ -92,8 +92,9 @@ final class StoreSearchApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertSame(0, $payload['total']);
-        self::assertSame([], $payload['items']);
+        self::assertSame(1, $payload['total']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame('Supérette El Amen', $payload['items'][0]['name']);
     }
 
     public function testSearchIsPublicWithoutJwt(): void
