@@ -120,3 +120,17 @@ export interface TimelineStep {
   hint?: string;
   state: "done" | "current" | "todo";
 }
+
+export interface StoreSearchItem {
+  store_id: string;
+  name: string;
+  slug: string;
+  city: string | null;
+  country: string;
+  is_active: boolean;
+}
+
+export interface StoreSearchResult {
+  items: StoreSearchItem[];
+  total: number;
+}
