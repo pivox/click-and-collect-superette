@@ -28,17 +28,27 @@ export default function CatalogPage({
   const [products, setProducts] = useState<ProductOffer[]>([]);
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
   useEffect(() => {
-    void listCatalog({ shopId, category, search }).then(setProducts);
+    let cancelled = false;
+    setCatalogError(null);
+    void listCatalog({ shopId, category, search })
+      .then((data) => { if (!cancelled) setProducts(data); })
+      .catch(() => { if (!cancelled) setCatalogError("Impossible de charger le catalogue. Veuillez réessayer."); });
+    return () => { cancelled = true; };
   }, [shopId, category, search]);
 
   useEffect(() => {
-    void getCurrentKadhia(shopId).then(setKadhia);
+    void getCurrentKadhia(shopId)
+      .then(setKadhia)
+      .catch(() => { /* kadhia indisponible, panier affiché vide */ });
   }, [shopId]);
 
   useEffect(() => {
-    void getShop(shopId).then(setShop);
+    void getShop(shopId)
+      .then(setShop)
+      .catch(() => { /* nom de la supérette indisponible */ });
   }, [shopId]);
 
   const onAdd = async (p: ProductOffer) => {
@@ -105,11 +115,15 @@ export default function CatalogPage({
               {cartLabel}
             </Link>
           </header>
-          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} onAdd={onAdd} />
-            ))}
-          </div>
+          {catalogError ? (
+            <p className="py-8 text-center text-sm text-muted">{catalogError}</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
+              {products.map((p) => (
+                <ProductCard key={p.id} product={p} onAdd={onAdd} />
+              ))}
+            </div>
+          )}
         </section>
 
         <div className="hidden md:block">

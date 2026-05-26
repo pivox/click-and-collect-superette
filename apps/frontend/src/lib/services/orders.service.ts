@@ -22,8 +22,14 @@ export async function getOrder(orderId: string): Promise<Order | null> {
     }
     return mockDelay(null);
   }
-  const { data } = await apiClient.get<Order>(`/api/me/orders/${orderId}`);
-  return data;
+  try {
+    const { data } = await apiClient.get<Order>(`/api/me/orders/${orderId}`);
+    return data;
+  } catch (err) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+    if (status === 404) return null;
+    throw err;
+  }
 }
 
 /** Project an order's status onto the 5-step customer timeline. */
