@@ -1,4 +1,4 @@
-import type { ProductOffer } from "@/types";
+import type { ProductCategory, ProductOffer } from "@/types";
 import { MOCK_PRODUCTS } from "@/lib/mock/products.mock";
 import { apiClient } from "@/lib/api";
 import { USE_MOCKS, mockDelay } from "./index";
@@ -7,6 +7,37 @@ export interface CatalogQuery {
   shopId: string;
   category?: ProductOffer["category"] | "all";
   search?: string;
+}
+
+interface CatalogApiItem {
+  id: string;
+  product_reference_id: string | null;
+  local_product_id: string | null;
+  name_fr: string;
+  name_ar: string | null;
+  brand: string | null;
+  category_slug: string;
+  volume: string | null;
+  unit: string;
+  price_tnd: string;
+  is_available: boolean;
+}
+
+const VALID_CATEGORIES = [
+  "dairy",
+  "drinks",
+  "grocery",
+  "hygiene",
+  "snacks",
+  "other",
+] as const satisfies readonly ProductCategory[];
+
+function toProductCategory(slug: string): ProductCategory {
+  if ((VALID_CATEGORIES as readonly string[]).includes(slug)) {
+    return slug as ProductCategory;
+  }
+  console.warn(`[catalog.service] Unknown category slug "${slug}", mapped to "other"`);
+  return "other";
 }
 
 export async function listCatalog(q: CatalogQuery): Promise<ProductOffer[]> {
@@ -25,9 +56,32 @@ export async function listCatalog(q: CatalogQuery): Promise<ProductOffer[]> {
     }
     return mockDelay(items);
   }
-  const { data } = await apiClient.get<ProductOffer[]>(
-    `/api/stores/${q.shopId}/products`,
-    { params: { category: q.category, search: q.search } },
+  const { data } = await apiClient.get<{ items: CatalogApiItem[] }>(
+    `/api/stores/${q.shopId}/catalog`,
+    { params: { category: q.category, query: q.search } },
   );
-  return data;
+  return (data.items ?? []).map((item) => ({
+    id: item.id,
+    productReferenceId:
+      item.product_reference_id ?? item.local_product_id ?? item.id,
+    nameFr: item.name_fr,
+    nameAr: item.name_ar,
+    brand: item.brand ?? "",
+    volume: (() => {
+      if (item.volume === null) return null;
+      const parsed = parseFloat(item.volume);
+      if (Number.isNaN(parsed)) {
+        console.warn(
+          `[catalog.service] Non-numeric volume for item ${item.id}: "${item.volume}"`,
+        );
+        return null;
+      }
+      return parsed;
+    })(),
+    unit: item.unit,
+    priceTnd: item.price_tnd,
+    isAvailable: item.is_available,
+    photoUrl: null,
+    category: toProductCategory(item.category_slug),
+  }));
 }
