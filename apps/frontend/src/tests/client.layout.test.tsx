@@ -1,24 +1,41 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { DesktopShell } from '@/components/layout/DesktopShell';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/' }));
-vi.mock('next/link', () => ({
-  default: ({ href, children }: { href: string; children: React.ReactNode }) => (
-    <a href={href}>{children}</a>
+vi.mock('@/components/layout/MobileShell', () => ({
+  MobileShell: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="mobile-shell">{children}</div>
   ),
 }));
+vi.mock('@/components/layout/DesktopShell', () => ({
+  DesktopShell: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="desktop-shell">{children}</div>
+  ),
+}));
+vi.mock('@/components/layout/BottomNav', () => ({
+  BottomNav: () => <nav data-testid="bottom-nav" />,
+}));
 
-describe('DesktopShell nav hrefs', () => {
-  it('links to /(client)/ routes, not /desktop/', () => {
-    render(<DesktopShell>content</DesktopShell>);
-    const links = screen.getAllByRole('link');
-    const hrefs = links.map((l) => l.getAttribute('href'));
-    expect(hrefs).toContain('/');
-    expect(hrefs).toContain('/stores');
-    expect(hrefs).toContain('/kadhia');
-    expect(hrefs).toContain('/orders');
-    expect(hrefs.some((h) => h?.startsWith('/desktop'))).toBe(false);
+import ClientLayout from '@/app/(client)/layout';
+
+describe('ClientLayout double shell', () => {
+  it('rend les deux shells dans le DOM', () => {
+    const { container } = render(<ClientLayout>page</ClientLayout>);
+    expect(container.querySelector('[data-testid="mobile-shell"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="desktop-shell"]')).toBeTruthy();
+  });
+
+  it('le wrapper mobile a la classe md:hidden', () => {
+    const { container } = render(<ClientLayout>page</ClientLayout>);
+    const mobileWrapper = container.querySelector('[data-testid="mobile-shell"]')?.parentElement;
+    expect(mobileWrapper?.className).toContain('md:hidden');
+  });
+
+  it('le wrapper desktop a la classe hidden md:block', () => {
+    const { container } = render(<ClientLayout>page</ClientLayout>);
+    const desktopWrapper = container.querySelector('[data-testid="desktop-shell"]')?.parentElement;
+    expect(desktopWrapper?.className).toContain('hidden');
+    expect(desktopWrapper?.className).toContain('md:block');
   });
 });
