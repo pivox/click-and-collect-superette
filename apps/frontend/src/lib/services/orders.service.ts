@@ -3,6 +3,14 @@ import { MOCK_ORDER } from "@/lib/mock/orders.mock";
 import { apiClient } from "@/lib/api";
 import { USE_MOCKS, mockDelay } from "./index";
 
+export async function listOrders(): Promise<Order[]> {
+  if (USE_MOCKS) {
+    return mockDelay([MOCK_ORDER]);
+  }
+  const { data } = await apiClient.get<Order[]>('/api/me/orders');
+  return data;
+}
+
 export async function getOrder(orderId: string): Promise<Order | null> {
   if (USE_MOCKS) {
     if (orderId === MOCK_ORDER.id || orderId === MOCK_ORDER.code) {
@@ -10,7 +18,7 @@ export async function getOrder(orderId: string): Promise<Order | null> {
     }
     return mockDelay(MOCK_ORDER); // fall back to the demo order
   }
-  const { data } = await apiClient.get<Order>(`/me/orders/${orderId}`);
+  const { data } = await apiClient.get<Order>(`/api/me/orders/${orderId}`);
   return data;
 }
 
