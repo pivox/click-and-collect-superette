@@ -33,12 +33,13 @@ export default function SlotPage() {
   }, [isLoading, user, router]);
 
   useEffect(() => {
+    if (isLoading || !user) return;
     void listSlotsForShop(DEMO_SHOP_ID, day).then((s) => {
       setSlots(s);
       const firstAvail = s.find((x) => x.available);
       setActiveId(firstAvail?.id ?? null);
     });
-  }, [day]);
+  }, [day, isLoading, user]);
 
   const handleSubmit = async () => {
     if (!activeId) return;

@@ -16,7 +16,7 @@ export async function getOrder(orderId: string): Promise<Order | null> {
     if (orderId === MOCK_ORDER.id || orderId === MOCK_ORDER.code) {
       return mockDelay(MOCK_ORDER);
     }
-    return mockDelay(MOCK_ORDER); // fall back to the demo order
+    return mockDelay(null);
   }
   const { data } = await apiClient.get<Order>(`/api/me/orders/${orderId}`);
   return data;

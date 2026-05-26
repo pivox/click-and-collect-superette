@@ -27,11 +27,16 @@ export function ClientAuthProvider({ children }: { children: React.ReactNode }) 
     if (token) {
       try {
         const payload = decodeJwtPayload(token);
-        setUser({
-          token,
-          email: typeof payload.email === 'string' ? payload.email : '',
-          name: typeof payload.name === 'string' ? payload.name : '',
-        });
+        const exp = typeof payload.exp === 'number' ? payload.exp : 0;
+        if (exp > 0 && Date.now() / 1000 >= exp) {
+          localStorage.removeItem('jwt_token');
+        } else {
+          setUser({
+            token,
+            email: typeof payload.email === 'string' ? payload.email : '',
+            name: typeof payload.name === 'string' ? payload.name : '',
+          });
+        }
       } catch {
         localStorage.removeItem('jwt_token');
       }
@@ -43,7 +48,6 @@ export function ClientAuthProvider({ children }: { children: React.ReactNode }) 
     const clientUser = await apiClientLogin(email, password);
     localStorage.setItem('jwt_token', clientUser.token);
     setUser(clientUser);
-    router.push('/');
   };
 
   const logout = () => {

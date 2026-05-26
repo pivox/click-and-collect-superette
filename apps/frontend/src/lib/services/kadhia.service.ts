@@ -162,22 +162,29 @@ export async function submitKadhia(params: SubmitKadhiaParams): Promise<Submitte
     {},
   );
 
-  // 3. Sync lines
-  for (const line of local.lines) {
-    await apiClient.put(
-      `/api/me/kadhias/${backendKadhia.id}/lines/${line.productOffer.id}`,
-      { quantity: line.quantity },
+  try {
+    // 3. Sync lines
+    for (const line of local.lines) {
+      await apiClient.put(
+        `/api/me/kadhias/${backendKadhia.id}/lines/${line.productOffer.id}`,
+        { quantity: line.quantity },
+      );
+    }
+
+    // 4. Submit
+    const { data: order } = await apiClient.post<{ id: string; code: string }>(
+      `/api/me/kadhias/${backendKadhia.id}/submit`,
+      { pickupSlotId, customerNote },
     );
+
+    // 5. Clear localStorage
+    write(null);
+
+    return { orderId: order.id, orderCode: order.code };
+  } catch (err) {
+    // Clean up the orphaned backend Kadhia if sync or submit fails.
+    // localStorage remains intact so the user can retry.
+    await apiClient.delete(`/api/me/kadhias/${backendKadhia.id}`).catch(() => undefined);
+    throw err;
   }
-
-  // 4. Submit
-  const { data: order } = await apiClient.post<{ id: string; code: string }>(
-    `/api/me/kadhias/${backendKadhia.id}/submit`,
-    { pickupSlotId, customerNote },
-  );
-
-  // 5. Clear localStorage
-  write(null);
-
-  return { orderId: order.id, orderCode: order.code };
 }
