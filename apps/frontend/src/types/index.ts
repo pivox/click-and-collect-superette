@@ -121,6 +121,7 @@ export interface TimelineStep {
   state: "done" | "current" | "todo";
 }
 
+// snake_case properties match the backend API contract (SerializedName annotations)
 export interface StoreSearchItem {
   store_id: string;
   name: string;
