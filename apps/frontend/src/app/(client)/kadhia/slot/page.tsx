@@ -7,7 +7,7 @@ import { Pill, PillRow } from "@/components/ui/Pill";
 import { SlotTile } from "@/components/ui/SlotTile";
 import { Button } from "@/components/ui/Button";
 import { StickyBottom } from "@/components/layout/StickyBottom";
-import { listSlotsForShop } from "@/lib/services";
+import { listSlotsForShop, submitKadhia } from "@/lib/services";
 import { formatTime } from "@/lib/format";
 import type { PickupSlot } from "@/types";
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
@@ -23,6 +23,8 @@ export default function SlotPage() {
   const [note, setNote] = useState(
     "Si un produit est absent, remplacer par une marque proche.",
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -37,6 +39,26 @@ export default function SlotPage() {
       setActiveId(firstAvail?.id ?? null);
     });
   }, [day]);
+
+  const handleSubmit = async () => {
+    if (!activeId) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const result = await submitKadhia({
+        shopId: DEMO_SHOP_ID,
+        pickupSlotId: activeId,
+        customerNote: note.trim() || undefined,
+      });
+      router.push(`/orders/${result.orderCode}`);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'Erreur lors de la soumission',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading || !user) return null;
 
@@ -90,15 +112,17 @@ export default function SlotPage() {
       </section>
 
       <StickyBottom>
+        {submitError && (
+          <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+            {submitError}
+          </p>
+        )}
         <Button
           full
-          disabled={!activeId}
-          onClick={() => {
-            if (!activeId) return;
-            router.push("/orders/CMD-4821");
-          }}
+          disabled={!activeId || isSubmitting}
+          onClick={handleSubmit}
         >
-          Envoyer la commande
+          {isSubmitting ? 'Envoi en cours…' : 'Envoyer la commande'}
         </Button>
       </StickyBottom>
     </>

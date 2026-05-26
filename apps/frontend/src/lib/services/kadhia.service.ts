@@ -128,3 +128,56 @@ export async function clearKadhia(): Promise<void> {
   }
   await apiClient.delete(`/kadhia/current`);
 }
+
+export interface SubmitKadhiaParams {
+  shopId: string;
+  pickupSlotId: string;
+  customerNote?: string;
+}
+
+export interface SubmittedOrder {
+  orderId: string;
+  orderCode: string;
+}
+
+const MOCK_SUBMIT_ORDER_ID = 'order-demo-4821';
+
+export async function submitKadhia(params: SubmitKadhiaParams): Promise<SubmittedOrder> {
+  const { shopId, pickupSlotId, customerNote } = params;
+
+  if (USE_MOCKS) {
+    write(null);
+    return mockDelay({ orderId: MOCK_SUBMIT_ORDER_ID, orderCode: 'CMD-4821' });
+  }
+
+  // 1. Read Kadhia from localStorage
+  const local = read();
+  if (!local || local.lines.length === 0) {
+    throw new Error('Kadhia vide');
+  }
+
+  // 2. Create Kadhia on backend
+  const { data: backendKadhia } = await apiClient.post<{ id: string }>(
+    `/api/me/stores/${shopId}/kadhias`,
+    {},
+  );
+
+  // 3. Sync lines
+  for (const line of local.lines) {
+    await apiClient.put(
+      `/api/me/kadhias/${backendKadhia.id}/lines/${line.productOffer.id}`,
+      { quantity: line.quantity },
+    );
+  }
+
+  // 4. Submit
+  const { data: order } = await apiClient.post<{ id: string; code: string }>(
+    `/api/me/kadhias/${backendKadhia.id}/submit`,
+    { pickupSlotId, customerNote },
+  );
+
+  // 5. Clear localStorage
+  write(null);
+
+  return { orderId: order.id, orderCode: order.code };
+}
