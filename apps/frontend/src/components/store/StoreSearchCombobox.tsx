@@ -55,6 +55,7 @@ export function StoreSearchCombobox() {
         role="combobox"
         aria-expanded={showDropdown}
         aria-haspopup="listbox"
+        aria-controls="store-search-listbox"
         aria-label="Rechercher une supérette"
         onChange={(e) => {
           setInputValue(e.target.value);
@@ -83,7 +84,7 @@ export function StoreSearchCombobox() {
             </p>
           )}
           {!isLoading && !isPending && data && data.items.length > 0 && (
-            <ul role="listbox">
+            <ul role="listbox" id="store-search-listbox">
               {data.items.slice(0, MAX_RESULTS).map((item) => (
                 <li key={item.store_id}>
                   <button
