@@ -10,8 +10,6 @@ import type { Kadhia } from "@/types";
 
 interface KadhiaPanelProps {
   kadhia: Kadhia | null;
-  /** shopId is exposed for future use (e.g. prefetching slot availability). */
-  shopId: string;
 }
 
 export function KadhiaPanel({ kadhia }: KadhiaPanelProps) {

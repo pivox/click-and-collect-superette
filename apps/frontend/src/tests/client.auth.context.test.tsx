@@ -49,6 +49,7 @@ describe('ClientAuthContext', () => {
       email: 'u@test.com',
       name: 'User Test',
       roles: ['ROLE_CUSTOMER'],
+      exp: Math.floor(Date.now() / 1000) + 3600,
     });
     render(
       <ClientAuthProvider>
@@ -87,6 +88,7 @@ describe('ClientAuthContext', () => {
       email: 'u@test.com',
       name: 'U',
       roles: ['ROLE_CUSTOMER'],
+      exp: Math.floor(Date.now() / 1000) + 3600,
     });
     render(
       <ClientAuthProvider>

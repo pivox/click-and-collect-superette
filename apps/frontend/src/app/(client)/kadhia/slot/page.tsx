@@ -7,16 +7,15 @@ import { Pill, PillRow } from "@/components/ui/Pill";
 import { SlotTile } from "@/components/ui/SlotTile";
 import { Button } from "@/components/ui/Button";
 import { StickyBottom } from "@/components/layout/StickyBottom";
-import { listSlotsForShop, submitKadhia } from "@/lib/services";
+import { listSlotsForShop, submitKadhia, readLocalKadhia } from "@/lib/services";
 import { formatTime } from "@/lib/format";
 import type { PickupSlot } from "@/types";
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 
-const DEMO_SHOP_ID = "shop-el-amel";
-
 export default function SlotPage() {
   const router = useRouter();
   const { user, isLoading } = useClientAuth();
+  const [shopId, setShopId] = useState<string | null>(null);
   const [slots, setSlots] = useState<PickupSlot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [day, setDay] = useState<"today" | "tomorrow" | "after">("today");
@@ -34,20 +33,30 @@ export default function SlotPage() {
 
   useEffect(() => {
     if (isLoading || !user) return;
-    void listSlotsForShop(DEMO_SHOP_ID, day).then((s) => {
+    const kadhia = readLocalKadhia();
+    if (!kadhia?.shopId) {
+      router.push('/kadhia');
+      return;
+    }
+    setShopId(kadhia.shopId);
+  }, [isLoading, user, router]);
+
+  useEffect(() => {
+    if (isLoading || !user || !shopId) return;
+    void listSlotsForShop(shopId, day).then((s) => {
       setSlots(s);
       const firstAvail = s.find((x) => x.available);
       setActiveId(firstAvail?.id ?? null);
     });
-  }, [day, isLoading, user]);
+  }, [day, isLoading, user, shopId]);
 
   const handleSubmit = async () => {
-    if (!activeId) return;
+    if (!activeId || !shopId) return;
     setIsSubmitting(true);
     setSubmitError(null);
     try {
       const result = await submitKadhia({
-        shopId: DEMO_SHOP_ID,
+        shopId,
         pickupSlotId: activeId,
         customerNote: note.trim() || undefined,
       });
@@ -120,7 +129,7 @@ export default function SlotPage() {
         )}
         <Button
           full
-          disabled={!activeId || isSubmitting}
+          disabled={!activeId || !shopId || isSubmitting}
           onClick={handleSubmit}
         >
           {isSubmitting ? 'Envoi en cours…' : 'Envoyer la commande'}

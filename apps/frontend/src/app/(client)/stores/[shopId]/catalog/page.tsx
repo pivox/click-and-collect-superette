@@ -113,7 +113,7 @@ export default function CatalogPage({
         </section>
 
         <div className="hidden md:block">
-          <KadhiaPanel kadhia={kadhia} shopId={shopId} />
+          <KadhiaPanel kadhia={kadhia} />
         </div>
       </div>
     </>

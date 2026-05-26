@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   clientLogin as apiClientLogin,
   decodeJwtPayload,
@@ -20,7 +19,6 @@ const ClientAuthContext = createContext<ClientAuthContextValue | null>(null);
 export function ClientAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<ClientUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const token = localStorage.getItem('jwt_token');
@@ -28,7 +26,8 @@ export function ClientAuthProvider({ children }: { children: React.ReactNode }) 
       try {
         const payload = decodeJwtPayload(token);
         const exp = typeof payload.exp === 'number' ? payload.exp : 0;
-        if (exp > 0 && Date.now() / 1000 >= exp) {
+        // exp <= 0 means missing or zero (epoch) — treat as expired
+        if (exp <= 0 || Date.now() / 1000 >= exp) {
           localStorage.removeItem('jwt_token');
         } else {
           setUser({
@@ -50,10 +49,10 @@ export function ClientAuthProvider({ children }: { children: React.ReactNode }) 
     setUser(clientUser);
   };
 
+  // Routing after logout is the caller's responsibility — no router coupling here.
   const logout = () => {
     localStorage.removeItem('jwt_token');
     setUser(null);
-    router.push('/login');
   };
 
   return (

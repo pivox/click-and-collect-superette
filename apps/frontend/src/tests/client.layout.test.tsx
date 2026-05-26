@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -6,15 +6,8 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
-vi.mock('@/components/layout/MobileShell', () => ({
-  MobileShell: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="mobile-shell">{children}</div>
-  ),
-}));
-vi.mock('@/components/layout/DesktopShell', () => ({
-  DesktopShell: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="desktop-shell">{children}</div>
-  ),
+vi.mock('@/components/layout/DesktopNav', () => ({
+  DesktopNav: () => <aside data-testid="desktop-nav" />,
 }));
 vi.mock('@/components/layout/BottomNav', () => ({
   BottomNav: () => <nav data-testid="bottom-nav" />,
@@ -22,23 +15,21 @@ vi.mock('@/components/layout/BottomNav', () => ({
 
 import ClientLayout from '@/app/(client)/layout';
 
-describe('ClientLayout double shell', () => {
-  it('rend les deux shells dans le DOM', () => {
-    const { container } = render(<ClientLayout>page</ClientLayout>);
-    expect(container.querySelector('[data-testid="mobile-shell"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="desktop-shell"]')).toBeTruthy();
+describe('ClientLayout', () => {
+  it('rend la DesktopNav et la BottomNav', () => {
+    render(<ClientLayout>page</ClientLayout>);
+    expect(screen.getByTestId('desktop-nav')).toBeTruthy();
+    expect(screen.getByTestId('bottom-nav')).toBeTruthy();
   });
 
-  it('le wrapper mobile a la classe md:hidden', () => {
-    const { container } = render(<ClientLayout>page</ClientLayout>);
-    const mobileWrapper = container.querySelector('[data-testid="mobile-shell"]')?.parentElement;
-    expect(mobileWrapper?.className).toContain('md:hidden');
+  it('rend les children une seule fois', () => {
+    const { container } = render(<ClientLayout><span data-testid="child">content</span></ClientLayout>);
+    expect(container.querySelectorAll('[data-testid="child"]')).toHaveLength(1);
   });
 
-  it('le wrapper desktop a la classe hidden md:block', () => {
+  it('les children sont dans un <main>', () => {
     const { container } = render(<ClientLayout>page</ClientLayout>);
-    const desktopWrapper = container.querySelector('[data-testid="desktop-shell"]')?.parentElement;
-    expect(desktopWrapper?.className).toContain('hidden');
-    expect(desktopWrapper?.className).toContain('md:block');
+    expect(container.querySelector('main')).toBeTruthy();
+    expect(container.querySelector('main')?.textContent).toContain('page');
   });
 });

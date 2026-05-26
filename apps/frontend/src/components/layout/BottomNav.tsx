@@ -21,7 +21,7 @@ export function BottomNav() {
   return (
     <nav
       className={cn(
-        "absolute inset-x-0 bottom-0 z-10 grid grid-cols-4 gap-1 border-t border-line",
+        "fixed inset-x-0 bottom-0 z-10 grid grid-cols-4 gap-1 border-t border-line md:hidden",
         "bg-white/95 backdrop-blur-md px-3 pt-2 pb-3",
       )}
     >
