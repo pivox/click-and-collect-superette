@@ -10,11 +10,13 @@ import { StickyBottom } from "@/components/layout/StickyBottom";
 import { listSlotsForShop } from "@/lib/services";
 import { formatTime } from "@/lib/format";
 import type { PickupSlot } from "@/types";
+import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 
 const DEMO_SHOP_ID = "shop-el-amel";
 
 export default function SlotPage() {
   const router = useRouter();
+  const { user, isLoading } = useClientAuth();
   const [slots, setSlots] = useState<PickupSlot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [day, setDay] = useState<"today" | "tomorrow" | "after">("today");
@@ -23,12 +25,20 @@ export default function SlotPage() {
   );
 
   useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/login?redirect=/kadhia/slot');
+    }
+  }, [isLoading, user, router]);
+
+  useEffect(() => {
     void listSlotsForShop(DEMO_SHOP_ID, day).then((s) => {
       setSlots(s);
       const firstAvail = s.find((x) => x.available);
       setActiveId(firstAvail?.id ?? null);
     });
   }, [day]);
+
+  if (isLoading || !user) return null;
 
   return (
     <>
