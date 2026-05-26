@@ -33,9 +33,11 @@ services:
     App\Service\PasswordResetTokenSenderInterface:
         alias: App\Service\NativePasswordResetTokenSender
 
-    App\Doctrine\Middleware\SQLiteUnaccentMiddleware:
-        tags:
-            - { name: doctrine.dbal.middleware }
-
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        App\Doctrine\Middleware\SQLiteUnaccentMiddleware:
+            tags:
+                - { name: doctrine.dbal.middleware }
