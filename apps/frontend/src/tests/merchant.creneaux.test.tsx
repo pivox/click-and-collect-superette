@@ -151,6 +151,27 @@ describe('DayStrip', () => {
     fireEvent.click(within(screen.getAllByRole('listitem')[1]).getByRole('button'));
     expect(onSelect).toHaveBeenCalledWith(days[1]);
   });
+
+  it('shows closure indicator for a same-day partial closure (e.g. 14:00–18:00)', () => {
+    // Closure starts at 14:00 today — not at midnight, so the old `date >= start` check would miss it
+    const partialClosure: MerchantExceptionalClosure = {
+      id: 'closure-partial',
+      starts_at: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 0).toISOString(),
+      ends_at: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 18, 0).toISOString(),
+      reason: 'Pause déjeuner',
+      is_active: true,
+    };
+    render(
+      React.createElement(DayStrip, {
+        days,
+        selectedDate: today,
+        slots: [],
+        closures: [partialClosure],
+        onSelectDate: vi.fn(),
+      }),
+    );
+    expect(screen.getByLabelText('Fermeture exceptionnelle')).toBeInTheDocument();
+  });
 });
 
 // ─── SlotCard ────────────────────────────────────────────────────────────────
@@ -195,6 +216,17 @@ describe('SlotCard', () => {
     fireEvent.click(screen.getByLabelText('Supprimer ce créneau'));
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith('slot-1'));
   });
+
+  it('shows error message when onDelete rejects (network failure)', async () => {
+    const onDelete = vi.fn().mockRejectedValue(new Error('network'));
+    const slot = makeSlot({ booked_count: 0 });
+    render(React.createElement(SlotCard, { slot, onPatch: vi.fn(), onDelete }));
+
+    fireEvent.click(screen.getByLabelText('Supprimer ce créneau'));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Impossible de supprimer');
+    });
+  });
 });
 
 // ─── RuleAccordion ───────────────────────────────────────────────────────────
@@ -238,6 +270,23 @@ describe('RuleAccordion', () => {
     expect(screen.getByText('Supprimer ?')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Oui'));
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith('rule-1'));
+  });
+
+  it('shows error message when onDeleteRule rejects', async () => {
+    const onDelete = vi.fn().mockRejectedValue(new Error('network'));
+    render(
+      React.createElement(RuleAccordion, {
+        rules: [rule],
+        onCreateRule: vi.fn(),
+        onDeleteRule: onDelete,
+      }),
+    );
+    fireEvent.click(screen.getByText('Règles récurrentes'));
+    fireEvent.click(screen.getByLabelText(/Supprimer la règle/));
+    fireEvent.click(screen.getByText('Oui'));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Impossible de supprimer cette règle');
+    });
   });
 });
 
@@ -330,6 +379,23 @@ describe('ClosureAccordion', () => {
     expect(screen.getByText('Supprimer ?')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Oui'));
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith('closure-1'));
+  });
+
+  it('shows error message when onDeleteClosure rejects', async () => {
+    const onDelete = vi.fn().mockRejectedValue(new Error('network'));
+    render(
+      React.createElement(ClosureAccordion, {
+        closures: [closure],
+        onCreateClosure: vi.fn(),
+        onDeleteClosure: onDelete,
+      }),
+    );
+    fireEvent.click(screen.getByText(/Fermetures exceptionnelles/));
+    fireEvent.click(screen.getByLabelText('Supprimer cette fermeture'));
+    fireEvent.click(screen.getByText('Oui'));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Impossible de supprimer cette fermeture');
+    });
   });
 });
 

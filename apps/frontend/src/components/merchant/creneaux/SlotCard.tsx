@@ -56,7 +56,12 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
       setDeleteError('Ce créneau a des réservations, impossible de le supprimer.');
       return;
     }
-    await onDelete(slot.id);
+    setDeleteError(null);
+    try {
+      await onDelete(slot.id);
+    } catch {
+      setDeleteError('Impossible de supprimer ce créneau.');
+    }
   }
 
   return (

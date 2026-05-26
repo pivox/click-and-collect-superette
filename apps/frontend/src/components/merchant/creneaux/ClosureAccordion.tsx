@@ -31,6 +31,7 @@ export function ClosureAccordion({
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleCreate(payload: CreateClosurePayload) {
     await onCreateClosure(payload);
@@ -39,8 +40,11 @@ export function ClosureAccordion({
 
   async function handleDelete(closureId: string) {
     setDeletingId(closureId);
+    setDeleteError(null);
     try {
       await onDeleteClosure(closureId);
+    } catch {
+      setDeleteError('Impossible de supprimer cette fermeture.');
     } finally {
       setDeletingId(null);
       setConfirmId(null);
@@ -116,6 +120,10 @@ export function ClosureAccordion({
               </li>
             ))}
           </ul>
+
+          {deleteError && (
+            <p role="alert" className="mt-2 text-xs text-danger">{deleteError}</p>
+          )}
 
           {showForm ? (
             <ClosureForm

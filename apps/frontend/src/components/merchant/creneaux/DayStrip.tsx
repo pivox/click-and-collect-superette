@@ -20,10 +20,14 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 function hasClosure(date: Date, closures: MerchantExceptionalClosure[]): boolean {
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(date);
+  dayEnd.setHours(23, 59, 59, 999);
   return closures.some((c) => {
     const start = new Date(c.starts_at);
     const end = new Date(c.ends_at);
-    return c.is_active && date >= start && date <= end;
+    return c.is_active && dayStart < end && dayEnd > start;
   });
 }
 

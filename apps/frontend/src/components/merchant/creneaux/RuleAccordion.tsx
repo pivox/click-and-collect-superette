@@ -21,6 +21,7 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule }: RuleAccordi
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleCreate(payload: CreateSlotRulePayload) {
     await onCreateRule(payload);
@@ -29,8 +30,11 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule }: RuleAccordi
 
   async function handleDelete(ruleId: string) {
     setDeletingId(ruleId);
+    setDeleteError(null);
     try {
       await onDeleteRule(ruleId);
+    } catch {
+      setDeleteError('Impossible de supprimer cette règle.');
     } finally {
       setDeletingId(null);
       setConfirmId(null);
@@ -100,6 +104,10 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule }: RuleAccordi
               </li>
             ))}
           </ul>
+
+          {deleteError && (
+            <p role="alert" className="mt-2 text-xs text-danger">{deleteError}</p>
+          )}
 
           {showForm ? (
             <RuleForm

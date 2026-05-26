@@ -96,44 +96,44 @@ export default function MerchantCreneauxPage() {
 
   async function handleCreateRule(payload: CreateSlotRulePayload) {
     await createMerchantSlotRule(storeId, payload);
-    await loadAll();
     setShowBanner(true);
+    void loadAll();
   }
 
   async function handleDeleteRule(ruleId: string) {
     await deleteMerchantSlotRule(storeId, ruleId);
-    await loadAll();
+    void loadAll();
   }
 
   async function handleGenerate() {
     const result = await generateMerchantSlots(storeId);
-    await loadAll();
+    void loadAll();
     return result;
   }
 
   async function handleCreateSlot(payload: CreateSlotPayload) {
     await createMerchantSlot(storeId, payload);
-    await loadAll();
+    void loadAll();
   }
 
   async function handlePatchSlot(slotId: string, payload: PatchSlotPayload) {
     await patchMerchantSlot(storeId, slotId, payload);
-    await loadAll();
+    void loadAll();
   }
 
   async function handleDeleteSlot(slotId: string) {
     await deleteMerchantSlot(storeId, slotId);
-    await loadAll();
+    void loadAll();
   }
 
   async function handleCreateClosure(payload: CreateClosurePayload) {
     await createMerchantClosure(storeId, payload);
-    await loadAll();
+    void loadAll();
   }
 
   async function handleDeleteClosure(closureId: string) {
     await deleteMerchantClosure(storeId, closureId);
-    await loadAll();
+    void loadAll();
   }
 
   return (
