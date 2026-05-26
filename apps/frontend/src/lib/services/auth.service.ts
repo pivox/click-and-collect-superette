@@ -63,5 +63,5 @@ export async function clientRegister(
   password: string,
   name: string,
 ): Promise<void> {
-  await apiClient.post('/api/auth/register', { email, password, name });
+  await apiClient.post('/api/auth/register/customer', { email, password, name });
 }
