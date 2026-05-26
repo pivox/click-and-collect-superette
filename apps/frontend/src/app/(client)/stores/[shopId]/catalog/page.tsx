@@ -31,18 +31,24 @@ export default function CatalogPage({
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setCatalogError(null);
     void listCatalog({ shopId, category, search })
-      .then(setProducts)
-      .catch(() => setCatalogError("Impossible de charger le catalogue. Veuillez réessayer."));
+      .then((data) => { if (!cancelled) setProducts(data); })
+      .catch(() => { if (!cancelled) setCatalogError("Impossible de charger le catalogue. Veuillez réessayer."); });
+    return () => { cancelled = true; };
   }, [shopId, category, search]);
 
   useEffect(() => {
-    void getCurrentKadhia(shopId).then(setKadhia);
+    void getCurrentKadhia(shopId)
+      .then(setKadhia)
+      .catch(() => { /* kadhia indisponible, panier affiché vide */ });
   }, [shopId]);
 
   useEffect(() => {
-    void getShop(shopId).then(setShop);
+    void getShop(shopId)
+      .then(setShop)
+      .catch(() => { /* nom de la supérette indisponible */ });
   }, [shopId]);
 
   const onAdd = async (p: ProductOffer) => {

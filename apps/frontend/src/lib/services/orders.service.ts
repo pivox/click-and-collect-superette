@@ -25,8 +25,10 @@ export async function getOrder(orderId: string): Promise<Order | null> {
   try {
     const { data } = await apiClient.get<Order>(`/api/me/orders/${orderId}`);
     return data;
-  } catch {
-    return null;
+  } catch (err) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+    if (status === 404) return null;
+    throw err;
   }
 }
 
