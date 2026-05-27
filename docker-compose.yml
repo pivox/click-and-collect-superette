@@ -80,6 +80,7 @@ services:
       - frontend_next:/app/.next
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      API_URL: http://nginx
       WATCHPACK_POLLING: "true"
     depends_on:
       - nginx
