@@ -65,8 +65,59 @@ export async function getCurrentKadhia(shopId: string): Promise<Kadhia> {
     write(fresh);
     return mockDelay(fresh);
   }
-  const { data } = await apiClient.get<Kadhia>(`/api/me/stores/${shopId}/kadhias`);
-  return data;
+
+  // Step 1: find the current kadhia for this store
+  const { data: list } = await apiClient.get<{
+    items: Array<{ id: string }>;
+    total: number;
+  }>(`/api/me/stores/${shopId}/kadhias`);
+
+  if (list.items.length === 0) {
+    return { id: "", shopId, status: "draft", lines: [], totalTnd: "0.000" };
+  }
+
+  // Step 2: fetch full kadhia with lines
+  type ApiLine = {
+    id: string;
+    merchant_product_id: string;
+    product_name: string;
+    unit_price_tnd: string;
+    quantity: number;
+    subtotal_tnd: string;
+  };
+  const { data } = await apiClient.get<{
+    id: string;
+    store_id: string;
+    status: string;
+    lines: ApiLine[];
+    total_tnd: string;
+  }>(`/api/me/kadhias/${list.items[0].id}`);
+
+  return {
+    id: data.id,
+    shopId: data.store_id,
+    status: data.status as Kadhia["status"],
+    lines: data.lines.map((l): KadhiaLine => ({
+      id: l.merchant_product_id,
+      productOffer: {
+        id: l.merchant_product_id,
+        productReferenceId: "",
+        nameFr: l.product_name,
+        nameAr: null,
+        brand: "",
+        volume: null,
+        unit: null,
+        priceTnd: l.unit_price_tnd,
+        isAvailable: true,
+        photoUrl: null,
+        category: "other",
+      } satisfies ProductOffer,
+      quantity: l.quantity,
+      unitPriceTnd: l.unit_price_tnd,
+      lineTotalTnd: l.subtotal_tnd,
+    })),
+    totalTnd: data.total_tnd,
+  };
 }
 
 export async function addLine(

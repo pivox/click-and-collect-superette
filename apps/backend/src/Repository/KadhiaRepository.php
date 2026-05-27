@@ -60,7 +60,7 @@ class KadhiaRepository extends ServiceEntityRepository
         }
 
         if (null !== $shopId) {
-            $qb->andWhere('k.shop = :shopId')->setParameter('shopId', $shopId);
+            $qb->andWhere('k.shop = :shopId')->setParameter('shopId', $shopId, 'uuid');
         }
 
         /* @var list<Kadhia> */
@@ -85,7 +85,7 @@ class KadhiaRepository extends ServiceEntityRepository
         }
 
         if (null !== $shopId) {
-            $qb->andWhere('k.shop = :shopId')->setParameter('shopId', $shopId);
+            $qb->andWhere('k.shop = :shopId')->setParameter('shopId', $shopId, 'uuid');
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();

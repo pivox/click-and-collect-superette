@@ -11,27 +11,46 @@ import { KadhiaLineRow } from "@/components/product/KadhiaLineRow";
 import {
   getCurrentKadhia,
   updateLineQuantity,
+  readLocalKadhia,
 } from "@/lib/services";
 import { formatTnd } from "@/lib/format";
 import type { Kadhia } from "@/types";
 
-// MVP: Kadhia lives on a single demo shop on the client side.
-const DEMO_SHOP_ID = "shop-el-amel";
-
 export default function KadhiaPage() {
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
+  const [shopId, setShopId] = useState<string | null>(null);
+  const [quantityError, setQuantityError] = useState<string | null>(null);
 
   useEffect(() => {
-    void getCurrentKadhia(DEMO_SHOP_ID).then(setKadhia);
+    const local = readLocalKadhia();
+    const sid = local?.shopId ?? null;
+    setShopId(sid);
+    if (sid) {
+      void getCurrentKadhia(sid)
+        .then(setKadhia)
+        .catch((err: unknown) => {
+          const status = (err as { response?: { status?: number } }).response?.status;
+          if (status !== 404 && status !== 405) {
+            console.error("[KadhiaPage] getCurrentKadhia failed:", err);
+          }
+        });
+    }
   }, []);
 
   const onQuantity = async (lineId: string, q: number) => {
-    const next = await updateLineQuantity(DEMO_SHOP_ID, lineId, q);
-    setKadhia(next);
+    if (!shopId) return;
+    setQuantityError(null);
+    try {
+      const next = await updateLineQuantity(shopId, lineId, q);
+      setKadhia(next);
+    } catch {
+      setQuantityError("Impossible de mettre à jour la quantité. Réessaie.");
+    }
   };
 
   const empty = !kadhia || kadhia.lines.length === 0;
   const articleCount = kadhia?.lines.reduce((a, l) => a + l.quantity, 0) ?? 0;
+  const catalogHref = shopId ? `/stores/${shopId}/catalog` : "/stores";
 
   return (
     <>
@@ -40,9 +59,9 @@ export default function KadhiaPage() {
         subtitle={
           empty
             ? "Aucun article pour le moment"
-            : `${articleCount} article${articleCount > 1 ? "s" : ""} · Superette El Amel`
+            : `${articleCount} article${articleCount > 1 ? "s" : ""}`
         }
-        backHref={`/stores/${DEMO_SHOP_ID}/catalog`}
+        backHref={catalogHref}
       />
 
       {empty ? (
@@ -51,7 +70,7 @@ export default function KadhiaPage() {
           <p className="mt-2 text-sm text-muted">
             Ajoute des produits depuis le catalogue de ta supérette.
           </p>
-          <Link href={`/stores/${DEMO_SHOP_ID}/catalog`} className="mt-4 inline-block">
+          <Link href={catalogHref} className="mt-4 inline-block">
             <Button>Aller au catalogue</Button>
           </Link>
         </Card>
@@ -62,6 +81,12 @@ export default function KadhiaPage() {
               <KadhiaLineRow key={l.id} line={l} onQuantity={onQuantity} />
             ))}
           </section>
+
+          {quantityError && (
+            <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+              {quantityError}
+            </p>
+          )}
 
           <Card className="mt-4">
             <Summary>
