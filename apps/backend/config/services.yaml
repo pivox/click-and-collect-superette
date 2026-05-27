@@ -40,4 +40,4 @@ when@test:
     services:
         App\Doctrine\Middleware\SQLiteUnaccentMiddleware:
             tags:
-                - { name: doctrine.dbal.middleware }
+                - { name: doctrine.middleware }
