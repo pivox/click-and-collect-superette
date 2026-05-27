@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+// Server-side (SSR) uses API_URL (internal Docker network); client uses NEXT_PUBLIC_API_URL.
+const API_URL =
+  typeof window === 'undefined'
+    ? (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000')
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000');
 
 export const apiClient = axios.create({
   baseURL: API_URL,
