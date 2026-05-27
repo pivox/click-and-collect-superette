@@ -23,9 +23,15 @@ export default async function StoresPage() {
       />
       <StoreSearchCombobox />
       <div className="grid gap-2.5 md:grid-cols-3">
-        {shops.map((s) => (
-          <StoreCard key={s.id} shop={s} href={`/stores/${s.id}`} />
-        ))}
+        {shops.length === 0 ? (
+          <p className="col-span-3 py-6 text-center text-sm text-muted">
+            Aucune supérette disponible pour le moment.
+          </p>
+        ) : (
+          shops.map((s) => (
+            <StoreCard key={s.id} shop={s} href={`/stores/${s.id}`} />
+          ))
+        )}
       </div>
       <p className="mt-4 text-center text-xs text-muted">
         Tu peux aussi{" "}

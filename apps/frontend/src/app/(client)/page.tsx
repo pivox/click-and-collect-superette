@@ -28,7 +28,7 @@ export default async function HomePage() {
           subtitle="Scanne le QR code d'une supérette ou trouve un magasin proche."
           actions={
             <>
-              <Link href="/stores">
+              <Link href="/stores/by-qr-scan">
                 <Button variant="secondary">Scanner un QR code</Button>
               </Link>
               <Link href="/stores">
@@ -69,7 +69,7 @@ export default async function HomePage() {
           subtitle="Scanne le QR code d'une supérette ou trouve un magasin proche."
           actions={
             <>
-              <Link href="/stores">
+              <Link href="/stores/by-qr-scan">
                 <Button variant="secondary" full>Scanner un QR code</Button>
               </Link>
               <Link href="/stores">
@@ -89,9 +89,15 @@ export default async function HomePage() {
           </Link>
         </header>
         <div className="grid gap-2.5 md:grid-cols-3">
-          {featured.map((s) => (
-            <StoreCard key={s.id} shop={s} href={`/stores/${s.id}`} />
-          ))}
+          {featured.length === 0 ? (
+            <p className="col-span-3 py-4 text-center text-sm text-muted">
+              Aucune supérette disponible. Scanne un QR code à l&apos;entrée.
+            </p>
+          ) : (
+            featured.map((s) => (
+              <StoreCard key={s.id} shop={s} href={`/stores/${s.id}`} />
+            ))
+          )}
         </div>
       </section>
     </>
