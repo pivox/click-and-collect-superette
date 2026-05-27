@@ -10,6 +10,12 @@ import { StickyBottom } from "@/components/layout/StickyBottom";
 import { listSlotsForShop, submitKadhia, readLocalKadhia } from "@/lib/services";
 import { formatTime } from "@/lib/format";
 import type { PickupSlot } from "@/types";
+
+function afterTomorrowLabel(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 2);
+  return d.toLocaleDateString("fr-FR", { weekday: "long" }).replace(/^\w/, (c) => c.toUpperCase());
+}
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 
 export default function SlotPage() {
@@ -88,7 +94,7 @@ export default function SlotPage() {
           Demain
         </Pill>
         <Pill active={day === "after"} onClick={() => setDay("after")}>
-          Vendredi
+          {afterTomorrowLabel()}
         </Pill>
       </PillRow>
 
@@ -102,6 +108,7 @@ export default function SlotPage() {
               <SlotTile
                 key={s.id}
                 time={formatTime(s.startsAt)}
+                endTime={formatTime(s.endsAt)}
                 label={s.label}
                 disabled={!s.available}
                 active={activeId === s.id}

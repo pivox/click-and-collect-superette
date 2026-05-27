@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 
 export interface SlotTileProps {
   time: string;
+  endTime?: string;
   label?: string;
   active?: boolean;
   disabled?: boolean;
@@ -12,6 +13,7 @@ export interface SlotTileProps {
 
 export function SlotTile({
   time,
+  endTime,
   label,
   active,
   disabled,
@@ -30,7 +32,9 @@ export function SlotTile({
         !active && !disabled && "border-line hover:bg-soft",
       )}
     >
-      <strong className="block text-sm">{time}</strong>
+      <strong className="block text-sm">
+        {time}{endTime ? ` – ${endTime}` : ""}
+      </strong>
       {label && (
         <span className="mt-1 block text-xs text-muted">{label}</span>
       )}
