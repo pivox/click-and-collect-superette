@@ -18,6 +18,9 @@ export default function ClientRegisterPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!name.trim()) { setError('Le nom est requis.'); return; }
+    if (!email.trim()) { setError("L'adresse email est requise."); return; }
+    if (password.length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return; }
     setIsSubmitting(true);
     try {
       await clientRegister(email, password, name);
@@ -47,7 +50,6 @@ export default function ClientRegisterPage() {
             <input
               id="name"
               type="text"
-              required
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -61,7 +63,6 @@ export default function ClientRegisterPage() {
             <input
               id="reg-email"
               type="email"
-              required
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -75,9 +76,7 @@ export default function ClientRegisterPage() {
             <input
               id="reg-password"
               type="password"
-              required
               autoComplete="new-password"
-              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"

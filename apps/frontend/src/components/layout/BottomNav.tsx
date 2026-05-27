@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 
 const ITEMS = [
   { href: "/", label: "Accueil", icon: Home },
-  { href: "/stores", label: "Stores", icon: Search },
+  { href: "/stores", label: "Supérettes", icon: Search },
   { href: "/kadhia", label: "Kadhia", icon: ShoppingBasket },
   { href: "/orders", label: "Commandes", icon: ClipboardList },
 ] as const;
