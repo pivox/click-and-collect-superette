@@ -18,7 +18,7 @@ export default async function StoresPage() {
     <>
       <TopBar
         title="Trouver une supérette"
-        subtitle="Scan QR ou recherche par nom"
+        subtitle="Scanner le QR code ou rechercher par nom"
         backHref="/"
       />
       <StoreSearchCombobox />

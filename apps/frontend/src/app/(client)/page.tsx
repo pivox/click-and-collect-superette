@@ -40,9 +40,9 @@ export default async function HomePage() {
         {featuredShop && (
           <Card className="rounded-xl">
             <span className="text-xs font-extrabold uppercase tracking-widest text-primary">
-              Store reconnu
+              Supérette en vedette
             </span>
-            <h2 className="mt-2 text-h2 font-extrabold">{featuredShop.name}</h2>
+            <h2 className="mt-2 text-h2 font-extrabold text-ink">{featuredShop.name}</h2>
             <p className="text-sm text-muted">
               {[featuredShop.address, featuredShop.city].filter(Boolean).join(", ")}
             </p>
@@ -80,10 +80,10 @@ export default async function HomePage() {
         />
       </div>
 
-      {/* Stores récents */}
+      {/* Supérettes récentes */}
       <section className="mt-5">
         <header className="mb-2.5 flex items-baseline justify-between">
-          <h2 className="text-h3 font-extrabold m-0">Stores récents</h2>
+          <h2 className="text-h3 font-extrabold m-0">Supérettes récentes</h2>
           <Link href="/stores" className="text-xs font-extrabold text-primary">
             Voir tout
           </Link>
