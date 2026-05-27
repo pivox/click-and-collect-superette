@@ -16,7 +16,7 @@ final class Version20260527100000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('CREATE TABLE messenger_messages (
+        $this->addSql('CREATE TABLE IF NOT EXISTS messenger_messages (
             id BIGSERIAL NOT NULL,
             body TEXT NOT NULL,
             headers TEXT NOT NULL,
@@ -29,10 +29,10 @@ final class Version20260527100000 extends AbstractMigration
         $this->addSql("COMMENT ON COLUMN messenger_messages.created_at IS '(DC2Type:datetime_immutable)'");
         $this->addSql("COMMENT ON COLUMN messenger_messages.available_at IS '(DC2Type:datetime_immutable)'");
         $this->addSql("COMMENT ON COLUMN messenger_messages.delivered_at IS '(DC2Type:datetime_immutable)'");
-        $this->addSql('CREATE INDEX IDX_MESSENGER_MESSAGES_QUEUE_NAME ON messenger_messages (queue_name)');
-        $this->addSql('CREATE INDEX IDX_MESSENGER_MESSAGES_AVAILABLE_AT ON messenger_messages (available_at)');
-        $this->addSql('CREATE INDEX IDX_MESSENGER_MESSAGES_DELIVERED_AT ON messenger_messages (delivered_at)');
-        $this->addSql('CREATE INDEX IDX_MESSENGER_MESSAGES_QUEUE_AVAILABLE ON messenger_messages (queue_name, available_at)');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_MESSENGER_MESSAGES_QUEUE_NAME ON messenger_messages (queue_name)');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_MESSENGER_MESSAGES_AVAILABLE_AT ON messenger_messages (available_at)');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_MESSENGER_MESSAGES_DELIVERED_AT ON messenger_messages (delivered_at)');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_MESSENGER_MESSAGES_QUEUE_AVAILABLE ON messenger_messages (queue_name, available_at)');
     }
 
     public function down(Schema $schema): void
