@@ -29,13 +29,15 @@ export default function CatalogPage({
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setCatalogError(null);
+    setIsLoading(true);
     void listCatalog({ shopId, category, search })
-      .then((data) => { if (!cancelled) setProducts(data); })
-      .catch(() => { if (!cancelled) setCatalogError("Impossible de charger le catalogue. Veuillez réessayer."); });
+      .then((data) => { if (!cancelled) { setProducts(data); setIsLoading(false); } })
+      .catch(() => { if (!cancelled) { setCatalogError("Impossible de charger le catalogue. Veuillez réessayer."); setIsLoading(false); } });
     return () => { cancelled = true; };
   }, [shopId, category, search]);
 
@@ -117,6 +119,20 @@ export default function CatalogPage({
           </header>
           {catalogError ? (
             <p className="py-8 text-center text-sm text-muted">{catalogError}</p>
+          ) : isLoading ? (
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse rounded-lg border border-line bg-card p-3 shadow-card"
+                >
+                  <div className="mb-2 h-[94px] rounded-md bg-gray-200" />{/* matches ProductCard image height */}
+                  <div className="mb-1 h-4 w-3/4 rounded bg-gray-200" />
+                  <div className="mb-2 h-3 w-1/2 rounded bg-gray-200" />
+                  <div className="h-4 w-1/3 rounded bg-gray-200" />
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
               {products.map((p) => (
