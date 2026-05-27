@@ -45,14 +45,14 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
             throw new NotFoundHttpException('STORE_NOT_FOUND');
         }
 
-        $dateParam = $this->requestStack->getCurrentRequest()?->query->getString('date', 'today');
+        $dateParam = $this->requestStack->getCurrentRequest()?->query->get('date');
         [$from, $to] = $this->resolveDayWindow($dateParam);
 
         $activeClosures = $this->exceptionalClosureRepository->findActiveForShop($shop);
         $availableSlots = array_values(array_filter(
             $this->pickupSlotRepository->findAvailableForShop($shop, $from),
             static fn (PickupSlot $slot): bool => !self::overlapsActiveClosure($activeClosures, $slot)
-                && $slot->getStartsAt() < $to,
+                && (null === $to || $slot->getStartsAt() < $to),
         ));
 
         $items = array_map(
@@ -85,21 +85,23 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
 
     /**
      * Returns [from, to) boundaries for the requested day in UTC.
+     * null       → [now, null) — all future slots, no upper bound (backward-compatible)
      * "today"    → [now, start of tomorrow)
      * "tomorrow" → [start of tomorrow, start of day+2)
      * "after"    → [start of day+2, start of day+3).
      *
-     * @return array{\DateTimeImmutable, \DateTimeImmutable}
+     * @return array{\DateTimeImmutable, \DateTimeImmutable|null}
      */
-    private function resolveDayWindow(string $dateParam): array
+    private function resolveDayWindow(?string $dateParam): array
     {
         $utc = new \DateTimeZone('UTC');
         $tomorrow = new \DateTimeImmutable('tomorrow midnight', $utc);
 
         return match ($dateParam) {
+            'today' => [new \DateTimeImmutable('now', $utc), $tomorrow],
             'tomorrow' => [$tomorrow, $tomorrow->modify('+1 day')],
             'after' => [$tomorrow->modify('+1 day'), $tomorrow->modify('+2 days')],
-            default => [new \DateTimeImmutable('now', $utc), $tomorrow],
+            default => [new \DateTimeImmutable('now', $utc), null],
         };
     }
 }
