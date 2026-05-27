@@ -19,6 +19,7 @@ import type { Kadhia } from "@/types";
 export default function KadhiaPage() {
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
   const [shopId, setShopId] = useState<string | null>(null);
+  const [quantityError, setQuantityError] = useState<string | null>(null);
 
   useEffect(() => {
     const local = readLocalKadhia();
@@ -27,14 +28,24 @@ export default function KadhiaPage() {
     if (sid) {
       void getCurrentKadhia(sid)
         .then(setKadhia)
-        .catch(() => {});
+        .catch((err: unknown) => {
+          const status = (err as { response?: { status?: number } }).response?.status;
+          if (status !== 404 && status !== 405) {
+            console.error("[KadhiaPage] getCurrentKadhia failed:", err);
+          }
+        });
     }
   }, []);
 
   const onQuantity = async (lineId: string, q: number) => {
     if (!shopId) return;
-    const next = await updateLineQuantity(shopId, lineId, q);
-    setKadhia(next);
+    setQuantityError(null);
+    try {
+      const next = await updateLineQuantity(shopId, lineId, q);
+      setKadhia(next);
+    } catch {
+      setQuantityError("Impossible de mettre à jour la quantité. Réessaie.");
+    }
   };
 
   const empty = !kadhia || kadhia.lines.length === 0;
@@ -70,6 +81,12 @@ export default function KadhiaPage() {
               <KadhiaLineRow key={l.id} line={l} onQuantity={onQuantity} />
             ))}
           </section>
+
+          {quantityError && (
+            <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+              {quantityError}
+            </p>
+          )}
 
           <Card className="mt-4">
             <Summary>

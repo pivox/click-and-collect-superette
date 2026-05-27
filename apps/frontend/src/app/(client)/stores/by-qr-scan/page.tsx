@@ -13,7 +13,7 @@ export default function ByQrScanPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const t = token.trim();
-    if (!t) return;
+    if (!t || !/^[a-z0-9-]{1,100}$/i.test(t)) return;
     router.push(`/stores/by-qr/${t}`);
   };
 

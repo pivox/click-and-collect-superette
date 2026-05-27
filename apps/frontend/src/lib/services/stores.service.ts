@@ -36,6 +36,26 @@ export async function getShopBySlug(qrToken: string): Promise<Shop | null> {
   if (USE_MOCKS) {
     return mockDelay(MOCK_SHOPS.find((s) => s.slug === qrToken) ?? null);
   }
-  const { data } = await apiClient.get<Shop>(`/api/stores/by-qr/${qrToken}`);
-  return data;
+  try {
+    const { data } = await apiClient.get<{
+      store_id: string;
+      name: string;
+      slug: string;
+      city: string | null;
+      is_active: boolean;
+    }>(`/api/stores/by-qr/${qrToken}`);
+    return {
+      id: data.store_id,
+      name: data.name,
+      slug: data.slug,
+      city: data.city,
+      isActive: data.is_active,
+      address: null,
+      phone: null,
+    };
+  } catch (err) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+    if (status === 404) return null;
+    throw err;
+  }
 }
