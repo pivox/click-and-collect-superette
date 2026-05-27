@@ -16,6 +16,9 @@ import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { cn } from '@/lib/cn';
 import { listMerchantNotifications } from '@/lib/services/merchant-notifications.service';
+import { listMerchantSlots } from '@/lib/services/merchant-slots.service';
+import { SlotCoverageWarning } from '@/components/merchant/SlotCoverageWarning';
+import type { MerchantPickupSlot } from '@/lib/types/merchant-slots.types';
 
 const ACTIVE_NAV = [
   { href: '/merchant', label: 'Dashboard', icon: BarChart3 },
@@ -33,7 +36,9 @@ const DISABLED_NAV = [
 export function MerchantShell({ children }: { children: React.ReactNode }) {
   const { merchant, logout } = useMerchantAuth();
   const pathname = usePathname();
+  const storeId = merchant?.store.id ?? '';
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [slots, setSlots] = useState<MerchantPickupSlot[]>([]);
   const latestUnreadRequestId = useRef(0);
   const isMounted = useRef(false);
 
@@ -65,6 +70,11 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener('merchant-notifications:refresh', refreshUnreadNotifications);
     };
   }, [refreshUnreadNotifications]);
+
+  useEffect(() => {
+    if (!storeId || pathname === '/merchant/login') return;
+    listMerchantSlots(storeId).then(setSlots).catch(() => setSlots([]));
+  }, [storeId, pathname]);
 
   const isNavItemActive = (href: string) =>
     pathname === href || (href !== '/merchant' && pathname.startsWith(href));
@@ -166,6 +176,11 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
+        {pathname !== '/merchant/login' && (
+          <div className="px-4 pt-4 md:px-6 md:pt-6">
+            <SlotCoverageWarning slots={slots} />
+          </div>
+        )}
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
       </div>
     </div>

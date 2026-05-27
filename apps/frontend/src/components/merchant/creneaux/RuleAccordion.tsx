@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { RuleForm } from './RuleForm';
-import type { CreateSlotRulePayload, MerchantPickupSlotRule } from '@/lib/types/merchant-slots.types';
+import type {
+  CreateSlotRulePayload,
+  GenerateSlotsResult,
+  MerchantPickupSlotRule,
+} from '@/lib/types/merchant-slots.types';
 
 const WEEKDAY_LABELS: Record<number, string> = {
   1: 'Lundi', 2: 'Mardi', 3: 'Mercredi', 4: 'Jeudi',
@@ -14,14 +18,18 @@ export interface RuleAccordionProps {
   rules: MerchantPickupSlotRule[];
   onCreateRule: (payload: CreateSlotRulePayload) => Promise<void>;
   onDeleteRule: (ruleId: string) => Promise<void>;
+  onGenerate: (horizonMonths: 1 | 3) => Promise<GenerateSlotsResult>;
 }
 
-export function RuleAccordion({ rules, onCreateRule, onDeleteRule }: RuleAccordionProps) {
+export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }: RuleAccordionProps) {
   const [open, setOpen] = useState(rules.length === 0);
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState<1 | 3 | null>(null);
+  const [generateResult, setGenerateResult] = useState<GenerateSlotsResult | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   async function handleCreate(payload: CreateSlotRulePayload) {
     await onCreateRule(payload);
@@ -38,6 +46,20 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule }: RuleAccordi
     } finally {
       setDeletingId(null);
       setConfirmId(null);
+    }
+  }
+
+  async function handleGenerate(horizonMonths: 1 | 3) {
+    setGenerating(horizonMonths);
+    setGenerateResult(null);
+    setGenerateError(null);
+    try {
+      const result = await onGenerate(horizonMonths);
+      setGenerateResult(result);
+    } catch {
+      setGenerateError('Impossible de générer les créneaux. Réessayez.');
+    } finally {
+      setGenerating(null);
     }
   }
 
@@ -123,6 +145,38 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule }: RuleAccordi
               <Plus className="h-4 w-4" />
               Nouvelle règle
             </button>
+          )}
+
+          {rules.length > 0 && (
+            <div className="mt-4 border-t border-line pt-4">
+              <p className="mb-2 text-xs font-bold text-muted">Générer les créneaux</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleGenerate(1)}
+                  disabled={generating !== null}
+                  className="rounded-md border border-line bg-white px-3 py-1.5 text-xs font-semibold hover:bg-soft disabled:opacity-50"
+                >
+                  {generating === 1 ? 'Génération…' : 'Générer 1 mois'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGenerate(3)}
+                  disabled={generating !== null}
+                  className="rounded-md border border-line bg-white px-3 py-1.5 text-xs font-semibold hover:bg-soft disabled:opacity-50"
+                >
+                  {generating === 3 ? 'Génération…' : 'Générer 3 mois'}
+                </button>
+              </div>
+              {generateResult && (
+                <p className="mt-2 text-xs text-success">
+                  ✓ {generateResult.generated_count} créneau{generateResult.generated_count !== 1 ? 'x' : ''} généré{generateResult.generated_count !== 1 ? 's' : ''}.
+                </p>
+              )}
+              {generateError && (
+                <p role="alert" className="mt-2 text-xs text-danger">{generateError}</p>
+              )}
+            </div>
           )}
         </div>
       )}

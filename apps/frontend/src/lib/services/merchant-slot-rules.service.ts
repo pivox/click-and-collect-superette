@@ -50,10 +50,11 @@ export async function deleteMerchantSlotRule(
 
 export async function generateMerchantSlots(
   storeId: string,
+  horizonMonths: 1 | 3 = 1,
 ): Promise<GenerateSlotsResult> {
   const { data } = await apiClient.post<GenerateSlotsResult>(
     `/api/merchant/stores/${storeId}/pickup-slot-rules/generate`,
-    {},
+    { horizon_months: horizonMonths },
   );
   return data;
 }

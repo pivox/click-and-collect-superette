@@ -238,6 +238,7 @@ describe('RuleAccordion', () => {
         rules: [],
         onCreateRule: vi.fn(),
         onDeleteRule: vi.fn(),
+        onGenerate: vi.fn(),
       }),
     );
     expect(screen.getByText(/aucune règle/i)).toBeInTheDocument();
@@ -249,6 +250,7 @@ describe('RuleAccordion', () => {
         rules: [rule],
         onCreateRule: vi.fn(),
         onDeleteRule: vi.fn(),
+        onGenerate: vi.fn(),
       }),
     );
     fireEvent.click(screen.getByText('Règles récurrentes'));
@@ -263,6 +265,7 @@ describe('RuleAccordion', () => {
         rules: [rule],
         onCreateRule: vi.fn(),
         onDeleteRule: onDelete,
+        onGenerate: vi.fn(),
       }),
     );
     fireEvent.click(screen.getByText('Règles récurrentes'));
@@ -279,6 +282,7 @@ describe('RuleAccordion', () => {
         rules: [rule],
         onCreateRule: vi.fn(),
         onDeleteRule: onDelete,
+        onGenerate: vi.fn(),
       }),
     );
     fireEvent.click(screen.getByText('Règles récurrentes'));
@@ -287,6 +291,58 @@ describe('RuleAccordion', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Impossible de supprimer cette règle');
     });
+  });
+
+  it('shows generate buttons when rules exist', () => {
+    render(
+      React.createElement(RuleAccordion, {
+        rules: [rule],
+        onCreateRule: vi.fn(),
+        onDeleteRule: vi.fn(),
+        onGenerate: vi.fn(),
+      }),
+    );
+    fireEvent.click(screen.getByText('Règles récurrentes'));
+    expect(screen.getByRole('button', { name: /générer 1 mois/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /générer 3 mois/i })).toBeInTheDocument();
+  });
+
+  it('calls onGenerate with correct horizonMonths and shows result', async () => {
+    const generateResult = {
+      store_id: 'store-1',
+      generated_count: 8,
+      skipped_existing_count: 0,
+      skipped_closure_count: 0,
+      horizon_start: '2026-05-27T00:00:00+01:00',
+      horizon_end: '2026-08-27T00:00:00+01:00',
+    };
+    const onGenerate = vi.fn().mockResolvedValue(generateResult);
+    render(
+      React.createElement(RuleAccordion, {
+        rules: [rule],
+        onCreateRule: vi.fn(),
+        onDeleteRule: vi.fn(),
+        onGenerate,
+      }),
+    );
+    fireEvent.click(screen.getByText('Règles récurrentes'));
+    fireEvent.click(screen.getByRole('button', { name: /générer 3 mois/i }));
+    await waitFor(() => {
+      expect(onGenerate).toHaveBeenCalledWith(3);
+      expect(screen.getByText(/8 créneaux générés/)).toBeInTheDocument();
+    });
+  });
+
+  it('does not show generate buttons when no rules exist', () => {
+    render(
+      React.createElement(RuleAccordion, {
+        rules: [],
+        onCreateRule: vi.fn(),
+        onDeleteRule: vi.fn(),
+        onGenerate: vi.fn(),
+      }),
+    );
+    expect(screen.queryByRole('button', { name: /générer/i })).not.toBeInTheDocument();
   });
 });
 
@@ -445,19 +501,19 @@ describe('MerchantCreneauxPage', () => {
     });
   });
 
-  it('shows GenerateBanner after creating a rule', async () => {
+  it('reloads data after creating a rule without showing a banner', async () => {
     vi.mocked(createMerchantSlotRule).mockResolvedValue(rule);
 
     render(React.createElement(MerchantCreneauxPage));
-    // Wait for data to load — RuleAccordion opens by default when rules=[]
     await waitFor(() => screen.getByRole('heading', { name: 'Créneaux' }));
-    // Accordion is already open (no rules yet), so click "Nouvelle règle" directly
     await waitFor(() => screen.getByText('Nouvelle règle'));
     fireEvent.click(screen.getByText('Nouvelle règle'));
-    fireEvent.click(screen.getByRole('button', { name: /ajouter la règle/i }));
+    fireEvent.click(screen.getByRole('button', { name: /ajouter/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/générer les créneaux/i)).toBeInTheDocument();
+      expect(createMerchantSlotRule).toHaveBeenCalled();
     });
+    // The obsolete GenerateBanner should NOT appear after rule creation
+    expect(screen.queryByText(/plus tard/i)).not.toBeInTheDocument();
   });
 });

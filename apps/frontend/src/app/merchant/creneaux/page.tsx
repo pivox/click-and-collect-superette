@@ -7,7 +7,6 @@ import { DayStrip } from '@/components/merchant/creneaux/DayStrip';
 import { SlotCard } from '@/components/merchant/creneaux/SlotCard';
 import { SlotCreateModal } from '@/components/merchant/creneaux/SlotCreateModal';
 import { RuleAccordion } from '@/components/merchant/creneaux/RuleAccordion';
-import { GenerateBanner } from '@/components/merchant/creneaux/GenerateBanner';
 import { ClosureAccordion } from '@/components/merchant/creneaux/ClosureAccordion';
 import {
   listMerchantSlotRules,
@@ -65,7 +64,6 @@ export default function MerchantCreneauxPage() {
   const [rules, setRules] = useState<MerchantPickupSlotRule[]>([]);
   const [slots, setSlots] = useState<MerchantPickupSlot[]>([]);
   const [closures, setClosures] = useState<MerchantExceptionalClosure[]>([]);
-  const [showBanner, setShowBanner] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -96,7 +94,6 @@ export default function MerchantCreneauxPage() {
 
   async function handleCreateRule(payload: CreateSlotRulePayload) {
     await createMerchantSlotRule(storeId, payload);
-    setShowBanner(true);
     void loadAll();
   }
 
@@ -105,8 +102,8 @@ export default function MerchantCreneauxPage() {
     void loadAll();
   }
 
-  async function handleGenerate() {
-    const result = await generateMerchantSlots(storeId);
+  async function handleGenerate(horizonMonths: 1 | 3) {
+    const result = await generateMerchantSlots(storeId, horizonMonths);
     void loadAll();
     return result;
   }
@@ -163,13 +160,6 @@ export default function MerchantCreneauxPage() {
         </div>
       )}
 
-      {showBanner && (
-        <GenerateBanner
-          onGenerate={handleGenerate}
-          onDismiss={() => setShowBanner(false)}
-        />
-      )}
-
       <DayStrip
         days={days}
         selectedDate={selectedDate}
@@ -202,6 +192,7 @@ export default function MerchantCreneauxPage() {
         rules={rules}
         onCreateRule={handleCreateRule}
         onDeleteRule={handleDeleteRule}
+        onGenerate={handleGenerate}
       />
 
       <ClosureAccordion

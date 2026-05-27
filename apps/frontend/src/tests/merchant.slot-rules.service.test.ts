@@ -87,14 +87,14 @@ describe('merchant slot rules service', () => {
     );
   });
 
-  it('generates slots and returns the result', async () => {
+  it('generates slots with default 1-month horizon', async () => {
     const generated = {
       store_id: STORE_ID,
-      generated_count: 12,
+      generated_count: 4,
       skipped_existing_count: 0,
       skipped_closure_count: 0,
-      horizon_start: '2026-05-25',
-      horizon_end: '2026-06-22',
+      horizon_start: '2026-05-25T00:00:00+01:00',
+      horizon_end: '2026-06-25T00:00:00+01:00',
     };
     vi.mocked(apiClient.post).mockResolvedValue({ data: generated });
 
@@ -102,8 +102,28 @@ describe('merchant slot rules service', () => {
 
     expect(apiClient.post).toHaveBeenCalledWith(
       `/api/merchant/stores/${STORE_ID}/pickup-slot-rules/generate`,
-      {},
+      { horizon_months: 1 },
     );
-    expect(result.generated_count).toBe(12);
+    expect(result.generated_count).toBe(4);
+  });
+
+  it('generates slots with explicit 3-month horizon', async () => {
+    const generated = {
+      store_id: STORE_ID,
+      generated_count: 13,
+      skipped_existing_count: 0,
+      skipped_closure_count: 0,
+      horizon_start: '2026-05-25T00:00:00+01:00',
+      horizon_end: '2026-08-25T00:00:00+01:00',
+    };
+    vi.mocked(apiClient.post).mockResolvedValue({ data: generated });
+
+    const result = await generateMerchantSlots(STORE_ID, 3);
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      `/api/merchant/stores/${STORE_ID}/pickup-slot-rules/generate`,
+      { horizon_months: 3 },
+    );
+    expect(result.generated_count).toBe(13);
   });
 });
