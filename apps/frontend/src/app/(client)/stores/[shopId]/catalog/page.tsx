@@ -126,7 +126,7 @@ export default function CatalogPage({
                   key={i}
                   className="animate-pulse rounded-lg border border-line bg-card p-3 shadow-card"
                 >
-                  <div className="mb-2 h-[94px] rounded-md bg-gray-200" />
+                  <div className="mb-2 h-[94px] rounded-md bg-gray-200" />{/* matches ProductCard image height */}
                   <div className="mb-1 h-4 w-3/4 rounded bg-gray-200" />
                   <div className="mb-2 h-3 w-1/2 rounded bg-gray-200" />
                   <div className="h-4 w-1/3 rounded bg-gray-200" />
