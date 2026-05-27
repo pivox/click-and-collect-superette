@@ -232,7 +232,7 @@ export async function submitKadhia(params: SubmitKadhiaParams): Promise<Submitte
     // 4. Submit
     const { data: order } = await apiClient.post<{ id: string; code: string }>(
       `/api/me/kadhias/${backendKadhia.id}/submit`,
-      { pickupSlotId, customerNote },
+      { pickup_slot_id: pickupSlotId, notes: customerNote },
     );
 
     // 5. Clear localStorage
