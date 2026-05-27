@@ -1,5 +1,6 @@
 'use client';
 
+import { isAxiosError } from 'axios';
 import { Suspense, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -30,7 +31,18 @@ function LoginForm() {
       await login(email, password);
       router.push(redirect);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Identifiants incorrects');
+      if (isAxiosError(err)) {
+        const status = err.response?.status;
+        if (status === 401) {
+          setError('Email ou mot de passe incorrect.');
+        } else if (status === 429) {
+          setError('Trop de tentatives. Réessaie dans quelques minutes.');
+        } else {
+          setError('Une erreur est survenue. Réessaie plus tard.');
+        }
+      } else {
+        setError('Une erreur est survenue. Réessaie plus tard.');
+      }
     } finally {
       setIsSubmitting(false);
     }
