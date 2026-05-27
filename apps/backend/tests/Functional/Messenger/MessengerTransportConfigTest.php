@@ -24,7 +24,7 @@ final class MessengerTransportConfigTest extends KernelTestCase
 
     protected function setUp(): void
     {
-        $databaseUrl = \sprintf('sqlite:///%s/kadhia_messenger_config_test.db', \sys_get_temp_dir());
+        $databaseUrl = \sprintf('sqlite:///%s/kadhia_messenger_config_test.db', sys_get_temp_dir());
         $_ENV['DATABASE_URL'] = $databaseUrl;
         $_SERVER['DATABASE_URL'] = $databaseUrl;
 
