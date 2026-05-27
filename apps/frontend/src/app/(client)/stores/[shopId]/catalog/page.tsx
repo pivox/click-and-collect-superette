@@ -29,6 +29,7 @@ export default function CatalogPage({
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -54,8 +55,13 @@ export default function CatalogPage({
   }, [shopId]);
 
   const onAdd = async (p: ProductOffer) => {
-    const next = await addLine(shopId, p, 1);
-    setKadhia(next);
+    setAddError(null);
+    try {
+      const next = await addLine(shopId, p, 1);
+      setKadhia(next);
+    } catch {
+      setAddError("Impossible d'ajouter le produit. Réessaie.");
+    }
   };
 
   const cartCount = useMemo(
@@ -117,6 +123,11 @@ export default function CatalogPage({
               {cartLabel}
             </Link>
           </header>
+          {addError && (
+            <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+              {addError}
+            </p>
+          )}
           {catalogError ? (
             <p className="py-8 text-center text-sm text-muted">{catalogError}</p>
           ) : isLoading ? (
