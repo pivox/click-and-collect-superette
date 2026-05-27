@@ -7,6 +7,11 @@ import { USE_MOCKS, mockDelay } from "./index";
  * customer submits the order. After submission it becomes an Order on the
  * backend. This mirrors the prototype's behaviour and lets us iterate
  * before the cart endpoint is wired up.
+ *
+ * Write operations (addLine, updateLineQuantity) are localStorage-only in both
+ * mock and real modes. The backend is reached only during submitKadhia (to
+ * create the Kadhia, sync lines, and submit) and during getCurrentKadhia in
+ * real mode (to hydrate the cart from an existing backend Kadhia).
  */
 const STORAGE_KEY = "kadhia:current";
 
@@ -16,7 +21,8 @@ function read(): Kadhia | null {
   if (!raw) return null;
   try {
     return JSON.parse(raw) as Kadhia;
-  } catch {
+  } catch (err) {
+    console.error("[kadhia:read] localStorage corrupted — discarding", { raw, err });
     return null;
   }
 }
@@ -44,6 +50,13 @@ function makeLine(p: ProductOffer, quantity: number): KadhiaLine {
     unitPriceTnd: p.priceTnd,
     lineTotalTnd: (unit * quantity).toFixed(3),
   };
+}
+
+/** Discard stored kadhia if it belongs to a different shop. */
+function readForShop(shopId: string): Kadhia {
+  const stored = read();
+  if (stored && stored.shopId === shopId) return stored;
+  return { id: "", shopId, status: "draft", lines: [], totalTnd: "0.000" };
 }
 
 /** Read the current kadhia's shopId from localStorage (works in both mock and real modes). */
@@ -125,28 +138,24 @@ export async function addLine(
   product: ProductOffer,
   quantity = 1,
 ): Promise<Kadhia> {
-  if (USE_MOCKS) {
-    const current = (await getCurrentKadhia(shopId));
-    const lines = [...current.lines];
-    const existing = lines.find((l) => l.productOffer.id === product.id);
-    if (existing) {
-      existing.quantity += quantity;
-      existing.lineTotalTnd = (
-        parseFloat(existing.unitPriceTnd) * existing.quantity
-      ).toFixed(3);
-    } else {
-      lines.push(makeLine(product, quantity));
-    }
-    const next: Kadhia = { ...current, lines, totalTnd: recompute(lines) };
-    write(next);
-    return mockDelay(next);
+  const current = readForShop(shopId);
+  const lines = [...current.lines];
+  const idx = lines.findIndex((l) => l.productOffer.id === product.id);
+  if (idx !== -1) {
+    const existing = lines[idx];
+    const newQty = existing.quantity + quantity;
+    lines[idx] = {
+      ...existing,
+      quantity: newQty,
+      lineTotalTnd: (parseFloat(existing.unitPriceTnd) * newQty).toFixed(3),
+    };
+  } else {
+    lines.push(makeLine(product, quantity));
   }
-  const kadhia = await getCurrentKadhia(shopId);
-  const { data } = await apiClient.put<Kadhia>(
-    `/api/me/kadhias/${kadhia.id}/lines/${product.id}`,
-    { quantity },
-  );
-  return data;
+  const next: Kadhia = { ...current, lines, totalTnd: recompute(lines) };
+  write(next);
+  if (USE_MOCKS) return mockDelay(next);
+  return next;
 }
 
 export async function updateLineQuantity(
@@ -154,44 +163,25 @@ export async function updateLineQuantity(
   lineId: string,
   quantity: number,
 ): Promise<Kadhia> {
-  if (USE_MOCKS) {
-    const current = await getCurrentKadhia(shopId);
-    const lines = current.lines
-      .map((l) =>
-        l.id === lineId
-          ? {
-              ...l,
-              quantity,
-              lineTotalTnd: (parseFloat(l.unitPriceTnd) * quantity).toFixed(3),
-            }
-          : l,
-      )
-      .filter((l) => l.quantity > 0);
-    const next: Kadhia = { ...current, lines, totalTnd: recompute(lines) };
-    write(next);
-    return mockDelay(next);
-  }
-  const kadhia = await getCurrentKadhia(shopId);
-  const { data } = await apiClient.patch<Kadhia>(
-    `/api/me/kadhias/${kadhia.id}/lines/${lineId}`,
-    { quantity },
-  );
-  return data;
+  const current = readForShop(shopId);
+  const lines = current.lines
+    .map((l) =>
+      l.id === lineId
+        ? {
+            ...l,
+            quantity,
+            lineTotalTnd: (parseFloat(l.unitPriceTnd) * quantity).toFixed(3),
+          }
+        : l,
+    )
+    .filter((l) => l.quantity > 0);
+  const next: Kadhia = { ...current, lines, totalTnd: recompute(lines) };
+  write(next);
+  if (USE_MOCKS) return mockDelay(next);
+  return next;
 }
 
-export async function clearKadhia(shopId?: string): Promise<void> {
-  if (USE_MOCKS) {
-    write(null);
-    return;
-  }
-  // Resolve shopId from localStorage if not provided
-  const sid = shopId ?? read()?.shopId;
-  if (sid) {
-    const kadhia = await getCurrentKadhia(sid).catch(() => null);
-    if (kadhia?.id) {
-      await apiClient.delete(`/api/me/kadhias/${kadhia.id}`).catch(() => undefined);
-    }
-  }
+export async function clearKadhia(): Promise<void> {
   write(null);
 }
 
@@ -252,7 +242,12 @@ export async function submitKadhia(params: SubmitKadhiaParams): Promise<Submitte
   } catch (err) {
     // Clean up the orphaned backend Kadhia if sync or submit fails.
     // localStorage remains intact so the user can retry.
-    await apiClient.delete(`/api/me/kadhias/${backendKadhia.id}`).catch(() => undefined);
+    await apiClient.delete(`/api/me/kadhias/${backendKadhia.id}`).catch((cleanupErr: unknown) => {
+      console.error("[submitKadhia] cleanup delete failed — kadhia may be orphaned on backend", {
+        kadhiaId: backendKadhia.id,
+        cleanupErr,
+      });
+    });
     throw err;
   }
 }
