@@ -4,16 +4,16 @@
 
 ## Bloquants avant déploiement (risques R1 + R2)
 
-- [ ] **R1 — Extension PostgreSQL `unaccent`** : exécuter `CREATE EXTENSION IF NOT EXISTS unaccent;` sur la base de production avant de démarrer le backend (la recherche retourne HTTP 500 sans cette extension)
-- [ ] **R2 — Transport Messenger async** : configurer `doctrine://` ou `redis://` dans `messenger.yaml` ; ne pas utiliser `sync://` en production — les `DelayStamp` sont ignorés et les messages perdus au redémarrage
+- [x] **R1 — Extension PostgreSQL `unaccent`** : migration `Version20260526100000` crée l'extension (`CREATE EXTENSION IF NOT EXISTS unaccent`) et les index de recherche — résolu dans PR #152
+- [x] **R2 — Transport Messenger async** : `messenger.yaml` configuré avec `doctrine://default?auto_setup=0`, `failure_transport`, `retry_strategy` ; table `messenger_messages` créée par `Version20260527100000` ; config Supervisor dans `docker/supervisor/` — résolu dans S7-009
 
 ## Transport Messenger
 
-- [ ] Transport async persistant configuré (PostgreSQL ou Redis, pas sync) — variable `MESSENGER_TRANSPORT_DSN`
-- [ ] Worker actif : `php bin/console messenger:consume async --time-limit=3600`
-- [ ] Worker supervisé (Supervisor ou systemd — redémarrage automatique en cas de crash)
-- [ ] `failure_transport` configuré pour les messages en échec (ne pas bloquer la file principale)
-- [ ] Index sur `messenger_messages(queue_name, available_at)` créé pour éviter les scans complets
+- [x] Transport async persistant configuré — `MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0` (surcharger en Redis en production si disponible)
+- [x] `failure_transport: failed` configuré (file dédiée aux messages en échec, sans bloquer la file principale)
+- [x] Index sur `messenger_messages(queue_name, available_at)` créé (`Version20260527100000`)
+- [ ] Worker actif en production : `php bin/console messenger:consume async --time-limit=3600 --memory-limit=128M`
+- [ ] Worker supervisé via `docker/supervisor/messenger-worker.conf` (Supervisor redémarre automatiquement en cas de crash)
 
 ## Variables d'environnement critiques
 
