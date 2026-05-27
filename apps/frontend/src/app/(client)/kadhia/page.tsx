@@ -27,12 +27,24 @@ export default function KadhiaPage() {
     setShopId(sid);
     if (sid) {
       void getCurrentKadhia(sid)
-        .then(setKadhia)
+        .then((remote) => {
+          // If the backend has no kadhia yet, prefer the locally-built one
+          if (remote.lines.length === 0) {
+            const local = readLocalKadhia();
+            if (local?.shopId === sid && local.lines.length > 0) {
+              setKadhia(local);
+              return;
+            }
+          }
+          setKadhia(remote);
+        })
         .catch((err: unknown) => {
           const status = (err as { response?: { status?: number } }).response?.status;
           if (status !== 404 && status !== 405) {
             console.error("[KadhiaPage] getCurrentKadhia failed:", err);
           }
+          const local = readLocalKadhia();
+          if (local?.shopId === sid) setKadhia(local);
         });
     }
   }, []);
