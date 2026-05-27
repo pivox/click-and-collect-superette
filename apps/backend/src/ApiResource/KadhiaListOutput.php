@@ -7,13 +7,29 @@ namespace App\ApiResource;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\QueryParameter;
+use App\Entity\Shop;
 use App\Provider\KadhiaCollectionProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 
 #[ApiResource(
     operations: [
+        new Get(
+            uriTemplate: '/me/stores/{storeId}/kadhias',
+            uriVariables: ['storeId' => new Link(fromClass: Shop::class, identifiers: ['id'])],
+            formats: ['json' => ['application/json']],
+            normalizationContext: ['groups' => ['kadhia_list:read']],
+            provider: KadhiaCollectionProvider::class,
+            security: "is_granted('ROLE_CUSTOMER')",
+            parameters: [
+                'page' => new QueryParameter(
+                    schema: ['type' => 'integer', 'minimum' => 1, 'default' => 1],
+                    description: 'Numéro de page (20 items par page).',
+                ),
+            ],
+        ),
         new Get(
             uriTemplate: '/me/kadhias',
             formats: ['json' => ['application/json']],
