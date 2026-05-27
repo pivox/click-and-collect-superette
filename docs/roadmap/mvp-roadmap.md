@@ -376,11 +376,26 @@ La PWA client reflète le thème de la supérette via `GET /api/stores/{storeId}
 
 ---
 
-## Sprint 7 — Production et localisation 🟡 P2
+## Sprint 7 — Production et localisation ✅ Backend livré / Frontend partiel
 
 ### Objectif
 
 Préparer la mise en production avec observabilité, localisation FR/AR et outils de support.
+
+### Bilan (audit S7-008 — 2026-05-27)
+
+| US | Titre | Statut |
+|---|---|---|
+| US-058 | Fermeture définitive d'une supérette | ✅ Backend livré (S7-001) |
+| US-061 | Export CSV commandes marchand | ✅ Backend livré (S7-002) |
+| US-062 | Conservation et suppression des données | ✅ Backend livré (S7-003) |
+| US-063 | Audit trail des actions admin | ✅ Backend livré (S7-004) |
+| US-065 | Observabilité production | ✅ Backend livré (S7-005) |
+| US-059 | PWA installable et mode hors ligne | ❌ Non livré — Sprint 8 |
+| US-060 | Accessibilité WCAG 2.1 AA | ❌ Non livré — Sprint 8 |
+| US-008 | Localisation FR/AR câblée dans l'app | ⚠️ Partiel — fichiers i18n présents, next-intl non câblé |
+
+Frontend admin backoffice livré hors sprint officiel (PRs #130–#132) : auth admin, référentiel produits, marchands, supérettes, audit logs, dashboard KPI.
 
 ### Fonctionnalités
 
@@ -395,25 +410,19 @@ Préparer la mise en production avec observabilité, localisation FR/AR et outil
 - Analytics MVP (commandes/jour, taux d'acceptation, créneaux utilisés).
 - Outils de support opérateur (recherche commande admin, log d'activité).
 
-### User stories
+### Entités / migrations livrées
 
-- **US-008** — Basculer la langue de l'interface FR/AR *(complétée)*
-- **US-058** — Fermeture définitive d'une supérette
-- **US-059** — PWA installable et mode hors ligne
-- **US-060** — Accessibilité WCAG 2.1 AA
-- **US-061** — Export données commandes marchand (CSV)
-- **US-062** — Politique de conservation et suppression des données *(backend S7-003 livré : suppression compte client + anonymisation minimale)*
-- **US-063** — Audit trail des actions admin
+- `Shop` : `archivedAt`, `archiveReason` (migration `Version20260521100000`).
+- `User` : `deletedAt`, `lastLoginAt` (migration `Version20260521110000`).
+- `AdminAuditLog` (migration `Version20260521120000`).
 
-### Entités / migrations
+### Critère de sortie ⚠️ Partiel
 
-- `Shop` : ajouter `archivedAt`, `archiveReason`.
-- `User` : `deletedAt`, `lastLoginAt` ajoutés par S7-003.
-- `AdminAuditLog` (nouvelle entité).
+Backend : ✅ — 5 US livrées, 81 tests fonctionnels, PHPStan niveau 8 clean, CS Fixer clean.
+Frontend : ⚠️ — parcours client validé par simulation Playwright (rapport v2). PWA, WCAG et i18n AR reportés Sprint 8.
+Production : ⚠️ — risques bloquants documentés (extension `unaccent`, transport Messenger async, drift schéma) à résoudre avant déploiement.
 
-### Critère de sortie
-
-La plateforme est opérable et supervisée en production par une équipe réduite. L'interface bascule entre français et arabe avec support RTL complet. L'application est installable sur mobile, accessible WCAG 2.1 AA et conforme aux exigences minimales de protection des données. L'admin peut archiver une supérette, le marchand exporter ses commandes, chaque action admin critique est tracée.
+Rapport de clôture complet : `docs/Sprint7/completion-report.md`.
 
 ---
 

@@ -72,11 +72,17 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 | Suivi statut client | Oui (US-026) | Oui | Oui | Oui | OK | `GET /api/me/orders/{orderId}/status`, prévu pour polling simple. |
 | Rappel retrait 1h | Oui (US-064) | Oui | Oui | Oui | PARTIEL | Planification Messenger avec `DelayStamp` livrée. Contenu notification encore générique : il ne contient pas encore nom de supérette, heure du créneau et numéro de commande comme demandé par l'US. Production dépend d'un transport async persistant et d'un worker actif. |
 | Historique statuts commande | **Oui (US-040)** | Oui | Oui | Oui | OK | `OrderStatusLog` et endpoints client/marchand livrés. |
-| Admin CRUD Brand/Category | **Oui (US-029)** | Non | Non | **Oui (Sprint5)** | MANQUANT | Endpoints définis dans Sprint5/README.md. |
-| Admin CRUD ProductReference | **Oui (US-029)** | Non | Non | **Oui (Sprint5)** | MANQUANT | Endpoints définis dans Sprint5/README.md. |
-| i18n FR/AR/RTL | **Oui (US-008)** | Non | Non | **Oui** | MANQUANT | US-008 complétée. Implémentation Sprint 7. |
-| Frontend client/marchand/admin | Oui vision | Non | Non | Non | MANQUANT | ADR-0002 (Next.js). Démarrage post-Sprint 2. |
-| Observabilité / audit logs | Oui roadmap | Non | Non | Non | MANQUANT | Sprint 7 Production. |
+| Admin CRUD Brand/Category | **Oui (US-029)** | Oui | Oui | **Oui (Sprint5)** | OK | S5-006/S5-006b livré : `/api/admin/categories` et `/api/admin/brands`. |
+| Admin CRUD ProductReference | **Oui (US-029)** | Oui | Oui | **Oui (Sprint5)** | OK | S5-007 livré : `/api/admin/product-references` dont archive. |
+| i18n FR/AR/RTL | **Oui (US-008)** | Non | Non | **Oui** | PARTIEL | `ar.json` + `fr.json` présents dans `src/messages/`. next-intl non câblé dans l'app — reporté Sprint 8. |
+| Frontend client | Oui vision | Oui | Oui (Playwright) | Oui | OK | Parcours inscription → catalogue → Kadhia → suivi validé (rapport QA v2). 8 issues corrigées (PRs #145–#152). |
+| Frontend admin backoffice | Oui vision | Oui | Non (E2E) | Oui | OK | PRs #130–#132 : auth admin, référentiel produits, marchands, supérettes, audit logs, dashboard KPI. |
+| Observabilité / audit logs | Oui roadmap | Oui | Oui | Oui | OK | S7-005 : `/api/health` public, `app:diagnostics:check`, logs structurés. S7-004 : `AdminAuditLog`, 15 actions loggées. |
+| Fermeture supérette (US-058) | Oui | Oui | Oui | Oui | OK | S7-001 : `PATCH /api/admin/stores/{storeId}/archive`, annulation commandes actives, révocation QR. |
+| Export CSV commandes (US-061) | Oui | Oui | Oui | Oui | OK | S7-002 : `GET /api/merchant/stores/{storeId}/orders/export.csv`, RFC 4180, BOM UTF-8. |
+| Suppression compte client (US-062) | Oui | Oui | Oui | Oui | OK | S7-003 : `DELETE /api/me/account`, soft delete, anonymisation, blocage JWT. |
+| PWA installable (US-059) | Oui roadmap | Non | Non | Non | MANQUANT | manifest.json et service worker absents — reporté Sprint 8. |
+| Accessibilité WCAG 2.1 AA (US-060) | Oui roadmap | Non | Non | Non | MANQUANT | Non audité — reporté Sprint 8. |
 
 ## Écarts critiques détectés
 

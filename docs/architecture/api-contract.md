@@ -1480,6 +1480,7 @@ POST  /api/admin/stores
 PATCH /api/admin/stores/{storeId}
 PATCH /api/admin/stores/{storeId}/activate
 PATCH /api/admin/stores/{storeId}/deactivate
+PATCH /api/admin/stores/{storeId}/archive       # S7-001 — fermeture définitive
 PATCH /api/admin/stores/{storeId}/owner  (à implémenter)
 GET   /api/admin/stores/{storeId}/qr-code
 POST  /api/admin/stores/{storeId}/regenerate-qr
@@ -1540,6 +1541,22 @@ Pas de payload. Passe `is_active` à `true`. Retour : `AdminStoreOutput` HTTP 20
 #### PATCH /api/admin/stores/{storeId}/deactivate
 
 Pas de payload. Passe `is_active` à `false`. Retour : `AdminStoreOutput` HTTP 200.
+
+#### PATCH /api/admin/stores/{storeId}/archive — Fermeture définitive (S7-001)
+
+Statut : **livré backend S7-001**.
+
+Payload optionnel :
+
+```json
+{ "reason": "Cessation d'activité" }
+```
+
+- Passe `archived_at` à la date courante, `is_active` à `false`.
+- Annule automatiquement toutes les commandes actives (`submitted`, `accepted`, `partially_accepted`, `preparing`, `ready`, `pickup_pending`) avec log `cancelled`.
+- Révoque le QR code (token inopérant tant que `is_active = false`).
+- Opération irréversible dans le MVP — pas d'endpoint de désarchivage.
+- Retour : `AdminStoreOutput` HTTP 200. Déjà archivé → HTTP 409.
 
 
 Réponse liste `200` :
