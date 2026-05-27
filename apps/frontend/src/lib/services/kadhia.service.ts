@@ -125,28 +125,22 @@ export async function addLine(
   product: ProductOffer,
   quantity = 1,
 ): Promise<Kadhia> {
-  if (USE_MOCKS) {
-    const current = (await getCurrentKadhia(shopId));
-    const lines = [...current.lines];
-    const existing = lines.find((l) => l.productOffer.id === product.id);
-    if (existing) {
-      existing.quantity += quantity;
-      existing.lineTotalTnd = (
-        parseFloat(existing.unitPriceTnd) * existing.quantity
-      ).toFixed(3);
-    } else {
-      lines.push(makeLine(product, quantity));
-    }
-    const next: Kadhia = { ...current, lines, totalTnd: recompute(lines) };
-    write(next);
-    return mockDelay(next);
+  // Both mock and real modes persist to localStorage — backend is only called on submitKadhia
+  const current = read() ?? { id: "", shopId, status: "draft" as const, lines: [], totalTnd: "0.000" };
+  const lines = [...current.lines];
+  const existing = lines.find((l) => l.productOffer.id === product.id);
+  if (existing) {
+    existing.quantity += quantity;
+    existing.lineTotalTnd = (
+      parseFloat(existing.unitPriceTnd) * existing.quantity
+    ).toFixed(3);
+  } else {
+    lines.push(makeLine(product, quantity));
   }
-  const kadhia = await getCurrentKadhia(shopId);
-  const { data } = await apiClient.put<Kadhia>(
-    `/api/me/kadhias/${kadhia.id}/lines/${product.id}`,
-    { quantity },
-  );
-  return data;
+  const next: Kadhia = { ...current, shopId, lines, totalTnd: recompute(lines) };
+  write(next);
+  if (USE_MOCKS) return mockDelay(next);
+  return next;
 }
 
 export async function updateLineQuantity(
@@ -154,29 +148,23 @@ export async function updateLineQuantity(
   lineId: string,
   quantity: number,
 ): Promise<Kadhia> {
-  if (USE_MOCKS) {
-    const current = await getCurrentKadhia(shopId);
-    const lines = current.lines
-      .map((l) =>
-        l.id === lineId
-          ? {
-              ...l,
-              quantity,
-              lineTotalTnd: (parseFloat(l.unitPriceTnd) * quantity).toFixed(3),
-            }
-          : l,
-      )
-      .filter((l) => l.quantity > 0);
-    const next: Kadhia = { ...current, lines, totalTnd: recompute(lines) };
-    write(next);
-    return mockDelay(next);
-  }
-  const kadhia = await getCurrentKadhia(shopId);
-  const { data } = await apiClient.patch<Kadhia>(
-    `/api/me/kadhias/${kadhia.id}/lines/${lineId}`,
-    { quantity },
-  );
-  return data;
+  // Both mock and real modes persist to localStorage — backend is only called on submitKadhia
+  const current = read() ?? { id: "", shopId, status: "draft" as const, lines: [], totalTnd: "0.000" };
+  const lines = current.lines
+    .map((l) =>
+      l.id === lineId
+        ? {
+            ...l,
+            quantity,
+            lineTotalTnd: (parseFloat(l.unitPriceTnd) * quantity).toFixed(3),
+          }
+        : l,
+    )
+    .filter((l) => l.quantity > 0);
+  const next: Kadhia = { ...current, shopId, lines, totalTnd: recompute(lines) };
+  write(next);
+  if (USE_MOCKS) return mockDelay(next);
+  return next;
 }
 
 export async function clearKadhia(shopId?: string): Promise<void> {
