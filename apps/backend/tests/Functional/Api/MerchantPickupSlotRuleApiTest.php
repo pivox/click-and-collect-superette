@@ -191,21 +191,22 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         $response = $this->requestJson(
             'POST',
             \sprintf('/api/merchant/stores/%s/pickup-slot-rules/generate', $shop->getId()),
-            [],
+            ['horizon_months' => 1],
             $merchant,
         );
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
+        $total = $this->countWeekdayOccurrencesInNextMonth($weekday);
         self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
-        self::assertSame(4, $payload['generated_count']);
+        self::assertSame($total, $payload['generated_count']);
         self::assertSame(0, $payload['skipped_existing_count']);
         self::assertSame(0, $payload['skipped_closure_count']);
         self::assertArrayHasKey('horizon_start', $payload);
         self::assertArrayHasKey('horizon_end', $payload);
 
         $slots = $this->entityManager->getRepository(PickupSlot::class)->findBy(['shop' => $shop], ['startsAt' => 'ASC']);
-        self::assertCount(4, $slots);
+        self::assertCount($total, $slots);
         foreach ($slots as $slot) {
             self::assertSame(6, $slot->getCapacity());
             self::assertSame(0, $slot->getBookedCount());
@@ -234,26 +235,27 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         $this->entityManager->persist($existing);
         $this->entityManager->flush();
 
+        $total = $this->countWeekdayOccurrencesInNextMonth($weekday);
         $path = \sprintf('/api/merchant/stores/%s/pickup-slot-rules/generate', $shop->getId());
-        $firstResponse = $this->requestJson('POST', $path, [], $merchant);
-        $secondResponse = $this->requestJson('POST', $path, [], $merchant);
+        $firstResponse = $this->requestJson('POST', $path, ['horizon_months' => 1], $merchant);
+        $secondResponse = $this->requestJson('POST', $path, ['horizon_months' => 1], $merchant);
 
         self::assertSame(200, $firstResponse->getStatusCode());
         self::assertSame(200, $secondResponse->getStatusCode());
         $firstPayload = $this->decodeJson($firstResponse);
         $secondPayload = $this->decodeJson($secondResponse);
-        self::assertSame(3, $firstPayload['generated_count']);
+        self::assertSame($total - 1, $firstPayload['generated_count']);
         self::assertSame(1, $firstPayload['skipped_existing_count']);
         self::assertSame(0, $firstPayload['skipped_closure_count']);
         self::assertSame(0, $secondPayload['generated_count']);
-        self::assertSame(4, $secondPayload['skipped_existing_count']);
+        self::assertSame($total, $secondPayload['skipped_existing_count']);
         self::assertSame(0, $secondPayload['skipped_closure_count']);
 
         $storedExisting = $this->entityManager->getRepository(PickupSlot::class)->find($existing->getId());
         self::assertNotNull($storedExisting);
         self::assertSame(2, $storedExisting->getCapacity());
         self::assertSame(1, $storedExisting->getBookedCount());
-        self::assertSame(4, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+        self::assertSame($total, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
     }
 
     public function testGenerateSkipsOverlappingActiveExistingSlot(): void
@@ -273,18 +275,19 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         $this->entityManager->persist($overlapping);
         $this->entityManager->flush();
 
+        $total = $this->countWeekdayOccurrencesInNextMonth($weekday);
         $response = $this->requestJson(
             'POST',
             \sprintf('/api/merchant/stores/%s/pickup-slot-rules/generate', $shop->getId()),
-            [],
+            ['horizon_months' => 1],
             $merchant,
         );
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertSame(3, $payload['generated_count']);
+        self::assertSame($total - 1, $payload['generated_count']);
         self::assertSame(1, $payload['skipped_existing_count']);
-        self::assertSame(4, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+        self::assertSame($total, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
     }
 
     public function testGeneratorDoesNotCreatePastSlotOrFifthOccurrenceWhenRuleMatchesToday(): void
@@ -299,21 +302,66 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         $generator = self::getContainer()->get(PickupSlotRuleGenerator::class);
         $result = $generator->generateForShop($shop, $now);
 
-        self::assertSame(4, $result->generatedCount);
+        self::assertSame(5, $result->generatedCount);
         $slots = $this->entityManager->getRepository(PickupSlot::class)->findBy(['shop' => $shop], ['startsAt' => 'ASC']);
-        self::assertCount(4, $slots);
+        self::assertCount(5, $slots);
         self::assertSame('2026-05-18 09:00', $slots[0]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
-        self::assertSame('2026-06-08 09:00', $slots[3]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame('2026-06-15 09:00', $slots[4]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
 
         $lateNowShop = $this->createShop($merchant);
         $this->createRule($lateNowShop, $weekday, '09:00', '10:00', 6);
         $lateResult = $generator->generateForShop($lateNowShop, new \DateTimeImmutable('2026-05-18 12:00:00', $timezone));
 
-        self::assertSame(3, $lateResult->generatedCount);
+        self::assertSame(4, $lateResult->generatedCount);
         $lateSlots = $this->entityManager->getRepository(PickupSlot::class)->findBy(['shop' => $lateNowShop], ['startsAt' => 'ASC']);
-        self::assertCount(3, $lateSlots);
+        self::assertCount(4, $lateSlots);
         self::assertSame('2026-05-25 09:00', $lateSlots[0]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
-        self::assertSame('2026-06-08 09:00', $lateSlots[2]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame('2026-06-15 09:00', $lateSlots[3]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+    }
+
+    public function testGenerateWithThreeMonthHorizonCreatesMoreSlotsThanOneMonth(): void
+    {
+        $merchant = $this->createUser('merchant-slot-rule-3months@example.test', ['ROLE_MERCHANT']);
+        $shopOne = $this->createShop($merchant);
+        $shopThree = $this->createShop($merchant);
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $weekday = (int) (new \DateTimeImmutable('tomorrow', $timezone))->format('N');
+        $this->createRule($shopOne, $weekday, '09:00', '10:00', 5);
+        $this->createRule($shopThree, $weekday, '09:00', '10:00', 5);
+
+        $oneMonthResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slot-rules/generate', $shopOne->getId()),
+            ['horizon_months' => 1],
+            $merchant,
+        );
+        $threeMonthResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slot-rules/generate', $shopThree->getId()),
+            ['horizon_months' => 3],
+            $merchant,
+        );
+
+        self::assertSame(200, $oneMonthResponse->getStatusCode());
+        self::assertSame(200, $threeMonthResponse->getStatusCode());
+        $onePayload = $this->decodeJson($oneMonthResponse);
+        $threePayload = $this->decodeJson($threeMonthResponse);
+        self::assertGreaterThan($onePayload['generated_count'], $threePayload['generated_count']);
+        self::assertGreaterThanOrEqual(12, $threePayload['generated_count']);
+        self::assertLessThanOrEqual(14, $threePayload['generated_count']);
+    }
+
+    public function testGenerateRejectsInvalidHorizonMonths(): void
+    {
+        $merchant = $this->createUser('merchant-slot-rule-invalid-horizon@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $path = \sprintf('/api/merchant/stores/%s/pickup-slot-rules/generate', $shop->getId());
+
+        $invalidTwo = $this->requestJson('POST', $path, ['horizon_months' => 2], $merchant);
+        $invalidZero = $this->requestJson('POST', $path, ['horizon_months' => 0], $merchant);
+
+        self::assertSame(422, $invalidTwo->getStatusCode());
+        self::assertSame(422, $invalidZero->getStatusCode());
     }
 
     public function testPickupSlotRuleRoutesExposeMerchantContracts(): void
@@ -373,5 +421,20 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $rule;
+    }
+
+    private function countWeekdayOccurrencesInNextMonth(int $weekday): int
+    {
+        $timezone = new \DateTimeZone(PickupSlotRuleGenerator::TIMEZONE);
+        $start = (new \DateTimeImmutable('now', $timezone))->setTime(0, 0, 0);
+        $end = $start->modify('+1 month');
+        $count = 0;
+        for ($date = $start; $date < $end; $date = $date->modify('+1 day')) {
+            if ((int) $date->format('N') === $weekday) {
+                ++$count;
+            }
+        }
+
+        return $count;
     }
 }

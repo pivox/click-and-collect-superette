@@ -7,6 +7,7 @@ namespace App\Processor;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\PickupSlotRuleGenerationOutput;
+use App\Dto\GenerateSlotsInput;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\PickupSlotRuleGenerator;
@@ -31,6 +32,10 @@ final readonly class GenerateMerchantPickupSlotRulesProcessor implements Process
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): PickupSlotRuleGenerationOutput
     {
+        if (!$data instanceof GenerateSlotsInput) {
+            throw new \InvalidArgumentException('GenerateSlotsInput expected.');
+        }
+
         $storeId = (string) ($uriVariables['storeId'] ?? '');
         if (!Uuid::isValid($storeId)) {
             throw new NotFoundHttpException('STORE_NOT_FOUND');
@@ -43,7 +48,7 @@ final readonly class GenerateMerchantPickupSlotRulesProcessor implements Process
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
 
-        $result = $this->pickupSlotRuleGenerator->generateForShop($shop);
+        $result = $this->pickupSlotRuleGenerator->generateForShop($shop, horizonMonths: $data->horizonMonths);
 
         return new PickupSlotRuleGenerationOutput(
             storeId: $shop->getId()->toRfc4122(),
