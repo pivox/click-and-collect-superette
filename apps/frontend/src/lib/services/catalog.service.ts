@@ -58,7 +58,7 @@ export async function listCatalog(q: CatalogQuery): Promise<ProductOffer[]> {
   }
   const { data } = await apiClient.get<{ items: CatalogApiItem[] }>(
     `/api/stores/${q.shopId}/catalog`,
-    { params: { category: q.category, query: q.search } },
+    { params: { category: q.category !== 'all' ? q.category : undefined, query: q.search } },
   );
   return (data.items ?? []).map((item) => ({
     id: item.id,

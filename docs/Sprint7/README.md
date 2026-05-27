@@ -57,7 +57,12 @@ C'est le dernier sprint MVP identifié dans la roadmap actuelle.
   - Dashboard : 4 KPI réels (marchands, supérettes actives, produits approuvés, propositions en attente)
   - Documentation détaillée : `docs/SprintFrontend/admin-backoffice.md`
 
-Sprint 7 en cours — ce document sera complété au fil des livraisons.
+Sprint 7 backend terminé. Rapport de clôture : `docs/Sprint7/completion-report.md`.
+
+S7-008 — Audit et clôture Sprint 7 : **livré** (2026-05-27).
+- Rapport v2 QA parcours client : `docs/qa/client-journey-simulation-report-v2.md`
+- Correctif résiduel R1 appliqué : `catalog.service.ts` — `?category=all` → `undefined`
+- Risques production documentés (unaccent, Messenger, drift schéma)
 
 ## Fonctionnalités prévues
 
