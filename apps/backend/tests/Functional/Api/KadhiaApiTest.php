@@ -231,6 +231,66 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         self::assertSame(401, $response->getStatusCode());
     }
 
+    // GET /api/me/stores/{storeId}/kadhias
+
+    public function testGetKadhiasByStoreReturnsOwnKadhias(): void
+    {
+        $customer = $this->createUser('kadhia-bystore@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+            user: $customer,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(1, $payload['total']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($kadhia->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertSame($shop->getId()->toRfc4122(), $payload['items'][0]['store_id']);
+        self::assertSame('draft', $payload['items'][0]['status']);
+    }
+
+    public function testGetKadhiasByStoreDoesNotReturnOtherCustomerKadhias(): void
+    {
+        $customer1 = $this->createUser('kadhia-bystore-c1@example.test', ['ROLE_CUSTOMER']);
+        $customer2 = $this->createUser('kadhia-bystore-c2@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())->setCustomer($customer2)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+            user: $customer1,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(0, $payload['total']);
+        self::assertCount(0, $payload['items']);
+    }
+
+    public function testGetKadhiasByStoreUnauthenticatedReturns401(): void
+    {
+        $shop = $this->createShop();
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+        );
+
+        self::assertSame(401, $response->getStatusCode());
+    }
+
     // PATCH /api/me/kadhias/{kadhiaId}
 
     public function testPatchNotesUpdatesNote(): void

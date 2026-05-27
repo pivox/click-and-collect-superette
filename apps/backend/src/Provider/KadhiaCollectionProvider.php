@@ -43,7 +43,10 @@ final readonly class KadhiaCollectionProvider implements ProviderInterface
 
         $request = $this->requestStack->getCurrentRequest();
         $status = $request?->query->get('status') ?: null;
-        $shopId = $request?->query->get('store_id') ?: null;
+        // storeId may come from the URI path (/me/stores/{storeId}/kadhias) or from a query param
+        $shopId = isset($uriVariables['storeId']) && \is_string($uriVariables['storeId'])
+            ? $uriVariables['storeId']
+            : ($request?->query->get('store_id') ?: null);
         $page = max(1, (int) ($request?->query->get('page') ?? 1));
 
         $kadhias = $this->kadhiaRepository->findByCustomerWithFilters($user, $status, $shopId, $page, self::PER_PAGE);
