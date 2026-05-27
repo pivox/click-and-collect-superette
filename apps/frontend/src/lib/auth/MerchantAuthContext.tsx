@@ -62,7 +62,17 @@ export function MerchantAuthProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const login = async (email: string, password: string) => {
-    const user = await loginMerchant({ email, password });
+    let user;
+    try {
+      user = await loginMerchant({ email, password });
+    } catch (err) {
+      const status = responseStatus(err);
+      throw new Error(
+        status === 401 || status === 403
+          ? 'Identifiants marchand incorrects.'
+          : 'La connexion a échoué. Réessayez.',
+      );
+    }
     localStorage.setItem('merchant_token', user.token);
     document.cookie = `merchant_token=${user.token}; path=/merchant; SameSite=Lax; Max-Age=${60 * 60 * 8}`;
     try {
