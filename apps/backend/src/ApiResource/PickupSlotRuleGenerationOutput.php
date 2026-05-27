@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
+use App\Dto\GenerateSlotsInput;
 use App\Entity\Shop;
 use App\Processor\GenerateMerchantPickupSlotRulesProcessor;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -21,7 +22,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
-            input: false,
+            input: GenerateSlotsInput::class,
             status: 200,
             read: false,
             processor: GenerateMerchantPickupSlotRulesProcessor::class,

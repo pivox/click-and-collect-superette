@@ -23,12 +23,12 @@ final readonly class PickupSlotRuleGenerator
     ) {
     }
 
-    public function generateForShop(Shop $shop, ?\DateTimeImmutable $now = null): PickupSlotRuleGenerationResult
+    public function generateForShop(Shop $shop, ?\DateTimeImmutable $now = null, int $horizonMonths = 1): PickupSlotRuleGenerationResult
     {
         $timezone = new \DateTimeZone(self::TIMEZONE);
         $now = ($now ?? new \DateTimeImmutable('now', $timezone))->setTimezone($timezone);
         $horizonStart = $now->setTime(0, 0, 0);
-        $horizonEnd = $horizonStart->modify('+4 weeks');
+        $horizonEnd = $horizonStart->modify("+{$horizonMonths} months");
         $generatedCount = 0;
         $skippedExistingCount = 0;
         $skippedClosureCount = 0;
