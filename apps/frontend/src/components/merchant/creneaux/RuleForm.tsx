@@ -5,14 +5,16 @@ import { Button } from '@/components/ui/Button';
 import type { CreateSlotRulePayload } from '@/lib/types/merchant-slots.types';
 
 const WEEKDAYS = [
-  { value: 1, label: 'Lundi' },
-  { value: 2, label: 'Mardi' },
-  { value: 3, label: 'Mercredi' },
-  { value: 4, label: 'Jeudi' },
-  { value: 5, label: 'Vendredi' },
-  { value: 6, label: 'Samedi' },
-  { value: 7, label: 'Dimanche' },
+  { value: 1, label: 'Lun' },
+  { value: 2, label: 'Mar' },
+  { value: 3, label: 'Mer' },
+  { value: 4, label: 'Jeu' },
+  { value: 5, label: 'Ven' },
+  { value: 6, label: 'Sam' },
+  { value: 7, label: 'Dim' },
 ];
+
+const ALL_WEEKDAYS = new Set<number>(WEEKDAYS.map((d) => d.value));
 
 export interface RuleFormProps {
   onSubmit: (payload: CreateSlotRulePayload) => Promise<void>;
@@ -20,58 +22,86 @@ export interface RuleFormProps {
 }
 
 export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
-  const [weekday, setWeekday] = useState('1');
+  const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set(ALL_WEEKDAYS));
   const [startTime, setStartTime] = useState('17:00');
   const [endTime, setEndTime] = useState('19:00');
   const [capacity, setCapacity] = useState('6');
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+
+  function toggleDay(value: number) {
+    setSelectedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) {
+        next.delete(value);
+      } else {
+        next.add(value);
+      }
+      return next;
+    });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setErrors([]);
+
+    if (selectedDays.size === 0) {
+      setErrors(['Sélectionnez au moins un jour.']);
+      return;
+    }
     if (startTime >= endTime) {
-      setError("L'heure de fin doit être après l'heure de début.");
+      setErrors(["L'heure de fin doit être après l'heure de début."]);
       return;
     }
     const cap = parseInt(capacity, 10);
     if (!cap || cap <= 0) {
-      setError('La capacité doit être un nombre positif.');
+      setErrors(['La capacité doit être un nombre positif.']);
       return;
     }
-    setError(null);
+
     setSaving(true);
-    try {
-      await onSubmit({
-        weekday: parseInt(weekday, 10),
-        start_time: startTime,
-        end_time: endTime,
-        capacity: cap,
-      });
-    } catch {
-      setError("Impossible de créer la règle. Vérifiez les données et réessayez.");
-    } finally {
-      setSaving(false);
+    const dayErrors: string[] = [];
+    const sorted = Array.from(selectedDays).sort((a, b) => a - b);
+
+    for (const weekday of sorted) {
+      try {
+        await onSubmit({ weekday, start_time: startTime, end_time: endTime, capacity: cap });
+      } catch {
+        const label = WEEKDAYS.find((d) => d.value === weekday)?.label ?? String(weekday);
+        dayErrors.push(`${label} : doublon ou erreur serveur.`);
+      }
+    }
+
+    setSaving(false);
+    if (dayErrors.length > 0) {
+      setErrors(dayErrors);
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="mt-3 space-y-3 rounded-lg border border-line bg-soft p-3">
       <div>
-        <label className="mb-1 block text-xs font-bold text-muted" htmlFor="rule-weekday">
-          Jour de la semaine
-        </label>
-        <select
-          id="rule-weekday"
-          value={weekday}
-          onChange={(e) => setWeekday(e.target.value)}
-          className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none"
-        >
-          {WEEKDAYS.map((d) => (
-            <option key={d.value} value={d.value}>
-              {d.label}
-            </option>
-          ))}
-        </select>
+        <span className="mb-2 block text-xs font-bold text-muted">Jours de la semaine</span>
+        <div className="flex flex-wrap gap-1.5">
+          {WEEKDAYS.map((d) => {
+            const selected = selectedDays.has(d.value);
+            return (
+              <button
+                key={d.value}
+                type="button"
+                onClick={() => toggleDay(d.value)}
+                className={[
+                  'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                  selected
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-muted border border-line',
+                ].join(' ')}
+              >
+                {d.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div className="flex gap-3">
         <div className="flex-1">
@@ -115,10 +145,20 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
           className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none"
         />
       </div>
-      {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+      {errors.length > 0 && (
+        <ul role="alert" className="space-y-0.5">
+          {errors.map((err) => (
+            <li key={err} className="text-xs text-danger">
+              {err}
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="flex gap-2">
-        <Button type="submit" disabled={saving}>
-          {saving ? 'Création…' : 'Ajouter la règle'}
+        <Button type="submit" disabled={saving || selectedDays.size === 0}>
+          {saving
+            ? 'Création…'
+            : `Ajouter ${selectedDays.size > 1 ? `${selectedDays.size} règles` : 'la règle'}`}
         </Button>
         <Button type="button" variant="ghost" onClick={onCancel}>
           Annuler
