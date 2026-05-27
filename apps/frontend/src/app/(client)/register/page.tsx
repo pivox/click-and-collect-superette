@@ -19,14 +19,26 @@ export default function ClientRegisterPage() {
     e.preventDefault();
     setError(null);
     if (!name.trim()) { setError('Le nom est requis.'); return; }
-    if (!email.trim()) { setError("L'adresse email est requise."); return; }
-    if (password.length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return; }
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Veuillez saisir une adresse email valide.");
+      return;
+    }
+    if (password.trim().length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return; }
     setIsSubmitting(true);
     try {
-      await clientRegister(email, password, name);
+      await clientRegister(email.trim(), password, name.trim());
       router.push('/login');
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur lors de l'inscription");
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === 409) {
+        setError('Un compte existe déjà avec cet email.');
+      } else if (status === 422) {
+        setError('Les informations saisies sont invalides.');
+      } else if (!status) {
+        setError('Impossible de joindre le serveur. Vérifie ta connexion.');
+      } else {
+        setError("Erreur lors de l'inscription. Réessaie dans quelques instants.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -84,7 +96,7 @@ export default function ClientRegisterPage() {
           </div>
 
           {error && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+            <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
               {error}
             </p>
           )}

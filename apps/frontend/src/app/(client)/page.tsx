@@ -80,7 +80,7 @@ export default async function HomePage() {
         />
       </div>
 
-      {/* Stores récents */}
+      {/* Supérettes récentes */}
       <section className="mt-5">
         <header className="mb-2.5 flex items-baseline justify-between">
           <h2 className="text-h3 font-extrabold m-0">Supérettes récentes</h2>
