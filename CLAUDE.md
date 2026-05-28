@@ -86,6 +86,10 @@ Les features Sprint 8 passent par des issues GitHub (pas de fichiers prompts).
 - **#197 / PR #202 + #204** — entité `ProductFamily`, champ `pack_quantity` (default 1) sur `ProductReference` et `MerchantLocalProduct`, câblé dans les endpoints de création
 - **#198 / PR #203** — `PATCH /api/admin/product-proposals/{id}/merge` dédié (distinct de `/approve`) ; guard sur référence archivée (422)
 
+**Sprint 9 — Kadhia multi (en cours) :**
+- **#209 / PR #214** — `DELETE /api/me/kadhias/{kadhiaId}` (guard draft, 422 si submitted), `discardKadhia()` frontend, fix tests `merchant.catalogue`
+- Ordre d'implémentation : **#210** → #213 + #211 → #205 → #206 → #212 → #177
+
 ### Clôture de sprint (audit documentaire)
 
 Branche : `docs/sN-XXX-sprintN-completion-audit`
@@ -130,3 +134,15 @@ Ne jamais mettre `#[Assert\Choice(callback: [MyEnum::class, 'values'])]` sur un 
 
 **Suite de tests complète — mémoire**
 `vendor/bin/phpunit` complet peut tuer `ApiDocsExposureTest` par exhaustion mémoire dans le sérialiseur OpenAPI. Le test passe seul. Cibler les suites par classe ou lancer en dernier.
+
+**Doctrine cascade dans les tests — `addLine()` obligatoire**
+Persister une `KadhiaLine` via `$em->persist($line)` seul sans appeler `$kadhia->addLine($line)` laisse la collection Doctrine vide : `cascade: ['remove']` ne propage pas le DELETE. Toujours passer par `addLine()` dans les tests de suppression.
+
+## Gotchas frontend (voir aussi `apps/frontend/src/tests/`)
+
+**`MerchantLocalProductOutput` exige `pack_quantity: number` (depuis Sprint 8)**
+Les mocks de test qui omettent ce champ font échouer TypeScript CI silencieusement. Toujours inclure `pack_quantity: 1` dans les fixtures `createMerchantLocalProduct`.
+
+**Testing Library — label avec `<span>` enfant → `{ exact: false }`**
+`getByLabelText('Prix TND')` échoue si le label contient `<span>*</span>` (astérisque requis).
+Utiliser `getByLabelText('Prix TND', { exact: false })`.
