@@ -90,7 +90,25 @@ Commit : `docs(sN-XXX): audit et clôture Sprint N`
 ```bash
 cd apps/frontend
 npm install
-npm run dev    # dev sur http://localhost:3000
+npm run dev      # dev sur http://localhost:3000
 npm run build
 npm run lint
+npm run test:run  # tests vitest non-interactifs (CI)
+npm test          # tests vitest en mode watch
 ```
+
+**Variable critique :** `NEXT_PUBLIC_USE_MOCKS`
+- Défaut `"1"` → données fictives (mocks en mémoire, backend ignoré)
+- Pour appeler l'API réelle : ajouter `NEXT_PUBLIC_USE_MOCKS=0` dans `apps/frontend/.env.local`
+
+**Tokens JWT** (`localStorage`) :
+- `/(client)` et `/` → `jwt_token`
+- `/merchant/*` → `merchant_token`
+- `/admin/*` → `admin_token`
+
+**Debug créneaux vides** : inspecter `localStorage['kadhia:current'].shopId` — si ce shopId pointe vers une supérette sans créneaux configurés, le client voit "Aucun créneau disponible".
+
+**Structure des routes frontend :**
+- `src/app/(client)/` — parcours client (catalogue, kadhia, commandes, profil)
+- `src/app/merchant/` — interface marchand (commandes, créneaux, retrait, notifications)
+- `src/app/admin/` — backoffice admin (dashboard, marchands, supérettes, référentiel, audit)
