@@ -48,11 +48,13 @@ final readonly class AdminProductProposalItemProvider implements ProviderInterfa
             nameFr: $proposal->getNameFr(),
             nameAr: $proposal->getNameAr(),
             brandName: $proposal->getBrand()?->getCanonicalName() ?? $proposal->getBrandName(),
-            category: $proposal->getCategory()->getNameFr(),
+            category: $proposal->getCategory()?->getNameFr(),
+            categoryNameProposed: $proposal->getCategoryNameProposed(),
             status: $proposal->getStatus()->value,
             rejectionReason: $proposal->getRejectionReason(),
             createdAt: $proposal->getCreatedAt()->format(\DateTimeInterface::ATOM),
             proposedBy: $proposal->getProposedBy()->getEmail(),
+            localProductId: $proposal->getLocalProduct()?->getId()->toRfc4122(),
             createdProductReferenceId: $proposal->getCreatedProductReference()?->getId()->toRfc4122(),
         );
     }

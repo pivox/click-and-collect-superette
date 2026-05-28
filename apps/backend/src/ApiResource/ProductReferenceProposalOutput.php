@@ -54,10 +54,13 @@ final readonly class ProductReferenceProposalOutput
         #[Groups(['product_proposal:read'])]
         public string $status,
         #[Groups(['product_proposal:read'])]
-        public string $category,
+        public ?string $category,
         #[Groups(['product_proposal:read'])]
         #[SerializedName('category_slug')]
-        public string $categorySlug,
+        public ?string $categorySlug,
+        #[Groups(['product_proposal:read'])]
+        #[SerializedName('category_name_proposed')]
+        public ?string $categoryNameProposed,
         #[Groups(['product_proposal:read'])]
         public ?string $brand,
         #[Groups(['product_proposal:read'])]
@@ -71,6 +74,9 @@ final readonly class ProductReferenceProposalOutput
         #[Groups(['product_proposal:read'])]
         #[SerializedName('created_at')]
         public string $createdAt,
+        #[Groups(['product_proposal:read'])]
+        #[SerializedName('local_product_id')]
+        public ?string $localProductId = null,
     ) {
     }
 }
