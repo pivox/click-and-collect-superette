@@ -151,9 +151,14 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
             throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_PROPOSAL_BRAND_REQUIRED_FOR_APPROVAL');
         }
 
+        $category = $proposal->getCategory();
+        if (null === $category) {
+            throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_PROPOSAL_CATEGORY_REQUIRED_FOR_APPROVAL');
+        }
+
         return (new ProductReference())
             ->setBrand($brand)
-            ->setCategory($proposal->getCategory())
+            ->setCategory($category)
             ->setNameFr($proposal->getNameFr())
             ->setNameAr($proposal->getNameAr())
             ->setVariantFr($proposal->getVariantFr())

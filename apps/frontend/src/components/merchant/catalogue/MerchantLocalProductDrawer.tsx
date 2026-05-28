@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MerchantCategorySelector } from '@/components/merchant/catalogue/MerchantCategorySelector';
 import { Button } from '@/components/ui/Button';
-import { createMerchantLocalProduct } from '@/lib/services/merchant-catalog.service';
+import {
+  createBulkMerchantLocalProducts,
+  createMerchantLocalProduct,
+} from '@/lib/services/merchant-catalog.service';
 import type {
+  BulkLocalProductFormatPayload,
   MerchantCategory,
   MerchantProductUnit,
 } from '@/lib/types/merchant-catalog.types';
@@ -30,6 +34,28 @@ const productUnits: Array<{ value: MerchantProductUnit; label: string }> = [
 
 const priceErrorMessage = 'Le prix doit être supérieur à 0 avec au maximum 3 décimales.';
 const volumeErrorMessage = 'Le volume doit être positif avec au maximum 3 décimales.';
+
+interface FormatRow {
+  volume: string;
+  unit: MerchantProductUnit;
+  barcode: string;
+  priceTnd: string;
+  isAvailable: boolean;
+  isVisible: boolean;
+  merchantNote: string;
+}
+
+function makeEmptyFormat(): FormatRow {
+  return {
+    volume: '',
+    unit: 'piece',
+    barcode: '',
+    priceTnd: '',
+    isAvailable: true,
+    isVisible: true,
+    merchantNote: '',
+  };
+}
 
 function normalizeDecimal(value: string, { allowEmpty }: { allowEmpty: boolean }): string | null {
   const trimmedValue = value.trim().replace(',', '.');
@@ -71,15 +97,9 @@ export function MerchantLocalProductDrawer({
   const [brandName, setBrandName] = useState('');
   const [categoryName, setCategoryName] = useState('');
   const [merchantCategoryId, setMerchantCategoryId] = useState<string | null>(null);
-  const [volume, setVolume] = useState('');
-  const [unit, setUnit] = useState<MerchantProductUnit>('piece');
-  const [barcode, setBarcode] = useState('');
-  const [priceTnd, setPriceTnd] = useState('');
-  const [isAvailable, setIsAvailable] = useState(true);
-  const [isVisible, setIsVisible] = useState(true);
-  const [merchantNote, setMerchantNote] = useState('');
+  const [formats, setFormats] = useState<FormatRow[]>([makeEmptyFormat()]);
   const [error, setError] = useState<string | null>(null);
-  const [fieldWithError, setFieldWithError] = useState<'name' | 'price' | 'volume' | null>(null);
+  const [fieldWithError, setFieldWithError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -110,13 +130,7 @@ export function MerchantLocalProductDrawer({
     setBrandName('');
     setCategoryName('');
     setMerchantCategoryId(null);
-    setVolume('');
-    setUnit('piece');
-    setBarcode('');
-    setPriceTnd('');
-    setIsAvailable(true);
-    setIsVisible(true);
-    setMerchantNote('');
+    setFormats([makeEmptyFormat()]);
     setError(null);
     setFieldWithError(null);
     setIsSubmitting(false);
@@ -196,6 +210,23 @@ export function MerchantLocalProductDrawer({
     }
   };
 
+  const updateFormat = (index: number, patch: Partial<FormatRow>) => {
+    setFormats((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
+    clearError();
+  };
+
+  const addFormat = () => setFormats((prev) => [...prev, makeEmptyFormat()]);
+
+  const removeFormat = (index: number) =>
+    setFormats((prev) => prev.filter((_, i) => i !== index));
+
+  const duplicateFormat = (index: number) =>
+    setFormats((prev) => [
+      ...prev.slice(0, index + 1),
+      { ...prev[index] },
+      ...prev.slice(index + 1),
+    ]);
+
   const handleSubmit = async () => {
     const normalizedNameFr = nameFr.trim();
     if (!normalizedNameFr) {
@@ -204,18 +235,31 @@ export function MerchantLocalProductDrawer({
       return;
     }
 
-    const normalizedPrice = normalizeDecimal(priceTnd, { allowEmpty: false });
-    if (!normalizedPrice) {
-      setFieldWithError('price');
-      setError(priceErrorMessage);
-      return;
-    }
+    for (let i = 0; i < formats.length; i++) {
+      const fmt = formats[i];
+      const normalizedPrice = normalizeDecimal(fmt.priceTnd, { allowEmpty: false });
+      if (!normalizedPrice) {
+        setFieldWithError(`price-${i}`);
+        setError(
+          formats.length === 1
+            ? priceErrorMessage
+            : `Format ${i + 1} : ${priceErrorMessage}`,
+        );
+        return;
+      }
 
-    const normalizedVolume = normalizeDecimal(volume, { allowEmpty: true });
-    if (volume.trim() !== '' && !normalizedVolume) {
-      setFieldWithError('volume');
-      setError(volumeErrorMessage);
-      return;
+      if (fmt.volume.trim() !== '') {
+        const normalizedVolume = normalizeDecimal(fmt.volume, { allowEmpty: true });
+        if (!normalizedVolume) {
+          setFieldWithError(`volume-${i}`);
+          setError(
+            formats.length === 1
+              ? volumeErrorMessage
+              : `Format ${i + 1} : ${volumeErrorMessage}`,
+          );
+          return;
+        }
+      }
     }
 
     const sessionId = sessionRef.current;
@@ -224,20 +268,43 @@ export function MerchantLocalProductDrawer({
     setFieldWithError(null);
 
     try {
-      await createMerchantLocalProduct(storeId, {
-        name_fr: normalizedNameFr,
-        name_ar: optionalText(nameAr),
-        brand_name: optionalText(brandName),
-        volume: normalizedVolume,
-        unit,
-        barcode: optionalText(barcode),
-        default_category_name: optionalText(categoryName),
-        price_tnd: normalizedPrice,
-        is_available: isAvailable,
-        is_visible: isVisible,
-        merchant_note: optionalText(merchantNote),
-        merchant_category_id: merchantCategoryId,
-      });
+      if (formats.length === 1) {
+        const fmt = formats[0];
+        await createMerchantLocalProduct(storeId, {
+          name_fr: normalizedNameFr,
+          name_ar: optionalText(nameAr),
+          brand_name: optionalText(brandName),
+          volume: normalizeDecimal(fmt.volume, { allowEmpty: true }),
+          unit: fmt.unit,
+          barcode: optionalText(fmt.barcode),
+          default_category_name: optionalText(categoryName),
+          price_tnd: normalizeDecimal(fmt.priceTnd, { allowEmpty: false })!,
+          is_available: fmt.isAvailable,
+          is_visible: fmt.isVisible,
+          merchant_note: optionalText(fmt.merchantNote),
+          merchant_category_id: merchantCategoryId,
+        });
+      } else {
+        const bulkFormats: BulkLocalProductFormatPayload[] = formats.map((fmt) => ({
+          volume: normalizeDecimal(fmt.volume, { allowEmpty: true }),
+          unit: fmt.unit,
+          barcode: optionalText(fmt.barcode),
+          price_tnd: normalizeDecimal(fmt.priceTnd, { allowEmpty: false })!,
+          is_available: fmt.isAvailable,
+          is_visible: fmt.isVisible,
+          merchant_note: optionalText(fmt.merchantNote),
+        }));
+
+        await createBulkMerchantLocalProducts(storeId, {
+          base_name_fr: normalizedNameFr,
+          base_name_ar: optionalText(nameAr),
+          brand_name: optionalText(brandName),
+          default_category_name: optionalText(categoryName),
+          merchant_category_id: merchantCategoryId,
+          formats: bulkFormats,
+        });
+      }
+
       if (!isCurrentSession(sessionId)) return;
 
       onCreated();
@@ -348,109 +415,140 @@ export function MerchantLocalProductDrawer({
             message={categoryMessage}
           />
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="local-product-volume" className="mb-1 block text-sm font-bold">
-                Volume
-              </label>
-              <input
-                id="local-product-volume"
-                inputMode="decimal"
-                value={volume}
-                aria-invalid={fieldWithError === 'volume'}
-                aria-describedby={fieldWithError === 'volume' ? 'merchant-local-product-error' : undefined}
-                onChange={(event) => {
-                  setVolume(event.target.value);
-                  clearError();
-                }}
-                className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="local-product-unit" className="mb-1 block text-sm font-bold">
-                Unité
-              </label>
-              <select
-                id="local-product-unit"
-                value={unit}
-                onChange={(event) => setUnit(event.target.value as MerchantProductUnit)}
-                className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          <div className="border-t border-line pt-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold">
+                Formats{' '}
+                <span className="font-normal text-muted">({formats.length})</span>
+              </h3>
+              <button
+                type="button"
+                onClick={addFormat}
+                disabled={isSubmitting || formats.length >= 20}
+                className="rounded-md border border-line bg-white px-3 py-1 text-xs font-bold hover:bg-soft disabled:opacity-40"
               >
-                {productUnits.map((productUnit) => (
-                  <option key={productUnit.value} value={productUnit.value}>
-                    {productUnit.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="local-product-barcode" className="mb-1 block text-sm font-bold">
-                Code-barres
-              </label>
-              <input
-                id="local-product-barcode"
-                value={barcode}
-                onChange={(event) => setBarcode(event.target.value)}
-                className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
+                + Format
+              </button>
             </div>
 
-            <div>
-              <label htmlFor="local-product-price" className="mb-1 block text-sm font-bold">
-                Prix TND
-              </label>
-              <input
-                id="local-product-price"
-                inputMode="decimal"
-                value={priceTnd}
-                required
-                aria-required="true"
-                aria-invalid={fieldWithError === 'price'}
-                aria-describedby={fieldWithError === 'price' ? 'merchant-local-product-error' : undefined}
-                onChange={(event) => {
-                  setPriceTnd(event.target.value);
-                  clearError();
-                }}
-                className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
+            <div className="space-y-4">
+              {formats.map((fmt, i) => (
+                <div
+                  key={i}
+                  className="rounded-md border border-line bg-soft p-4"
+                >
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-xs font-bold text-muted">Format {i + 1}</span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => duplicateFormat(i)}
+                        disabled={isSubmitting || formats.length >= 20}
+                        className="rounded px-2 py-1 text-xs text-muted hover:text-ink disabled:opacity-40"
+                      >
+                        Dupliquer
+                      </button>
+                      {formats.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeFormat(i)}
+                          disabled={isSubmitting}
+                          className="rounded px-2 py-1 text-xs text-status-cancel hover:text-status-cancel/80 disabled:opacity-40"
+                        >
+                          Supprimer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor={`fmt-volume-${i}`} className="mb-1 block text-xs font-bold">
+                        Volume
+                      </label>
+                      <input
+                        id={`fmt-volume-${i}`}
+                        inputMode="decimal"
+                        value={fmt.volume}
+                        aria-invalid={fieldWithError === `volume-${i}`}
+                        onChange={(event) => updateFormat(i, { volume: event.target.value })}
+                        className="h-9 w-full rounded border border-line bg-white px-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor={`fmt-unit-${i}`} className="mb-1 block text-xs font-bold">
+                        Unité
+                      </label>
+                      <select
+                        id={`fmt-unit-${i}`}
+                        value={fmt.unit}
+                        onChange={(event) =>
+                          updateFormat(i, { unit: event.target.value as MerchantProductUnit })
+                        }
+                        className="h-9 w-full rounded border border-line bg-white px-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      >
+                        {productUnits.map((u) => (
+                          <option key={u.value} value={u.value}>
+                            {u.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor={`fmt-barcode-${i}`} className="mb-1 block text-xs font-bold">
+                        Code-barres
+                      </label>
+                      <input
+                        id={`fmt-barcode-${i}`}
+                        value={fmt.barcode}
+                        onChange={(event) => updateFormat(i, { barcode: event.target.value })}
+                        className="h-9 w-full rounded border border-line bg-white px-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor={`fmt-price-${i}`} className="mb-1 block text-xs font-bold">
+                        Prix TND <span className="text-status-cancel">*</span>
+                      </label>
+                      <input
+                        id={`fmt-price-${i}`}
+                        inputMode="decimal"
+                        value={fmt.priceTnd}
+                        required
+                        aria-required="true"
+                        aria-invalid={fieldWithError === `price-${i}`}
+                        onChange={(event) => updateFormat(i, { priceTnd: event.target.value })}
+                        className="h-9 w-full rounded border border-line bg-white px-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex gap-6">
+                    <label className="flex items-center gap-2 text-xs font-bold">
+                      <input
+                        type="checkbox"
+                        checked={fmt.isAvailable}
+                        onChange={(event) => updateFormat(i, { isAvailable: event.target.checked })}
+                        className="h-4 w-4 rounded border-line"
+                      />
+                      Disponible
+                    </label>
+
+                    <label className="flex items-center gap-2 text-xs font-bold">
+                      <input
+                        type="checkbox"
+                        checked={fmt.isVisible}
+                        onChange={(event) => updateFormat(i, { isVisible: event.target.checked })}
+                        className="h-4 w-4 rounded border-line"
+                      />
+                      Visible
+                    </label>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-
-          <label className="flex min-h-[44px] items-center gap-3 text-sm font-bold">
-            <input
-              type="checkbox"
-              checked={isAvailable}
-              onChange={(event) => setIsAvailable(event.target.checked)}
-              className="h-5 w-5 rounded border-line"
-            />
-            Disponible
-          </label>
-
-          <label className="flex min-h-[44px] items-center gap-3 text-sm font-bold">
-            <input
-              type="checkbox"
-              checked={isVisible}
-              onChange={(event) => setIsVisible(event.target.checked)}
-              className="h-5 w-5 rounded border-line"
-            />
-            Visible
-          </label>
-
-          <div>
-            <label htmlFor="local-product-note" className="mb-1 block text-sm font-bold">
-              Note marchand
-            </label>
-            <textarea
-              id="local-product-note"
-              value={merchantNote}
-              onChange={(event) => setMerchantNote(event.target.value)}
-              rows={4}
-              className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-            />
           </div>
         </div>
 
@@ -459,7 +557,11 @@ export function MerchantLocalProductDrawer({
             Fermer
           </Button>
           <Button onClick={() => void handleSubmit()} disabled={isSubmitting} full>
-            {isSubmitting ? 'Création…' : 'Créer dans mon catalogue'}
+            {isSubmitting
+              ? 'Création…'
+              : formats.length === 1
+                ? 'Créer dans mon catalogue'
+                : `Créer ${formats.length} formats`}
           </Button>
         </div>
       </div>
