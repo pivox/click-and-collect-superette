@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { notFound, redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { notFound } from "next/navigation";
+import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Badge, orderStatusBadge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Summary, SummaryRow } from "@/components/ui/Summary";
 import { QrPlaceholder } from "@/components/ui/QrPlaceholder";
 import { getOrder } from "@/lib/services";
@@ -18,31 +21,80 @@ export default function PickupQrPage({
   params: { orderId: string };
 }) {
   const { orderId } = params;
+  const router = useRouter();
   const { user, isLoading: authLoading } = useClientAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [fetchDone, setFetchDone] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     if (authLoading || !user) return;
-    void getOrder(orderId)
+    setFetchError(false);
+    getOrder(orderId)
       .then((data) => { setOrder(data); setFetchDone(true); })
-      .catch(() => setFetchDone(true));
+      .catch((err) => {
+        console.error("[pickup] getOrder failed", { orderId, err });
+        setFetchError(true);
+        setFetchDone(true);
+      });
   }, [orderId, user, authLoading]);
+
+  useEffect(() => {
+    if (!fetchDone || !order) return;
+    if (order.status !== "ready" && order.status !== "pickup_pending") {
+      router.replace(`/orders/${orderId}`);
+    }
+  }, [fetchDone, order, orderId, router]);
 
   if (authLoading) return null;
 
   if (!user) {
-    redirect(`/login?redirect=/orders/${orderId}/pickup`);
+    return (
+      <>
+        <TopBar title="QR code retrait" backHref="/orders" />
+        <Card className="text-center">
+          <p className="py-4 text-sm text-muted">
+            <Link
+              href={`/login?redirect=/orders/${orderId}/pickup`}
+              className="font-extrabold text-primary"
+            >
+              Connecte-toi
+            </Link>{" "}
+            pour accéder à ce QR code.
+          </p>
+        </Card>
+      </>
+    );
   }
 
   if (!fetchDone) return null;
-  if (!order) notFound();
 
-  if (order.status !== "ready" && order.status !== "pickup_pending") {
-    redirect(`/orders/${orderId}`);
+  if (fetchError) {
+    return (
+      <>
+        <TopBar title="QR code retrait" backHref="/orders" />
+        <Card className="text-center">
+          <p className="py-4 text-sm text-muted">
+            Le chargement a échoué. Vérifie ta connexion et réessaie.
+          </p>
+          <Button
+            onClick={() => { setFetchError(false); setFetchDone(false); }}
+          >
+            Réessayer
+          </Button>
+        </Card>
+      </>
+    );
+  }
+
+  if (!order) {
+    notFound();
+    return null;
   }
 
   const badge = orderStatusBadge(order.status);
+
+  if (order.status !== "ready" && order.status !== "pickup_pending") return null;
 
   return (
     <>
