@@ -101,7 +101,7 @@ describe('MerchantPickupPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Identifier la Kadhia' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      "L'action n'a pas pu être effectuée. Vérifie le QR code puis réessaie.",
+      "L'action n'a pas pu être effectuée. Réessaie.",
     );
     expect(screen.queryByText(/Session de retrait/)).not.toBeInTheDocument();
   });
