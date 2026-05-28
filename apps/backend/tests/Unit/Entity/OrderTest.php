@@ -9,6 +9,7 @@ use App\Entity\Order;
 use App\Entity\OrderLine;
 use App\Entity\PickupSlot;
 use App\Entity\Shop;
+use App\Entity\User;
 use App\Enum\OrderStatus;
 use PHPUnit\Framework\TestCase;
 
@@ -355,5 +356,88 @@ final class OrderTest extends TestCase
         $line = (new OrderLine())->setMerchantProduct($this->makeProductForShop($shop2));
         $this->expectException(\LogicException::class);
         $order->addLine($line);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------------
+
+    private function makeReadyOrder(): Order
+    {
+        $shop = $this->makeShop();
+        $order = (new Order())->setCustomer(new User())->setShop($shop);
+        $order->submit();
+        $order->accept();
+        $order->startPreparing();
+        $product = $this->makeProductForShop($shop);
+        $line = (new OrderLine())
+            ->setMerchantProduct($product)
+            ->setQuantity(1)
+            ->setUnitPriceTnd('1.000')
+            ->setLineTotalTnd('1.000')
+            ->markPrepared(true);
+        $order->addLine($line);
+        $order->recomputeTotal();
+        $order->markReady();
+
+        return $order;
+    }
+
+    // ---------------------------------------------------------------------------
+    // pickupCode
+    // ---------------------------------------------------------------------------
+
+    public function testMarkReadyGeneratesPickupCode(): void
+    {
+        $order = $this->makeReadyOrder();
+        self::assertNotNull($order->getPickupCode());
+        self::assertMatchesRegularExpression('/^\d{4}$/', (string) $order->getPickupCode());
+    }
+
+    public function testRedeemByCodeTransitionsToCompleted(): void
+    {
+        $order = $this->makeReadyOrder();
+        $code = $order->getPickupCode();
+        self::assertNotNull($code);
+        $order->redeemByCode($code);
+        self::assertSame(OrderStatus::Completed, $order->getStatus());
+        self::assertNull($order->getPickupCode());
+    }
+
+    public function testRedeemByCodeThrowsOnWrongCode(): void
+    {
+        $order = $this->makeReadyOrder();
+        $correctCode = $order->getPickupCode() ?? '0000';
+        $wrongCode = $correctCode === '1234' ? '5678' : '1234';
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('PICKUP_CODE_INVALID');
+        $order->redeemByCode($wrongCode);
+    }
+
+    public function testRedeemByCodeThrowsWhenNotReady(): void
+    {
+        $shop = $this->makeShop();
+        $order = (new Order())->setCustomer(new User())->setShop($shop);
+        $order->submit();
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ORDER_NOT_READY');
+        $order->redeemByCode('1234');
+    }
+
+    public function testCompleteManuallyTransitionsToCompleted(): void
+    {
+        $order = $this->makeReadyOrder();
+        $order->completeManually();
+        self::assertSame(OrderStatus::Completed, $order->getStatus());
+    }
+
+    public function testCompleteManuallyThrowsWhenNotReady(): void
+    {
+        $shop = $this->makeShop();
+        $order = (new Order())->setCustomer(new User())->setShop($shop);
+        $order->submit();
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ORDER_NOT_READY');
+        $order->completeManually();
     }
 }

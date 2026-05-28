@@ -57,6 +57,9 @@ class Order
     #[ORM\Column(type: 'decimal', precision: 10, scale: 3)]
     private string $totalTnd = '0.000';
 
+    #[ORM\Column(length: 4, nullable: true)]
+    private ?string $pickupCode = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -255,6 +258,27 @@ class Order
             throw new \LogicException('ORDER_LINES_NOT_FULLY_PREPARED');
         }
         $this->status = OrderStatus::Ready;
+        $this->pickupCode = \str_pad((string) \random_int(0, 9999), 4, '0', \STR_PAD_LEFT);
+    }
+
+    public function redeemByCode(string $code): void
+    {
+        if (OrderStatus::Ready !== $this->status) {
+            throw new \LogicException('ORDER_NOT_READY');
+        }
+        if ($this->pickupCode !== $code) {
+            throw new \LogicException('PICKUP_CODE_INVALID');
+        }
+        $this->pickupCode = null;
+        $this->status = OrderStatus::Completed;
+    }
+
+    public function completeManually(): void
+    {
+        if (OrderStatus::Ready !== $this->status) {
+            throw new \LogicException('ORDER_NOT_READY');
+        }
+        $this->status = OrderStatus::Completed;
     }
 
     private function areAllLinesPrepared(): bool
@@ -335,5 +359,10 @@ class Order
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    public function getPickupCode(): ?string
+    {
+        return $this->pickupCode;
     }
 }
