@@ -12,8 +12,10 @@ final readonly class ProductReferenceProposalCreateInput
 {
     public function __construct(
         #[Assert\NotBlank]
+        #[Assert\Length(max: 255)]
         #[SerializedName('name_fr')]
         public string $nameFr,
+        #[Assert\Length(max: 255)]
         #[SerializedName('name_ar')]
         public ?string $nameAr = null,
         #[Assert\Uuid]

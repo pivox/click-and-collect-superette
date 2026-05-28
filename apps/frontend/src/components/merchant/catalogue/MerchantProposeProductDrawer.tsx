@@ -11,6 +11,7 @@ import type {
   GlobalBrand,
   GlobalCategory,
   MerchantCatalogProduct,
+  MerchantProductUnit,
 } from '@/lib/types/merchant-catalog.types';
 
 interface MerchantProposeProductDrawerProps {
@@ -189,8 +190,7 @@ export function MerchantProposeProductDrawer({
         category_name_proposed: !categoryId && categoryNameProposed.trim() ? categoryNameProposed.trim() : null,
         local_product_id: product.local_product_id ?? null,
         volume: product.volume ?? null,
-        unit: product.unit as never,
-        barcode: null,
+        unit: product.unit as MerchantProductUnit,
       });
 
       if (!isCurrentSession(sessionId)) return;
@@ -345,7 +345,7 @@ export function MerchantProposeProductDrawer({
               )}
 
               <div className="rounded-md bg-soft px-4 py-3 text-sm text-muted">
-                Volume, unité et code-barres seront repris automatiquement depuis le produit local.
+                Volume et unité seront repris automatiquement depuis le produit local.
               </div>
             </>
           )}

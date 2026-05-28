@@ -16,6 +16,7 @@ use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -85,7 +86,7 @@ final readonly class CreateProductReferenceProposalProcessor implements Processo
 
         $user = $this->security->getUser();
         if (!$user instanceof User) {
-            throw new \RuntimeException('Authenticated user must be an instance of User.');
+            throw new AccessDeniedHttpException('MERCHANT_FORBIDDEN');
         }
 
         $proposal = (new ProductReferenceProposal())
