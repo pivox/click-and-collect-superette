@@ -7,15 +7,21 @@ import { Pill, PillRow } from "@/components/ui/Pill";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ProductCard } from "@/components/product/ProductCard";
 import { KadhiaPanel } from "@/components/product/KadhiaPanel";
+import { Button } from "@/components/ui/Button";
+import { KadhiaSelectorDialog } from "@/components/client/KadhiaSelectorDialog";
 import { ShoppingBasket } from "lucide-react";
 import {
   addLine,
+  createKadhia,
+  activateKadhia,
   getCurrentKadhia,
   getShop,
   listCatalog,
 } from "@/lib/services";
+import type { KadhiaListItem } from "@/lib/services/kadhia.service";
 import type { Kadhia, ProductOffer, Shop } from "@/types";
 import { PRODUCT_CATEGORIES } from "@/lib/mock/products.mock";
+import { formatTnd } from "@/lib/format";
 
 export default function CatalogPage({
   params,
@@ -31,6 +37,8 @@ export default function CatalogPage({
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStarting, setIsStarting] = useState(false);
+  const [selectorDrafts, setSelectorDrafts] = useState<KadhiaListItem[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,20 +52,48 @@ export default function CatalogPage({
 
   useEffect(() => {
     void getCurrentKadhia(shopId)
-      .then(setKadhia)
-      .catch(() => { /* kadhia indisponible, panier affiché vide */ });
+      .then((result) => {
+        if (result.type === "active") setKadhia(result.kadhia);
+        else if (result.type === "multiple") setSelectorDrafts(result.drafts);
+        // "none" → kadhia stays null → "Commencer" bar is shown
+      })
+      .catch(() => { /* kadhia indisponible, on reste en état "none" */ });
   }, [shopId]);
 
   useEffect(() => {
     void getShop(shopId)
       .then(setShop)
-      .catch(() => { /* nom de la supérette indisponible */ });
+      .catch(() => {});
   }, [shopId]);
 
+  const onStart = async () => {
+    setIsStarting(true);
+    try {
+      const created = await createKadhia(shopId);
+      setKadhia(created);
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  const onSelectDraft = async (kadhiaId: string) => {
+    setSelectorDrafts(null);
+    const activated = await activateKadhia(shopId, kadhiaId);
+    setKadhia(activated);
+  };
+
+  const onCreateNewFromSelector = async () => {
+    setSelectorDrafts(null);
+    await onStart();
+  };
+
   const onAdd = async (p: ProductOffer) => {
+    if (!kadhia?.id) return;
     setAddError(null);
     try {
-      const next = await addLine(shopId, p, 1);
+      const existingLine = kadhia.lines.find((l) => l.productOffer.id === p.id);
+      const newQty = (existingLine?.quantity ?? 0) + 1;
+      const next = await addLine(shopId, kadhia.id, p, newQty);
       setKadhia(next);
     } catch {
       setAddError("Impossible d'ajouter le produit. Réessaie.");
@@ -73,8 +109,18 @@ export default function CatalogPage({
     ? "Kadhia vide"
     : `${cartCount} article${cartCount > 1 ? "s" : ""}`;
 
+  const hasActiveKadhia = !!kadhia?.id;
+
   return (
     <>
+      {selectorDrafts && (
+        <KadhiaSelectorDialog
+          drafts={selectorDrafts}
+          onSelect={onSelectDraft}
+          onCreateNew={onCreateNewFromSelector}
+        />
+      )}
+
       <TopBar
         title="Catalogue"
         subtitle={shop?.name}
@@ -119,9 +165,11 @@ export default function CatalogPage({
         <section>
           <header className="mb-2.5 flex items-baseline justify-between">
             <h3 className="m-0 text-h3 font-extrabold">Produits</h3>
-            <Link href="/kadhia" className="text-xs font-extrabold text-primary md:hidden">
-              {cartLabel}
-            </Link>
+            {hasActiveKadhia && (
+              <Link href="/kadhia" className="text-xs font-extrabold text-primary md:hidden">
+                {cartLabel}
+              </Link>
+            )}
           </header>
           {addError && (
             <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
@@ -137,7 +185,7 @@ export default function CatalogPage({
                   key={i}
                   className="animate-pulse rounded-lg border border-line bg-card p-3 shadow-card"
                 >
-                  <div className="mb-2 h-[94px] rounded-md bg-gray-200" />{/* matches ProductCard image height */}
+                  <div className="mb-2 h-[94px] rounded-md bg-gray-200" />
                   <div className="mb-1 h-4 w-3/4 rounded bg-gray-200" />
                   <div className="mb-2 h-3 w-1/2 rounded bg-gray-200" />
                   <div className="h-4 w-1/3 rounded bg-gray-200" />
@@ -147,7 +195,11 @@ export default function CatalogPage({
           ) : (
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
               {products.map((p) => (
-                <ProductCard key={p.id} product={p} onAdd={onAdd} />
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  onAdd={hasActiveKadhia ? onAdd : undefined}
+                />
               ))}
             </div>
           )}
@@ -157,6 +209,28 @@ export default function CatalogPage({
           <KadhiaPanel kadhia={kadhia} />
         </div>
       </div>
+
+      {/* "Commencer une Kadhia" bar — shown only when no active kadhia */}
+      {!hasActiveKadhia && !selectorDrafts && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-line bg-white px-4 pb-[env(safe-area-inset-bottom)] pt-3 shadow-[0_-4px_16px_rgba(18,30,20,.08)]">
+          <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+            <p className="text-sm text-muted">Commence une Kadhia pour ajouter des produits.</p>
+            <Button onClick={onStart} disabled={isStarting} className="shrink-0">
+              {isStarting ? "…" : "Commencer"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Active Kadhia summary bar — shown on mobile when kadhia has items */}
+      {hasActiveKadhia && cartCount > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-line bg-white px-4 pb-[env(safe-area-inset-bottom)] pt-3 shadow-[0_-4px_16px_rgba(18,30,20,.08)] md:hidden">
+          <Link href="/kadhia" className="mx-auto flex max-w-md items-center justify-between">
+            <span className="text-sm font-bold">{cartLabel}</span>
+            <span className="text-sm font-extrabold text-primary">{formatTnd(kadhia!.totalTnd)}</span>
+          </Link>
+        </div>
+      )}
     </>
   );
 }
