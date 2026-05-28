@@ -24,7 +24,7 @@ export interface RuleFormProps {
 export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set(ALL_WEEKDAYS));
   const [startTime, setStartTime] = useState('17:00');
-  const [endTime, setEndTime] = useState('19:00');
+  const [endTime, setEndTime] = useState('18:00');
   const [capacity, setCapacity] = useState('6');
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
