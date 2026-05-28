@@ -42,7 +42,7 @@ export default function OrdersListPage() {
           {orders.map((o) => {
             const badge = orderStatusBadge(o.status);
             return (
-              <Link key={o.id} href={`/orders/${o.code}`}>
+              <Link key={o.id} href={`/orders/${o.id}`}>
                 <Card compact className="hover:bg-soft transition-colors">
                   <div className="flex items-baseline justify-between">
                     <strong className="text-sm">{o.code}</strong>

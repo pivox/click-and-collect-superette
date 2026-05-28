@@ -112,7 +112,7 @@ export default function OrderTrackingPage({
           {/* CTA inline sur desktop */}
           <div className="hidden md:block mt-4">
             {showQrCta ? (
-              <Link href={`/orders/${order.code}/pickup`}>
+              <Link href={`/orders/${order.id}/pickup`}>
                 <Button full>Afficher le QR retrait</Button>
               </Link>
             ) : (
@@ -127,7 +127,7 @@ export default function OrderTrackingPage({
       {/* CTA sticky sur mobile */}
       <StickyBottom className="md:hidden">
         {showQrCta ? (
-          <Link href={`/orders/${order.code}/pickup`}>
+          <Link href={`/orders/${order.id}/pickup`}>
             <Button full>Afficher le QR retrait</Button>
           </Link>
         ) : (

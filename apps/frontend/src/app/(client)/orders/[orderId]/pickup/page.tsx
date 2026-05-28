@@ -24,7 +24,7 @@ export default async function PickupQrPage({
       <TopBar
         title="QR code retrait"
         subtitle="À présenter au marchand"
-        backHref={`/orders/${order.code}`}
+        backHref={`/orders/${order.id}`}
       />
 
       <Card className="text-center">
