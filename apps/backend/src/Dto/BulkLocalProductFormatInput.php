@@ -28,6 +28,9 @@ final readonly class BulkLocalProductFormatInput
         #[Assert\Length(max: 500)]
         #[SerializedName('merchant_note')]
         public ?string $merchantNote = null,
+        #[Assert\GreaterThanOrEqual(1)]
+        #[SerializedName('pack_quantity')]
+        public int $packQuantity = 1,
     ) {
     }
 }

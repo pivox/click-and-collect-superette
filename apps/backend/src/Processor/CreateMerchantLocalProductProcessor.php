@@ -62,7 +62,8 @@ final readonly class CreateMerchantLocalProductProcessor implements ProcessorInt
             ->setVolume($this->normalizeDecimalText($data->volume))
             ->setUnit($data->unit)
             ->setBarcode($this->normalizeOptionalText($data->barcode))
-            ->setDefaultCategoryName($this->normalizeOptionalText($data->defaultCategoryName));
+            ->setDefaultCategoryName($this->normalizeOptionalText($data->defaultCategoryName))
+            ->setPackQuantity($data->packQuantity);
 
         $merchantProduct = (new MerchantProduct())
             ->setShop($shop)
@@ -108,6 +109,7 @@ final readonly class CreateMerchantLocalProductProcessor implements ProcessorInt
             isAvailable: $merchantProduct->isAvailable(),
             isVisible: $merchantProduct->isVisible(),
             merchantNote: $merchantProduct->getMerchantNote(),
+            packQuantity: $localProduct->getPackQuantity(),
         );
     }
 
