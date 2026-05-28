@@ -73,11 +73,18 @@ php bin/console debug:router | grep "mon-pattern"   # vérifier les routes aprè
 
 ## Workflow features
 
-Les specs de chaque feature sont dans `prompts/` (ex. `prompts/s7-003-data-retention.md`).
-Commande type : `traite @prompts/s7-XXX-nom.md et pousse une pr`.
-Avant d'implémenter, vérifier si la feature est déjà livrée : `git log --oneline | grep s7-XXX`.
+Les specs des features passées sont dans `prompts/` (ex. `prompts/s7-003-data-retention.md`).
+Commande type (pour les anciennes specs) : `traite @prompts/sX-XXX-nom.md et pousse une pr`.
+Avant d'implémenter, vérifier si la feature est déjà livrée : `git log --oneline | grep sX-XXX`.
 
-Prompts Sprint 7 disponibles : `s7-003-data-retention`, `s7-004-admin-audit-trail`, `s7-005-production-observability`, `s7-006-pwa-offline`, `s7-007-accessibility-wcag`, `s7-008-sprint7-audit`.
+**Sprint 7 : entièrement livré** (`s7-003` à `s7-009` tous mergés).
+
+**Sprint 8 — Catalogue marchand (livré sur main, PRs #200–#204) :**
+Les features Sprint 8 passent par des issues GitHub (pas de fichiers prompts).
+- **#195 / PR #200** — `ProductReferenceProposal` liée au produit local (`local_product_id` nullable), `category_id` optionnel + `category_name_proposed` libre
+- **#196 / PR #201** — `POST /api/merchant/stores/{storeId}/local-products/bulk` (atomique, max 20 formats), drawer multi-format avec champ Qté/pack
+- **#197 / PR #202 + #204** — entité `ProductFamily`, champ `pack_quantity` (default 1) sur `ProductReference` et `MerchantLocalProduct`, câblé dans les endpoints de création
+- **#198 / PR #203** — `PATCH /api/admin/product-proposals/{id}/merge` dédié (distinct de `/approve`) ; guard sur référence archivée (422)
 
 ### Clôture de sprint (audit documentaire)
 
@@ -112,3 +119,14 @@ npm test          # tests vitest en mode watch
 - `src/app/(client)/` — parcours client (catalogue, kadhia, commandes, profil)
 - `src/app/merchant/` — interface marchand (commandes, créneaux, retrait, notifications)
 - `src/app/admin/` — backoffice admin (dashboard, marchands, supérettes, référentiel, audit)
+
+## Gotchas backend (voir aussi `.claude/rules/backend-patterns.md`)
+
+**`Assert\Choice` sur enum typé → 422 systématique (pattern #26)**
+Ne jamais mettre `#[Assert\Choice(callback: [MyEnum::class, 'values'])]` sur un champ `ProductUnit $unit` (type PHP enum). Le validateur compare une instance d'enum à une liste de strings → validation échoue pour toutes les requêtes. Réserver `Assert\Choice` aux champs `?string`.
+
+**UUID nil rejeté par `Assert\Uuid` dans les tests fonctionnels (pattern #27)**
+`00000000-0000-0000-0000-000000000000` peut retourner 422 au lieu de 404 dans les tests qui vérifient "not found". Utiliser un vrai UUID v4 non-existant (ex. `550e8400-e29b-41d4-a716-446655440000`).
+
+**Suite de tests complète — mémoire**
+`vendor/bin/phpunit` complet peut tuer `ApiDocsExposureTest` par exhaustion mémoire dans le sérialiseur OpenAPI. Le test passe seul. Cibler les suites par classe ou lancer en dernier.

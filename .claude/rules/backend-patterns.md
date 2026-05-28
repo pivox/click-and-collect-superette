@@ -410,6 +410,52 @@ str_getcsv($line, ';', '"', '');
 fputcsv($stream, $row, ';', '"', '\\');
 ```
 
+## 26. `Assert\Choice` incompatible avec les champs enum typés PHP
+
+`#[Assert\Choice(callback: [MyEnum::class, 'values'])]` compare la valeur du champ
+à une liste de **strings**. Sur un champ **typé** `ProductUnit $unit`, le désérialiseur
+produit déjà une instance d'enum — la comparaison échoue toujours, rendant l'endpoint
+invalide pour **toutes** les requêtes avec ce champ.
+
+Règle : utiliser `Assert\Choice` uniquement sur les champs `?string`, jamais sur un champ
+dont le type PHP est déjà un enum. Le désérialiseur Symfony rejette les valeurs invalides
+avec une erreur de dénormalisation propre — pas besoin d'ajouter la contrainte.
+
+```php
+// Correct — champ typé enum : le désérialiseur fait la validation
+public ProductUnit $unit = ProductUnit::Piece,
+
+// Correct — champ string : Assert\Choice + Enum::from() dans le processor (pattern #14)
+#[Assert\Choice(callback: [ProductUnit::class, 'values'])]
+public ?string $unit = null,
+
+// Incorrect — brise silencieusement tous les appels (validation passe mais compare
+// ProductUnit::Piece à ['piece','litre',...] → toujours false → 422 systématique)
+#[Assert\Choice(callback: [ProductUnit::class, 'values'])]
+public ProductUnit $unit = ProductUnit::Piece,
+```
+
+Symptôme : les tests qui POSTent avec `'unit' => 'piece'` retournent 422 (ou 403 pour
+les tests sécurité qui vérifient ownership — la validation s'exécute avant le processor).
+
+## 27. UUID nil (`00000000-0000-0000-0000-000000000000`) rejeté par `Assert\Uuid` dans les tests
+
+Le validateur Symfony `#[Assert\Uuid]` interprète le nil UUID (tout à zéro) comme invalide
+dans certains contextes. Utiliser de vrais UUID v4 non-existants dans les fixtures de tests
+fonctionnels pour les cas 404/not-found.
+
+```php
+// Correct — UUID v4 valide format, garantit un 404 propre
+$response = $this->requestJson('PATCH', '/.../550e8400-e29b-41d4-a716-446655440000/merge', [...]);
+self::assertSame(404, $response->getStatusCode());
+
+// Incorrect — peut retourner 422 (validation) au lieu de 404
+$response = $this->requestJson('PATCH', '/.../00000000-0000-0000-0000-000000000000/merge', [...]);
+```
+
+**Exception :** les routes GET (proposalId en URI variable, pas en body DTO) acceptent
+le nil UUID car l'URI n'est pas soumis à `Assert\Uuid`.
+
 ## 25. `DateInterval::$days` toujours absolu — ne détecte pas une plage inversée
 
 `$dateFrom->diff($dateTo)->days` est toujours ≥ 0 quel que soit l'ordre des dates.
