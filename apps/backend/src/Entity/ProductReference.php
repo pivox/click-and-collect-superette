@@ -62,6 +62,14 @@ class ProductReference
     #[ORM\Column(length: 32, enumType: ProductReferenceStatus::class)]
     private ProductReferenceStatus $status = ProductReferenceStatus::Draft;
 
+    #[ORM\ManyToOne(targetEntity: ProductFamily::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?ProductFamily $productFamily = null;
+
+    #[ORM\Column(type: 'integer', options: ['default' => 1])]
+    #[Assert\GreaterThanOrEqual(1)]
+    private int $packQuantity = 1;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -232,6 +240,30 @@ class ProductReference
     public function setStatus(ProductReferenceStatus $status): static
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getProductFamily(): ?ProductFamily
+    {
+        return $this->productFamily;
+    }
+
+    public function setProductFamily(?ProductFamily $productFamily): static
+    {
+        $this->productFamily = $productFamily;
+
+        return $this;
+    }
+
+    public function getPackQuantity(): int
+    {
+        return $this->packQuantity;
+    }
+
+    public function setPackQuantity(int $packQuantity): static
+    {
+        $this->packQuantity = $packQuantity;
 
         return $this;
     }

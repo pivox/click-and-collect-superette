@@ -46,6 +46,10 @@ class MerchantLocalProduct
     #[ORM\Column(length: 160, nullable: true)]
     private ?string $defaultCategoryName = null;
 
+    #[ORM\Column(type: 'integer', options: ['default' => 1])]
+    #[Assert\GreaterThanOrEqual(1)]
+    private int $packQuantity = 1;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -174,6 +178,18 @@ class MerchantLocalProduct
     public function getCatalogCategoryName(): string
     {
         return $this->defaultCategoryName ?? 'Produit local';
+    }
+
+    public function getPackQuantity(): int
+    {
+        return $this->packQuantity;
+    }
+
+    public function setPackQuantity(int $packQuantity): static
+    {
+        $this->packQuantity = $packQuantity;
+
+        return $this;
     }
 
     public function getCreatedAt(): \DateTimeImmutable
