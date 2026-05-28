@@ -383,6 +383,150 @@ final class AdminProductProposalValidationApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
     }
 
+    // --- merge nominal ---
+
+    public function testAdminMergesProposalWithExistingReference(): void
+    {
+        $admin = $this->createUser('admin-merge-ok@test.dev', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-merge-ok@test.dev', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $category = $this->makeCategory('Merge OK');
+        $brand = $this->makeBrand('BrandMerge');
+        $proposal = $this->makeProposal($shop, $merchant, $category, 'Produit à fusionner', brand: $brand);
+        $existingRef = $this->makeProductReference('BrandRef', $category, 'Référence cible');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-proposals/%s/merge', $proposal->getId()),
+            ['product_reference_id' => $existingRef->getId()->toRfc4122()],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $this->entityManager->clear();
+        $updated = $this->entityManager->find(ProductReferenceProposal::class, $proposal->getId());
+        self::assertInstanceOf(ProductReferenceProposal::class, $updated);
+        self::assertSame(ProductReferenceProposalStatus::Merged, $updated->getStatus());
+        self::assertSame($existingRef->getId()->toRfc4122(), $updated->getCreatedProductReference()?->getId()->toRfc4122());
+    }
+
+    public function testMergeAlreadyProcessedProposalReturns409(): void
+    {
+        $admin = $this->createUser('admin-merge-409@test.dev', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-merge-409@test.dev', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $category = $this->makeCategory('Merge409');
+        $brand = $this->makeBrand('BrandM409');
+        $proposal = $this->makeProposal($shop, $merchant, $category, 'Déjà traité', brand: $brand);
+        $proposal->setStatus(ProductReferenceProposalStatus::Approved);
+        $this->entityManager->flush();
+        $existingRef = $this->makeProductReference('Ref409', $category, 'Ref409');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-proposals/%s/merge', $proposal->getId()),
+            ['product_reference_id' => $existingRef->getId()->toRfc4122()],
+            $admin,
+        );
+
+        self::assertSame(409, $response->getStatusCode());
+    }
+
+    public function testMergeNonExistentProposalReturns404(): void
+    {
+        $admin = $this->createUser('admin-merge-404-prop@test.dev', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson(
+            'PATCH',
+            '/api/admin/product-proposals/550e8400-e29b-41d4-a716-446655440000/merge',
+            ['product_reference_id' => '550e8400-e29b-41d4-a716-446655440001'],
+            $admin,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testMergeWithUnknownProductReferenceReturns404(): void
+    {
+        $admin = $this->createUser('admin-merge-404-ref@test.dev', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-merge-404-ref@test.dev', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $category = $this->makeCategory('Merge404Ref');
+        $proposal = $this->makeProposal($shop, $merchant, $category, 'Produit sans ref');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-proposals/%s/merge', $proposal->getId()),
+            ['product_reference_id' => '550e8400-e29b-41d4-a716-446655440002'],
+            $admin,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testMergeWithArchivedProductReferenceReturns422(): void
+    {
+        $admin = $this->createUser('admin-merge-archived@test.dev', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-merge-archived@test.dev', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $category = $this->makeCategory('MergeArchived');
+        $proposal = $this->makeProposal($shop, $merchant, $category, 'Produit vers archivé');
+        $archivedRef = $this->makeProductReference('BrandArch', $category, 'Ref archivée', ProductReferenceStatus::Archived);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-proposals/%s/merge', $proposal->getId()),
+            ['product_reference_id' => $archivedRef->getId()->toRfc4122()],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testMergeWithInvalidUuidReturns422(): void
+    {
+        $admin = $this->createUser('admin-merge-bad-uuid@test.dev', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-merge-bad-uuid@test.dev', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $category = $this->makeCategory('MergeBadUuid');
+        $proposal = $this->makeProposal($shop, $merchant, $category, 'Produit bad uuid merge');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-proposals/%s/merge', $proposal->getId()),
+            ['product_reference_id' => 'not-a-valid-uuid'],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testMergeIsForbiddenForNonAdmin(): void
+    {
+        $merchant = $this->createUser('merchant-merge-403@test.dev', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('customer-merge-403@test.dev', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop($merchant);
+        $category = $this->makeCategory('Merge403');
+        $proposal = $this->makeProposal($shop, $merchant, $category, 'Tentative non-admin');
+
+        $merchantResponse = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-proposals/%s/merge', $proposal->getId()),
+            ['product_reference_id' => '550e8400-e29b-41d4-a716-446655440003'],
+            $merchant,
+        );
+        $customerResponse = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-proposals/%s/merge', $proposal->getId()),
+            ['product_reference_id' => '550e8400-e29b-41d4-a716-446655440003'],
+            $customer,
+        );
+
+        self::assertSame(403, $merchantResponse->getStatusCode());
+        self::assertSame(403, $customerResponse->getStatusCode());
+    }
+
     // --- non-regression ProductReference admin (S5-007) ---
 
     public function testProductReferenceAdminListStillWorks(): void
