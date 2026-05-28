@@ -83,6 +83,9 @@ final readonly class OrderOutput
         #[Groups(['order:read'])]
         #[SerializedName('updated_at')]
         public string $updatedAt,
+        #[Groups(['order:read'])]
+        #[SerializedName('pickup_code')]
+        public ?string $pickupCode = null,
     ) {
     }
 }

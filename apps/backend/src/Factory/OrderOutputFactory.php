@@ -36,6 +36,7 @@ final readonly class OrderOutputFactory
             lines: $lines,
             createdAt: $order->getCreatedAt()->format(\DateTimeInterface::ATOM),
             updatedAt: $order->getUpdatedAt()->format(\DateTimeInterface::ATOM),
+            pickupCode: $order->getPickupCode(),
         );
     }
 }

@@ -111,6 +111,8 @@ export interface Order {
   lines: KadhiaLine[];
   /** Optional note left by customer to the merchant. */
   customerNote?: string | null;
+  /** 4-digit pickup code, visible only when status === 'ready'. */
+  pickupCode?: string | null;
 }
 
 /** Step shown on the customer order tracking timeline. */

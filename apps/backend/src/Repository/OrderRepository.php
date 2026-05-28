@@ -401,4 +401,13 @@ class OrderRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    public function findReadyByPickupCodeAndShop(string $code, Shop $shop): ?Order
+    {
+        return $this->findOneBy([
+            'pickupCode' => $code,
+            'shop' => $shop,
+            'status' => OrderStatus::Ready,
+        ]);
+    }
 }

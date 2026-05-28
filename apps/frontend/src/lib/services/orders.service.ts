@@ -15,6 +15,7 @@ interface RawOrder {
   lines: unknown[];
   created_at: string;
   updated_at: string;
+  pickup_code?: string | null;
 }
 
 /** Derive a display code from UUID since the backend has no dedicated code field. */
@@ -38,6 +39,7 @@ function mapRawOrder(raw: RawOrder): Order {
     code: deriveCode(raw.id),
     customerNote: raw.notes ?? null,
     lines: [],
+    pickupCode: raw.pickup_code ?? null,
   };
 }
 
