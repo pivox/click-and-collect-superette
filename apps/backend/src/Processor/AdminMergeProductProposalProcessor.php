@@ -9,12 +9,14 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Dto\AdminMergeProductProposalInput;
 use App\Entity\ProductReferenceProposal;
 use App\Enum\ProductReferenceProposalStatus;
+use App\Enum\ProductReferenceStatus;
 use App\Repository\AdminProductReferenceRepository;
 use App\Repository\ProductReferenceProposalRepository;
 use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -57,6 +59,10 @@ final readonly class AdminMergeProductProposalProcessor implements ProcessorInte
         $productReference = $this->productReferenceRepository->findOne($data->productReferenceId);
         if (null === $productReference) {
             throw new NotFoundHttpException('ADMIN_PRODUCT_REFERENCE_NOT_FOUND');
+        }
+
+        if (ProductReferenceStatus::Archived === $productReference->getStatus()) {
+            throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_IS_ARCHIVED');
         }
 
         $proposal->setStatus(ProductReferenceProposalStatus::Merged);
