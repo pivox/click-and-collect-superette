@@ -12,8 +12,10 @@ use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\QueryParameter;
 use App\Dto\AdminApproveProductProposalInput;
+use App\Dto\AdminMergeProductProposalInput;
 use App\Dto\AdminRejectProductProposalInput;
 use App\Processor\AdminApproveProductProposalProcessor;
+use App\Processor\AdminMergeProductProposalProcessor;
 use App\Processor\AdminRejectProductProposalProcessor;
 use App\Provider\AdminProductProposalCollectionProvider;
 use App\Provider\AdminProductProposalItemProvider;
@@ -68,6 +70,19 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             status: 200,
             read: false,
             processor: AdminRejectProductProposalProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+        ),
+        new Patch(
+            uriTemplate: '/admin/product-proposals/{proposalId}/merge',
+            uriVariables: [
+                'proposalId' => new Link(fromClass: AdminProductProposalOutput::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            input: AdminMergeProductProposalInput::class,
+            output: false,
+            status: 200,
+            read: false,
+            processor: AdminMergeProductProposalProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
         ),
     ],
