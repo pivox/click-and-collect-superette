@@ -73,45 +73,50 @@ final readonly class CreateBulkLocalProductProcessor implements ProcessorInterfa
         $brandName = $this->normalizeOptionalText($data->brandName);
         $defaultCategoryName = $this->normalizeOptionalText($data->defaultCategoryName);
 
+        /** @var list<array{merchant_product_id: string, local_product_id: string, name_fr: string, price_tnd: string}> $items */
         $items = [];
 
-        foreach ($data->formats as $format) {
-            $localProduct = (new MerchantLocalProduct())
-                ->setShop($shop)
-                ->setNameFr($baseNameFr)
-                ->setNameAr($baseNameAr)
-                ->setBrandName($brandName)
-                ->setVolume($this->normalizeDecimalText($format->volume))
-                ->setUnit($format->unit)
-                ->setBarcode($this->normalizeOptionalText($format->barcode))
-                ->setDefaultCategoryName($defaultCategoryName);
+        $this->entityManager->wrapInTransaction(function () use ($data, $shop, $merchantCategory, $baseNameFr, $baseNameAr, $brandName, $defaultCategoryName, &$items): void {
+            foreach ($data->formats as $format) {
+                $localProduct = (new MerchantLocalProduct())
+                    ->setShop($shop)
+                    ->setNameFr($baseNameFr)
+                    ->setNameAr($baseNameAr)
+                    ->setBrandName($brandName)
+                    ->setVolume($this->normalizeDecimalText($format->volume))
+                    ->setUnit($format->unit)
+                    ->setBarcode($this->normalizeOptionalText($format->barcode))
+                    ->setDefaultCategoryName($defaultCategoryName);
 
-            $priceTnd = $this->normalizeDecimalText($format->priceTnd) ?? $format->priceTnd;
+                $merchantProduct = (new MerchantProduct())
+                    ->setShop($shop)
+                    ->setLocalProduct($localProduct)
+                    ->setPriceTnd($this->normalizeDecimalText($format->priceTnd) ?? $format->priceTnd)
+                    ->setAvailable($format->isAvailable)
+                    ->setVisible($format->isVisible)
+                    ->setMerchantNote($this->normalizeOptionalText($format->merchantNote));
 
-            $merchantProduct = (new MerchantProduct())
-                ->setShop($shop)
-                ->setLocalProduct($localProduct)
-                ->setPriceTnd($priceTnd)
-                ->setAvailable($format->isAvailable)
-                ->setVisible($format->isVisible)
-                ->setMerchantNote($this->normalizeOptionalText($format->merchantNote));
+                if (null !== $merchantCategory) {
+                    $merchantProduct->setMerchantCategory($merchantCategory);
+                }
 
-            if (null !== $merchantCategory) {
-                $merchantProduct->setMerchantCategory($merchantCategory);
+                if (!$merchantProduct->hasExactlyOneProductSource()) {
+                    throw new \LogicException('Merchant product must have exactly one product source.');
+                }
+
+                $this->entityManager->persist($localProduct);
+                $this->entityManager->persist($merchantProduct);
+
+                $items[] = [
+                    'merchant_product_id' => $merchantProduct->getId()->toRfc4122(),
+                    'local_product_id' => $localProduct->getId()->toRfc4122(),
+                    'name_fr' => $localProduct->getNameFr(),
+                    'price_tnd' => $merchantProduct->getPriceTnd(),
+                ];
             }
 
-            $this->entityManager->persist($localProduct);
-            $this->entityManager->persist($merchantProduct);
-
-            $items[] = [
-                'merchant_product_id' => $merchantProduct->getId()->toRfc4122(),
-                'local_product_id' => $localProduct->getId()->toRfc4122(),
-                'name_fr' => $localProduct->getNameFr(),
-                'price_tnd' => $merchantProduct->getPriceTnd(),
-            ];
-        }
-
-        $this->entityManager->flush();
+            $this->entityManager->flush();
+        });
 
         return new BulkLocalProductCreatedOutput(
             id: 'bulk',

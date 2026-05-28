@@ -38,6 +38,7 @@ final readonly class BulkLocalProductCreatedOutput
      */
     public function __construct(
         #[ApiProperty(identifier: true)]
+        #[Groups(['bulk_local_product:read'])]
         public string $id,
         #[Groups(['bulk_local_product:read'])]
         #[SerializedName('created_count')]
