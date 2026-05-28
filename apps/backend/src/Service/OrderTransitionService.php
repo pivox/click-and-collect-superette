@@ -51,6 +51,26 @@ final readonly class OrderTransitionService
         $this->notificationService->notifyMerchantPickupCompleted($order);
     }
 
+    public function completeByCode(Order $order, string $code): void
+    {
+        $order->redeemByCode($code);
+        $this->orderStatusLogRecorder->record($order, OrderStatus::Completed, 'withdrawal_validated_by_code');
+        $this->notificationService->notifyCustomerOrderCompleted($order);
+        $this->notificationService->notifyMerchantPickupCompleted($order);
+    }
+
+    public function completeManually(Order $order, string $note): void
+    {
+        $order->completeManually();
+        $this->orderStatusLogRecorder->record(
+            $order,
+            OrderStatus::Completed,
+            \sprintf('withdrawal_validated_manually: %s', $note),
+        );
+        $this->notificationService->notifyCustomerOrderCompleted($order);
+        $this->notificationService->notifyMerchantPickupCompleted($order);
+    }
+
     public function autoCancelMerchantResponseTimeout(Order $order): void
     {
         if (OrderStatus::Submitted !== $order->getStatus()) {
