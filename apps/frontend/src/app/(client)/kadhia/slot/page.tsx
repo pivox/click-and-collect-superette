@@ -30,6 +30,7 @@ export default function SlotPage() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -49,11 +50,16 @@ export default function SlotPage() {
 
   useEffect(() => {
     if (isLoading || !user || !shopId) return;
-    void listSlotsForShop(shopId, day).then((s) => {
-      setSlots(s);
-      const firstAvail = s.find((x) => x.available);
-      setActiveId(firstAvail?.id ?? null);
-    });
+    setSlotsError(null);
+    listSlotsForShop(shopId, day)
+      .then((s) => {
+        setSlots(s);
+        const firstAvail = s.find((x) => x.available);
+        setActiveId(firstAvail?.id ?? null);
+      })
+      .catch(() => {
+        setSlotsError("Impossible de charger les créneaux. Vérifie ta connexion et réessaie.");
+      });
   }, [day, isLoading, user, shopId]);
 
   const handleSubmit = async () => {
@@ -100,7 +106,9 @@ export default function SlotPage() {
 
       <section className="mt-2">
         <h3 className="mb-2.5 text-h3 font-extrabold">Créneaux disponibles</h3>
-        {slots.length === 0 ? (
+        {slotsError ? (
+          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{slotsError}</p>
+        ) : slots.length === 0 ? (
           <p className="text-sm text-muted">Aucun créneau disponible pour ce jour.</p>
         ) : (
           <div className="grid grid-cols-2 gap-2.5">
