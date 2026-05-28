@@ -40,4 +40,5 @@ export const MOCK_ORDER: Order = {
       lineTotalTnd: "2.700",
     },
   ],
+  pickupCode: "4281",
 };

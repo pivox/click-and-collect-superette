@@ -231,3 +231,14 @@ export interface MerchantNotificationListOptions {
 }
 
 export type MerchantNotificationReadResult = MerchantNotificationItem;
+
+export interface MerchantRedeemByCodeResult {
+  order_id: string;
+  status: string;
+}
+
+export interface MerchantValidateManuallyResult {
+  id: string;
+  order_id: string;
+  status: string;
+}
