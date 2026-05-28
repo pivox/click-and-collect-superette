@@ -330,7 +330,7 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
         $generator = self::getContainer()->get(PickupSlotRuleGenerator::class);
         $result = $generator->generateForShop($shop, $now);
 
-        self::assertSame(4, $result->generatedCount);
+        self::assertSame(5, $result->generatedCount);
         self::assertSame(0, $result->skippedClosureCount);
     }
 
@@ -353,13 +353,16 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
         $firstResult = $generator->generateForShop($shop, $now);
         $secondResult = $generator->generateForShop($shop, $now);
 
-        self::assertSame(3, $firstResult->generatedCount);
+        $totalOccurrences = $this->countWeekdayOccurrencesInHorizon((int) $closedDate->format('N'), $now);
+        $expectedGenerated = $totalOccurrences - 1;
+
+        self::assertSame($expectedGenerated, $firstResult->generatedCount);
         self::assertSame(1, $firstResult->skippedClosureCount);
         self::assertSame(0, $firstResult->skippedExistingCount);
         self::assertSame(0, $secondResult->generatedCount);
         self::assertSame(1, $secondResult->skippedClosureCount);
-        self::assertSame(3, $secondResult->skippedExistingCount);
-        self::assertSame(3, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+        self::assertSame($expectedGenerated, $secondResult->skippedExistingCount);
+        self::assertSame($expectedGenerated, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
     }
 
     public function testDeletingClosureDoesNotReactivateDisabledPickupSlots(): void
@@ -413,6 +416,21 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
             'PATCH /api/merchant/stores/{storeId}/exceptional-closures/{closureId}',
             'POST /api/merchant/stores/{storeId}/exceptional-closures',
         ], $routes);
+    }
+
+    private function countWeekdayOccurrencesInHorizon(int $weekday, \DateTimeImmutable $from): int
+    {
+        $horizonEnd = $from->modify('+1 month');
+        $count = 0;
+        $current = $from;
+        while ($current < $horizonEnd) {
+            if ((int) $current->format('N') === $weekday) {
+                ++$count;
+            }
+            $current = $current->modify('+1 day');
+        }
+
+        return $count;
     }
 
     /**

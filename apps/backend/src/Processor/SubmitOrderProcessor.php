@@ -194,7 +194,8 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         // Atomic conditional UPDATE prevents concurrent over-booking.
         $booked = $this->entityManager->getConnection()->executeStatement(
             'UPDATE pickup_slots SET booked_count = booked_count + 1 WHERE id = :id AND booked_count < capacity',
-            ['id' => $slot->getId()->toBinary()],
+            ['id' => $slot->getId()],
+            ['id' => 'uuid'],
         );
 
         if (0 === $booked) {
@@ -226,13 +227,15 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             if (null !== $oldSlot) {
                 $this->entityManager->getConnection()->executeStatement(
                     'UPDATE pickup_slots SET booked_count = GREATEST(booked_count - 1, 0) WHERE id = :id',
-                    ['id' => $oldSlot->getId()->toBinary()],
+                    ['id' => $oldSlot->getId()],
+                    ['id' => 'uuid'],
                 );
             }
 
             $booked = $this->entityManager->getConnection()->executeStatement(
                 'UPDATE pickup_slots SET booked_count = booked_count + 1 WHERE id = :id AND booked_count < capacity',
-                ['id' => $slot->getId()->toBinary()],
+                ['id' => $slot->getId()],
+                ['id' => 'uuid'],
             );
 
             if (0 === $booked) {
