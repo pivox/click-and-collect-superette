@@ -408,7 +408,7 @@ final class OrderTest extends TestCase
     {
         $order = $this->makeReadyOrder();
         $correctCode = $order->getPickupCode() ?? '0000';
-        $wrongCode = $correctCode === '1234' ? '5678' : '1234';
+        $wrongCode = '1234' === $correctCode ? '5678' : '1234';
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('PICKUP_CODE_INVALID');
         $order->redeemByCode($wrongCode);
