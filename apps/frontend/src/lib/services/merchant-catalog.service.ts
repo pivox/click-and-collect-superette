@@ -1,6 +1,8 @@
 import { apiClient } from '@/lib/api';
 import type {
   AddMerchantCatalogProductPayload,
+  BulkLocalProductCreatedOutput,
+  CreateBulkLocalProductPayload,
   CreateMerchantCategoryPayload,
   CreateMerchantLocalProductPayload,
   CreateProductProposalPayload,
@@ -165,6 +167,18 @@ export async function createMerchantLocalProduct(
 ): Promise<MerchantLocalProductOutput> {
   const { data } = await apiClient.post<MerchantLocalProductOutput>(
     `/api/merchant/stores/${storeId}/local-products`,
+    payload,
+  );
+
+  return data;
+}
+
+export async function createBulkMerchantLocalProducts(
+  storeId: string,
+  payload: CreateBulkLocalProductPayload,
+): Promise<BulkLocalProductCreatedOutput> {
+  const { data } = await apiClient.post<BulkLocalProductCreatedOutput>(
+    `/api/merchant/stores/${storeId}/local-products/bulk`,
     payload,
   );
 

@@ -145,6 +145,37 @@ export interface MerchantBulkAvailabilityResult {
   merchant_product_ids: string[];
 }
 
+export interface BulkLocalProductFormatPayload {
+  volume: string | null;
+  unit: MerchantProductUnit;
+  barcode: string | null;
+  price_tnd: string;
+  is_available: boolean;
+  is_visible: boolean;
+  merchant_note: string | null;
+}
+
+export interface CreateBulkLocalProductPayload {
+  base_name_fr: string;
+  base_name_ar: string | null;
+  brand_name: string | null;
+  default_category_name: string | null;
+  merchant_category_id: string | null;
+  formats: BulkLocalProductFormatPayload[];
+}
+
+export interface BulkLocalProductCreatedItem {
+  merchant_product_id: string;
+  local_product_id: string;
+  name_fr: string;
+  price_tnd: string;
+}
+
+export interface BulkLocalProductCreatedOutput {
+  created_count: number;
+  items: BulkLocalProductCreatedItem[];
+}
+
 export interface CreateProductProposalPayload {
   name_fr: string;
   name_ar?: string | null;
