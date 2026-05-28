@@ -19,6 +19,7 @@ const DATE_FR = new Intl.DateTimeFormat("fr-FR", {
   weekday: "long",
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Africa/Tunis",
 });
 
 export function formatSlotDate(iso: string): string {
@@ -32,6 +33,7 @@ export function formatSlotDate(iso: string): string {
 const TIME_FR = new Intl.DateTimeFormat("fr-FR", {
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Africa/Tunis",
 });
 
 export function formatTime(iso: string): string {
