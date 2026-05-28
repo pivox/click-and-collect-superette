@@ -185,6 +185,19 @@ export async function clearKadhia(): Promise<void> {
   write(null);
 }
 
+export async function discardKadhia(shopId: string): Promise<void> {
+  if (USE_MOCKS) {
+    write(null);
+    return mockDelay(undefined);
+  }
+
+  const local = readForShop(shopId);
+  if (local.id) {
+    await apiClient.delete(`/api/me/kadhias/${local.id}`);
+  }
+  write(null);
+}
+
 export interface SubmitKadhiaParams {
   shopId: string;
   pickupSlotId: string;
