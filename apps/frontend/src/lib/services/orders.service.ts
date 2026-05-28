@@ -67,7 +67,7 @@ export async function getOrder(orderId: string): Promise<Order | null> {
     return mapRawOrder(data);
   } catch (err) {
     const status = (err as { response?: { status?: number } }).response?.status;
-    if (status === 404) return null;
+    if (status !== undefined && status >= 400 && status < 500) return null;
     throw err;
   }
 }
