@@ -109,6 +109,30 @@ export default function OrderTrackingPage({
             </section>
           )}
 
+          {order.status === "ready" && order.pickupCode && (
+            <section className="mt-4">
+              <h3 className="mb-2.5 text-h3 font-extrabold">Code de retrait</h3>
+              <Card>
+                <div className="flex flex-col items-center py-3 gap-3">
+                  <div className="flex gap-2">
+                    {order.pickupCode.split("").map((digit, i) => (
+                      <span
+                        key={i}
+                        className="flex h-12 w-10 items-center justify-center rounded-md border-2 border-primary text-2xl font-black text-primary"
+                      >
+                        {digit}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-center text-xs text-muted">
+                    Communique ce code au marchand si le QR code ne peut pas
+                    être scanné.
+                  </p>
+                </div>
+              </Card>
+            </section>
+          )}
+
           {/* CTA inline sur desktop */}
           <div className="hidden md:block mt-4">
             {showQrCta ? (
