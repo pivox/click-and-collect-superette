@@ -149,7 +149,9 @@ export interface CreateProductProposalPayload {
   name_fr: string;
   name_ar?: string | null;
   brand_name?: string | null;
-  category_id: string;
+  category_id?: string | null;
+  category_name_proposed?: string | null;
+  local_product_id?: string | null;
   variant_fr?: string | null;
   volume?: string | null;
   unit?: MerchantProductUnit;

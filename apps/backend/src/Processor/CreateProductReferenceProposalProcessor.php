@@ -7,6 +7,7 @@ namespace App\Processor;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\ProductReferenceProposalCreateInput;
+use App\Entity\MerchantLocalProduct;
 use App\Entity\ProductReferenceProposal;
 use App\Entity\User;
 use App\Repository\BrandRepository;
@@ -15,6 +16,7 @@ use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -55,9 +57,12 @@ final readonly class CreateProductReferenceProposalProcessor implements Processo
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
 
-        $category = $this->categoryRepository->find($data->categoryId);
-        if (null === $category) {
-            throw new NotFoundHttpException('CATEGORY_NOT_FOUND');
+        $category = null;
+        if (null !== $data->categoryId) {
+            $category = $this->categoryRepository->find($data->categoryId);
+            if (null === $category) {
+                throw new NotFoundHttpException('CATEGORY_NOT_FOUND');
+            }
         }
 
         $brand = null;
@@ -68,9 +73,20 @@ final readonly class CreateProductReferenceProposalProcessor implements Processo
             }
         }
 
+        $localProduct = null;
+        if (null !== $data->localProductId) {
+            if (!Uuid::isValid($data->localProductId)) {
+                throw new NotFoundHttpException('LOCAL_PRODUCT_NOT_FOUND');
+            }
+            $localProduct = $this->entityManager->find(MerchantLocalProduct::class, Uuid::fromString($data->localProductId));
+            if (null === $localProduct) {
+                throw new NotFoundHttpException('LOCAL_PRODUCT_NOT_FOUND');
+            }
+        }
+
         $user = $this->security->getUser();
         if (!$user instanceof User) {
-            throw new \RuntimeException('Authenticated user must be an instance of User.');
+            throw new AccessDeniedHttpException('MERCHANT_FORBIDDEN');
         }
 
         $proposal = (new ProductReferenceProposal())
@@ -81,6 +97,8 @@ final readonly class CreateProductReferenceProposalProcessor implements Processo
             ->setBrand($brand)
             ->setBrandName($data->brandName)
             ->setCategory($category)
+            ->setCategoryNameProposed($data->categoryNameProposed)
+            ->setLocalProduct($localProduct)
             ->setVariantFr($data->variantFr)
             ->setVolume($data->volume)
             ->setUnit($data->unit)
