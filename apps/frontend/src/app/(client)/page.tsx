@@ -3,6 +3,7 @@ import { Hero } from "@/components/layout/Hero";
 import { Button } from "@/components/ui/Button";
 import { StoreCard } from "@/components/store/StoreCard";
 import { Card } from "@/components/ui/Card";
+import { ActiveKadhiaBanner } from "@/components/store/ActiveKadhiaBanner";
 import { listShops } from "@/lib/services";
 import type { Shop } from "@/types";
 
@@ -20,6 +21,8 @@ export default async function HomePage() {
 
   return (
     <>
+      <ActiveKadhiaBanner />
+
       {/* Desktop hero : pitch gauche + store featured droite */}
       <div className="hidden md:grid md:grid-cols-[1.3fr_0.7fr] md:gap-5 md:mb-6">
         <Hero
@@ -38,7 +41,7 @@ export default async function HomePage() {
           }
         />
         {featuredShop && (
-          <Card className="rounded-xl">
+          <Card className="rounded-xl flex flex-col">
             <span className="text-xs font-extrabold uppercase tracking-widest text-primary">
               Supérette en vedette
             </span>
@@ -57,6 +60,9 @@ export default async function HomePage() {
                 <KPI label="note" value={featuredShop.rating.toFixed(1)} />
               )}
             </div>
+            <Link href={`/stores/${featuredShop.id}/catalog`} className="mt-4">
+              <Button full>Voir le catalogue</Button>
+            </Link>
           </Card>
         )}
       </div>
@@ -95,7 +101,7 @@ export default async function HomePage() {
             </p>
           ) : (
             featured.map((s) => (
-              <StoreCard key={s.id} shop={s} href={`/stores/${s.id}`} />
+              <StoreCard key={s.id} shop={s} href={`/stores/${s.id}/catalog`} />
             ))
           )}
         </div>
