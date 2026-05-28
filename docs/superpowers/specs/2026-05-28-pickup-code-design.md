@@ -88,9 +88,7 @@ Content-Type: application/json
 
 **Erreurs :**
 - `403` — marchand ne possède pas cette supérette
-- `404` — aucune commande `ready` avec ce code pour ce shop
-- `409` — commande non éligible (déjà complétée, annulée, etc.)
-- `422` — code incorrect
+- `404` — aucune commande `ready` avec ce code pour ce shop (code incorrect ou commande non éligible)
 
 **Logique :**
 1. Vérifier ownership via `MerchantShopAccessChecker`
@@ -120,7 +118,7 @@ Content-Type: application/json
 - `403` — ownership
 - `404` — commande introuvable
 - `409` — commande non en statut `ready`
-- `422` — note manquante ou vide
+- `422` — note manquante, vide ou inférieure à 5 caractères
 
 **Logique :**
 1. Vérifier ownership
@@ -193,9 +191,9 @@ Sélecteur de mode à 3 onglets :
 | Scénario | Endpoint | Statut attendu |
 |---|---|---|
 | Code correct, commande `ready` | redeem-by-code | `200` → `completed` |
-| Code incorrect | redeem-by-code | `422` |
-| Commande déjà `completed` | redeem-by-code | `409` |
-| Commande `preparing` (pas `ready`) | redeem-by-code | `409` |
+| Code incorrect | redeem-by-code | `404` |
+| Commande déjà `completed` | redeem-by-code | `404` |
+| Commande `preparing` (pas `ready`) | redeem-by-code | `404` |
 | Marchand n'appartient pas au shop | redeem-by-code | `403` |
 | Validation manuelle, commande `ready`, note présente | validate-manually | `200` → `completed` |
 | Validation manuelle sans note | validate-manually | `422` |
