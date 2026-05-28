@@ -23,8 +23,8 @@ export function BottomNav() {
 
   const ProfileIcon = user ? UserCircle : LogIn;
   const profileLabel = user ? "Profil" : "Connexion";
-  const profileHref = user ? "/" : "/login";
-  const profileActive = !user && pathname.startsWith("/login");
+  const profileHref = user ? "/profile" : "/login";
+  const profileActive = pathname.startsWith("/profile") || (!user && pathname.startsWith("/login"));
 
   return (
     <nav
