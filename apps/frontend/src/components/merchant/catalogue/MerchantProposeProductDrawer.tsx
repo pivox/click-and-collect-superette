@@ -11,6 +11,7 @@ import type {
   GlobalBrand,
   GlobalCategory,
   MerchantCatalogProduct,
+  MerchantProductUnit,
 } from '@/lib/types/merchant-catalog.types';
 
 interface MerchantProposeProductDrawerProps {
@@ -27,11 +28,12 @@ export function MerchantProposeProductDrawer({
   const [categories, setCategories] = useState<GlobalCategory[]>([]);
   const [brands, setBrands] = useState<GlobalBrand[]>([]);
   const [categoryId, setCategoryId] = useState('');
+  const [categoryNameProposed, setCategoryNameProposed] = useState('');
   const [nameFr, setNameFr] = useState('');
   const [nameAr, setNameAr] = useState('');
   const [brandName, setBrandName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [fieldWithError, setFieldWithError] = useState<'category' | 'name' | null>(null);
+  const [fieldWithError, setFieldWithError] = useState<'name' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingRefs, setIsLoadingRefs] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -64,6 +66,7 @@ export function MerchantProposeProductDrawer({
     setNameAr(product.name_ar ?? '');
     setBrandName(product.brand ?? '');
     setCategoryId('');
+    setCategoryNameProposed('');
     setError(null);
     setFieldWithError(null);
     setIsSubmitting(false);
@@ -173,12 +176,6 @@ export function MerchantProposeProductDrawer({
       return;
     }
 
-    if (!categoryId) {
-      setFieldWithError('category');
-      setError('La catégorie est obligatoire pour la proposition.');
-      return;
-    }
-
     const sessionId = sessionRef.current;
     setIsSubmitting(true);
     setError(null);
@@ -189,10 +186,11 @@ export function MerchantProposeProductDrawer({
         name_fr: normalizedNameFr,
         name_ar: nameAr.trim() || null,
         brand_name: brandName.trim() || null,
-        category_id: categoryId,
+        category_id: categoryId || null,
+        category_name_proposed: !categoryId && categoryNameProposed.trim() ? categoryNameProposed.trim() : null,
+        local_product_id: product.local_product_id ?? null,
         volume: product.volume ?? null,
-        unit: product.unit as never,
-        barcode: null,
+        unit: product.unit as MerchantProductUnit,
       });
 
       if (!isCurrentSession(sessionId)) return;
@@ -306,7 +304,7 @@ export function MerchantProposeProductDrawer({
 
               <div>
                 <label htmlFor="propose-category" className="mb-1 block text-sm font-bold">
-                  Catégorie globale <span className="text-status-cancel">*</span>
+                  Catégorie globale
                 </label>
                 {isLoadingRefs ? (
                   <p className="text-sm text-muted">Chargement des catégories…</p>
@@ -314,19 +312,13 @@ export function MerchantProposeProductDrawer({
                   <select
                     id="propose-category"
                     value={categoryId}
-                    required
-                    aria-required="true"
-                    aria-invalid={fieldWithError === 'category'}
-                    aria-describedby={
-                      fieldWithError === 'category' ? 'propose-product-error' : undefined
-                    }
                     onChange={(event) => {
                       setCategoryId(event.target.value);
                       clearError();
                     }}
                     className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   >
-                    <option value="">— Choisir une catégorie —</option>
+                    <option value="">— Catégorie inconnue —</option>
                     {sortedCategories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name_fr}
@@ -336,8 +328,24 @@ export function MerchantProposeProductDrawer({
                 )}
               </div>
 
+              {!categoryId && (
+                <div>
+                  <label htmlFor="propose-category-name" className="mb-1 block text-sm font-bold">
+                    Nom de catégorie proposé{' '}
+                    <span className="font-normal text-muted">(si catégorie globale inconnue)</span>
+                  </label>
+                  <input
+                    id="propose-category-name"
+                    value={categoryNameProposed}
+                    placeholder="ex. Boissons, Épicerie…"
+                    onChange={(event) => setCategoryNameProposed(event.target.value)}
+                    className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              )}
+
               <div className="rounded-md bg-soft px-4 py-3 text-sm text-muted">
-                Volume, unité et code-barres seront repris automatiquement depuis le produit local.
+                Volume et unité seront repris automatiquement depuis le produit local.
               </div>
             </>
           )}

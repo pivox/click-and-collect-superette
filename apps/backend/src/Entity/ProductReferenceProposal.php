@@ -45,9 +45,15 @@ class ProductReferenceProposal
     private ?string $brandName = null;
 
     #[ORM\ManyToOne(targetEntity: Category::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Assert\NotNull]
-    private Category $category;
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Category $category = null;
+
+    #[ORM\Column(length: 160, nullable: true)]
+    private ?string $categoryNameProposed = null;
+
+    #[ORM\ManyToOne(targetEntity: MerchantLocalProduct::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?MerchantLocalProduct $localProduct = null;
 
     #[ORM\Column(length: 160, nullable: true)]
     private ?string $variantFr = null;
@@ -167,14 +173,38 @@ class ProductReferenceProposal
         return $this;
     }
 
-    public function getCategory(): Category
+    public function getCategory(): ?Category
     {
         return $this->category;
     }
 
-    public function setCategory(Category $category): static
+    public function setCategory(?Category $category): static
     {
         $this->category = $category;
+
+        return $this;
+    }
+
+    public function getCategoryNameProposed(): ?string
+    {
+        return $this->categoryNameProposed;
+    }
+
+    public function setCategoryNameProposed(?string $categoryNameProposed): static
+    {
+        $this->categoryNameProposed = $categoryNameProposed;
+
+        return $this;
+    }
+
+    public function getLocalProduct(): ?MerchantLocalProduct
+    {
+        return $this->localProduct;
+    }
+
+    public function setLocalProduct(?MerchantLocalProduct $localProduct): static
+    {
+        $this->localProduct = $localProduct;
 
         return $this;
     }
