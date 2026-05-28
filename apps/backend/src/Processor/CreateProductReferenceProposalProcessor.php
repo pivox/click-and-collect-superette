@@ -7,6 +7,7 @@ namespace App\Processor;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\ProductReferenceProposalCreateInput;
+use App\Entity\MerchantLocalProduct;
 use App\Entity\ProductReferenceProposal;
 use App\Entity\User;
 use App\Repository\BrandRepository;
@@ -55,9 +56,12 @@ final readonly class CreateProductReferenceProposalProcessor implements Processo
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
 
-        $category = $this->categoryRepository->find($data->categoryId);
-        if (null === $category) {
-            throw new NotFoundHttpException('CATEGORY_NOT_FOUND');
+        $category = null;
+        if (null !== $data->categoryId) {
+            $category = $this->categoryRepository->find($data->categoryId);
+            if (null === $category) {
+                throw new NotFoundHttpException('CATEGORY_NOT_FOUND');
+            }
         }
 
         $brand = null;
@@ -65,6 +69,17 @@ final readonly class CreateProductReferenceProposalProcessor implements Processo
             $brand = $this->brandRepository->find($data->brandId);
             if (null === $brand) {
                 throw new NotFoundHttpException('BRAND_NOT_FOUND');
+            }
+        }
+
+        $localProduct = null;
+        if (null !== $data->localProductId) {
+            if (!Uuid::isValid($data->localProductId)) {
+                throw new NotFoundHttpException('LOCAL_PRODUCT_NOT_FOUND');
+            }
+            $localProduct = $this->entityManager->find(MerchantLocalProduct::class, Uuid::fromString($data->localProductId));
+            if (null === $localProduct) {
+                throw new NotFoundHttpException('LOCAL_PRODUCT_NOT_FOUND');
             }
         }
 
@@ -81,6 +96,8 @@ final readonly class CreateProductReferenceProposalProcessor implements Processo
             ->setBrand($brand)
             ->setBrandName($data->brandName)
             ->setCategory($category)
+            ->setCategoryNameProposed($data->categoryNameProposed)
+            ->setLocalProduct($localProduct)
             ->setVariantFr($data->variantFr)
             ->setVolume($data->volume)
             ->setUnit($data->unit)

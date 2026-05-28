@@ -88,7 +88,10 @@ final readonly class AdminProductProposalOutput
         #[SerializedName('brand_name')]
         public ?string $brandName,
         #[Groups(['admin_proposal:read'])]
-        public string $category,
+        public ?string $category,
+        #[Groups(['admin_proposal:read'])]
+        #[SerializedName('category_name_proposed')]
+        public ?string $categoryNameProposed,
         #[Groups(['admin_proposal:read'])]
         public string $status,
         #[Groups(['admin_proposal:read'])]
@@ -100,6 +103,9 @@ final readonly class AdminProductProposalOutput
         #[Groups(['admin_proposal:read'])]
         #[SerializedName('proposed_by')]
         public string $proposedBy,
+        #[Groups(['admin_proposal:read'])]
+        #[SerializedName('local_product_id')]
+        public ?string $localProductId = null,
         #[Groups(['admin_proposal:read'])]
         #[SerializedName('created_product_reference_id')]
         public ?string $createdProductReferenceId = null,

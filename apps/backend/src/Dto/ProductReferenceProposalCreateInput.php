@@ -22,10 +22,15 @@ final readonly class ProductReferenceProposalCreateInput
         #[Assert\Length(max: 160)]
         #[SerializedName('brand_name')]
         public ?string $brandName = null,
-        #[Assert\NotBlank]
         #[Assert\Uuid]
         #[SerializedName('category_id')]
-        public string $categoryId = '',
+        public ?string $categoryId = null,
+        #[Assert\Length(max: 160)]
+        #[SerializedName('category_name_proposed')]
+        public ?string $categoryNameProposed = null,
+        #[Assert\Uuid]
+        #[SerializedName('local_product_id')]
+        public ?string $localProductId = null,
         #[Assert\Length(max: 160)]
         #[SerializedName('variant_fr')]
         public ?string $variantFr = null,
