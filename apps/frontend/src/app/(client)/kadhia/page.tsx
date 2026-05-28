@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -12,14 +13,17 @@ import {
   getCurrentKadhia,
   updateLineQuantity,
   readLocalKadhia,
+  discardKadhia,
 } from "@/lib/services";
 import { formatTnd } from "@/lib/format";
 import type { Kadhia } from "@/types";
 
 export default function KadhiaPage() {
+  const router = useRouter();
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
   const [shopId, setShopId] = useState<string | null>(null);
   const [quantityError, setQuantityError] = useState<string | null>(null);
+  const [discarding, setDiscarding] = useState(false);
 
   useEffect(() => {
     const local = readLocalKadhia();
@@ -48,6 +52,18 @@ export default function KadhiaPage() {
         });
     }
   }, []);
+
+  const onDiscard = async () => {
+    if (!shopId) return;
+    if (!window.confirm("Supprimer cette Kadhia ? Tu pourras recommencer depuis le catalogue.")) return;
+    setDiscarding(true);
+    try {
+      await discardKadhia(shopId);
+      router.push(shopId ? `/stores/${shopId}/catalog` : "/stores");
+    } catch {
+      setDiscarding(false);
+    }
+  };
 
   const onQuantity = async (lineId: string, q: number) => {
     if (!shopId) return;
@@ -118,6 +134,16 @@ export default function KadhiaPage() {
           <p className="mt-3 text-xs text-muted leading-relaxed">
             Le prix sera figé au moment de la soumission de commande.
           </p>
+
+          <div className="mt-4 text-center">
+            <button
+              onClick={onDiscard}
+              disabled={discarding}
+              className="text-sm text-red-500 underline disabled:opacity-50"
+            >
+              {discarding ? "Suppression…" : "Supprimer cette Kadhia"}
+            </button>
+          </div>
 
           <StickyBottom>
             <Link href="/kadhia/slot">

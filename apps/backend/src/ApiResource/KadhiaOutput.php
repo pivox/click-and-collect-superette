@@ -18,6 +18,7 @@ use App\Dto\KadhiaPatchInput;
 use App\Entity\MerchantProduct;
 use App\Entity\Shop;
 use App\Processor\CreateKadhiaProcessor;
+use App\Processor\DeleteKadhiaProcessor;
 use App\Processor\PatchKadhiaNotesProcessor;
 use App\Processor\RemoveKadhiaLineProcessor;
 use App\Processor\UpsertKadhiaLineProcessor;
@@ -73,6 +74,15 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             status: 200,
             read: false,
             processor: UpsertKadhiaLineProcessor::class,
+            security: "is_granted('ROLE_CUSTOMER')",
+        ),
+        // DELETE /me/kadhias/{kadhiaId} — delete a draft kadhia
+        new Delete(
+            uriTemplate: '/me/kadhias/{kadhiaId}',
+            uriVariables: ['kadhiaId' => new Link(fromClass: KadhiaOutput::class, identifiers: ['id'])],
+            read: false,
+            output: false,
+            processor: DeleteKadhiaProcessor::class,
             security: "is_granted('ROLE_CUSTOMER')",
         ),
         // DELETE /me/kadhias/{kadhiaId}/lines/{merchantProductId}

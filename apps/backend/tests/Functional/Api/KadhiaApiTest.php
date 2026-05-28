@@ -621,4 +621,125 @@ final class KadhiaApiTest extends FunctionalApiTestCase
 
         return $product;
     }
+
+    // DELETE /api/me/kadhias/{kadhiaId}
+
+    public function testDeleteDraftKadhiaReturns204(): void
+    {
+        $customer = $this->createUser('kadhia-delete@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+        $kadhiaId = $kadhia->getId()->toRfc4122();
+
+        $response = $this->requestJson(
+            'DELETE',
+            \sprintf('/api/me/kadhias/%s', $kadhiaId),
+            user: $customer,
+        );
+
+        self::assertSame(204, $response->getStatusCode());
+        $this->entityManager->clear();
+        self::assertNull($this->entityManager->getRepository(Kadhia::class)->find($kadhiaId));
+    }
+
+    public function testDeleteKadhiaDeletesItsLines(): void
+    {
+        $customer = $this->createUser('kadhia-delete-lines@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $product = $this->createMerchantProduct($shop, '1.500');
+
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $line = (new KadhiaLine())
+            ->setMerchantProduct($product)
+            ->setQuantity(2)
+            ->setUnitPriceTnd('1.500');
+        $kadhia->addLine($line);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+        $kadhiaId = $kadhia->getId()->toRfc4122();
+
+        $response = $this->requestJson(
+            'DELETE',
+            \sprintf('/api/me/kadhias/%s', $kadhiaId),
+            user: $customer,
+        );
+
+        self::assertSame(204, $response->getStatusCode());
+        $this->entityManager->clear();
+        self::assertNull($this->entityManager->getRepository(Kadhia::class)->find($kadhiaId));
+        self::assertCount(0, $this->entityManager->getRepository(KadhiaLine::class)->findAll());
+    }
+
+    public function testDeleteSubmittedKadhiaReturns422(): void
+    {
+        $customer = $this->createUser('kadhia-delete-submitted@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())
+            ->setCustomer($customer)
+            ->setShop($shop)
+            ->setStatus(\App\Enum\KadhiaStatus::Submitted);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'DELETE',
+            \sprintf('/api/me/kadhias/%s', $kadhia->getId()),
+            user: $customer,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testDeleteKadhiaNotFoundReturns404(): void
+    {
+        $customer = $this->createUser('kadhia-delete-404@example.test', ['ROLE_CUSTOMER']);
+
+        $response = $this->requestJson(
+            'DELETE',
+            '/api/me/kadhias/550e8400-e29b-41d4-a716-446655440000',
+            user: $customer,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testDeleteKadhiaOtherCustomerReturns404(): void
+    {
+        $owner = $this->createUser('kadhia-delete-owner@example.test', ['ROLE_CUSTOMER']);
+        $other = $this->createUser('kadhia-delete-other@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())->setCustomer($owner)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'DELETE',
+            \sprintf('/api/me/kadhias/%s', $kadhia->getId()),
+            user: $other,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testDeleteKadhiaUnauthenticatedReturns401(): void
+    {
+        $customer = $this->createUser('kadhia-delete-unauth@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'DELETE',
+            \sprintf('/api/me/kadhias/%s', $kadhia->getId()),
+        );
+
+        self::assertSame(401, $response->getStatusCode());
+    }
 }

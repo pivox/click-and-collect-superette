@@ -163,6 +163,7 @@ describe('MerchantCatalogPage', () => {
       is_available: true,
       is_visible: true,
       merchant_note: null,
+      pack_quantity: 1,
     });
     vi.mocked(listMerchantCatalog).mockResolvedValue(products);
     vi.mocked(listMerchantCategories).mockResolvedValue(merchantCategories);
@@ -508,7 +509,7 @@ describe('MerchantCatalogPage', () => {
     });
     fireEvent.change(screen.getByLabelText('Volume'), { target: { value: '350' } });
     fireEvent.change(screen.getByLabelText('Unité'), { target: { value: 'gramme' } });
-    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '4,5' } });
+    fireEvent.change(screen.getByLabelText('Prix TND', { exact: false }), { target: { value: '4,5' } });
     fireEvent.change(screen.getByLabelText('Catégorie marchand'), {
       target: { value: 'merchant-cat-1' },
     });
@@ -528,6 +529,7 @@ describe('MerchantCatalogPage', () => {
         is_visible: true,
         merchant_note: null,
         merchant_category_id: 'merchant-cat-1',
+        pack_quantity: 1,
       }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -540,7 +542,7 @@ describe('MerchantCatalogPage', () => {
     await screen.findByText('Lait demi-écrémé');
     fireEvent.click(screen.getByRole('button', { name: 'Produit local' }));
     fireEvent.change(screen.getByLabelText('Nom en français'), { target: { value: '   ' } });
-    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '4.500' } });
+    fireEvent.change(screen.getByLabelText('Prix TND', { exact: false }), { target: { value: '4.500' } });
     fireEvent.click(screen.getByRole('button', { name: 'Créer dans mon catalogue' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('Le nom en français est obligatoire.');
@@ -555,7 +557,7 @@ describe('MerchantCatalogPage', () => {
     fireEvent.change(screen.getByLabelText('Nom en français'), {
       target: { value: 'Harissa maison' },
     });
-    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '0' } });
+    fireEvent.change(screen.getByLabelText('Prix TND', { exact: false }), { target: { value: '0' } });
     fireEvent.click(screen.getByRole('button', { name: 'Créer dans mon catalogue' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent(
@@ -575,7 +577,7 @@ describe('MerchantCatalogPage', () => {
     fireEvent.change(screen.getByLabelText('Nom en français'), {
       target: { value: 'Harissa maison' },
     });
-    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '4.500' } });
+    fireEvent.change(screen.getByLabelText('Prix TND', { exact: false }), { target: { value: '4.500' } });
     fireEvent.click(screen.getByRole('button', { name: 'Créer dans mon catalogue' }));
 
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -594,6 +596,7 @@ describe('MerchantCatalogPage', () => {
       is_available: true,
       is_visible: true,
       merchant_note: null,
+      pack_quantity: 1,
     });
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
