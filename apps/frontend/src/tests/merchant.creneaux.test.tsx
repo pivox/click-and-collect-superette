@@ -51,15 +51,19 @@ vi.mock('@/lib/services/merchant-closures.service', () => ({
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
+function todayIso(hour: number): string {
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const d = String(today.getDate()).padStart(2, '0');
+  const hh = String(hour).padStart(2, '0');
+  return `${y}-${m}-${d}T${hh}:00:00+01:00`;
+}
+
 function makeSlot(overrides: Partial<MerchantPickupSlot> = {}): MerchantPickupSlot {
-  const d = new Date(today);
-  d.setHours(17, 0, 0, 0);
-  const e = new Date(today);
-  e.setHours(18, 0, 0, 0);
   return {
     id: 'slot-1',
-    starts_at: d.toISOString(),
-    ends_at: e.toISOString(),
+    starts_at: todayIso(17),
+    ends_at: todayIso(18),
     capacity: 6,
     booked_count: 2,
     is_active: true,
@@ -472,14 +476,15 @@ describe('MerchantCreneauxPage', () => {
 
   it('shows slots for today filtered from all slots', async () => {
     const todaySlot = makeSlot();
-    const tomorrow = new Date(today.getTime() + 86400000);
-    tomorrow.setHours(17, 0, 0, 0);
-    const tomorrowEnd = new Date(today.getTime() + 86400000);
-    tomorrowEnd.setHours(18, 0, 0, 0);
+    const nextDay = new Date(today);
+    nextDay.setDate(today.getDate() + 1);
+    const y2 = nextDay.getFullYear();
+    const m2 = String(nextDay.getMonth() + 1).padStart(2, '0');
+    const d2 = String(nextDay.getDate()).padStart(2, '0');
     const tomorrowSlot = makeSlot({
       id: 'slot-2',
-      starts_at: tomorrow.toISOString(),
-      ends_at: tomorrowEnd.toISOString(),
+      starts_at: `${y2}-${m2}-${d2}T17:00:00+01:00`,
+      ends_at: `${y2}-${m2}-${d2}T18:00:00+01:00`,
     });
 
     vi.mocked(listMerchantSlots).mockResolvedValue([todaySlot, tomorrowSlot]);

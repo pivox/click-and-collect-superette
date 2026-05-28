@@ -42,7 +42,7 @@ services:
     environment:
       APP_ENV: dev
       DATABASE_URL: "postgresql://app:app@postgres:5432/clickcollect?serverVersion=16&charset=utf8"
-      MESSENGER_TRANSPORT_DSN: "redis://redis:6379/messages"
+      MESSENGER_TRANSPORT_DSN: "doctrine://default"
       MAILER_DSN: "smtp://mailpit:1025"
       JWT_SECRET_KEY: /var/www/backend/config/jwt/private.pem
       JWT_PUBLIC_KEY: /var/www/backend/config/jwt/public.pem
@@ -50,8 +50,6 @@ services:
       CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
 
   # ─── Nginx (reverse proxy backend) ───────────────────────────────────────────
