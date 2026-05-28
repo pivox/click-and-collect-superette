@@ -66,7 +66,8 @@ class ProductReference
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?ProductFamily $productFamily = null;
 
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(type: 'integer', options: ['default' => 1])]
+    #[Assert\GreaterThanOrEqual(1)]
     private int $packQuantity = 1;
 
     #[ORM\Column]

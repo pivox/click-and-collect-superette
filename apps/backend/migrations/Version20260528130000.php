@@ -51,6 +51,8 @@ final class Version20260528130000 extends AbstractMigration
 
         $this->addSql('ALTER TABLE product_families DROP CONSTRAINT FK_PRODUCT_FAMILIES_BRAND');
         $this->addSql('ALTER TABLE product_families DROP CONSTRAINT FK_PRODUCT_FAMILIES_CATEGORY');
+        $this->addSql('DROP INDEX IDX_PRODUCT_FAMILIES_BRAND');
+        $this->addSql('DROP INDEX IDX_PRODUCT_FAMILIES_CATEGORY');
         $this->addSql('DROP TABLE product_families');
     }
 }

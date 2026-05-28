@@ -127,6 +127,7 @@ Entités présentes dans `apps/backend/src/Entity/` :
 - `ShopTheme`
 - `User` (`deletedAt` pour soft delete client, `lastLoginAt` alimenté après login JWT)
 - `AdminAuditLog` (journal append-only des actions admin critiques : `action`, `resourceType`, `resourceId`, `summary`, `metadata`, `ipAddress`, `userAgent`, `createdAt`)
+- `ProductFamily` (famille produit pour regrouper plusieurs formats d'un même produit : `baseNameFr`, `baseNameAr`, `brand` nullable, `category` nullable, `country` TN)
 
 ## Stack cible recommandée
 

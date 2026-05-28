@@ -20,9 +20,11 @@ class ProductFamily
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private string $baseNameFr;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255)]
     private ?string $baseNameAr = null;
 
     #[ORM\ManyToOne(targetEntity: Brand::class)]
@@ -34,6 +36,7 @@ class ProductFamily
     private ?Category $category = null;
 
     #[ORM\Column(length: 2)]
+    #[Assert\Length(max: 2)]
     private string $country = 'TN';
 
     #[ORM\Column]

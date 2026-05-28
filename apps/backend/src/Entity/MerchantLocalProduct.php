@@ -46,7 +46,8 @@ class MerchantLocalProduct
     #[ORM\Column(length: 160, nullable: true)]
     private ?string $defaultCategoryName = null;
 
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(type: 'integer', options: ['default' => 1])]
+    #[Assert\GreaterThanOrEqual(1)]
     private int $packQuantity = 1;
 
     #[ORM\Column]
