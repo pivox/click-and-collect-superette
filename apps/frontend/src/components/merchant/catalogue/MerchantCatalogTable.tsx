@@ -12,6 +12,7 @@ interface MerchantCatalogTableProps {
   isSelectionDisabled?: boolean;
   selectedProductIds?: string[];
   onEditProduct: (product: MerchantCatalogProduct) => void;
+  onProposeProduct?: (product: MerchantCatalogProduct) => void;
   onToggleProductSelection?: (productId: string) => void;
 }
 
@@ -39,6 +40,7 @@ export function MerchantCatalogTable({
   isSelectionDisabled = false,
   isSelectionMode = false,
   onEditProduct,
+  onProposeProduct,
   onToggleProductSelection,
   products,
   selectedProductIds = [],
@@ -99,14 +101,26 @@ export function MerchantCatalogTable({
                 {product.merchant_note || '—'}
               </td>
               <td className="px-4 py-4 text-right align-top">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="md"
-                  onClick={() => onEditProduct(product)}
-                >
-                  Modifier
-                </Button>
+                <div className="flex justify-end gap-2">
+                  {product.local_product_id != null && onProposeProduct && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="md"
+                      onClick={() => onProposeProduct(product)}
+                    >
+                      Proposer
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="md"
+                    onClick={() => onEditProduct(product)}
+                  >
+                    Modifier
+                  </Button>
+                </div>
               </td>
             </tr>
           ))}

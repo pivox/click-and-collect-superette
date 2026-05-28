@@ -7,6 +7,7 @@ import { MerchantCatalogFilters } from '@/components/merchant/catalogue/Merchant
 import { MerchantCatalogTable } from '@/components/merchant/catalogue/MerchantCatalogTable';
 import { MerchantCatalogWizard } from '@/components/merchant/catalogue/MerchantCatalogWizard';
 import { MerchantLocalProductDrawer } from '@/components/merchant/catalogue/MerchantLocalProductDrawer';
+import { MerchantProposeProductDrawer } from '@/components/merchant/catalogue/MerchantProposeProductDrawer';
 import { ProductReferenceSearchDrawer } from '@/components/merchant/catalogue/ProductReferenceSearchDrawer';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
@@ -39,6 +40,7 @@ export default function MerchantCatalogPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editProduct, setEditProduct] = useState<MerchantCatalogProduct | null>(null);
+  const [proposingProduct, setProposingProduct] = useState<MerchantCatalogProduct | null>(null);
   const [isCatalogWizardOpen, setIsCatalogWizardOpen] = useState(false);
   const [isAddProductDrawerOpen, setIsAddProductDrawerOpen] = useState(false);
   const [isLocalProductDrawerOpen, setIsLocalProductDrawerOpen] = useState(false);
@@ -310,6 +312,7 @@ export default function MerchantCatalogPage() {
             isSelectionDisabled={isBulkSubmitting}
             selectedProductIds={selectedProductIds}
             onEditProduct={setEditProduct}
+            onProposeProduct={setProposingProduct}
             onToggleProductSelection={handleToggleProductSelection}
           />
         )}
@@ -349,6 +352,12 @@ export default function MerchantCatalogPage() {
         onCreateCategory={merchant ? handleCreateCategory : undefined}
         onClose={() => setIsLocalProductDrawerOpen(false)}
         onCreated={handleLocalProductCreated}
+      />
+
+      <MerchantProposeProductDrawer
+        product={proposingProduct}
+        storeId={merchant?.store.id ?? null}
+        onClose={() => setProposingProduct(null)}
       />
     </div>
   );

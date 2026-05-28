@@ -144,3 +144,29 @@ export interface MerchantBulkAvailabilityResult {
   merchant_note: string | null;
   merchant_product_ids: string[];
 }
+
+export interface CreateProductProposalPayload {
+  name_fr: string;
+  name_ar?: string | null;
+  brand_name?: string | null;
+  category_id: string;
+  variant_fr?: string | null;
+  volume?: string | null;
+  unit?: MerchantProductUnit;
+  barcode?: string | null;
+}
+
+export interface GlobalCategory {
+  id: string;
+  name_fr: string;
+  name_ar: string | null;
+  slug: string;
+  parent_id: string | null;
+  sort_order: number;
+}
+
+export interface GlobalBrand {
+  id: string;
+  name: string;
+  slug: string;
+}

@@ -3,6 +3,9 @@ import type {
   AddMerchantCatalogProductPayload,
   CreateMerchantCategoryPayload,
   CreateMerchantLocalProductPayload,
+  CreateProductProposalPayload,
+  GlobalBrand,
+  GlobalCategory,
   MerchantBulkAvailabilityPayload,
   MerchantBulkAvailabilityResult,
   MerchantCategory,
@@ -164,6 +167,25 @@ export async function createMerchantLocalProduct(
     `/api/merchant/stores/${storeId}/local-products`,
     payload,
   );
+
+  return data;
+}
+
+export async function createProductProposal(
+  storeId: string,
+  payload: CreateProductProposalPayload,
+): Promise<void> {
+  await apiClient.post(`/api/merchant/stores/${storeId}/product-proposals`, payload);
+}
+
+export async function fetchGlobalCategories(): Promise<GlobalCategory[]> {
+  const { data } = await apiClient.get<GlobalCategory[]>('/api/categories');
+
+  return data;
+}
+
+export async function fetchGlobalBrands(): Promise<GlobalBrand[]> {
+  const { data } = await apiClient.get<GlobalBrand[]>('/api/brands');
 
   return data;
 }
