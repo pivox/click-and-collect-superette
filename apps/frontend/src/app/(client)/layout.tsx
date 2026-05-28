@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DesktopNav } from "@/components/layout/DesktopNav";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { GlobalSearchBar } from "@/components/layout/GlobalSearchBar";
 import { ClientAuthProvider } from "@/lib/auth/ClientAuthContext";
 import { ReactQueryProvider } from "@/lib/providers/ReactQueryProvider";
 
@@ -15,9 +16,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         {/* Responsive grid: sidebar (md+) + main. Children rendered once. */}
         <div className="min-h-screen md:grid md:grid-cols-[280px_1fr]">
           <DesktopNav />
-          <main className="relative px-4 pt-4 pb-24 md:p-7">
-            {children}
-          </main>
+          <div className="flex flex-col">
+            {/* Desktop-only topbar with global search */}
+            <header className="hidden md:flex items-center gap-4 border-b border-line bg-white/80 backdrop-blur-md px-7 py-3 sticky top-0 z-10">
+              <GlobalSearchBar />
+              <span className="shrink-0 rounded-full bg-soft px-3 py-1.5 text-xs font-extrabold text-primary-dark">
+                🇹🇳 TND
+              </span>
+            </header>
+            <main className="relative px-4 pt-4 pb-24 md:p-7">
+              {children}
+            </main>
+          </div>
         </div>
         {/* Bottom navigation — hidden on desktop via BottomNav's own md:hidden */}
         <BottomNav />
