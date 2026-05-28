@@ -115,6 +115,7 @@ export interface CreateMerchantLocalProductPayload {
   is_visible: boolean;
   merchant_note: string | null;
   merchant_category_id?: string | null;
+  pack_quantity?: number;
 }
 
 export interface MerchantLocalProductOutput {
@@ -130,6 +131,7 @@ export interface MerchantLocalProductOutput {
   is_available: boolean;
   is_visible: boolean;
   merchant_note: string | null;
+  pack_quantity: number;
 }
 
 export interface MerchantBulkAvailabilityPayload {
@@ -153,6 +155,7 @@ export interface BulkLocalProductFormatPayload {
   is_available: boolean;
   is_visible: boolean;
   merchant_note: string | null;
+  pack_quantity: number;
 }
 
 export interface CreateBulkLocalProductPayload {

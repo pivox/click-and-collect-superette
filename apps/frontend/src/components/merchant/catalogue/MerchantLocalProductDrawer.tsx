@@ -43,6 +43,7 @@ interface FormatRow {
   isAvailable: boolean;
   isVisible: boolean;
   merchantNote: string;
+  packQuantity: number;
 }
 
 function makeEmptyFormat(): FormatRow {
@@ -54,6 +55,7 @@ function makeEmptyFormat(): FormatRow {
     isAvailable: true,
     isVisible: true,
     merchantNote: '',
+    packQuantity: 1,
   };
 }
 
@@ -283,6 +285,7 @@ export function MerchantLocalProductDrawer({
           is_visible: fmt.isVisible,
           merchant_note: optionalText(fmt.merchantNote),
           merchant_category_id: merchantCategoryId,
+          pack_quantity: fmt.packQuantity,
         });
       } else {
         const bulkFormats: BulkLocalProductFormatPayload[] = formats.map((fmt) => ({
@@ -293,6 +296,7 @@ export function MerchantLocalProductDrawer({
           is_available: fmt.isAvailable,
           is_visible: fmt.isVisible,
           merchant_note: optionalText(fmt.merchantNote),
+          pack_quantity: fmt.packQuantity,
         }));
 
         await createBulkMerchantLocalProducts(storeId, {
@@ -494,6 +498,23 @@ export function MerchantLocalProductDrawer({
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor={`fmt-pack-${i}`} className="mb-1 block text-xs font-bold">
+                        Qté / pack
+                      </label>
+                      <input
+                        id={`fmt-pack-${i}`}
+                        inputMode="numeric"
+                        type="number"
+                        min={1}
+                        value={fmt.packQuantity}
+                        onChange={(event) =>
+                          updateFormat(i, { packQuantity: Math.max(1, parseInt(event.target.value, 10) || 1) })
+                        }
+                        className="h-9 w-full rounded border border-line bg-white px-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      />
                     </div>
 
                     <div>

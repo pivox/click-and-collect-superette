@@ -86,7 +86,8 @@ final readonly class CreateBulkLocalProductProcessor implements ProcessorInterfa
                     ->setVolume($this->normalizeDecimalText($format->volume))
                     ->setUnit($format->unit)
                     ->setBarcode($this->normalizeOptionalText($format->barcode))
-                    ->setDefaultCategoryName($defaultCategoryName);
+                    ->setDefaultCategoryName($defaultCategoryName)
+                    ->setPackQuantity($format->packQuantity);
 
                 $merchantProduct = (new MerchantProduct())
                     ->setShop($shop)

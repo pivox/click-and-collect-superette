@@ -44,6 +44,9 @@ final readonly class MerchantLocalProductCreateInput
         #[Assert\Uuid]
         #[SerializedName('merchant_category_id')]
         public ?string $merchantCategoryId = null,
+        #[Assert\GreaterThanOrEqual(1)]
+        #[SerializedName('pack_quantity')]
+        public int $packQuantity = 1,
     ) {
     }
 }

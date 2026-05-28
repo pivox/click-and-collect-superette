@@ -68,6 +68,9 @@ final readonly class MerchantLocalProductOutput
         #[Groups(['merchant_local_product:read'])]
         #[SerializedName('merchant_note')]
         public ?string $merchantNote,
+        #[Groups(['merchant_local_product:read'])]
+        #[SerializedName('pack_quantity')]
+        public int $packQuantity = 1,
     ) {
     }
 }
