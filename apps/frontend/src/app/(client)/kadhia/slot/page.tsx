@@ -66,7 +66,7 @@ export default function SlotPage() {
         pickupSlotId: activeId,
         customerNote: note.trim() || undefined,
       });
-      router.push(`/orders/${result.orderCode}`);
+      router.push(`/orders/${result.orderId}`);
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : 'Erreur lors de la soumission',

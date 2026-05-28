@@ -53,6 +53,12 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
       setErrors(["L'heure de fin doit être après l'heure de début."]);
       return;
     }
+    const [sh, sm] = startTime.split(':').map(Number);
+    const [eh, em] = endTime.split(':').map(Number);
+    if (eh * 60 + em - (sh * 60 + sm) > 60) {
+      setErrors(['Un créneau ne peut pas dépasser 1 heure.']);
+      return;
+    }
     const cap = parseInt(capacity, 10);
     if (!cap || cap <= 0) {
       setErrors(['La capacité doit être un nombre positif.']);
