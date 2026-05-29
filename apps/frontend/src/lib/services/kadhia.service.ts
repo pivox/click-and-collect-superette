@@ -202,11 +202,16 @@ export async function getCurrentKadhia(shopId: string): Promise<KadhiaResult> {
     return mockDelay({ type: "active", kadhia: fresh });
   }
 
+  // The catalog is a public page: a 401 here means "anonymous visitor", not a
+  // session error. skipAuthRedirect lets the caller handle it instead of being
+  // bounced to /login by the global interceptor.
+  const optional = { skipAuthRedirect: true };
+
   // 1. Check localStorage hint
   const activeId = readActiveId(shopId);
   if (activeId) {
     try {
-      const { data } = await apiClient.get<ApiKadhia>(`/api/me/kadhias/${activeId}`);
+      const { data } = await apiClient.get<ApiKadhia>(`/api/me/kadhias/${activeId}`, optional);
       const kadhia = mapKadhia(data);
       writeContext({ shopId, kadhiaId: kadhia.id });
       return { type: "active", kadhia };
@@ -223,6 +228,7 @@ export async function getCurrentKadhia(shopId: string): Promise<KadhiaResult> {
   // 2. Fetch draft list
   const { data: list } = await apiClient.get<{ items: ApiListItem[]; total: number }>(
     `/api/me/stores/${shopId}/kadhias`,
+    optional,
   );
   const drafts = list.items.filter((k) => k.status === "draft");
 
@@ -232,7 +238,7 @@ export async function getCurrentKadhia(shopId: string): Promise<KadhiaResult> {
     const id = drafts[0].id;
     writeActiveId(shopId, id);
     writeContext({ shopId, kadhiaId: id });
-    const { data } = await apiClient.get<ApiKadhia>(`/api/me/kadhias/${id}`);
+    const { data } = await apiClient.get<ApiKadhia>(`/api/me/kadhias/${id}`, optional);
     return { type: "active", kadhia: mapKadhia(data) };
   }
 

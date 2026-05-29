@@ -63,6 +63,9 @@ export default function CatalogPage({
       })
       .catch((err: unknown) => {
         const status = (err as { response?: { status?: number } }).response?.status;
+        // 401 = visitor not logged in. Catalog is public, so stay on the page
+        // and let the "Commencer une Kadhia" bar prompt for login on demand.
+        if (status === 401) return;
         if (status !== 404 && status !== 405) {
           setKadhiaLoadError("Impossible de charger ta Kadhia. Réessaie.");
         }
