@@ -352,6 +352,24 @@ class OrderRepository extends ServiceEntityRepository
     }
 
     /**
+     * Returns the most recent non-cancelled order linked to a Kadhia.
+     * Used to implement idempotent submit: if the Kadhia is already submitted,
+     * return the existing order instead of throwing an error.
+     */
+    public function findActiveByKadhia(Kadhia $kadhia): ?Order
+    {
+        return $this->createQueryBuilder('o')
+            ->where('o.kadhia = :kadhia')
+            ->andWhere('o.status != :cancelled')
+            ->setParameter('kadhia', $kadhia->getId(), 'uuid')
+            ->setParameter('cancelled', OrderStatus::Cancelled)
+            ->orderBy('o.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * @return array<string, int>
      */
     public function countByStatusForShopBetweenPickupSlotStarts(

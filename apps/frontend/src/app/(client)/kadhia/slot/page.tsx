@@ -11,6 +11,31 @@ import { listSlotsForShop, submitKadhia, readLocalKadhia } from "@/lib/services"
 import { formatTime } from "@/lib/format";
 import type { PickupSlot } from "@/types";
 
+/** Maps backend error codes to user-friendly French messages. */
+function resolveSubmitError(err: unknown): string {
+  const detail =
+    (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "";
+
+  switch (detail) {
+    case "PICKUP_SLOT_FULL":
+      return "Ce créneau est complet. Choisis un autre créneau ci-dessous.";
+    case "PICKUP_SLOT_EXPIRED":
+      return "Ce créneau est passé. Choisis un créneau disponible.";
+    case "PICKUP_SLOT_CLOSED":
+      return "La supérette est fermée à ce créneau. Choisis un autre.";
+    case "PICKUP_SLOT_NOT_FOUND":
+      return "Ce créneau n'est plus disponible. Choisis-en un autre.";
+    case "KADHIA_EMPTY":
+      return "Ta Kadhia est vide. Ajoute des produits avant d'envoyer.";
+    case "PRODUCT_UNAVAILABLE":
+      return "Un produit de ta Kadhia n'est plus disponible. Reviens à ta Kadhia pour le retirer.";
+    case "KADHIA_NOT_FOUND":
+      return "Aucune Kadhia active trouvée. Retourne au catalogue pour en créer une.";
+    default:
+      return "La commande n'a pas pu être envoyée. Ta Kadhia est conservée, tu peux réessayer.";
+  }
+}
+
 function afterTomorrowLabel(): string {
   const d = new Date();
   d.setDate(d.getDate() + 2);
@@ -73,10 +98,8 @@ export default function SlotPage() {
         customerNote: note.trim() || undefined,
       });
       router.push(`/orders/${result.orderId}`);
-    } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : 'Erreur lors de la soumission',
-      );
+    } catch (err: unknown) {
+      setSubmitError(resolveSubmitError(err));
     } finally {
       setIsSubmitting(false);
     }
