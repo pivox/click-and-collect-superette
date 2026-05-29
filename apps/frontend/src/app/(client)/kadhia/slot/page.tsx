@@ -11,6 +11,33 @@ import { listSlotsForShop, submitKadhia, readLocalKadhia } from "@/lib/services"
 import { formatTime } from "@/lib/format";
 import type { PickupSlot } from "@/types";
 
+interface SlotGroup { label: string; slots: PickupSlot[] }
+
+function groupByPeriod(slots: PickupSlot[]): SlotGroup[] {
+  const periods = [
+    { label: "Matin", minH: 0, maxH: 12 },
+    { label: "Midi", minH: 12, maxH: 14 },
+    { label: "Après-midi", minH: 14, maxH: 18 },
+    { label: "Soir", minH: 18, maxH: 24 },
+  ];
+  return periods
+    .map(({ label, minH, maxH }) => ({
+      label,
+      slots: slots.filter((s) => {
+        const h = parseInt(
+          new Intl.DateTimeFormat("fr-FR", {
+            hour: "2-digit",
+            hourCycle: "h23",
+            timeZone: "Africa/Tunis",
+          }).format(new Date(s.startsAt)),
+          10,
+        );
+        return h >= minH && h < maxH;
+      }),
+    }))
+    .filter((g) => g.slots.length > 0);
+}
+
 /** Maps backend error codes to user-friendly French messages. */
 function resolveSubmitError(err: unknown): string {
   const detail =
@@ -134,19 +161,33 @@ export default function SlotPage() {
         {slotsError ? (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{slotsError}</p>
         ) : slots.length === 0 ? (
-          <p className="text-sm text-muted">Aucun créneau disponible pour ce jour.</p>
+          <div className="rounded-md bg-soft px-4 py-5 text-center">
+            <p className="text-sm font-bold">Aucun créneau ce jour.</p>
+            <p className="mt-1 text-xs text-muted">
+              Essaie un autre jour ou reviens plus tard.
+            </p>
+          </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2.5">
-            {slots.map((s) => (
-              <SlotTile
-                key={s.id}
-                time={formatTime(s.startsAt)}
-                endTime={formatTime(s.endsAt)}
-                label={s.label}
-                disabled={!s.available}
-                active={activeId === s.id}
-                onClick={() => setActiveId(s.id)}
-              />
+          <div className="flex flex-col gap-5">
+            {groupByPeriod(slots).map(({ label, slots: group }) => (
+              <div key={label}>
+                <p className="mb-2 text-xs font-extrabold uppercase tracking-wider text-muted">
+                  {label}
+                </p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {group.map((s) => (
+                    <SlotTile
+                      key={s.id}
+                      time={formatTime(s.startsAt)}
+                      endTime={formatTime(s.endsAt)}
+                      label={s.label}
+                      disabled={!s.available}
+                      active={activeId === s.id}
+                      onClick={() => setActiveId(s.id)}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
