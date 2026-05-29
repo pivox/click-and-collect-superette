@@ -11,7 +11,7 @@ import { Timeline } from "@/components/ui/Timeline";
 import { Button } from "@/components/ui/Button";
 import { StickyBottom } from "@/components/layout/StickyBottom";
 import { getOrder, projectTimeline } from "@/lib/services";
-import { formatTnd, formatTime } from "@/lib/format";
+import { formatTnd, formatSlotDate } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import type { Order } from "@/types";
 
@@ -24,6 +24,7 @@ export default function OrderTrackingPage({
   const { user, isLoading: authLoading } = useClientAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [fetchDone, setFetchDone] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -31,6 +32,16 @@ export default function OrderTrackingPage({
       .then((data) => { setOrder(data); setFetchDone(true); })
       .catch(() => setFetchDone(true));
   }, [orderId, user, authLoading]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const fresh = await getOrder(orderId);
+      if (fresh) setOrder(fresh);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   if (authLoading) return null;
 
@@ -77,11 +88,7 @@ export default function OrderTrackingPage({
               <Summary>
                 <SummaryRow
                   label="Retrait"
-                  value={
-                    order.pickupSlot
-                      ? `Aujourd'hui · ${formatTime(order.pickupSlot.startsAt)}`
-                      : "—"
-                  }
+                  value={order.pickupSlot ? formatSlotDate(order.pickupSlot.startsAt) : "—"}
                 />
                 <SummaryRow
                   label="Total"
@@ -93,7 +100,17 @@ export default function OrderTrackingPage({
           </Card>
 
           <section className="mt-4">
-            <h3 className="mb-2.5 text-h3 font-extrabold">Suivi</h3>
+            <div className="mb-2.5 flex items-center justify-between">
+              <h3 className="text-h3 font-extrabold">Suivi</h3>
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="text-xs font-extrabold text-primary underline disabled:opacity-50"
+              >
+                {refreshing ? "Actualisation…" : "Actualiser"}
+              </button>
+            </div>
             <Card>
               <Timeline steps={steps} />
             </Card>

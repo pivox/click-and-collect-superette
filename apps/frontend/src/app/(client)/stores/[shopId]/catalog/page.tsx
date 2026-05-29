@@ -39,6 +39,7 @@ export default function CatalogPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [selectorDrafts, setSelectorDrafts] = useState<KadhiaListItem[] | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,9 +47,10 @@ export default function CatalogPage({
     setIsLoading(true);
     void listCatalog({ shopId, category, search })
       .then((data) => { if (!cancelled) { setProducts(data); setIsLoading(false); } })
-      .catch(() => { if (!cancelled) { setCatalogError("Impossible de charger le catalogue. Veuillez réessayer."); setIsLoading(false); } });
+      .catch(() => { if (!cancelled) { setCatalogError("Impossible de charger le catalogue."); setIsLoading(false); } });
     return () => { cancelled = true; };
-  }, [shopId, category, search]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId, category, search, retryKey]);
 
   useEffect(() => {
     void getCurrentKadhia(shopId)
@@ -177,7 +179,16 @@ export default function CatalogPage({
             </p>
           )}
           {catalogError ? (
-            <p className="py-8 text-center text-sm text-muted">{catalogError}</p>
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted">{catalogError}</p>
+              <button
+                type="button"
+                onClick={() => setRetryKey((k) => k + 1)}
+                className="mt-3 text-sm font-extrabold text-primary underline"
+              >
+                Réessayer
+              </button>
+            </div>
           ) : isLoading ? (
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -192,13 +203,41 @@ export default function CatalogPage({
                 </div>
               ))}
             </div>
+          ) : products.length === 0 ? (
+            <div className="py-8 text-center">
+              {search ? (
+                <>
+                  <p className="text-sm text-muted">Aucun résultat pour « {search} ».</p>
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="mt-3 text-sm font-extrabold text-primary underline"
+                  >
+                    Effacer la recherche
+                  </button>
+                </>
+              ) : category !== "all" ? (
+                <>
+                  <p className="text-sm text-muted">Aucun produit dans cette catégorie.</p>
+                  <button
+                    type="button"
+                    onClick={() => setCategory("all")}
+                    className="mt-3 text-sm font-extrabold text-primary underline"
+                  >
+                    Voir tous les produits
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm text-muted">Catalogue vide pour le moment.</p>
+              )}
+            </div>
           ) : (
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
               {products.map((p) => (
                 <ProductCard
                   key={p.id}
                   product={p}
-                  onAdd={hasActiveKadhia ? onAdd : undefined}
+                  onAdd={hasActiveKadhia && p.isAvailable ? onAdd : undefined}
                 />
               ))}
             </div>
