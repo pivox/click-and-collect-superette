@@ -84,6 +84,7 @@ export interface Kadhia {
   lines: KadhiaLine[];
   totalTnd: string;
   orderId?: string | null;
+  notes?: string | null;
 }
 
 export interface PickupSlot {

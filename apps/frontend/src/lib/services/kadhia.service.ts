@@ -81,6 +81,7 @@ type ApiListItem = {
   lines_count: number;
   total_tnd: string;
   updated_at: string;
+  notes?: string | null;
 };
 
 // ─── Exported types ───────────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ export interface KadhiaListItem {
   linesCount: number;
   totalTnd: string;
   updatedAt: string;
+  notes?: string | null;
 }
 
 export type KadhiaResult =
@@ -132,6 +134,7 @@ function mapKadhia(data: ApiKadhia): Kadhia {
     lines: data.lines.map(mapLine),
     totalTnd: data.total_tnd,
     orderId: data.order_id,
+    notes: data.notes,
   };
 }
 
@@ -365,6 +368,7 @@ export async function listMyKadhias(status?: string, page = 1): Promise<KadhiaLi
       linesCount: k.lines_count,
       totalTnd: k.total_tnd,
       updatedAt: k.updated_at,
+      notes: k.notes,
     })),
     total: data.total,
     page: data.page,
@@ -387,6 +391,19 @@ export async function fetchKadhia(kadhiaId: string): Promise<Kadhia> {
   writeActiveId(kadhia.shopId, kadhia.id);
   writeContext({ shopId: kadhia.shopId, kadhiaId: kadhia.id });
   return kadhia;
+}
+
+/** Updates the personal note of a draft Kadhia (max 500 chars, visible only to the client). */
+export async function patchKadhiaNotes(kadhiaId: string, notes: string | null): Promise<Kadhia> {
+  if (USE_MOCKS) {
+    const mock = readMock();
+    if (!mock) throw new Error("KADHIA_NOT_FOUND");
+    const next: Kadhia = { ...mock, notes };
+    writeMock(next);
+    return mockDelay(next);
+  }
+  const { data } = await apiClient.patch<ApiKadhia>(`/api/me/kadhias/${kadhiaId}`, { notes });
+  return mapKadhia(data);
 }
 
 export async function clearKadhia(): Promise<void> {

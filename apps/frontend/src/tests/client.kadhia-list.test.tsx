@@ -138,4 +138,25 @@ describe('MesKadhiasPage (list)', () => {
     const { container } = render(<MesKadhiasPage />);
     expect(container.firstChild).toBeNull();
   });
+
+  it('affiche la note personnelle comme titre si elle est renseignée', async () => {
+    const itemWithNote = { ...makeDraftItem(), notes: 'courses maison' };
+    vi.mocked(listMyKadhias).mockResolvedValue({ items: [itemWithNote], total: 1, page: 1, pages: 1 });
+    render(<MesKadhiasPage />);
+    await waitFor(() => {
+      expect(screen.getByText('courses maison')).toBeTruthy();
+      expect(screen.getByText('Épicerie Centrale')).toBeTruthy();
+    });
+  });
+
+  it('affiche le nom de la supérette comme titre quand aucune note n\'est présente', async () => {
+    vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeDraftItem()], total: 1, page: 1, pages: 1 });
+    render(<MesKadhiasPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Épicerie Centrale')).toBeTruthy();
+      // Seul le store name s'affiche comme titre — pas de duplicate
+      const titleEl = screen.getAllByText('Épicerie Centrale');
+      expect(titleEl.length).toBe(1);
+    });
+  });
 });

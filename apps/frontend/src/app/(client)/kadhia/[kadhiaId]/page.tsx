@@ -9,10 +9,118 @@ import { Button } from "@/components/ui/Button";
 import { Summary, SummaryRow } from "@/components/ui/Summary";
 import { StickyBottom } from "@/components/layout/StickyBottom";
 import { KadhiaLineRow } from "@/components/product/KadhiaLineRow";
-import { fetchKadhia, updateLineQuantity, discardKadhia } from "@/lib/services";
+import { fetchKadhia, updateLineQuantity, discardKadhia, patchKadhiaNotes } from "@/lib/services";
 import { formatTnd } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import type { Kadhia } from "@/types";
+
+const MAX_NOTE_LENGTH = 500;
+
+function KadhiaNote({
+  kadhia,
+  onSaved,
+}: {
+  kadhia: Kadhia;
+  onSaved: (updated: Kadhia) => void;
+}) {
+  const isDraft = kadhia.status === "draft";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(kadhia.notes ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await patchKadhiaNotes(kadhia.id, draft.trim() || null);
+      onSaved(updated);
+      setEditing(false);
+    } catch {
+      setError("Impossible d'enregistrer la note. Réessaie.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setDraft(kadhia.notes ?? "");
+    setError(null);
+    setEditing(false);
+  };
+
+  if (!isDraft) {
+    if (!kadhia.notes) return null;
+    return (
+      <Card className="mt-4">
+        <p className="text-xs font-bold text-muted uppercase tracking-wide mb-1">Note personnelle</p>
+        <p className="text-sm">{kadhia.notes}</p>
+      </Card>
+    );
+  }
+
+  if (!editing) {
+    return (
+      <Card className="mt-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-muted uppercase tracking-wide mb-1">
+              Note personnelle
+            </p>
+            {kadhia.notes ? (
+              <p className="text-sm">{kadhia.notes}</p>
+            ) : (
+              <p className="text-sm text-muted italic">
+                Ajouter une note pour te rappeler l&apos;utilité de cette liste.
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(kadhia.notes ?? "");
+              setEditing(true);
+            }}
+            className="shrink-0 text-xs font-bold text-primary underline"
+          >
+            {kadhia.notes ? "Modifier" : "Ajouter"}
+          </button>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="mt-4">
+      <p className="text-xs font-bold text-muted uppercase tracking-wide mb-2">Note personnelle</p>
+      <textarea
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        maxLength={MAX_NOTE_LENGTH}
+        rows={3}
+        placeholder="Ex : courses maison, samedi matin, bureau…"
+        className="w-full resize-none rounded-md border border-line bg-soft px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+      />
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <span className="text-xs text-muted">
+          {draft.length}/{MAX_NOTE_LENGTH}
+        </span>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="md" onClick={handleCancel} disabled={saving}>
+            Annuler
+          </Button>
+          <Button size="md" onClick={() => void handleSave()} disabled={saving}>
+            {saving ? "Enregistrement…" : "Enregistrer"}
+          </Button>
+        </div>
+      </div>
+      {error && (
+        <p className="mt-2 text-sm text-red-600">{error}</p>
+      )}
+    </Card>
+  );
+}
 
 export default function KadhiaDetailPage({
   params,
@@ -99,7 +207,7 @@ export default function KadhiaDetailPage({
   return (
     <>
       <TopBar
-        title="Ma Kadhia"
+        title={kadhia.notes ?? "Ma Kadhia"}
         subtitle={
           kadhia.lines.length === 0
             ? "Aucun article"
@@ -109,18 +217,23 @@ export default function KadhiaDetailPage({
       />
 
       {kadhia.lines.length === 0 ? (
-        <Card className="text-center">
-          <h3 className="mt-2 text-h3 font-extrabold">Ta Kadhia est vide</h3>
-          <p className="mt-2 text-sm text-muted">
-            Ajoute des produits depuis le catalogue de ta supérette.
-          </p>
-          <Link href={catalogHref} className="mt-4 inline-block">
-            <Button>Aller au catalogue</Button>
-          </Link>
-        </Card>
+        <>
+          <KadhiaNote kadhia={kadhia} onSaved={setKadhia} />
+          <Card className="text-center mt-4">
+            <h3 className="mt-2 text-h3 font-extrabold">Ta Kadhia est vide</h3>
+            <p className="mt-2 text-sm text-muted">
+              Ajoute des produits depuis le catalogue de ta supérette.
+            </p>
+            <Link href={catalogHref} className="mt-4 inline-block">
+              <Button>Aller au catalogue</Button>
+            </Link>
+          </Card>
+        </>
       ) : (
         <>
-          <section className="grid gap-2.5">
+          <KadhiaNote kadhia={kadhia} onSaved={setKadhia} />
+
+          <section className="mt-4 grid gap-2.5">
             {kadhia.lines.map((l) => (
               <KadhiaLineRow
                 key={l.id}
