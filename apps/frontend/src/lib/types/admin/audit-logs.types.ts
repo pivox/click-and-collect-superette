@@ -23,6 +23,8 @@ export interface AuditLogListResponse {
 
 export interface AuditLogFilters {
   admin?: string;
+  action?: string;
+  resource_type?: string;
   page?: number;
   limit?: number;
 }

@@ -7,6 +7,8 @@ export async function listAuditLogs(filters: AuditLogFilters = {}): Promise<Audi
       page: filters.page ?? 1,
       limit: filters.limit ?? 20,
       ...(filters.admin ? { admin: filters.admin } : {}),
+      ...(filters.action ? { action: filters.action } : {}),
+      ...(filters.resource_type ? { resource_type: filters.resource_type } : {}),
     },
   });
   return data;
