@@ -17,7 +17,9 @@
 ## Architecture
 
 Monorepo : `apps/backend/` (Symfony 7 · API Platform 4 · PostgreSQL · Doctrine)
-et `apps/frontend/` (Next.js 14 · React Query · Tailwind CSS).
+et `apps/frontend/` (Next.js 14 · Tailwind CSS · `@tanstack/react-query` en usage limité).
+
+> **Pattern dominant frontend** : `useState` + `useEffect` + `useCallback`. React Query n'est utilisé que dans `GlobalSearchBar` et `StoreSearchCombobox` (autocomplete).
 
 - `.claude/rules/` — règles auto-chargées : backend-patterns, migrations, security, testing, github
 
@@ -86,9 +88,16 @@ Les features Sprint 8 passent par des issues GitHub (pas de fichiers prompts).
 - **#197 / PR #202 + #204** — entité `ProductFamily`, champ `pack_quantity` (default 1) sur `ProductReference` et `MerchantLocalProduct`, câblé dans les endpoints de création
 - **#198 / PR #203** — `PATCH /api/admin/product-proposals/{id}/merge` dédié (distinct de `/approve`) ; guard sur référence archivée (422)
 
-**Sprint 9 — Kadhia multi (en cours) :**
-- **#209 / PR #214** — `DELETE /api/me/kadhias/{kadhiaId}` (guard draft, 422 si submitted), `discardKadhia()` frontend, fix tests `merchant.catalogue`
-- Ordre d'implémentation : **#210** → #213 + #211 → #205 → #206 → #212 → #177
+**Sprint 9 — Kadhia multi + UX (en cours) :**
+- **#209 / PR #214** — `DELETE /api/me/kadhias/{kadhiaId}`, `discardKadhia()` frontend
+- **#210 / PR #215** — alignement front Kadhia multi (modèle backend multi-Kadhia)
+- **#213 / PR #216** — soumission idempotente + messages d'erreur précis
+- **#211 / PR #217** — liste Mes Kadhia + page détail par ID
+- **#205 / PR #218** — UX client : états vides catalogue, créneaux groupés, actualiser commande
+- **#206 / PR #221** — UX marchand : dashboard actionnable, filtres commandes, CTAs catalogue
+- **#212 / PR #222** — note personnelle Kadhia draft (`notes` field, `KadhiaNote` component, 11 tests)
+- **#207 / PR #223** — backoffice admin UX cockpit : dashboard décisionnel, filtres marchands, audit amélioré *(PR ouverte)*
+- **#177** — Monolog backend (Symfony) *(à faire — approbation `composer require` requise)*
 
 ### Clôture de sprint (audit documentaire)
 
@@ -146,3 +155,17 @@ Les mocks de test qui omettent ce champ font échouer TypeScript CI silencieusem
 **Testing Library — label avec `<span>` enfant → `{ exact: false }`**
 `getByLabelText('Prix TND')` échoue si le label contient `<span>*</span>` (astérisque requis).
 Utiliser `getByLabelText('Prix TND', { exact: false })`.
+
+**`Store.logo_url` / `cover_url` absents de la réponse liste**
+Ces champs sont item-only : retournés uniquement par `GET /{id}`, `POST` et `PATCH`. La réponse
+collection (`GET /api/admin/stores`) ne les inclut pas → toujours `undefined` dans les vues liste.
+Ne pas les utiliser comme indicateurs de complétude dans `AdminTable`.
+
+**`navigator.clipboard` requiert HTTPS**
+`navigator.clipboard.writeText()` n'est disponible qu'en contexte sécurisé. En HTTP, l'API est
+`undefined` et lève un `TypeError`. Toujours entourer d'un `try/catch` avec feedback utilisateur.
+
+**`useCallback` obligatoire pour les fonctions `load` dans les pages admin**
+Sans `useCallback`, la dépendance `[load]` dans `useEffect` force une suppression du warning via
+`eslint-disable-line` — piège si on ajoute des filtres plus tard (stale closure silencieuse).
+Toutes les pages admin paginated suivent le pattern : `const load = useCallback(async () => {...}, [deps])`.
