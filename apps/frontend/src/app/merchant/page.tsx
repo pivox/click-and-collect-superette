@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { getMerchantDashboardToday } from '@/lib/services/merchant-dashboard.service';
@@ -55,6 +56,70 @@ export default function MerchantDashboardPage() {
         <div className="mt-4 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
           {error}
         </div>
+      )}
+
+      {/* À faire maintenant */}
+      {!isLoading && dashboard && (
+        <section className="mt-6">
+          <h2 className="mb-3 text-lg font-black">À faire maintenant</h2>
+          {dashboard.submitted_count === 0 &&
+          dashboard.urgent_submitted_count === 0 &&
+          dashboard.preparing_count === 0 &&
+          dashboard.ready_count === 0 ? (
+            <div className="rounded-md bg-card p-5 shadow-card text-sm text-muted">
+              Aucune action urgente pour le moment.
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {dashboard.urgent_submitted_count > 0 && (
+                <Link href="/merchant/commandes">
+                  <div className="rounded-md border-2 border-status-cancel bg-status-cancel-bg p-4 hover:opacity-90 transition-opacity cursor-pointer">
+                    <p className="text-2xl font-black text-status-cancel">
+                      {dashboard.urgent_submitted_count}
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-status-cancel">Urgentes à accepter</p>
+                    <p className="mt-2 text-xs font-extrabold text-status-cancel underline">
+                      Traiter maintenant →
+                    </p>
+                  </div>
+                </Link>
+              )}
+              {dashboard.submitted_count > 0 && (
+                <Link href="/merchant/commandes">
+                  <div className="rounded-md border border-line bg-card p-4 hover:bg-soft transition-colors cursor-pointer">
+                    <p className="text-2xl font-black">{dashboard.submitted_count}</p>
+                    <p className="mt-1 text-sm font-bold text-muted">En attente d&apos;acceptation</p>
+                    <p className="mt-2 text-xs font-extrabold text-primary underline">
+                      Voir les commandes →
+                    </p>
+                  </div>
+                </Link>
+              )}
+              {dashboard.preparing_count > 0 && (
+                <Link href="/merchant/commandes">
+                  <div className="rounded-md border border-line bg-card p-4 hover:bg-soft transition-colors cursor-pointer">
+                    <p className="text-2xl font-black">{dashboard.preparing_count}</p>
+                    <p className="mt-1 text-sm font-bold text-muted">À préparer</p>
+                    <p className="mt-2 text-xs font-extrabold text-primary underline">
+                      Aller aux commandes →
+                    </p>
+                  </div>
+                </Link>
+              )}
+              {dashboard.ready_count > 0 && (
+                <Link href="/merchant/retrait">
+                  <div className="rounded-md border border-line bg-card p-4 hover:bg-soft transition-colors cursor-pointer">
+                    <p className="text-2xl font-black">{dashboard.ready_count}</p>
+                    <p className="mt-1 text-sm font-bold text-muted">Prêtes à remettre</p>
+                    <p className="mt-2 text-xs font-extrabold text-primary underline">
+                      Ouvrir le retrait →
+                    </p>
+                  </div>
+                </Link>
+              )}
+            </div>
+          )}
+        </section>
       )}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">

@@ -51,10 +51,12 @@ describe('MerchantDashboardPage', () => {
 
     await waitFor(() => expect(getMerchantDashboardToday).toHaveBeenCalledWith('store-1'));
     expect(screen.getByRole('heading', { name: 'Dashboard marchand' })).toBeInTheDocument();
+    // KPI counter labels (unchanged)
     expect(screen.getByText('En attente')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('Urgentes')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
+    // Counts may appear in both KPI grid and "À faire maintenant" section
+    expect(screen.getAllByText('3').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('2').length).toBeGreaterThan(0);
     expect(screen.getByText(/2\/5 rendez-vous/)).toBeInTheDocument();
   });
 });

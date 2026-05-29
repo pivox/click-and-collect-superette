@@ -153,10 +153,10 @@ export function MerchantCatalogWizard({
 
           <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:justify-end">
             <Button variant="ghost" size="md" onClick={handleOpenLocalProduct}>
-              Produit local
+              Créer un produit de ma supérette
             </Button>
             <Button size="md" onClick={handleOpenReferenceSearch}>
-              Depuis référentiel
+              Ajouter un produit connu
             </Button>
           </div>
         </div>

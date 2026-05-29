@@ -233,7 +233,7 @@ export default function MerchantPickupPage() {
         <div>
           <h1 className="text-h1 font-black">Retrait sécurisé</h1>
           <p className="mt-1 text-sm text-muted">
-            Choisis le mode de validation adapté à la situation.
+            Demande au client son QR code ou son code de retrait à 4 chiffres.
           </p>
         </div>
       </div>
