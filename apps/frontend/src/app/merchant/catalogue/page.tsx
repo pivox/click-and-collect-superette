@@ -230,14 +230,14 @@ export default function MerchantCatalogPage() {
             disabled={isLoading}
             onClick={() => setIsCatalogWizardOpen(true)}
           >
-            Assistant guidé
+            M&apos;aider à ajouter des produits
           </Button>
           <Button
             size="md"
             disabled={isLoading}
             onClick={() => setIsAddProductDrawerOpen(true)}
           >
-            Depuis référentiel
+            Ajouter un produit connu
           </Button>
           <Button
             variant="ghost"
@@ -245,7 +245,7 @@ export default function MerchantCatalogPage() {
             disabled={isLoading}
             onClick={() => setIsLocalProductDrawerOpen(true)}
           >
-            Produit local
+            Créer un produit de ma supérette
           </Button>
           <Button
             variant="ghost"

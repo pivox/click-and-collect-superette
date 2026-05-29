@@ -339,7 +339,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit connu' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });
@@ -357,7 +357,7 @@ describe('MerchantCatalogPage', () => {
   it('opens guided assistant for catalogue enrichment', async () => {
     render(React.createElement(MerchantCatalogPage));
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Assistant guidé' }));
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
 
     expect(screen.getByRole('dialog', { name: 'Assistant catalogue' })).toBeInTheDocument();
     expect(screen.getByText('1. Chercher')).toBeInTheDocument();
@@ -368,11 +368,11 @@ describe('MerchantCatalogPage', () => {
   it('keeps tab focus inside the guided assistant', async () => {
     render(React.createElement(MerchantCatalogPage));
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Assistant guidé' }));
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
 
     const dialog = screen.getByRole('dialog', { name: 'Assistant catalogue' });
     const closeButton = within(dialog).getByRole('button', { name: 'Fermer' });
-    const referenceButton = within(dialog).getByRole('button', { name: 'Depuis référentiel' });
+    const referenceButton = within(dialog).getByRole('button', { name: 'Ajouter un produit connu' });
 
     expect(closeButton).toHaveFocus();
 
@@ -389,10 +389,10 @@ describe('MerchantCatalogPage', () => {
   it('opens the existing product reference drawer from the guided assistant', async () => {
     render(React.createElement(MerchantCatalogPage));
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Assistant guidé' }));
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
 
     const dialog = screen.getByRole('dialog', { name: 'Assistant catalogue' });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Depuis référentiel' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ajouter un produit connu' }));
 
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: 'Assistant catalogue' })).not.toBeInTheDocument(),
@@ -427,7 +427,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit connu' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });
@@ -464,7 +464,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit connu' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });
@@ -497,7 +497,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Produit local' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Créer un produit de ma supérette' }));
 
     expect(screen.getByRole('dialog', { name: 'Créer un produit local' })).toBeInTheDocument();
 
@@ -540,7 +540,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Produit local' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Créer un produit de ma supérette' }));
     fireEvent.change(screen.getByLabelText('Nom en français'), { target: { value: '   ' } });
     fireEvent.change(screen.getByLabelText('Prix TND', { exact: false }), { target: { value: '4.500' } });
     fireEvent.click(screen.getByRole('button', { name: 'Créer dans mon catalogue' }));
@@ -553,7 +553,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Produit local' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Créer un produit de ma supérette' }));
     fireEvent.change(screen.getByLabelText('Nom en français'), {
       target: { value: 'Harissa maison' },
     });
@@ -573,7 +573,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Produit local' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Créer un produit de ma supérette' }));
     fireEvent.change(screen.getByLabelText('Nom en français'), {
       target: { value: 'Harissa maison' },
     });
@@ -614,7 +614,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit connu' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });
@@ -645,7 +645,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit connu' }));
 
     const searchInput = screen.getByLabelText('Rechercher dans le référentiel');
     const searchForm = searchInput.closest('form');
@@ -689,7 +689,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit connu' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });
@@ -734,7 +734,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     await screen.findByText('Lait demi-écrémé');
-    fireEvent.click(screen.getByRole('button', { name: 'Depuis référentiel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un produit connu' }));
     fireEvent.change(screen.getByLabelText('Rechercher dans le référentiel'), {
       target: { value: 'couscous' },
     });

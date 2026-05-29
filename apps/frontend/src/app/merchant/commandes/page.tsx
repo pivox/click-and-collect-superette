@@ -21,9 +21,34 @@ const ACTIVE_ORDER_STATUSES = 'submitted,accepted,partially_accepted,preparing,r
 const HISTORY_PICKUP_STATUSES = 'ready,pickup_pending';
 const HISTORY_CLOSED_STATUSES = 'completed,cancelled,rejected';
 const ORDERS_PAGE_LIMIT = 20;
+const URGENT_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 
 type OrdersTab = 'active' | 'history';
 type HistoryFilter = 'pickup' | 'closed';
+type ActiveFilter = 'all' | 'to_accept' | 'to_prepare' | 'ready';
+
+function isUrgent(startsAt: string | undefined): boolean {
+  if (!startsAt) return false;
+  const diff = new Date(startsAt).getTime() - Date.now();
+  return diff > 0 && diff <= URGENT_THRESHOLD_MS;
+}
+
+function urgencyLabel(startsAt: string | undefined): string | null {
+  if (!startsAt) return null;
+  const diff = new Date(startsAt).getTime() - Date.now();
+  if (diff <= 0) return 'Créneau dépassé';
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 60) return `Retrait dans ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return `Retrait dans ${hours}h`;
+}
+
+const ACTIVE_FILTERS: { id: ActiveFilter; label: string; statuses: string[] }[] = [
+  { id: 'all', label: 'Toutes', statuses: [] },
+  { id: 'to_accept', label: 'À accepter', statuses: ['submitted', 'partially_accepted'] },
+  { id: 'to_prepare', label: 'À préparer', statuses: ['accepted', 'preparing'] },
+  { id: 'ready', label: 'Prêtes', statuses: ['ready', 'pickup_pending'] },
+];
 
 function historyCustomerName(order: MerchantOrderHistoryItem): string {
   const name = [order.customer.first_name, order.customer.last_name]
@@ -88,6 +113,7 @@ export default function MerchantOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<OrdersTab>('active');
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('pickup');
   const [historyPage, setHistoryPage] = useState(1);
   const [historyOrders, setHistoryOrders] = useState<MerchantOrderHistoryList | null>(null);
@@ -160,7 +186,7 @@ export default function MerchantOrdersPage() {
           </p>
         </div>
         <Button variant="ghost" size="md" onClick={() => void loadOrders()}>
-          Réessayer
+          Actualiser
         </Button>
       </div>
 
@@ -201,36 +227,76 @@ export default function MerchantOrdersPage() {
 
       {selectedTab === 'active' && (
         <section id="panel-active-orders" role="tabpanel" className="mt-5 rounded-md bg-card shadow-card">
+          {/* Sous-filtres */}
+          <div className="flex flex-wrap gap-2 border-b border-line p-4">
+            {ACTIVE_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setActiveFilter(f.id)}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-sm font-bold transition-colors',
+                  activeFilter === f.id ? 'bg-primary text-white' : 'bg-soft text-muted',
+                )}
+              >
+                {f.label}
+                {f.id !== 'all' && orders && (() => {
+                  const count = orders.items.filter((o) => f.statuses.includes(o.status)).length;
+                  return count > 0 ? ` (${count})` : '';
+                })()}
+              </button>
+            ))}
+          </div>
+
           {isLoading ? (
             <p className="p-5 text-sm text-muted">Chargement des commandes…</p>
-          ) : orders && orders.items.length > 0 ? (
-            <div className="divide-y divide-line">
-              {orders.items.map((order) => (
-                <Link
-                  key={order.id}
-                  href={`/merchant/commandes/${order.id}`}
-                  aria-label={`Voir la commande ${order.order_number ?? order.id}`}
-                  className="grid gap-3 p-5 transition hover:bg-soft focus:outline-none focus:ring-2 focus:ring-primary md:grid-cols-[1fr_auto]"
-                >
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <strong>{order.order_number ?? order.id}</strong>
-                      <OrderStatusBadge status={order.status} />
-                    </div>
-                    <p className="mt-2 text-sm text-muted">
-                      {order.line_count} produits
-                      {order.pickup_slot?.starts_at
-                        ? ` · rendez-vous ${formatTime(order.pickup_slot.starts_at)}`
-                        : ''}
-                    </p>
-                  </div>
-                  <strong className="text-right text-lg">{formatTnd(order.total_tnd)}</strong>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="p-5 text-sm text-muted">Aucune commande active pour cette supérette.</p>
-          )}
+          ) : (() => {
+            const filter = ACTIVE_FILTERS.find((f) => f.id === activeFilter)!;
+            const filtered = orders?.items.filter((o) =>
+              filter.statuses.length === 0 || filter.statuses.includes(o.status),
+            ) ?? [];
+            if (filtered.length === 0) {
+              return <p className="p-5 text-sm text-muted">Aucune commande dans ce filtre.</p>;
+            }
+            return (
+              <div className="divide-y divide-line">
+                {filtered.map((order) => {
+                  const urgent = isUrgent(order.pickup_slot?.starts_at);
+                  const urgencyText = urgencyLabel(order.pickup_slot?.starts_at);
+                  return (
+                    <Link
+                      key={order.id}
+                      href={`/merchant/commandes/${order.id}`}
+                      aria-label={`Voir la commande ${order.order_number ?? order.id}`}
+                      className={cn(
+                        'grid gap-3 p-5 transition hover:bg-soft focus:outline-none focus:ring-2 focus:ring-primary md:grid-cols-[1fr_auto]',
+                        urgent && 'border-l-4 border-status-cancel',
+                      )}
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <strong>{order.order_number ?? order.id}</strong>
+                          <OrderStatusBadge status={order.status} />
+                          {urgent && urgencyText && (
+                            <span className="rounded-full bg-status-cancel-bg px-2 py-0.5 text-xs font-extrabold text-status-cancel">
+                              {urgencyText}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-2 text-sm text-muted">
+                          {order.line_count} produits
+                          {order.pickup_slot?.starts_at && !urgent
+                            ? ` · ${formatTime(order.pickup_slot.starts_at)}`
+                            : ''}
+                        </p>
+                      </div>
+                      <strong className="text-right text-lg">{formatTnd(order.total_tnd)}</strong>
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </section>
       )}
 
