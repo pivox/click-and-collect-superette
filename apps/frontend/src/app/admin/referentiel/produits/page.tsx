@@ -14,6 +14,14 @@ import { listCategories } from '@/lib/services/admin/categories.service';
 import type { ProductReference, Brand, Category } from '@/lib/types/admin/referentiel.types';
 import { cn } from '@/lib/cn';
 
+const STATUS_LABELS: Record<string, string> = {
+  approved: 'Approuvé',
+  pending_review: 'À valider',
+  draft: 'Brouillon',
+  rejected: 'Rejeté',
+  archived: 'Archivé',
+};
+
 const STATUS_STYLES: Record<string, string> = {
   approved: 'bg-green-100 text-green-700',
   pending_review: 'bg-yellow-100 text-yellow-700',
@@ -71,7 +79,8 @@ export default function ProduitsPage() {
       });
       setProducts(data.items);
       setTotal(data.total);
-    } catch {
+    } catch (err) {
+      console.error('[produits] listProductReferences failed', err);
       setError('Impossible de charger les produits.');
     } finally {
       setIsLoading(false);
@@ -87,10 +96,10 @@ export default function ProduitsPage() {
       await archiveProductReference(archiveTarget.id);
       setArchiveTarget(null);
       void load();
-    } catch {
+    } catch (err) {
+      console.error('[produits] archiveProductReference failed', err);
       setError("Impossible d'archiver ce produit.");
       setArchiveTarget(null);
-      void load();
     }
   };
 
@@ -122,7 +131,7 @@ export default function ProduitsPage() {
             STATUS_STYLES[row.status] ?? 'bg-gray-100 text-gray-600',
           )}
         >
-          {row.status}
+          {STATUS_LABELS[row.status] ?? row.status}
         </span>
       ),
     },
@@ -187,16 +196,19 @@ export default function ProduitsPage() {
           className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary"
         >
           <option value="">Tous les statuts</option>
-          <option value="draft">draft</option>
-          <option value="pending_review">pending_review</option>
-          <option value="approved">approved</option>
-          <option value="rejected">rejected</option>
-          <option value="archived">archived</option>
+          <option value="draft">Brouillon</option>
+          <option value="pending_review">À valider</option>
+          <option value="approved">Approuvé</option>
+          <option value="rejected">Rejeté</option>
+          <option value="archived">Archivé</option>
         </select>
       </div>
       {error && (
-        <div className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
-          {error}
+        <div className="mb-4 flex items-center gap-3 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
+          <span className="flex-1">{error}</span>
+          <button onClick={() => void load()} className="shrink-0 font-semibold underline">
+            Réessayer
+          </button>
         </div>
       )}
       <AdminTable

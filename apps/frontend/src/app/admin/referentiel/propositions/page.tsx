@@ -54,7 +54,8 @@ export default function PropositionsPage() {
     setError(null);
     try {
       setProposals(await listProposals(statusFilter));
-    } catch {
+    } catch (err) {
+      console.error('[propositions] listProposals failed', err);
       setError('Impossible de charger les propositions.');
     } finally {
       setIsLoading(false);
@@ -102,8 +103,11 @@ export default function PropositionsPage() {
         />
       </div>
       {error && (
-        <div className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
-          {error}
+        <div className="mb-4 flex items-center gap-3 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
+          <span className="flex-1">{error}</span>
+          <button onClick={() => void load()} className="shrink-0 font-semibold underline">
+            Réessayer
+          </button>
         </div>
       )}
       <div className="rounded-xl border border-line bg-card overflow-hidden">

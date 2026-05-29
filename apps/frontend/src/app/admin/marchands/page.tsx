@@ -14,6 +14,8 @@ import type { Merchant } from '@/lib/types/admin/merchants.types';
 
 const PAGE_SIZE = 20;
 
+type StatusFilter = '' | 'active' | 'suspended';
+
 export default function MarchandsPage() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,12 +24,17 @@ export default function MarchandsPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Merchant | null>(null);
   const [suspendTarget, setSuspendTarget] = useState<Merchant | null>(null);
   const [activateTarget, setActivateTarget] = useState<Merchant | null>(null);
 
-  const { sorted, sortKey, sortDir, toggleSort } = useSort(merchants);
+  const { sorted: sortedAll, sortKey, sortDir, toggleSort } = useSort(merchants);
+
+  const sorted = statusFilter === ''
+    ? sortedAll
+    : sortedAll.filter((m) => statusFilter === 'active' ? m.is_active : !m.is_active);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 400);
@@ -41,7 +48,8 @@ export default function MarchandsPage() {
       const data = await listMerchants(page, PAGE_SIZE, debouncedSearch || undefined);
       setMerchants(data.items);
       setTotal(data.total);
-    } catch {
+    } catch (err) {
+      console.error('[marchands] listMerchants failed', err);
       setError('Impossible de charger les marchands.');
     } finally {
       setIsLoading(false);
@@ -49,7 +57,7 @@ export default function MarchandsPage() {
   }, [page, debouncedSearch]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { setPage(1); }, [debouncedSearch]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
 
   const handleSuspend = async () => {
     if (!suspendTarget) return;
@@ -57,7 +65,8 @@ export default function MarchandsPage() {
       await suspendMerchant(suspendTarget.id);
       setSuspendTarget(null);
       void load();
-    } catch {
+    } catch (err) {
+      console.error('[marchands] suspendMerchant failed', err);
       setError('Impossible de suspendre ce marchand.');
       setSuspendTarget(null);
     }
@@ -69,7 +78,8 @@ export default function MarchandsPage() {
       await activateMerchant(activateTarget.id);
       setActivateTarget(null);
       void load();
-    } catch {
+    } catch (err) {
+      console.error('[marchands] activateMerchant failed', err);
       setError('Impossible de réactiver ce marchand.');
       setActivateTarget(null);
     }
@@ -87,6 +97,7 @@ export default function MarchandsPage() {
         <div>
           <div className="font-medium">{merchantName(row)}</div>
           <div className="text-xs text-muted">{row.email}</div>
+          {row.phone && <div className="text-xs text-muted">{row.phone}</div>}
         </div>
       ),
     },
@@ -157,7 +168,7 @@ export default function MarchandsPage() {
           + Nouveau marchand
         </Button>
       </div>
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           type="text"
           placeholder="Rechercher par nom ou email…"
@@ -165,10 +176,31 @@ export default function MarchandsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-sm rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
+        <div className="flex items-center gap-2">
+          {([['', 'Tous'], ['active', 'Actifs'], ['suspended', 'Suspendus']] as [StatusFilter, string][]).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setStatusFilter(val)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                statusFilter === val
+                  ? 'bg-primary text-white'
+                  : 'bg-soft text-muted hover:bg-line'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          {statusFilter !== '' && (
+            <span className="text-xs text-muted">(page courante uniquement)</span>
+          )}
+        </div>
       </div>
       {error && (
-        <div className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
-          {error}
+        <div className="mb-4 flex items-center gap-3 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
+          <span className="flex-1">{error}</span>
+          <button onClick={() => void load()} className="shrink-0 font-semibold underline">
+            Réessayer
+          </button>
         </div>
       )}
       <AdminTable
@@ -196,7 +228,7 @@ export default function MarchandsPage() {
         onClose={() => setSuspendTarget(null)}
         onConfirm={handleSuspend}
         title="Suspendre le marchand"
-        message={`Suspendre le compte de ${suspendTarget ? merchantName(suspendTarget) : ''} ?`}
+        message={`Suspendre le compte de ${suspendTarget ? merchantName(suspendTarget) : ''} ? Le marchand ne pourra plus se connecter ni gérer ses supérettes. Les commandes en cours ne sont pas affectées.`}
         confirmLabel="Suspendre"
         variant="danger"
       />
@@ -205,7 +237,7 @@ export default function MarchandsPage() {
         onClose={() => setActivateTarget(null)}
         onConfirm={handleActivate}
         title="Réactiver le marchand"
-        message={`Réactiver le compte de ${activateTarget ? merchantName(activateTarget) : ''} ?`}
+        message={`Réactiver le compte de ${activateTarget ? merchantName(activateTarget) : ''} ? Le marchand retrouvera immédiatement accès à son espace et à ses supérettes.`}
         confirmLabel="Réactiver"
         variant="warning"
       />

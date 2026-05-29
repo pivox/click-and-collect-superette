@@ -40,7 +40,8 @@ export default function SuperettesPage() {
       });
       setStores(data.items);
       setTotal(data.total);
-    } catch {
+    } catch (err) {
+      console.error('[superettes] listStores failed', err);
       setError('Impossible de charger les supérettes.');
     } finally {
       setIsLoading(false);
@@ -56,7 +57,8 @@ export default function SuperettesPage() {
       await archiveStore(archiveTarget.id);
       setArchiveTarget(null);
       void load();
-    } catch {
+    } catch (err) {
+      console.error('[superettes] archiveStore failed', err);
       setError("Impossible d'archiver cette supérette.");
       setArchiveTarget(null);
     }
@@ -100,6 +102,18 @@ export default function SuperettesPage() {
           <div className={`font-medium ${row.archived_at ? 'text-muted' : ''}`}>{row.name}</div>
           {row.slug && (
             <div className="max-w-xs truncate text-xs text-muted">{row.slug}</div>
+          )}
+          {!row.archived_at && (
+            <span
+              className={`mt-1 inline-block rounded-full px-1.5 py-0.5 text-xs font-medium ${
+                row.products_count > 0
+                  ? 'bg-green-50 text-green-600'
+                  : 'bg-yellow-50 text-yellow-600'
+              }`}
+            >
+              {row.products_count > 0 ? '✓' : '!'}{' '}
+              {row.products_count} produit{row.products_count > 1 ? 's' : ''}
+            </span>
           )}
         </div>
       ),
@@ -195,8 +209,11 @@ export default function SuperettesPage() {
         </select>
       </div>
       {error && (
-        <div className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
-          {error}
+        <div className="mb-4 flex items-center gap-3 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
+          <span className="flex-1">{error}</span>
+          <button onClick={() => void load()} className="shrink-0 font-semibold underline">
+            Réessayer
+          </button>
         </div>
       )}
       <AdminTable
@@ -224,7 +241,7 @@ export default function SuperettesPage() {
         onClose={() => setArchiveTarget(null)}
         onConfirm={handleArchive}
         title="Archiver la supérette"
-        message={`Archiver "${archiveTarget?.name}" ? Les commandes actives seront annulées.`}
+        message={`Archiver "${archiveTarget?.name}" ? La supérette ne sera plus visible pour les clients. Toutes les commandes actives seront annulées. Les données sont conservées et l'opération n'est pas réversible depuis l'interface.`}
         confirmLabel="Archiver"
         variant="warning"
       />
