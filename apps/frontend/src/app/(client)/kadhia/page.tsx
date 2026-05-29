@@ -40,12 +40,20 @@ function EmptyState({ tab }: { tab: TabKey }) {
 function KadhiaCard({ item }: { item: KadhiaListItem }) {
   const { tone, label } = orderStatusBadge(item.status as OrderStatus);
   const isDraft = item.status === "draft";
+  const title = item.notes?.trim() || null;
 
   return (
     <Card as="article" className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-extrabold text-sm">{item.storeName}</p>
+          {title ? (
+            <>
+              <p className="truncate font-extrabold text-sm">{title}</p>
+              <p className="mt-0.5 text-xs text-muted">{item.storeName}</p>
+            </>
+          ) : (
+            <p className="truncate font-extrabold text-sm">{item.storeName}</p>
+          )}
           <p className="mt-0.5 text-xs text-muted">
             {item.linesCount} article{item.linesCount > 1 ? "s" : ""} · {formatTnd(item.totalTnd)}
           </p>
