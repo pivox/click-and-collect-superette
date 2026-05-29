@@ -25,6 +25,7 @@ export default function OrderTrackingPage({
   const [order, setOrder] = useState<Order | null>(null);
   const [fetchDone, setFetchDone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -35,9 +36,12 @@ export default function OrderTrackingPage({
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    setRefreshError(null);
     try {
       const fresh = await getOrder(orderId);
       if (fresh) setOrder(fresh);
+    } catch {
+      setRefreshError("Impossible d'actualiser. Vérifie ta connexion.");
     } finally {
       setRefreshing(false);
     }
@@ -111,6 +115,11 @@ export default function OrderTrackingPage({
                 {refreshing ? "Actualisation…" : "Actualiser"}
               </button>
             </div>
+            {refreshError && (
+              <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                {refreshError}
+              </p>
+            )}
             <Card>
               <Timeline steps={steps} />
             </Card>

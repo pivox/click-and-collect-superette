@@ -41,6 +41,7 @@ export default function CatalogPage({
   const [selectorDrafts, setSelectorDrafts] = useState<KadhiaListItem[] | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let cancelled = false;
     setCatalogError(null);
@@ -49,7 +50,6 @@ export default function CatalogPage({
       .then((data) => { if (!cancelled) { setProducts(data); setIsLoading(false); } })
       .catch(() => { if (!cancelled) { setCatalogError("Impossible de charger le catalogue."); setIsLoading(false); } });
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopId, category, search, retryKey]);
 
   useEffect(() => {

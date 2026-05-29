@@ -24,7 +24,14 @@ function groupByPeriod(slots: PickupSlot[]): SlotGroup[] {
     .map(({ label, minH, maxH }) => ({
       label,
       slots: slots.filter((s) => {
-        const h = new Date(s.startsAt).getHours();
+        const h = parseInt(
+          new Intl.DateTimeFormat("fr-FR", {
+            hour: "2-digit",
+            hourCycle: "h23",
+            timeZone: "Africa/Tunis",
+          }).format(new Date(s.startsAt)),
+          10,
+        );
         return h >= minH && h < maxH;
       }),
     }))
