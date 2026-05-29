@@ -15,6 +15,7 @@ import {
   readLocalKadhia,
   discardKadhia,
 } from "@/lib/services";
+import type { KadhiaResult } from "@/lib/services/kadhia.service";
 import { formatTnd } from "@/lib/format";
 import type { Kadhia } from "@/types";
 
@@ -31,24 +32,15 @@ export default function KadhiaPage() {
     setShopId(sid);
     if (sid) {
       void getCurrentKadhia(sid)
-        .then((remote) => {
-          // If the backend has no kadhia yet, prefer the locally-built one
-          if (remote.lines.length === 0) {
-            const local = readLocalKadhia();
-            if (local?.shopId === sid && local.lines.length > 0) {
-              setKadhia(local);
-              return;
-            }
-          }
-          setKadhia(remote);
+        .then((result: KadhiaResult) => {
+          if (result.type === "active") setKadhia(result.kadhia);
+          // "none" or "multiple" → kadhia stays null, user can navigate to catalog
         })
         .catch((err: unknown) => {
           const status = (err as { response?: { status?: number } }).response?.status;
           if (status !== 404 && status !== 405) {
             console.error("[KadhiaPage] getCurrentKadhia failed:", err);
           }
-          const local = readLocalKadhia();
-          if (local?.shopId === sid) setKadhia(local);
         });
     }
   }, []);
@@ -66,10 +58,10 @@ export default function KadhiaPage() {
   };
 
   const onQuantity = async (lineId: string, q: number) => {
-    if (!shopId) return;
+    if (!shopId || !kadhia?.id) return;
     setQuantityError(null);
     try {
-      const next = await updateLineQuantity(shopId, lineId, q);
+      const next = await updateLineQuantity(shopId, kadhia.id, lineId, q);
       setKadhia(next);
     } catch {
       setQuantityError("Impossible de mettre à jour la quantité. Réessaie.");
