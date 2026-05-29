@@ -494,6 +494,46 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         return $product;
     }
 
+    public function testSubmitAlreadySubmittedKadhiaReturnsExistingOrder(): void
+    {
+        $customer = $this->createUser('submit-idempotent@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop, capacity: 5);
+        $product = $this->createMerchantProduct($shop, '2.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
+
+        // First submit
+        $first = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+        self::assertSame(201, $first->getStatusCode());
+        $firstPayload = $this->decodeJson($first);
+        $firstOrderId = $firstPayload['id'];
+
+        // Second submit — same Kadhia, same slot
+        $second = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+        self::assertSame(201, $second->getStatusCode());
+        $secondPayload = $this->decodeJson($second);
+
+        // Same order returned — no duplicate created
+        self::assertSame($firstOrderId, $secondPayload['id']);
+        $this->entityManager->clear();
+        self::assertCount(1, $this->entityManager->getRepository(Order::class)->findAll());
+
+        // Slot booked count was NOT incremented a second time
+        $updatedSlot = $this->entityManager->getRepository(PickupSlot::class)->find($slot->getId());
+        self::assertNotNull($updatedSlot);
+        self::assertSame(1, $updatedSlot->getBookedCount());
+    }
+
     private function createKadhiaWithLine(
         User $customer,
         Shop $shop,

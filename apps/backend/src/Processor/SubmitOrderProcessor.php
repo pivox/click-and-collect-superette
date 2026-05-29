@@ -78,6 +78,11 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         }
 
         if (KadhiaStatus::Draft !== $kadhia->getStatus()) {
+            // Idempotent: if the Kadhia is already submitted and an order exists, return it.
+            $activeOrder = $this->orderRepository->findActiveByKadhia($kadhia);
+            if (null !== $activeOrder) {
+                return $this->orderOutputFactory->toOutput($activeOrder);
+            }
             throw new UnprocessableEntityHttpException('KADHIA_NOT_DRAFT');
         }
 
