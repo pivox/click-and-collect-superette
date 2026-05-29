@@ -48,7 +48,8 @@ export default function MarchandsPage() {
       const data = await listMerchants(page, PAGE_SIZE, debouncedSearch || undefined);
       setMerchants(data.items);
       setTotal(data.total);
-    } catch {
+    } catch (err) {
+      console.error('[marchands] listMerchants failed', err);
       setError('Impossible de charger les marchands.');
     } finally {
       setIsLoading(false);
@@ -64,7 +65,8 @@ export default function MarchandsPage() {
       await suspendMerchant(suspendTarget.id);
       setSuspendTarget(null);
       void load();
-    } catch {
+    } catch (err) {
+      console.error('[marchands] suspendMerchant failed', err);
       setError('Impossible de suspendre ce marchand.');
       setSuspendTarget(null);
     }
@@ -76,7 +78,8 @@ export default function MarchandsPage() {
       await activateMerchant(activateTarget.id);
       setActivateTarget(null);
       void load();
-    } catch {
+    } catch (err) {
+      console.error('[marchands] activateMerchant failed', err);
       setError('Impossible de réactiver ce marchand.');
       setActivateTarget(null);
     }
@@ -173,7 +176,7 @@ export default function MarchandsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-sm rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {([['', 'Tous'], ['active', 'Actifs'], ['suspended', 'Suspendus']] as [StatusFilter, string][]).map(([val, label]) => (
             <button
               key={val}
@@ -187,6 +190,9 @@ export default function MarchandsPage() {
               {label}
             </button>
           ))}
+          {statusFilter !== '' && (
+            <span className="text-xs text-muted">(page courante uniquement)</span>
+          )}
         </div>
       </div>
       {error && (

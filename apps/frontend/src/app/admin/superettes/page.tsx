@@ -40,7 +40,8 @@ export default function SuperettesPage() {
       });
       setStores(data.items);
       setTotal(data.total);
-    } catch {
+    } catch (err) {
+      console.error('[superettes] listStores failed', err);
       setError('Impossible de charger les supérettes.');
     } finally {
       setIsLoading(false);
@@ -56,7 +57,8 @@ export default function SuperettesPage() {
       await archiveStore(archiveTarget.id);
       setArchiveTarget(null);
       void load();
-    } catch {
+    } catch (err) {
+      console.error('[superettes] archiveStore failed', err);
       setError("Impossible d'archiver cette supérette.");
       setArchiveTarget(null);
     }
@@ -90,15 +92,6 @@ export default function SuperettesPage() {
     }
   };
 
-  const completenessChips = (row: Store) => {
-    const chips: { label: string; ok: boolean }[] = [
-      { label: 'Logo', ok: !!row.logo_url },
-      { label: 'Cover', ok: !!row.cover_url },
-      { label: `${row.products_count} produit${row.products_count > 1 ? 's' : ''}`, ok: row.products_count > 0 },
-    ];
-    return chips;
-  };
-
   const columns: Column<Store>[] = [
     {
       key: 'name',
@@ -111,20 +104,16 @@ export default function SuperettesPage() {
             <div className="max-w-xs truncate text-xs text-muted">{row.slug}</div>
           )}
           {!row.archived_at && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {completenessChips(row).map((chip) => (
-                <span
-                  key={chip.label}
-                  className={`rounded-full px-1.5 py-0.5 text-xs font-medium ${
-                    chip.ok
-                      ? 'bg-green-50 text-green-600'
-                      : 'bg-yellow-50 text-yellow-600'
-                  }`}
-                >
-                  {chip.ok ? '✓' : '!'} {chip.label}
-                </span>
-              ))}
-            </div>
+            <span
+              className={`mt-1 inline-block rounded-full px-1.5 py-0.5 text-xs font-medium ${
+                row.products_count > 0
+                  ? 'bg-green-50 text-green-600'
+                  : 'bg-yellow-50 text-yellow-600'
+              }`}
+            >
+              {row.products_count > 0 ? '✓' : '!'}{' '}
+              {row.products_count} produit{row.products_count > 1 ? 's' : ''}
+            </span>
           )}
         </div>
       ),

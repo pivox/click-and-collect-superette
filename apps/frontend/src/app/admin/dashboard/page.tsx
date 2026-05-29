@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { listMerchants } from '@/lib/services/admin/merchants.service';
 import { listStores } from '@/lib/services/admin/stores.service';
@@ -35,7 +35,7 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     setIsLoading(true);
     setError(null);
     void Promise.all([
@@ -56,11 +56,14 @@ export default function AdminDashboard() {
           { label: 'Propositions en attente', value: pending, href: '/admin/referentiel/propositions' },
         ]);
       })
-      .catch(() => setError('Impossible de charger les indicateurs.'))
+      .catch((err: unknown) => {
+        console.error('[dashboard] load failed', err);
+        setError('Impossible de charger les indicateurs.');
+      })
       .finally(() => setIsLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [load]);
 
   const actionBlocks: ActionBlock[] = [
     ...(pendingProposals > 0

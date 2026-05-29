@@ -54,7 +54,8 @@ export default function PropositionsPage() {
     setError(null);
     try {
       setProposals(await listProposals(statusFilter));
-    } catch {
+    } catch (err) {
+      console.error('[propositions] listProposals failed', err);
       setError('Impossible de charger les propositions.');
     } finally {
       setIsLoading(false);

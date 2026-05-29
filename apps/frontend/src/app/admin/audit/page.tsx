@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { useSort } from '@/lib/hooks/useSort';
 import { listAuditLogs } from '@/lib/services/admin/audit-logs.service';
@@ -10,22 +10,31 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleCopy = () => {
-    void navigator.clipboard.writeText(value).then(() => {
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+      setFailed(false);
+      timerRef.current = setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setFailed(true);
+      timerRef.current = setTimeout(() => setFailed(false), 2000);
+    }
   };
 
   return (
     <button
       type="button"
-      onClick={handleCopy}
+      onClick={() => void handleCopy()}
       title="Copier l'identifiant"
       className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs text-muted hover:bg-soft hover:text-ink"
     >
-      {copied ? '✓' : '⧉'}
+      {copied ? '✓' : failed ? '✗' : '⧉'}
     </button>
   );
 }
@@ -76,7 +85,8 @@ export default function AuditPage() {
       });
       setLogs(data.items);
       setTotal(data.total);
-    } catch {
+    } catch (err) {
+      console.error('[audit] listAuditLogs failed', err);
       setError("Impossible de charger les logs d'audit.");
     } finally {
       setIsLoading(false);

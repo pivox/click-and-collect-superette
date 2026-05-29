@@ -79,7 +79,8 @@ export default function ProduitsPage() {
       });
       setProducts(data.items);
       setTotal(data.total);
-    } catch {
+    } catch (err) {
+      console.error('[produits] listProductReferences failed', err);
       setError('Impossible de charger les produits.');
     } finally {
       setIsLoading(false);
@@ -95,10 +96,10 @@ export default function ProduitsPage() {
       await archiveProductReference(archiveTarget.id);
       setArchiveTarget(null);
       void load();
-    } catch {
+    } catch (err) {
+      console.error('[produits] archiveProductReference failed', err);
       setError("Impossible d'archiver ce produit.");
       setArchiveTarget(null);
-      void load();
     }
   };
 
