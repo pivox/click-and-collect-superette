@@ -24,8 +24,29 @@ export async function getShop(shopId: string): Promise<Shop | null> {
     // Real UUID from search: fall through to real API
   }
   try {
-    const { data } = await apiClient.get<Shop>(`/api/stores/${shopId}`);
-    return data;
+    const { data } = await apiClient.get<{
+      id: string;
+      name: string;
+      slug: string;
+      city: string | null;
+      country?: string;
+      is_active: boolean;
+      next_pickup_at?: string | null;
+      opens_at?: string | null;
+      closes_at?: string | null;
+    }>(`/api/stores/${shopId}`);
+    return {
+      id: data.id,
+      name: data.name,
+      slug: data.slug,
+      city: data.city,
+      isActive: data.is_active,
+      address: null,
+      phone: null,
+      nextPickupAt: data.next_pickup_at ?? null,
+      opensAt: data.opens_at ?? undefined,
+      closesAt: data.closes_at ?? undefined,
+    };
   } catch (err) {
     const status = (err as { response?: { status?: number } }).response?.status;
     if (status === 404) return null;
