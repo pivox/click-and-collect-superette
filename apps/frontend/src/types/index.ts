@@ -83,6 +83,7 @@ export interface Kadhia {
   status: OrderStatus;
   lines: KadhiaLine[];
   totalTnd: string;
+  orderId?: string | null;
 }
 
 export interface PickupSlot {

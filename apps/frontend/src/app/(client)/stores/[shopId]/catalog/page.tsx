@@ -127,7 +127,7 @@ export default function CatalogPage({
         backHref={`/stores/${shopId}`}
         action={
           <Link
-            href="/kadhia"
+            href={kadhia?.id ? `/kadhia/${kadhia.id}` : "/kadhia"}
             aria-label="Voir ma Kadhia"
             className="relative grid h-10 w-10 place-items-center rounded-[15px] border border-line bg-card shadow-[0_8px_18px_rgba(18,30,20,.06)] md:hidden"
           >
@@ -166,7 +166,7 @@ export default function CatalogPage({
           <header className="mb-2.5 flex items-baseline justify-between">
             <h3 className="m-0 text-h3 font-extrabold">Produits</h3>
             {hasActiveKadhia && (
-              <Link href="/kadhia" className="text-xs font-extrabold text-primary md:hidden">
+              <Link href={`/kadhia/${kadhia!.id}`} className="text-xs font-extrabold text-primary md:hidden">
                 {cartLabel}
               </Link>
             )}
@@ -225,7 +225,7 @@ export default function CatalogPage({
       {/* Active Kadhia summary bar — shown on mobile when kadhia has items */}
       {hasActiveKadhia && cartCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-line bg-white px-4 pb-[env(safe-area-inset-bottom)] pt-3 shadow-[0_-4px_16px_rgba(18,30,20,.08)] md:hidden">
-          <Link href="/kadhia" className="mx-auto flex max-w-md items-center justify-between">
+          <Link href={`/kadhia/${kadhia!.id}`} className="mx-auto flex max-w-md items-center justify-between">
             <span className="text-sm font-bold">{cartLabel}</span>
             <span className="text-sm font-extrabold text-primary">{formatTnd(kadhia!.totalTnd)}</span>
           </Link>
