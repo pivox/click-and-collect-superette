@@ -40,6 +40,7 @@ export default function CatalogPage({
   const [isStarting, setIsStarting] = useState(false);
   const [selectorDrafts, setSelectorDrafts] = useState<KadhiaListItem[] | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [kadhiaLoadError, setKadhiaLoadError] = useState<string | null>(null);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -53,13 +54,19 @@ export default function CatalogPage({
   }, [shopId, category, search, retryKey]);
 
   useEffect(() => {
+    setKadhiaLoadError(null);
     void getCurrentKadhia(shopId)
       .then((result) => {
         if (result.type === "active") setKadhia(result.kadhia);
         else if (result.type === "multiple") setSelectorDrafts(result.drafts);
         // "none" → kadhia stays null → "Commencer" bar is shown
       })
-      .catch(() => { /* kadhia indisponible, on reste en état "none" */ });
+      .catch((err: unknown) => {
+        const status = (err as { response?: { status?: number } }).response?.status;
+        if (status !== 404 && status !== 405) {
+          setKadhiaLoadError("Impossible de charger ta Kadhia. Réessaie.");
+        }
+      });
   }, [shopId]);
 
   useEffect(() => {
@@ -70,18 +77,25 @@ export default function CatalogPage({
 
   const onStart = async () => {
     setIsStarting(true);
+    setAddError(null);
     try {
       const created = await createKadhia(shopId);
       setKadhia(created);
+    } catch {
+      setAddError("Impossible de créer une Kadhia. Réessaie.");
     } finally {
       setIsStarting(false);
     }
   };
 
   const onSelectDraft = async (kadhiaId: string) => {
-    setSelectorDrafts(null);
-    const activated = await activateKadhia(shopId, kadhiaId);
-    setKadhia(activated);
+    try {
+      const activated = await activateKadhia(shopId, kadhiaId);
+      setSelectorDrafts(null);
+      setKadhia(activated);
+    } catch {
+      setAddError("Impossible de charger cette Kadhia. Réessaie.");
+    }
   };
 
   const onCreateNewFromSelector = async () => {
@@ -252,12 +266,32 @@ export default function CatalogPage({
       {/* "Commencer une Kadhia" bar — shown only when no active kadhia */}
       {!hasActiveKadhia && !selectorDrafts && (
         <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-line bg-white px-4 pb-[env(safe-area-inset-bottom)] pt-3 shadow-[0_-4px_16px_rgba(18,30,20,.08)]">
-          <div className="mx-auto flex max-w-md items-center justify-between gap-3">
-            <p className="text-sm text-muted">Commence une Kadhia pour ajouter des produits.</p>
-            <Button onClick={onStart} disabled={isStarting} className="shrink-0">
-              {isStarting ? "…" : "Commencer"}
-            </Button>
-          </div>
+          {kadhiaLoadError ? (
+            <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+              <p className="text-sm text-red-600">{kadhiaLoadError}</p>
+              <Button
+                onClick={() => {
+                  setKadhiaLoadError(null);
+                  void getCurrentKadhia(shopId)
+                    .then((result) => {
+                      if (result.type === "active") setKadhia(result.kadhia);
+                      else if (result.type === "multiple") setSelectorDrafts(result.drafts);
+                    })
+                    .catch(() => setKadhiaLoadError("Impossible de charger ta Kadhia. Réessaie."));
+                }}
+                className="shrink-0"
+              >
+                Réessayer
+              </Button>
+            </div>
+          ) : (
+            <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+              <p className="text-sm text-muted">Commence une Kadhia pour ajouter des produits.</p>
+              <Button onClick={onStart} disabled={isStarting} className="shrink-0">
+                {isStarting ? "…" : "Commencer"}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

@@ -47,14 +47,8 @@ export async function listOrders(): Promise<Order[]> {
   if (USE_MOCKS) {
     return mockDelay([MOCK_ORDER]);
   }
-  try {
-    const { data } = await apiClient.get<{ "hydra:member": RawOrder[] }>(
-      "/api/me/orders"
-    );
-    return (data["hydra:member"] ?? []).map(mapRawOrder);
-  } catch {
-    return [];
-  }
+  const { data } = await apiClient.get<{ "hydra:member": RawOrder[] }>("/api/me/orders");
+  return (data["hydra:member"] ?? []).map(mapRawOrder);
 }
 
 export async function getOrder(orderId: string): Promise<Order | null> {

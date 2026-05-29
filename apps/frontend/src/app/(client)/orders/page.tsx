@@ -13,11 +13,17 @@ import type { Order } from "@/types";
 export default function OrdersListPage() {
   const { user, isLoading } = useClientAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (isLoading || !user) return;
-    void listOrders().then(setOrders);
-  }, [isLoading, user]);
+    setOrdersError(null);
+    void listOrders()
+      .then(setOrders)
+      .catch(() => setOrdersError("Impossible de charger les commandes. Vérifie ta connexion."));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, user, retryKey]);
 
   if (isLoading) return null;
 
@@ -33,6 +39,17 @@ export default function OrdersListPage() {
             pour voir tes commandes.
           </p>
         </Card>
+      ) : ordersError ? (
+        <div className="py-8 text-center">
+          <p className="text-sm text-muted">{ordersError}</p>
+          <button
+            type="button"
+            onClick={() => setRetryKey((k) => k + 1)}
+            className="mt-3 text-sm font-extrabold text-primary underline"
+          >
+            Réessayer
+          </button>
+        </div>
       ) : orders.length === 0 ? (
         <Card className="text-center">
           <p className="py-4 text-sm text-muted">Aucune commande pour le moment.</p>
