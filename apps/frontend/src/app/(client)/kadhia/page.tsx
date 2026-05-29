@@ -4,145 +4,141 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
+import { Pill, PillRow } from "@/components/ui/Pill";
 import { Card } from "@/components/ui/Card";
+import { Badge, orderStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Summary, SummaryRow } from "@/components/ui/Summary";
-import { StickyBottom } from "@/components/layout/StickyBottom";
-import { KadhiaLineRow } from "@/components/product/KadhiaLineRow";
-import {
-  getCurrentKadhia,
-  updateLineQuantity,
-  readLocalKadhia,
-  discardKadhia,
-} from "@/lib/services";
-import type { KadhiaResult } from "@/lib/services/kadhia.service";
-import { formatTnd } from "@/lib/format";
-import type { Kadhia } from "@/types";
+import { listMyKadhias } from "@/lib/services";
+import type { KadhiaListItem } from "@/lib/services/kadhia.service";
+import { formatTnd, formatRelativeDate } from "@/lib/format";
+import { useClientAuth } from "@/lib/auth/ClientAuthContext";
+import type { OrderStatus } from "@/types";
 
-export default function KadhiaPage() {
+type TabKey = "draft" | "submitted";
+
+function EmptyState({ tab }: { tab: TabKey }) {
+  if (tab === "draft") {
+    return (
+      <div className="mt-8 text-center">
+        <p className="text-sm text-muted">Aucune Kadhia en cours.</p>
+        <p className="mt-1 text-sm text-muted">
+          Scanne le QR code d&apos;une supérette pour commencer.
+        </p>
+        <Link href="/stores" className="mt-4 inline-block">
+          <Button>Trouver une supérette</Button>
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <p className="mt-8 text-center text-sm text-muted">
+      Aucune Kadhia envoyée pour le moment.
+    </p>
+  );
+}
+
+function KadhiaCard({ item }: { item: KadhiaListItem }) {
+  const { tone, label } = orderStatusBadge(item.status as OrderStatus);
+  const isDraft = item.status === "draft";
+
+  return (
+    <Card as="article" className="flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-extrabold text-sm">{item.storeName}</p>
+          <p className="mt-0.5 text-xs text-muted">
+            {item.linesCount} article{item.linesCount > 1 ? "s" : ""} · {formatTnd(item.totalTnd)}
+          </p>
+        </div>
+        <Badge tone={tone} className="shrink-0">
+          {label}
+        </Badge>
+      </div>
+
+      <p className="text-xs text-muted">{formatRelativeDate(item.updatedAt)}</p>
+
+      <div className="flex gap-2">
+        {isDraft ? (
+          <Link href={`/kadhia/${item.id}`}>
+            <Button>Continuer</Button>
+          </Link>
+        ) : (
+          <Link href={`/kadhia/${item.id}`}>
+            <Button>Voir</Button>
+          </Link>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+export default function MesKadhiasPage() {
   const router = useRouter();
-  const [kadhia, setKadhia] = useState<Kadhia | null>(null);
-  const [shopId, setShopId] = useState<string | null>(null);
-  const [quantityError, setQuantityError] = useState<string | null>(null);
-  const [discarding, setDiscarding] = useState(false);
+  const { user, isLoading } = useClientAuth();
+  const [tab, setTab] = useState<TabKey>("draft");
+  const [kadhias, setKadhias] = useState<KadhiaListItem[]>([]);
+  const [fetching, setFetching] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const local = readLocalKadhia();
-    const sid = local?.shopId ?? null;
-    setShopId(sid);
-    if (sid) {
-      void getCurrentKadhia(sid)
-        .then((result: KadhiaResult) => {
-          if (result.type === "active") setKadhia(result.kadhia);
-          // "none" or "multiple" → kadhia stays null, user can navigate to catalog
-        })
-        .catch((err: unknown) => {
-          const status = (err as { response?: { status?: number } }).response?.status;
-          if (status !== 404 && status !== 405) {
-            console.error("[KadhiaPage] getCurrentKadhia failed:", err);
-          }
-        });
+    if (!isLoading && !user) {
+      router.push("/login?redirect=/kadhia");
     }
-  }, []);
+  }, [isLoading, user, router]);
 
-  const onDiscard = async () => {
-    if (!shopId) return;
-    if (!window.confirm("Supprimer cette Kadhia ? Tu pourras recommencer depuis le catalogue.")) return;
-    setDiscarding(true);
-    try {
-      await discardKadhia(shopId);
-      router.push(shopId ? `/stores/${shopId}/catalog` : "/stores");
-    } catch {
-      setDiscarding(false);
-    }
-  };
+  useEffect(() => {
+    if (isLoading || !user) return;
+    setFetching(true);
+    setError(null);
+    void listMyKadhias(tab)
+      .then((r) => {
+        setKadhias(r.items);
+        setFetching(false);
+      })
+      .catch(() => {
+        setError("Impossible de charger les Kadhia. Réessaie.");
+        setFetching(false);
+      });
+  }, [tab, isLoading, user]);
 
-  const onQuantity = async (lineId: string, q: number) => {
-    if (!shopId || !kadhia?.id) return;
-    setQuantityError(null);
-    try {
-      const next = await updateLineQuantity(shopId, kadhia.id, lineId, q);
-      setKadhia(next);
-    } catch {
-      setQuantityError("Impossible de mettre à jour la quantité. Réessaie.");
-    }
-  };
-
-  const empty = !kadhia || kadhia.lines.length === 0;
-  const articleCount = kadhia?.lines.reduce((a, l) => a + l.quantity, 0) ?? 0;
-  const catalogHref = shopId ? `/stores/${shopId}/catalog` : "/stores";
+  if (isLoading || !user) return null;
 
   return (
     <>
-      <TopBar
-        title="Ma Kadhia"
-        subtitle={
-          empty
-            ? "Aucun article pour le moment"
-            : `${articleCount} article${articleCount > 1 ? "s" : ""}`
-        }
-        backHref={catalogHref}
-      />
+      <TopBar title="Mes Kadhia" subtitle="Brouillons et commandes envoyées" />
 
-      {empty ? (
-        <Card className="text-center">
-          <h3 className="mt-2 text-h3 font-extrabold">Ta Kadhia est vide</h3>
-          <p className="mt-2 text-sm text-muted">
-            Ajoute des produits depuis le catalogue de ta supérette.
-          </p>
-          <Link href={catalogHref} className="mt-4 inline-block">
-            <Button>Aller au catalogue</Button>
-          </Link>
-        </Card>
-      ) : (
-        <>
-          <section className="grid gap-2.5">
-            {kadhia.lines.map((l) => (
-              <KadhiaLineRow key={l.id} line={l} onQuantity={onQuantity} />
-            ))}
-          </section>
+      <PillRow className="mb-4">
+        <Pill active={tab === "draft"} onClick={() => setTab("draft")}>
+          En cours
+        </Pill>
+        <Pill active={tab === "submitted"} onClick={() => setTab("submitted")}>
+          Envoyées
+        </Pill>
+      </PillRow>
 
-          {quantityError && (
-            <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
-              {quantityError}
-            </p>
-          )}
-
-          <Card className="mt-4">
-            <Summary>
-              <SummaryRow
-                label="Sous-total"
-                value={formatTnd(kadhia.totalTnd)}
-              />
-              <SummaryRow label="Service" value={formatTnd("0.000")} />
-              <SummaryRow
-                total
-                label="Total estimé"
-                value={formatTnd(kadhia.totalTnd)}
-              />
-            </Summary>
-          </Card>
-
-          <p className="mt-3 text-xs text-muted leading-relaxed">
-            Le prix sera figé au moment de la soumission de commande.
-          </p>
-
-          <div className="mt-4 text-center">
-            <button
-              onClick={onDiscard}
-              disabled={discarding}
-              className="text-sm text-red-500 underline disabled:opacity-50"
+      {fetching ? (
+        <div className="grid gap-3">
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-lg border border-line bg-card p-4 shadow-soft"
             >
-              {discarding ? "Suppression…" : "Supprimer cette Kadhia"}
-            </button>
-          </div>
-
-          <StickyBottom>
-            <Link href="/kadhia/slot">
-              <Button full>Choisir un créneau</Button>
-            </Link>
-          </StickyBottom>
-        </>
+              <div className="mb-2 h-4 w-2/3 rounded bg-gray-200" />
+              <div className="mb-3 h-3 w-1/3 rounded bg-gray-200" />
+              <div className="h-8 w-24 rounded-lg bg-gray-200" />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
+      ) : kadhias.length === 0 ? (
+        <EmptyState tab={tab} />
+      ) : (
+        <section className="grid gap-3">
+          {kadhias.map((k) => (
+            <KadhiaCard key={k.id} item={k} />
+          ))}
+        </section>
       )}
     </>
   );

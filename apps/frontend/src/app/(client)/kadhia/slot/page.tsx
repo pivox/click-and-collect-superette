@@ -47,6 +47,7 @@ export default function SlotPage() {
   const router = useRouter();
   const { user, isLoading } = useClientAuth();
   const [shopId, setShopId] = useState<string | null>(null);
+  const [kadhiaId, setKadhiaId] = useState<string | null>(null);
   const [slots, setSlots] = useState<PickupSlot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [day, setDay] = useState<"today" | "tomorrow" | "after">("today");
@@ -71,6 +72,7 @@ export default function SlotPage() {
       return;
     }
     setShopId(kadhia.shopId);
+    setKadhiaId(kadhia.id || null);
   }, [isLoading, user, router]);
 
   useEffect(() => {
@@ -112,7 +114,7 @@ export default function SlotPage() {
       <TopBar
         title="Créneau de retrait"
         subtitle="Choisis quand récupérer ta commande"
-        backHref="/kadhia"
+        backHref={kadhiaId ? `/kadhia/${kadhiaId}` : "/kadhia"}
       />
 
       <PillRow className="mb-4">

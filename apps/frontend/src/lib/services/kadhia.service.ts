@@ -131,6 +131,7 @@ function mapKadhia(data: ApiKadhia): Kadhia {
     status: data.status as Kadhia["status"],
     lines: data.lines.map(mapLine),
     totalTnd: data.total_tnd,
+    orderId: data.order_id,
   };
 }
 
@@ -320,6 +321,72 @@ export async function updateLineQuantity(
     { quantity: absoluteQty },
   );
   return mapKadhia(data);
+}
+
+export interface KadhiaListResult {
+  items: KadhiaListItem[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+/** Lists the authenticated customer's Kadhias, filtered by status. */
+export async function listMyKadhias(status?: string, page = 1): Promise<KadhiaListResult> {
+  if (USE_MOCKS) {
+    const mock = readMock();
+    if (!mock || (status && mock.status !== status)) {
+      return mockDelay({ items: [], total: 0, page: 1, pages: 1 });
+    }
+    const item: KadhiaListItem = {
+      id: mock.id,
+      storeId: mock.shopId,
+      storeName: "Ma Supérette",
+      status: mock.status,
+      linesCount: mock.lines.length,
+      totalTnd: mock.totalTnd,
+      updatedAt: new Date().toISOString(),
+    };
+    return mockDelay({ items: [item], total: 1, page: 1, pages: 1 });
+  }
+
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (page > 1) params.set("page", String(page));
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const { data } = await apiClient.get<{ items: ApiListItem[]; total: number; page: number; pages: number }>(
+    `/api/me/kadhias${query}`,
+  );
+  return {
+    items: data.items.map((k) => ({
+      id: k.id,
+      storeId: k.store_id,
+      storeName: k.store_name,
+      status: k.status,
+      linesCount: k.lines_count,
+      totalTnd: k.total_tnd,
+      updatedAt: k.updated_at,
+    })),
+    total: data.total,
+    page: data.page,
+    pages: data.pages,
+  };
+}
+
+/** Fetches a single Kadhia by ID and sets it as the active context for the slot page. */
+export async function fetchKadhia(kadhiaId: string): Promise<Kadhia> {
+  if (USE_MOCKS) {
+    const mock = readMock();
+    if (mock) {
+      writeContext({ shopId: mock.shopId, kadhiaId: mock.id });
+      return mockDelay(mock);
+    }
+    throw new Error("KADHIA_NOT_FOUND");
+  }
+  const { data } = await apiClient.get<ApiKadhia>(`/api/me/kadhias/${kadhiaId}`);
+  const kadhia = mapKadhia(data);
+  writeActiveId(kadhia.shopId, kadhia.id);
+  writeContext({ shopId: kadhia.shopId, kadhiaId: kadhia.id });
+  return kadhia;
 }
 
 export async function clearKadhia(): Promise<void> {
