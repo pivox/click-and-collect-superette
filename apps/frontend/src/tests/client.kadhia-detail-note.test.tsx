@@ -17,6 +17,7 @@ vi.mock('@/lib/services', () => ({
   updateLineQuantity: vi.fn(),
   discardKadhia: vi.fn(),
   patchKadhiaNotes: vi.fn(),
+  listMyKadhias: vi.fn(),
 }));
 
 vi.mock('@/lib/auth/ClientAuthContext', () => ({
@@ -24,7 +25,7 @@ vi.mock('@/lib/auth/ClientAuthContext', () => ({
 }));
 
 import KadhiaDetailPage from '@/app/(client)/kadhia/[kadhiaId]/page';
-import { fetchKadhia, patchKadhiaNotes } from '@/lib/services';
+import { fetchKadhia, patchKadhiaNotes, discardKadhia } from '@/lib/services';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 import type { Kadhia } from '@/types';
 
@@ -156,6 +157,67 @@ describe('KadhiaDetailPage — note personnelle', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Impossible d'enregistrer/i)).toBeTruthy();
+    });
+  });
+
+  it('envoie null à l\'API quand la note ne contient que des espaces', async () => {
+    vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia());
+    vi.mocked(patchKadhiaNotes).mockResolvedValue(makeDraftKadhia({ notes: null }));
+
+    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    await waitFor(() => screen.getByText('Ajouter'));
+
+    fireEvent.click(screen.getByText('Ajouter'));
+    fireEvent.change(screen.getByPlaceholderText(/courses maison/i), {
+      target: { value: '   ' },
+    });
+    fireEvent.click(screen.getByText('Enregistrer'));
+
+    await waitFor(() => {
+      expect(vi.mocked(patchKadhiaNotes)).toHaveBeenCalledWith('k-1', null);
+    });
+  });
+
+  it('affiche un message d\'erreur quand la suppression échoue', async () => {
+    vi.mocked(fetchKadhia).mockResolvedValue(
+      makeDraftKadhia({ lines: [{ id: 'l-1', productOffer: { id: 'p-1', productReferenceId: '', nameFr: 'Lait', nameAr: null, brand: '', volume: null, unit: null, priceTnd: '2.000', isAvailable: true, photoUrl: null, category: 'other' }, quantity: 1, unitPriceTnd: '2.000', lineTotalTnd: '2.000' }] }),
+    );
+    vi.mocked(discardKadhia).mockRejectedValue(new Error('Network error'));
+    vi.stubGlobal('confirm', () => true);
+
+    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    await waitFor(() => screen.getByText('Supprimer cette Kadhia'));
+
+    fireEvent.click(screen.getByText('Supprimer cette Kadhia'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Impossible de supprimer/i)).toBeTruthy();
+    });
+
+    vi.unstubAllGlobals();
+  });
+
+  it('efface le message d\'erreur de sauvegarde quand l\'utilisateur annule', async () => {
+    vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia());
+    vi.mocked(patchKadhiaNotes).mockRejectedValue(new Error('Network error'));
+
+    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    await waitFor(() => screen.getByText('Ajouter'));
+
+    fireEvent.click(screen.getByText('Ajouter'));
+    fireEvent.change(screen.getByPlaceholderText(/courses maison/i), {
+      target: { value: 'test' },
+    });
+    fireEvent.click(screen.getByText('Enregistrer'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Impossible d'enregistrer/i)).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText('Annuler'));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Impossible d'enregistrer/i)).toBeNull();
     });
   });
 });

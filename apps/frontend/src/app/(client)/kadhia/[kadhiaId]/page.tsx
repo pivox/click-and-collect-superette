@@ -36,8 +36,15 @@ function KadhiaNote({
       const updated = await patchKadhiaNotes(kadhia.id, draft.trim() || null);
       onSaved(updated);
       setEditing(false);
-    } catch {
-      setError("Impossible d'enregistrer la note. Réessaie.");
+    } catch (err) {
+      console.error("[kadhia-note] patchKadhiaNotes failed", { kadhiaId: kadhia.id, err });
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === 422) {
+        setError("Cette Kadhia a été envoyée et n'est plus modifiable.");
+        setEditing(false);
+      } else {
+        setError("Impossible d'enregistrer la note. Réessaie.");
+      }
     } finally {
       setSaving(false);
     }
@@ -77,6 +84,7 @@ function KadhiaNote({
           </div>
           <button
             type="button"
+            aria-label={kadhia.notes ? "Modifier la note personnelle" : "Ajouter une note personnelle"}
             onClick={() => {
               setDraft(kadhia.notes ?? "");
               setEditing(true);
@@ -92,8 +100,14 @@ function KadhiaNote({
 
   return (
     <Card className="mt-4">
-      <p className="text-xs font-bold text-muted uppercase tracking-wide mb-2">Note personnelle</p>
+      <label
+        htmlFor="kadhia-note"
+        className="text-xs font-bold text-muted uppercase tracking-wide mb-2 block"
+      >
+        Note personnelle
+      </label>
       <textarea
+        id="kadhia-note"
         autoFocus
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
@@ -134,6 +148,7 @@ export default function KadhiaDetailPage({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [quantityError, setQuantityError] = useState<string | null>(null);
   const [discarding, setDiscarding] = useState(false);
+  const [discardError, setDiscardError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -152,11 +167,14 @@ export default function KadhiaDetailPage({
     if (!kadhia?.shopId) return;
     if (!window.confirm("Supprimer cette Kadhia ? Tu pourras recommencer depuis le catalogue.")) return;
     setDiscarding(true);
+    setDiscardError(null);
     try {
       await discardKadhia(kadhia.shopId);
       router.push("/kadhia");
-    } catch {
+    } catch (err) {
+      console.error("[kadhia-detail] discardKadhia failed", { shopId: kadhia.shopId, err });
       setDiscarding(false);
+      setDiscardError("Impossible de supprimer la Kadhia. Elle a peut-être déjà été envoyée.");
     }
   };
 
@@ -270,6 +288,9 @@ export default function KadhiaDetailPage({
               >
                 {discarding ? "Suppression…" : "Supprimer cette Kadhia"}
               </button>
+              {discardError && (
+                <p className="mt-2 text-sm text-red-600">{discardError}</p>
+              )}
             </div>
           )}
 

@@ -348,6 +348,7 @@ export async function listMyKadhias(status?: string, page = 1): Promise<KadhiaLi
       linesCount: mock.lines.length,
       totalTnd: mock.totalTnd,
       updatedAt: new Date().toISOString(),
+      notes: mock.notes ?? undefined,
     };
     return mockDelay({ items: [item], total: 1, page: 1, pages: 1 });
   }
