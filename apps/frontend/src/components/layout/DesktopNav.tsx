@@ -16,7 +16,7 @@ import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 const NAV = [
   { href: "/",        label: "Accueil",    icon: Home },
   { href: "/stores",  label: "Supérettes", icon: Search },
-  { href: "/kadhia",  label: "Ma Kadhia",  icon: ShoppingBasket },
+  { href: "/kadhia",  label: "Kadhia",     icon: ShoppingBasket },
   { href: "/orders",  label: "Commandes",  icon: ClipboardList },
 ] as const;
 
