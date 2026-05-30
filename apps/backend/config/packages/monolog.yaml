@@ -46,3 +46,4 @@ when@prod:
                 level: warning
                 max_files: 30
                 channels: ['front']
+                bubble: false

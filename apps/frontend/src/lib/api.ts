@@ -36,7 +36,11 @@ apiClient.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
     // Unique ID per request — used for front/backend log correlation.
-    config.headers['X-Client-Request-Id'] = crypto.randomUUID();
+    // crypto.randomUUID() requires a Secure Context (HTTPS or localhost); fall back on HTTP.
+    config.headers['X-Client-Request-Id'] =
+      typeof crypto?.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
   }
   return config;
 });

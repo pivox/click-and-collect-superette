@@ -86,7 +86,7 @@ final readonly class ClientLogProcessor implements ProcessorInterface
             if ($count >= self::MAX_CONTEXT_KEYS) {
                 break;
             }
-            if (\in_array(strtolower($key), self::FORBIDDEN_CONTEXT_KEYS, true)) {
+            if (!\is_string($key) || \in_array(strtolower($key), self::FORBIDDEN_CONTEXT_KEYS, true)) {
                 continue;
             }
             $sanitized[$key] = $value;

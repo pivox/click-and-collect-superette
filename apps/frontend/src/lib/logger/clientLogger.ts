@@ -106,7 +106,6 @@ export function clientLog(
     return;
   }
 
-  // In production: debug and info stay local, warning and error go to the backend
   if (level === 'debug' || level === 'info') {
     console.info(`[${event}]`, message, context);
     return;
