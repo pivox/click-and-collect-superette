@@ -8,9 +8,17 @@ interface RawOrder {
   id: string;
   kadhia_id: string | null;
   store_id: string;
+  store_name?: string | null;
+  store_address?: string | null;
+  store_city?: string | null;
   status: string;
   total_tnd: string;
   pickup_slot_id: string | null;
+  pickup_slot?: {
+    id: string;
+    starts_at: string;
+    ends_at: string;
+  } | null;
   notes: string | null;
   lines: unknown[];
   created_at: string;
@@ -27,10 +35,20 @@ function mapRawOrder(raw: RawOrder): Order {
   return {
     id: raw.id,
     shopId: raw.store_id,
+    shopName: raw.store_name ?? null,
+    shopAddress: raw.store_address ?? null,
+    shopCity: raw.store_city ?? null,
     status: raw.status as Order["status"],
     totalAmountTnd: raw.total_tnd,
-    // API only returns the slot ID; full slot details unavailable without a second request.
-    pickupSlot: null,
+    pickupSlot: raw.pickup_slot
+      ? {
+          id: raw.pickup_slot.id,
+          startsAt: raw.pickup_slot.starts_at,
+          endsAt: raw.pickup_slot.ends_at,
+          capacity: null,
+          available: true,
+        }
+      : null,
     submittedAt: null,
     acceptedAt: null,
     readyAt: null,

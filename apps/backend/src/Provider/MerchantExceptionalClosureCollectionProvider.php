@@ -12,6 +12,7 @@ use App\Entity\ExceptionalClosure;
 use App\Repository\ExceptionalClosureRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -60,8 +61,8 @@ final readonly class MerchantExceptionalClosureCollectionProvider implements Pro
     {
         return new MerchantExceptionalClosureOutput(
             id: $closure->getId()->toRfc4122(),
-            startsAt: $closure->getStartsAt()->format(\DateTimeInterface::ATOM),
-            endsAt: $closure->getEndsAt()->format(\DateTimeInterface::ATOM),
+            startsAt: PickupSlotDisplayTime::toLocalAtom($closure->getStartsAt()),
+            endsAt: PickupSlotDisplayTime::toLocalAtom($closure->getEndsAt()),
             reason: $closure->getReason(),
             isActive: $closure->isActive(),
         );

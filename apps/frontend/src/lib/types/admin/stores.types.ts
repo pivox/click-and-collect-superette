@@ -67,5 +67,5 @@ export interface StoreQrCode {
   store_name: string;
   slug: string;
   qr_code_token: string;
-  target_url: string; // relative path: /api/stores/by-qr/{token}
+  target_url: string; // backend relative path: /api/stores/by-qr/{token}
 }

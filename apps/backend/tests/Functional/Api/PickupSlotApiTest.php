@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Api;
 
 use App\Entity\PickupSlot;
+use App\Service\PickupSlotDisplayTime;
 
 final class PickupSlotApiTest extends FunctionalApiTestCase
 {
@@ -13,7 +14,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
     public function testGetPickupSlotsReturnsAvailableSlots(): void
     {
         $shop = $this->createShop();
-        $now = new \DateTimeImmutable();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
 
         $slot1 = (new PickupSlot())
             ->setShop($shop)
@@ -51,7 +52,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
     public function testGetPickupSlotsPartiallyBookedShowsReducedAvailability(): void
     {
         $shop = $this->createShop();
-        $now = new \DateTimeImmutable();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
 
         $slot = (new PickupSlot())
             ->setShop($shop)
@@ -76,7 +77,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
     public function testGetPickupSlotsExcludesFullSlots(): void
     {
         $shop = $this->createShop();
-        $now = new \DateTimeImmutable();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
 
         $full = (new PickupSlot())
             ->setShop($shop)
@@ -98,7 +99,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
     public function testGetPickupSlotsExcludesInactiveSlots(): void
     {
         $shop = $this->createShop();
-        $now = new \DateTimeImmutable();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
 
         $inactive = (new PickupSlot())
             ->setShop($shop)
@@ -120,7 +121,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
     public function testGetPickupSlotsExcludesPastSlots(): void
     {
         $shop = $this->createShop();
-        $now = new \DateTimeImmutable();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
 
         $past = (new PickupSlot())
             ->setShop($shop)
@@ -141,7 +142,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
     public function testGetPickupSlotsExcludesAlreadyStartedSlots(): void
     {
         $shop = $this->createShop();
-        $now = new \DateTimeImmutable();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
 
         $alreadyStarted = (new PickupSlot())
             ->setShop($shop)
@@ -167,11 +168,42 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         self::assertSame($future->getId()->toRfc4122(), $payload['items'][0]['id']);
     }
 
+    public function testGetPickupSlotsExcludesReloadedLocalClockSlotAlreadyStartedInTunisia(): void
+    {
+        $shop = $this->createShop();
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $now = new \DateTimeImmutable('now', $timezone);
+
+        $alreadyStarted = $this->createPickupSlot(
+            $shop,
+            $now->modify('-30 minutes'),
+            $now->modify('+30 minutes'),
+            3,
+        );
+        $future = $this->createPickupSlot(
+            $shop,
+            $now->modify('+1 hour'),
+            $now->modify('+2 hours'),
+            3,
+        );
+        $alreadyStartedId = $alreadyStarted->getId()->toRfc4122();
+        $futureId = $future->getId()->toRfc4122();
+
+        $this->entityManager->clear();
+        $response = $this->requestJson('GET', \sprintf('/api/stores/%s/pickup-slots', $shop->getId()));
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($futureId, $payload['items'][0]['id']);
+        self::assertNotSame($alreadyStartedId, $payload['items'][0]['id']);
+    }
+
     public function testGetPickupSlotsOnlyReturnsSlotsBelongingToRequestedShop(): void
     {
         $shop1 = $this->createShop();
         $shop2 = $this->createShop();
-        $now = new \DateTimeImmutable();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
 
         $slotShop1 = (new PickupSlot())
             ->setShop($shop1)
@@ -278,6 +310,64 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         self::assertTrue($slots[0]->isActive());
     }
 
+    public function testMerchantPickupSlotCreatePreservesManualUtcInstantAsTunisiaLocalTime(): void
+    {
+        $merchant = $this->createUser('merchant-slots-create-utc@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $storeId = $shop->getId()->toRfc4122();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $storeId),
+            [
+                'starts_at' => '2030-05-28T16:00:00+00:00',
+                'ends_at' => '2030-05-28T17:00:00+00:00',
+                'capacity' => 6,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+
+        $this->entityManager->clear();
+        $listResponse = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/pickup-slots', $storeId), user: $merchant);
+        self::assertSame(200, $listResponse->getStatusCode());
+        $payload = $this->decodeJson($listResponse);
+
+        self::assertCount(1, $payload);
+        self::assertSame('2030-05-28T17:00:00+01:00', $payload[0]['starts_at']);
+        self::assertSame('2030-05-28T18:00:00+01:00', $payload[0]['ends_at']);
+    }
+
+    public function testMerchantPickupSlotCreateRejectsUtcManualOverlapWithStoredLocalClock(): void
+    {
+        $merchant = $this->createUser('merchant-slots-create-utc-overlap@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $storeId = $shop->getId()->toRfc4122();
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('2030-05-28 17:00:00', $timezone),
+            new \DateTimeImmutable('2030-05-28 18:00:00', $timezone),
+            6,
+        );
+
+        $this->entityManager->clear();
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $storeId),
+            [
+                'starts_at' => '2030-05-28T16:00:00+00:00',
+                'ends_at' => '2030-05-28T17:00:00+00:00',
+                'capacity' => 6,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_OVERLAPS_EXISTING_SLOT', (string) $response->getContent());
+    }
+
     public function testMerchantPickupSlotCreateRejectsOtherMerchant(): void
     {
         $owner = $this->createUser('merchant-slots-create-forbidden-owner@example.test', ['ROLE_MERCHANT']);
@@ -350,7 +440,8 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
     {
         $merchant = $this->createUser('merchant-slots-create-overlap@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
-        $existingStart = new \DateTimeImmutable('+1 day 10:00');
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $existingStart = new \DateTimeImmutable('tomorrow 10:00', $timezone);
         $this->createPickupSlot($shop, $existingStart, $existingStart->modify('+1 hour'), 4);
 
         $response = $this->requestJson(
@@ -369,7 +460,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
     {
         $merchant = $this->createUser('merchant-slots-patch-owner@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
-        $now = new \DateTimeImmutable();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
         $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 4);
         $newStartsAt = $now->modify('+3 hours');
 
@@ -387,7 +478,10 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         self::assertSame(200, $response->getStatusCode());
         $this->entityManager->refresh($slot);
         self::assertSame(8, $slot->getCapacity());
-        self::assertSame($newStartsAt->getTimestamp(), $slot->getStartsAt()->getTimestamp());
+        self::assertSame(
+            $newStartsAt->format('Y-m-d H:i'),
+            PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt())->format('Y-m-d H:i'),
+        );
     }
 
     public function testMerchantPickupSlotPatchRejectsOtherMerchant(): void
@@ -436,7 +530,8 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
     {
         $merchant = $this->createUser('merchant-slots-patch-overlap@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
-        $baseStart = new \DateTimeImmutable('+1 day 10:00');
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $baseStart = new \DateTimeImmutable('tomorrow 10:00', $timezone);
         $slot = $this->createPickupSlot($shop, $baseStart, $baseStart->modify('+30 minutes'), 3);
         $otherSlot = $this->createPickupSlot($shop, $baseStart->modify('+1 hour'), $baseStart->modify('+2 hours'), 3);
 
@@ -454,8 +549,40 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('PICKUP_SLOT_OVERLAPS_EXISTING_SLOT', (string) $response->getContent());
         $this->entityManager->refresh($slot);
         $this->entityManager->refresh($otherSlot);
-        self::assertSame($baseStart->getTimestamp(), $slot->getStartsAt()->getTimestamp());
-        self::assertSame($baseStart->modify('+1 hour')->getTimestamp(), $otherSlot->getStartsAt()->getTimestamp());
+        self::assertSame(
+            $baseStart->format('Y-m-d H:i'),
+            PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt())->format('Y-m-d H:i'),
+        );
+        self::assertSame(
+            $baseStart->modify('+1 hour')->format('Y-m-d H:i'),
+            PickupSlotDisplayTime::fromStoredLocalClock($otherSlot->getStartsAt())->format('Y-m-d H:i'),
+        );
+    }
+
+    public function testMerchantPickupSlotPatchRejectsUtcManualStartAfterExistingLocalEnd(): void
+    {
+        $merchant = $this->createUser('merchant-slots-patch-utc-boundary@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $storeId = $shop->getId()->toRfc4122();
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $slot = $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('2030-05-28 17:00:00', $timezone),
+            new \DateTimeImmutable('2030-05-28 18:00:00', $timezone),
+            3,
+        );
+        $slotId = $slot->getId()->toRfc4122();
+
+        $this->entityManager->clear();
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $storeId, $slotId),
+            ['starts_at' => '2030-05-28T17:30:00+00:00'],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_STARTS_AT_MUST_BE_BEFORE_ENDS_AT', (string) $response->getContent());
     }
 
     public function testMerchantOwnerCanDeactivatePickupSlot(): void
@@ -518,7 +645,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
     {
         $merchant = $this->createUser('merchant-slots-public-hidden@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
-        $now = new \DateTimeImmutable();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
         $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 3);
 
         $this->requestJson('DELETE', \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()), user: $merchant);

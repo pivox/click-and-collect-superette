@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\PickupSlot;
 use App\Entity\Shop;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
@@ -87,13 +88,18 @@ class PickupSlotRepository extends ServiceEntityRepository
             ['shop' => $shop, 'isActive' => true],
             ['startsAt' => 'ASC'],
         );
+        $rangeStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($startsAt);
+        $rangeEndsAt = PickupSlotDisplayTime::fromStoredLocalClock($endsAt);
 
         foreach ($slots as $slot) {
             if (null !== $excludeSlot && $slot->getId()->equals($excludeSlot->getId())) {
                 continue;
             }
 
-            if ($slot->getStartsAt() < $endsAt && $slot->getEndsAt() > $startsAt) {
+            $slotStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt());
+            $slotEndsAt = PickupSlotDisplayTime::fromStoredLocalClock($slot->getEndsAt());
+
+            if ($slotStartsAt < $rangeEndsAt && $slotEndsAt > $rangeStartsAt) {
                 return true;
             }
         }
@@ -165,6 +171,7 @@ class PickupSlotRepository extends ServiceEntityRepository
     public function findAvailableForShop(Shop $shop, ?\DateTimeImmutable $after = null): array
     {
         $after ??= new \DateTimeImmutable();
+        $after = PickupSlotDisplayTime::fromStoredLocalClock($after);
 
         $slots = $this->findBy(
             ['shop' => $shop, 'isActive' => true],
@@ -174,7 +181,7 @@ class PickupSlotRepository extends ServiceEntityRepository
         return array_values(
             array_filter(
                 $slots,
-                static fn (PickupSlot $s): bool => $s->getStartsAt() > $after && !$s->isFull(),
+                static fn (PickupSlot $s): bool => PickupSlotDisplayTime::fromStoredLocalClock($s->getStartsAt()) > $after && !$s->isFull(),
             ),
         );
     }

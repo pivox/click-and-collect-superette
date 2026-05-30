@@ -10,6 +10,7 @@ use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\PickupSlotDisplayTime;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -166,8 +167,8 @@ final class MerchantOrderExportController extends AbstractController
             $this->neutralizeFormula($customerName),
             $this->neutralizeFormula($customer->getPhone() ?? ''),
             $order->getTotalTnd(),
-            $slot instanceof PickupSlot ? $slot->getStartsAt()->format(\DateTimeInterface::ATOM) : '',
-            $slot instanceof PickupSlot ? $slot->getEndsAt()->format(\DateTimeInterface::ATOM) : '',
+            $slot instanceof PickupSlot ? PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()) : '',
+            $slot instanceof PickupSlot ? PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()) : '',
             $order->getCreatedAt()->format(\DateTimeInterface::ATOM),
             $order->getUpdatedAt()->format(\DateTimeInterface::ATOM),
         ];

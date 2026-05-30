@@ -53,7 +53,8 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 final readonly class OrderOutput
 {
     /**
-     * @param list<OrderLineOutput> $lines
+     * @param array{id: string, starts_at: string, ends_at: string}|null $pickupSlot
+     * @param list<OrderLineOutput>                                      $lines
      */
     public function __construct(
         #[ApiProperty(identifier: true)]
@@ -66,6 +67,15 @@ final readonly class OrderOutput
         #[SerializedName('store_id')]
         public string $storeId,
         #[Groups(['order:read'])]
+        #[SerializedName('store_name')]
+        public string $storeName,
+        #[Groups(['order:read'])]
+        #[SerializedName('store_address')]
+        public ?string $storeAddress,
+        #[Groups(['order:read'])]
+        #[SerializedName('store_city')]
+        public ?string $storeCity,
+        #[Groups(['order:read'])]
         public string $status,
         #[Groups(['order:read'])]
         #[SerializedName('total_tnd')]
@@ -73,6 +83,9 @@ final readonly class OrderOutput
         #[Groups(['order:read'])]
         #[SerializedName('pickup_slot_id')]
         public ?string $pickupSlotId,
+        #[Groups(['order:read'])]
+        #[SerializedName('pickup_slot')]
+        public ?array $pickupSlot,
         #[Groups(['order:read'])]
         public ?string $notes,
         #[Groups(['order:read'])]

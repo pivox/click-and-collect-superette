@@ -12,6 +12,7 @@ use App\Entity\ExceptionalClosure;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\ExceptionalClosureImpactService;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -54,12 +55,15 @@ final readonly class CreateMerchantExceptionalClosureProcessor implements Proces
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
 
-        $this->exceptionalClosureImpactService->applyClosureImpact($shop, $data->startsAt, $data->endsAt);
+        $startsAt = PickupSlotDisplayTime::fromPayloadInstant($data->startsAt);
+        $endsAt = PickupSlotDisplayTime::fromPayloadInstant($data->endsAt);
+
+        $this->exceptionalClosureImpactService->applyClosureImpact($shop, $startsAt, $endsAt);
 
         $closure = (new ExceptionalClosure())
             ->setShop($shop)
-            ->setStartsAt($data->startsAt)
-            ->setEndsAt($data->endsAt)
+            ->setStartsAt($startsAt)
+            ->setEndsAt($endsAt)
             ->setReason($data->reason)
             ->setActive(true);
 
@@ -73,8 +77,8 @@ final readonly class CreateMerchantExceptionalClosureProcessor implements Proces
     {
         return new MerchantExceptionalClosureOutput(
             id: $closure->getId()->toRfc4122(),
-            startsAt: $closure->getStartsAt()->format(\DateTimeInterface::ATOM),
-            endsAt: $closure->getEndsAt()->format(\DateTimeInterface::ATOM),
+            startsAt: PickupSlotDisplayTime::toLocalAtom($closure->getStartsAt()),
+            endsAt: PickupSlotDisplayTime::toLocalAtom($closure->getEndsAt()),
             reason: $closure->getReason(),
             isActive: $closure->isActive(),
         );

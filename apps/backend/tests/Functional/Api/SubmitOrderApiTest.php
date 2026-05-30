@@ -20,6 +20,7 @@ use App\Enum\KadhiaStatus;
 use App\Enum\OrderStatus;
 use App\Enum\ProductReferenceStatus;
 use App\Message\ExpireMerchantResponseMessage;
+use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Uid\Uuid;
 
@@ -48,7 +49,11 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertSame('submitted', $payload['status']);
         self::assertSame($kadhia->getId()->toRfc4122(), $payload['kadhia_id']);
         self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
+        self::assertSame($shop->getName(), $payload['store_name']);
         self::assertSame($slot->getId()->toRfc4122(), $payload['pickup_slot_id']);
+        self::assertSame($slot->getId()->toRfc4122(), $payload['pickup_slot']['id']);
+        self::assertSame(PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()), $payload['pickup_slot']['starts_at']);
+        self::assertSame(PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()), $payload['pickup_slot']['ends_at']);
         self::assertNull($payload['notes']);
         self::assertCount(1, $payload['lines']);
         self::assertSame(2, $payload['lines'][0]['quantity']);

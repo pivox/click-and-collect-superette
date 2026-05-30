@@ -34,9 +34,18 @@ function makeOrder(status: OrderStatus) {
   return {
     id: 'order-uuid-1',
     shopId: 'store-1',
+    shopName: 'Supérette El Amen',
+    shopAddress: 'Rue de la Liberté',
+    shopCity: 'Tunis',
     status,
     totalAmountTnd: '12.500',
-    pickupSlot: null,
+    pickupSlot: {
+      id: 'slot-1',
+      startsAt: '2026-05-28T10:00:00+01:00',
+      endsAt: '2026-05-28T10:30:00+01:00',
+      capacity: null,
+      available: true,
+    },
     submittedAt: null,
     acceptedAt: null,
     readyAt: null,
@@ -104,6 +113,8 @@ describe('PickupQrPage', () => {
       expect(screen.getByText(/Présente ce code au comptoir/i)).toBeTruthy();
     });
     expect(screen.getByText('CMD-ORDER1')).toBeTruthy();
+    expect(screen.getByText('Supérette El Amen')).toBeTruthy();
+    expect(screen.getByText('Rue de la Liberté, Tunis')).toBeTruthy();
   });
 
   it('affiche le QR code pour une commande au statut pickup_pending', async () => {

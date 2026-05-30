@@ -16,6 +16,17 @@ interface StoreDrawerProps {
   onSaved: () => void;
 }
 
+function resolveAppBaseUrl(): string {
+  const configuredUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
+  if (configuredUrl) return configuredUrl;
+  if (typeof window !== 'undefined') return window.location.origin;
+  return '';
+}
+
+function toFrontendQrPath(targetUrl: string): string {
+  return targetUrl.replace(/^\/api\/stores\/by-qr\//, '/stores/by-qr/');
+}
+
 export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps) {
   const [name, setName] = useState('');
   const [ownerId, setOwnerId] = useState('');
@@ -139,13 +150,9 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
   const inputClass =
     'w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
 
-  const shareUrl = qrData
-    ? `${process.env.NEXT_PUBLIC_APP_URL ?? ''}${qrData.target_url}`
-    : '';
-
-  if (qrData && !process.env.NEXT_PUBLIC_APP_URL) {
-    console.warn('[StoreDrawer] NEXT_PUBLIC_APP_URL is not set — QR share URL will be incomplete.');
-  }
+  const appBaseUrl = resolveAppBaseUrl();
+  const sharePath = qrData ? toFrontendQrPath(qrData.target_url) : '';
+  const shareUrl = qrData ? `${appBaseUrl}${sharePath}` : '';
 
   return (
     <AdminDrawer
@@ -254,11 +261,11 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="flex-1 truncate rounded bg-gray-50 px-2 py-1 text-xs text-ink">
-                      {shareUrl || qrData.target_url}
+                      {shareUrl || sharePath}
                     </span>
                     <button
                       type="button"
-                      onClick={() => void navigator.clipboard.writeText(shareUrl || qrData.target_url)}
+                      onClick={() => void navigator.clipboard.writeText(shareUrl || sharePath)}
                       className="shrink-0 rounded px-2 py-1 text-xs text-muted hover:text-ink"
                     >
                       Copier

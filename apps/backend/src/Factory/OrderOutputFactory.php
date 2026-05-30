@@ -8,6 +8,7 @@ use App\ApiResource\OrderLineOutput;
 use App\ApiResource\OrderOutput;
 use App\Entity\Order;
 use App\Entity\OrderLine;
+use App\Service\PickupSlotDisplayTime;
 
 final readonly class OrderOutputFactory
 {
@@ -29,9 +30,17 @@ final readonly class OrderOutputFactory
             id: $order->getId()->toRfc4122(),
             kadhiaId: $order->getKadhia()?->getId()->toRfc4122(),
             storeId: $order->getShop()->getId()->toRfc4122(),
+            storeName: $order->getShop()->getName(),
+            storeAddress: $order->getShop()->getAddress(),
+            storeCity: $order->getShop()->getCity(),
             status: $order->getStatus()->value,
             totalTnd: $order->getTotalTnd(),
             pickupSlotId: $slot?->getId()->toRfc4122(),
+            pickupSlot: null === $slot ? null : [
+                'id' => $slot->getId()->toRfc4122(),
+                'starts_at' => PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()),
+                'ends_at' => PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()),
+            ],
             notes: $order->getNotes(),
             lines: $lines,
             createdAt: $order->getCreatedAt()->format(\DateTimeInterface::ATOM),

@@ -9,6 +9,7 @@ use App\Entity\PickupSlot;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\OrderStatus;
+use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\Uid\Uuid;
 
 final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
@@ -73,8 +74,8 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
         self::assertSame('Ben Salah', $submitted['customer']['last_name']);
         self::assertSame('+21622111000', $submitted['customer']['phone']);
         self::assertSame('0.000', $submitted['total']);
-        self::assertSame($slot->getStartsAt()->format(\DateTimeInterface::ATOM), $submitted['pickup_slot']['starts_at']);
-        self::assertSame($slot->getEndsAt()->format(\DateTimeInterface::ATOM), $submitted['pickup_slot']['ends_at']);
+        self::assertSame(PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()), $submitted['pickup_slot']['starts_at']);
+        self::assertSame(PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()), $submitted['pickup_slot']['ends_at']);
 
         $rejected = $payload['items'][0];
         self::assertSame('rejected', $rejected['status']);

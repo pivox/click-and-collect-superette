@@ -24,9 +24,17 @@ const RAW_ORDER = {
   id: 'order-uuid-1',
   kadhia_id: 'kadhia-uuid-1',
   store_id: 'store-uuid-1',
+  store_name: 'Supérette El Amen',
+  store_address: 'Rue de la Liberté',
+  store_city: 'Tunis',
   status: 'ready',
   total_tnd: '12.500',
   pickup_slot_id: 'slot-uuid-1',
+  pickup_slot: {
+    id: 'slot-uuid-1',
+    starts_at: '2026-05-28T10:00:00+01:00',
+    ends_at: '2026-05-28T10:30:00+01:00',
+  },
   notes: null,
   lines: [],
   created_at: '2026-05-28T10:00:00Z',
@@ -43,6 +51,12 @@ describe('getOrder', () => {
     expect(order!.id).toBe('order-uuid-1');
     expect(order!.status).toBe('ready');
     expect(order!.totalAmountTnd).toBe('12.500');
+    expect(order!.shopName).toBe('Supérette El Amen');
+    expect(order!.pickupSlot).toMatchObject({
+      id: 'slot-uuid-1',
+      startsAt: '2026-05-28T10:00:00+01:00',
+      endsAt: '2026-05-28T10:30:00+01:00',
+    });
     expect(apiClient.get).toHaveBeenCalledWith('/api/me/orders/order-uuid-1');
   });
 

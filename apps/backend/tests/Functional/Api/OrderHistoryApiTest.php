@@ -14,6 +14,7 @@ use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\ProductReferenceStatus;
+use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\Uid\Uuid;
 
 final class OrderHistoryApiTest extends FunctionalApiTestCase
@@ -101,11 +102,23 @@ final class OrderHistoryApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
+        $pickupSlot = $order->getPickupSlot();
+        self::assertNotNull($pickupSlot);
         self::assertSame($order->getId()->toRfc4122(), $payload['id']);
         self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
+        self::assertSame($shop->getName(), $payload['store_name']);
         self::assertSame('submitted', $payload['status']);
         self::assertSame('5.000', $payload['total_tnd']);
-        self::assertNotNull($payload['pickup_slot_id']);
+        self::assertSame($pickupSlot->getId()->toRfc4122(), $payload['pickup_slot_id']);
+        self::assertSame($pickupSlot->getId()->toRfc4122(), $payload['pickup_slot']['id']);
+        self::assertSame(
+            PickupSlotDisplayTime::toLocalAtom($pickupSlot->getStartsAt()),
+            $payload['pickup_slot']['starts_at'],
+        );
+        self::assertSame(
+            PickupSlotDisplayTime::toLocalAtom($pickupSlot->getEndsAt()),
+            $payload['pickup_slot']['ends_at'],
+        );
         self::assertNull($payload['notes']);
         self::assertCount(1, $payload['lines']);
         self::assertSame(2, $payload['lines'][0]['quantity']);

@@ -14,8 +14,8 @@ export function StickyBottom({
   return (
     <div
       className={cn(
-        "absolute inset-x-0 bottom-0 z-10 border-t border-line bg-white/95 backdrop-blur-md",
-        "px-4 pt-3 pb-4",
+        "fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-white/95 backdrop-blur-md",
+        "px-4 pt-3 pb-3 md:absolute md:bottom-0",
         className,
       )}
     >

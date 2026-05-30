@@ -11,7 +11,7 @@ import { Timeline } from "@/components/ui/Timeline";
 import { Button } from "@/components/ui/Button";
 import { StickyBottom } from "@/components/layout/StickyBottom";
 import { getOrder, projectTimeline } from "@/lib/services";
-import { formatTnd, formatSlotDate } from "@/lib/format";
+import { formatTnd, formatSlotRange } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import type { Order } from "@/types";
 
@@ -74,12 +74,16 @@ export default function OrderTrackingPage({
   const badge = orderStatusBadge(order.status);
   const steps = projectTimeline(order);
   const showQrCta = order.status === "ready" || order.status === "pickup_pending";
+  const storeName = order.shopName ?? "Supérette";
+  const pickupSlotLabel = order.pickupSlot
+    ? formatSlotRange(order.pickupSlot.startsAt, order.pickupSlot.endsAt)
+    : "—";
 
   return (
     <>
       <TopBar
         title={order.code}
-        subtitle="Superette El Amel"
+        subtitle={storeName}
         backHref="/orders"
       />
 
@@ -92,7 +96,7 @@ export default function OrderTrackingPage({
               <Summary>
                 <SummaryRow
                   label="Retrait"
-                  value={order.pickupSlot ? formatSlotDate(order.pickupSlot.startsAt) : "—"}
+                  value={pickupSlotLabel}
                 />
                 <SummaryRow
                   label="Total"

@@ -20,8 +20,25 @@ import {
 } from "@/lib/services";
 import type { KadhiaListItem } from "@/lib/services/kadhia.service";
 import type { Kadhia, ProductOffer, Shop } from "@/types";
-import { PRODUCT_CATEGORIES } from "@/lib/mock/products.mock";
 import { formatTnd } from "@/lib/format";
+
+interface CategoryOption {
+  key: string;
+  labelFr: string;
+}
+
+function buildCategoryOptions(products: ProductOffer[]): CategoryOption[] {
+  const bySlug = new Map<string, string>();
+
+  products.forEach((product) => {
+    if (!product.category || bySlug.has(product.category)) return;
+    bySlug.set(product.category, product.categoryNameFr ?? product.category);
+  });
+
+  return Array.from(bySlug.entries())
+    .map(([key, labelFr]) => ({ key, labelFr }))
+    .sort((a, b) => a.labelFr.localeCompare(b.labelFr, "fr"));
+}
 
 export default function CatalogPage({
   params,
@@ -29,7 +46,8 @@ export default function CatalogPage({
   params: { shopId: string };
 }) {
   const { shopId } = params;
-  const [category, setCategory] = useState<"all" | ProductOffer["category"]>("all");
+  const [category, setCategory] = useState<string>("all");
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<ProductOffer[]>([]);
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
@@ -52,6 +70,18 @@ export default function CatalogPage({
       .catch(() => { if (!cancelled) { setCatalogError("Impossible de charger le catalogue."); setIsLoading(false); } });
     return () => { cancelled = true; };
   }, [shopId, category, search, retryKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listCatalog({ shopId, category: "all", search: "" })
+      .then((data) => {
+        if (!cancelled) setCategoryOptions(buildCategoryOptions(data));
+      })
+      .catch(() => {
+        if (!cancelled) setCategoryOptions([]);
+      });
+    return () => { cancelled = true; };
+  }, [shopId, retryKey]);
 
   useEffect(() => {
     setKadhiaLoadError(null);
@@ -168,7 +198,7 @@ export default function CatalogPage({
       />
 
       <PillRow className="mb-4">
-        {PRODUCT_CATEGORIES.map((c) => (
+        {[{ key: "all", labelFr: "Tous" }, ...categoryOptions].map((c) => (
           <Pill
             key={c.key}
             active={category === c.key}
@@ -268,7 +298,7 @@ export default function CatalogPage({
 
       {/* "Commencer une Kadhia" bar — shown only when no active kadhia */}
       {!hasActiveKadhia && !selectorDrafts && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-line bg-white px-4 pb-[env(safe-area-inset-bottom)] pt-3 shadow-[0_-4px_16px_rgba(18,30,20,.08)]">
+        <div className="fixed bottom-[calc(60px+env(safe-area-inset-bottom))] left-0 right-0 z-30 border-t border-line bg-white px-4 pb-3 pt-3 shadow-[0_-4px_16px_rgba(18,30,20,.08)] md:bottom-0">
           {kadhiaLoadError ? (
             <div className="mx-auto flex max-w-md items-center justify-between gap-3">
               <p className="text-sm text-red-600">{kadhiaLoadError}</p>
@@ -300,7 +330,7 @@ export default function CatalogPage({
 
       {/* Active Kadhia summary bar — shown on mobile when kadhia has items */}
       {hasActiveKadhia && cartCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-line bg-white px-4 pb-[env(safe-area-inset-bottom)] pt-3 shadow-[0_-4px_16px_rgba(18,30,20,.08)] md:hidden">
+        <div className="fixed bottom-[calc(60px+env(safe-area-inset-bottom))] left-0 right-0 z-30 border-t border-line bg-white px-4 pb-3 pt-3 shadow-[0_-4px_16px_rgba(18,30,20,.08)] md:hidden">
           <Link href={`/kadhia/${kadhia!.id}`} className="mx-auto flex max-w-md items-center justify-between">
             <span className="text-sm font-bold">{cartLabel}</span>
             <span className="text-sm font-extrabold text-primary">{formatTnd(kadhia!.totalTnd)}</span>

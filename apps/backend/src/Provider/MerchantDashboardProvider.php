@@ -14,6 +14,7 @@ use App\Repository\OrderRepository;
 use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -107,8 +108,8 @@ final readonly class MerchantDashboardProvider implements ProviderInterface
     {
         return new MerchantDashboardPickupSlotOutput(
             pickupSlotId: $slot->getId()->toRfc4122(),
-            startsAt: $slot->getStartsAt()->format(\DateTimeInterface::ATOM),
-            endsAt: $slot->getEndsAt()->format(\DateTimeInterface::ATOM),
+            startsAt: PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()),
+            endsAt: PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()),
             capacity: $slot->getCapacity(),
             bookedCount: $slot->getBookedCount(),
             remainingCapacity: $slot->getAvailableCount(),
