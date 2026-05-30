@@ -21,6 +21,15 @@ et `apps/frontend/` (Next.js 14 · Tailwind CSS · `@tanstack/react-query` en us
 
 > **Pattern dominant frontend** : `useState` + `useEffect` + `useCallback`. React Query n'est utilisé que dans `GlobalSearchBar` et `StoreSearchCombobox` (autocomplete).
 
+**Dossiers backend clés (`apps/backend/src/`) :**
+- `Entity/` — entités Doctrine (voir liste dans AI_CONTEXT.md)
+- `ApiResource/` — Output DTOs annotés `#[ApiResource]`
+- `Processor/` — écriture (POST/PATCH/DELETE)
+- `Provider/` — lecture (GET collection/item)
+- `Dto/` — Input DTOs avec contraintes de validation
+- `Service/` — logique métier (NotificationService, OrderStatusLogRecorder…)
+- `MessageHandler/` — handlers Symfony Messenger (async)
+
 - `.claude/rules/` — règles auto-chargées : backend-patterns, migrations, security, testing, github
 
 ## Commandes projet
@@ -73,6 +82,8 @@ php bin/console debug:router | grep "mon-pattern"   # vérifier les routes aprè
 
 **Hook automatique :** coller une URL `github.com/pivox/click-and-collect-superette/pull/{N}` dans le prompt déclenche automatiquement une revue de PR sans commande explicite.
 
+> **Tip :** taper `#` pendant une session Claude permet d'incorporer automatiquement les apprentissages en cours dans CLAUDE.md.
+
 ## Workflow features
 
 Les specs des features passées sont dans `prompts/` (ex. `prompts/s7-003-data-retention.md`).
@@ -88,16 +99,14 @@ Les features Sprint 8 passent par des issues GitHub (pas de fichiers prompts).
 - **#197 / PR #202 + #204** — entité `ProductFamily`, champ `pack_quantity` (default 1) sur `ProductReference` et `MerchantLocalProduct`, câblé dans les endpoints de création
 - **#198 / PR #203** — `PATCH /api/admin/product-proposals/{id}/merge` dédié (distinct de `/approve`) ; guard sur référence archivée (422)
 
-**Sprint 9 — Kadhia multi + UX (en cours) :**
-- **#209 / PR #214** — `DELETE /api/me/kadhias/{kadhiaId}`, `discardKadhia()` frontend
-- **#210 / PR #215** — alignement front Kadhia multi (modèle backend multi-Kadhia)
-- **#213 / PR #216** — soumission idempotente + messages d'erreur précis
-- **#211 / PR #217** — liste Mes Kadhia + page détail par ID
-- **#205 / PR #218** — UX client : états vides catalogue, créneaux groupés, actualiser commande
-- **#206 / PR #221** — UX marchand : dashboard actionnable, filtres commandes, CTAs catalogue
-- **#212 / PR #222** — note personnelle Kadhia draft (`notes` field, `KadhiaNote` component, 11 tests)
-- **#207 / PR #223** — backoffice admin UX cockpit : dashboard décisionnel, filtres marchands, audit amélioré *(PR ouverte)*
-- **#177** — Monolog backend (Symfony) *(à faire — approbation `composer require` requise)*
+**Sprint 9 — Kadhia multi + UX (livré sur main, PRs #214–#223) :**
+Toutes les features Sprint 9 mergées les 2026-05-28/29. Monolog backend (PR #232) mergé le 2026-05-30.
+
+**Post-Sprint 9 — correctifs (mergés sur main) :**
+- **#219 / PR #220** — corriger les erreurs silencieuses client
+- **#226 / PR #228** — catalogue accessible sans auth (intercepteur 401 préserve la navigation)
+- **#227 / PR #229** — unifier le libellé "Kadhia" desktop/mobile
+- **#230 / PR #231** — mapper `is_active→isActive` dans `getShop()` (badge supérette)
 
 ### Clôture de sprint (audit documentaire)
 
@@ -146,6 +155,15 @@ Ne jamais mettre `#[Assert\Choice(callback: [MyEnum::class, 'values'])]` sur un 
 
 **Doctrine cascade dans les tests — `addLine()` obligatoire**
 Persister une `KadhiaLine` via `$em->persist($line)` seul sans appeler `$kadhia->addLine($line)` laisse la collection Doctrine vide : `cascade: ['remove']` ne propage pas le DELETE. Toujours passer par `addLine()` dans les tests de suppression.
+
+**Pattern "best-effort" notification — second `flush()` obligatoire (PR #232)**
+Quand un `notifyXxx()` est placé après le premier `flush()` pour isoler les erreurs de notification, il faut un second `flush()` à l'intérieur du try-catch. Sans lui, la notification est `persist()`ée dans l'Unit of Work Doctrine mais jamais écrite en base.
+```php
+try {
+    $this->notificationService->notifyCustomerOrderAccepted($order);
+    $this->entityManager->flush(); // ← obligatoire même en mode best-effort
+} catch (\Throwable $e) { ... }
+```
 
 ## Gotchas frontend (voir aussi `apps/frontend/src/tests/`)
 
