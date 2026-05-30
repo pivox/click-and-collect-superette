@@ -88,7 +88,7 @@ final readonly class MerchantValidateManuallyProcessor implements ProcessorInter
             $this->logger->info('merchant.order_validated_manually', [
                 'order_id' => $orderId,
                 'store_id' => $storeId,
-                'has_note' => '' !== trim($data->note ?? ''),
+                'has_note' => '' !== trim($data->note),
             ]);
         } catch (\Throwable $e) {
             $this->logger->error('merchant.order_validate_manual.failed', [
