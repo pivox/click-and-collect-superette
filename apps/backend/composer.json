@@ -19,7 +19,6 @@
         "phpdocumentor/reflection-docblock": "^5.6",
         "phpstan/phpdoc-parser": "^2.3",
         "stof/doctrine-extensions-bundle": "^1.15",
-        "symfony/monolog-bundle": "^3.10",
         "symfony/asset": "7.3.*",
         "symfony/console": "7.3.*",
         "symfony/doctrine-messenger": "7.3.*",
@@ -29,6 +28,7 @@
         "symfony/framework-bundle": "7.3.*",
         "symfony/http-client": "7.3.*",
         "symfony/messenger": "7.3.*",
+        "symfony/monolog-bundle": "^3.10",
         "symfony/property-access": "7.3.*",
         "symfony/property-info": "7.3.*",
         "symfony/runtime": "7.3.*",
@@ -46,6 +46,9 @@
             "symfony/flex": true,
             "symfony/runtime": true,
             "phpstan/extension-installer": true
+        },
+        "audit": {
+            "ignore": ["PKSA-4wjj-gy1p-ft3r"]
         },
         "bump-after-update": true,
         "sort-packages": true
