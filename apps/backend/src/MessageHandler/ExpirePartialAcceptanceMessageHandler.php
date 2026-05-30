@@ -29,8 +29,17 @@ final readonly class ExpirePartialAcceptanceMessageHandler
 
     public function __invoke(ExpirePartialAcceptanceMessage $message): void
     {
+        $this->logger->debug('messenger.received', [
+            'message' => ExpirePartialAcceptanceMessage::class,
+            'order_id' => $message->orderId,
+        ]);
+
         try {
             $this->handle($message);
+            $this->logger->info('messenger.handled', [
+                'message' => ExpirePartialAcceptanceMessage::class,
+                'order_id' => $message->orderId,
+            ]);
         } catch (\Throwable $exception) {
             $this->logger->error('messenger.failure', [
                 'message' => ExpirePartialAcceptanceMessage::class,
@@ -46,18 +55,36 @@ final readonly class ExpirePartialAcceptanceMessageHandler
     private function handle(ExpirePartialAcceptanceMessage $message): void
     {
         if (!Uuid::isValid($message->orderId)) {
+            $this->logger->warning('messenger.skipped', [
+                'message' => ExpirePartialAcceptanceMessage::class,
+                'order_id' => $message->orderId,
+                'reason' => 'invalid_uuid',
+            ]);
+
             return;
         }
 
         $this->entityManager->wrapInTransaction(function () use ($message): void {
             $order = $this->orderRepository->find($message->orderId);
             if (null === $order || OrderStatus::PartiallyAccepted !== $order->getStatus()) {
+                $this->logger->warning('messenger.skipped', [
+                    'message' => ExpirePartialAcceptanceMessage::class,
+                    'order_id' => $message->orderId,
+                    'reason' => null === $order ? 'order_not_found' : 'wrong_status',
+                ]);
+
                 return;
             }
 
             $pickupSlot = $order->getPickupSlot();
             $now = $this->clock->now();
             if (null === $pickupSlot) {
+                $this->logger->warning('messenger.skipped', [
+                    'message' => ExpirePartialAcceptanceMessage::class,
+                    'order_id' => $message->orderId,
+                    'reason' => 'no_pickup_slot',
+                ]);
+
                 return;
             }
 

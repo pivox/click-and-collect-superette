@@ -24,6 +24,7 @@ use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -48,6 +49,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         private MerchantResponseTimeoutScheduler $merchantResponseTimeoutScheduler,
         private ClockInterface $clock,
         private int $partialAcceptanceExpirationLeadSeconds,
+        #[Autowire(service: 'monolog.logger.order')]
         private LoggerInterface $logger,
     ) {
     }
@@ -61,6 +63,11 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         if (!$data instanceof SubmitOrderInput) {
             throw new \InvalidArgumentException('SubmitOrderInput expected.');
         }
+
+        $this->logger->debug('order.submit.start', [
+            'kadhia_id' => (string) ($uriVariables['kadhiaId'] ?? ''),
+            'slot_id' => $data->pickupSlotId ?? '',
+        ]);
 
         $user = $this->security->getUser();
         if (!$user instanceof User) {
@@ -139,8 +146,17 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             );
         } catch (\RuntimeException $e) {
             if ('PICKUP_SLOT_FULL' === $e->getMessage()) {
+                $this->logger->warning('order.slot_full', [
+                    'slot_id' => $data->pickupSlotId ?? '',
+                    'kadhia_id' => (string) ($uriVariables['kadhiaId'] ?? ''),
+                ]);
                 throw new UnprocessableEntityHttpException('PICKUP_SLOT_FULL');
             }
+            $this->logger->error('order.submit.failed', [
+                'kadhia_id' => (string) ($uriVariables['kadhiaId'] ?? ''),
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
             throw $e;
         }
 

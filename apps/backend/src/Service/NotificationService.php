@@ -8,6 +8,8 @@ use App\Entity\Notification;
 use App\Entity\Order;
 use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final readonly class NotificationService implements PickupReminderNotifierInterface
 {
@@ -19,6 +21,8 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
     public function __construct(
         private EntityManagerInterface $entityManager,
         private NotificationRepository $notificationRepository,
+        #[Autowire(service: 'monolog.logger.notification')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -136,7 +140,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             $order,
             'Commande annulée automatiquement',
             'تم إلغاء الطلب آليًا',
-            'Votre Kadhia a été annulée car le marchand n’a pas répondu à temps.',
+            'Votre Kadhia a été annulée car le marchand n\'a pas répondu à temps.',
             'تم إلغاء القاضية لأن التاجر لم يرد في الوقت المناسب.',
             self::TYPE_MERCHANT_RESPONSE_TIMEOUT,
         );
@@ -152,7 +156,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             $order,
             'Réponse nécessaire',
             'يلزم الرد',
-            'Votre Kadhia a été acceptée partiellement. Confirmez vos modifications avant l’expiration du délai.',
+            'Votre Kadhia a été acceptée partiellement. Confirmez vos modifications avant l\'expiration du délai.',
             'تم قبول القاضية جزئياً. أكدوا التعديلات قبل انتهاء المهلة.',
             $cycleType,
         );
@@ -168,7 +172,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             $order,
             'Commande annulée automatiquement',
             'تم إلغاء الطلب آليًا',
-            'Votre Kadhia a été annulée car l’acceptation partielle n’a pas été confirmée à temps.',
+            'Votre Kadhia a été annulée car l\'acceptation partielle n\'a pas été confirmée à temps.',
             'تم إلغاء القاضية لأن القبول الجزئي لم يتم تأكيده في الوقت المناسب.',
             self::TYPE_PARTIAL_ACCEPTANCE_TIMEOUT,
         );
@@ -215,16 +219,39 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
         string $bodyAr,
         ?string $type = null,
     ): void {
-        $notification = new Notification(
-            user: $order->getCustomer(),
-            titleFr: $titleFr,
-            titleAr: $titleAr,
-            bodyFr: $bodyFr,
-            bodyAr: $bodyAr,
-            order: $order,
-            type: $type,
-        );
-        $this->entityManager->persist($notification);
+        $orderId = $order->getId()->toRfc4122();
+        $this->logger->debug('notification.attempt', [
+            'type' => $type ?? 'generic',
+            'order_id' => $orderId,
+            'recipient' => 'customer',
+        ]);
+
+        try {
+            $notification = new Notification(
+                user: $order->getCustomer(),
+                titleFr: $titleFr,
+                titleAr: $titleAr,
+                bodyFr: $bodyFr,
+                bodyAr: $bodyAr,
+                order: $order,
+                type: $type,
+            );
+            $this->entityManager->persist($notification);
+            $this->logger->info('notification.persisted', [
+                'type' => $type ?? 'generic',
+                'order_id' => $orderId,
+                'recipient' => 'customer',
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('notification.failed', [
+                'type' => $type ?? 'generic',
+                'order_id' => $orderId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
     }
 
     private function persistForMerchant(
@@ -234,18 +261,48 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
         string $bodyFr,
         string $bodyAr,
     ): void {
+        $orderId = $order->getId()->toRfc4122();
         $owner = $order->getShop()->getOwner();
+
         if (null === $owner) {
+            $this->logger->warning('notification.no_owner', [
+                'order_id' => $orderId,
+                'store_id' => $order->getShop()->getId()->toRfc4122(),
+            ]);
+
             return;
         }
-        $notification = new Notification(
-            user: $owner,
-            titleFr: $titleFr,
-            titleAr: $titleAr,
-            bodyFr: $bodyFr,
-            bodyAr: $bodyAr,
-            order: $order,
-        );
-        $this->entityManager->persist($notification);
+
+        $this->logger->debug('notification.attempt', [
+            'type' => 'merchant',
+            'order_id' => $orderId,
+            'recipient' => 'merchant',
+        ]);
+
+        try {
+            $notification = new Notification(
+                user: $owner,
+                titleFr: $titleFr,
+                titleAr: $titleAr,
+                bodyFr: $bodyFr,
+                bodyAr: $bodyAr,
+                order: $order,
+            );
+            $this->entityManager->persist($notification);
+            $this->logger->info('notification.persisted', [
+                'type' => 'merchant',
+                'order_id' => $orderId,
+                'recipient' => 'merchant',
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('notification.failed', [
+                'type' => 'merchant',
+                'order_id' => $orderId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
     }
 }

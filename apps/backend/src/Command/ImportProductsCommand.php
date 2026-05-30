@@ -9,6 +9,7 @@ use App\Repository\OpenDataProductRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
@@ -42,6 +43,7 @@ final class ImportProductsCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly HttpClientInterface $httpClient,
+        #[Autowire(service: 'monolog.logger.catalog')]
         private readonly LoggerInterface $logger,
     ) {
         parent::__construct();
@@ -102,6 +104,15 @@ final class ImportProductsCommand extends Command
             'Import complete — fetched: %d | inserted: %d | updated: %d | skipped: %d | errors: %d',
             $grand['fetched'], $grand['inserted'], $grand['updated'], $grand['skipped'], $grand['errors']
         ));
+
+        $this->logger->info('catalog.import.done', [
+            'sources' => $sourceKeys,
+            'fetched' => $grand['fetched'],
+            'inserted' => $grand['inserted'],
+            'updated' => $grand['updated'],
+            'skipped' => $grand['skipped'],
+            'errors' => $grand['errors'],
+        ]);
 
         return Command::SUCCESS;
     }
@@ -174,6 +185,7 @@ final class ImportProductsCommand extends Command
                 $barcode = substr(trim((string) ($raw['code'] ?? '')), 0, 30);
                 if ('' === $barcode) {
                     ++$stats['skipped'];
+                    $this->logger->debug('catalog.import.skipped', ['reason' => 'empty_barcode', 'source' => $sourceKey]);
                     continue;
                 }
 
@@ -181,6 +193,7 @@ final class ImportProductsCommand extends Command
                 $nameFr = trim((string) ($raw['product_name_fr'] ?? ''));
                 if ('' === $name && '' === $nameFr) {
                     ++$stats['skipped'];
+                    $this->logger->debug('catalog.import.skipped', ['reason' => 'no_name', 'barcode' => $barcode, 'source' => $sourceKey]);
                     continue;
                 }
 
@@ -228,16 +241,26 @@ final class ImportProductsCommand extends Command
     {
         $url = str_replace('{page}', (string) $page, $baseUrl);
 
+        $this->logger->debug('catalog.import.fetch', ['url' => $url]);
+
         try {
             $response = $this->httpClient->request('GET', $url, ['timeout' => 30]);
 
             return $response->toArray();
         } catch (ExceptionInterface $e) {
-            $this->logger->error('Open*Facts HTTP error', ['url' => $url, 'error' => $e->getMessage()]);
+            $this->logger->error('catalog.import.fetch_failed', [
+                'url' => $url,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
 
             return null;
         } catch (\Throwable $e) {
-            $this->logger->error('Open*Facts unexpected error', ['url' => $url, 'error' => $e->getMessage()]);
+            $this->logger->error('catalog.import.fetch_failed', [
+                'url' => $url,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
 
             return null;
         }

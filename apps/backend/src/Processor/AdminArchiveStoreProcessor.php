@@ -18,6 +18,7 @@ use App\Service\OrderStatusLogRecorder;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -34,6 +35,7 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
         private OrderStatusLogRecorder $orderStatusLogRecorder,
         private AdminStoreOutputFactory $adminStoreOutputFactory,
         private AdminAuditLogger $auditLogger,
+        #[Autowire(service: 'monolog.logger.admin')]
         private LoggerInterface $logger,
     ) {
     }
@@ -47,6 +49,8 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
         $storeId = (string) ($uriVariables['storeId'] ?? '');
         $shop = $this->resolveShop($storeId);
         $reason = $data->reason;
+
+        $this->logger->debug('admin.archive_store.start', ['store_id' => $storeId]);
 
         $this->entityManager->wrapInTransaction(function () use ($shop, $reason): void {
             $conn = $this->entityManager->getConnection();
@@ -62,6 +66,7 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
             }
 
             if (null !== $shop->getArchivedAt()) {
+                $this->logger->warning('admin.archive_store.already_archived', ['store_id' => $shop->getId()->toRfc4122()]);
                 throw new ConflictHttpException('ADMIN_STORE_ALREADY_ARCHIVED');
             }
 

@@ -30,8 +30,17 @@ final readonly class SendPickupReminderMessageHandler
 
     public function __invoke(SendPickupReminderMessage $message): void
     {
+        $this->logger->debug('messenger.received', [
+            'message' => SendPickupReminderMessage::class,
+            'order_id' => $message->orderId,
+        ]);
+
         try {
             $this->handle($message);
+            $this->logger->info('messenger.handled', [
+                'message' => SendPickupReminderMessage::class,
+                'order_id' => $message->orderId,
+            ]);
         } catch (\Throwable $exception) {
             $this->logger->error('messenger.failure', [
                 'message' => SendPickupReminderMessage::class,
@@ -47,21 +56,46 @@ final readonly class SendPickupReminderMessageHandler
     private function handle(SendPickupReminderMessage $message): void
     {
         if (!Uuid::isValid($message->orderId)) {
+            $this->logger->warning('messenger.skipped', [
+                'message' => SendPickupReminderMessage::class,
+                'order_id' => $message->orderId,
+                'reason' => 'invalid_uuid',
+            ]);
+
             return;
         }
 
         $order = $this->orderRepository->find($message->orderId);
         if (null === $order) {
+            $this->logger->warning('messenger.skipped', [
+                'message' => SendPickupReminderMessage::class,
+                'order_id' => $message->orderId,
+                'reason' => 'order_not_found',
+            ]);
+
             return;
         }
 
         if (OrderStatus::Ready !== $order->getStatus()) {
+            $this->logger->warning('messenger.skipped', [
+                'message' => SendPickupReminderMessage::class,
+                'order_id' => $message->orderId,
+                'reason' => 'wrong_status',
+                'status' => $order->getStatus()->value,
+            ]);
+
             return;
         }
 
         $pickupSlot = $order->getPickupSlot();
         $now = $this->clock->now();
         if (null === $pickupSlot || $now >= $pickupSlot->getStartsAt()) {
+            $this->logger->warning('messenger.skipped', [
+                'message' => SendPickupReminderMessage::class,
+                'order_id' => $message->orderId,
+                'reason' => null === $pickupSlot ? 'no_pickup_slot' : 'slot_already_started',
+            ]);
+
             return;
         }
 
@@ -74,6 +108,12 @@ final readonly class SendPickupReminderMessageHandler
         // prevent this, but a scan transitions the order to pickup_pending asynchronously and a
         // delayed message could be delivered in the window between scan and status update.
         if (null === $pickupSession || $pickupSession->isUsed() || null !== $pickupSession->getScannedAt()) {
+            $this->logger->warning('messenger.skipped', [
+                'message' => SendPickupReminderMessage::class,
+                'order_id' => $message->orderId,
+                'reason' => 'pickup_session_invalid',
+            ]);
+
             return;
         }
 
