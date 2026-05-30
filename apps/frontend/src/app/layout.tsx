@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import GlobalErrorCapture from "./GlobalErrorCapture";
 
 export const metadata: Metadata = {
   title: "Kadhia · Click & Collect Supérette",
@@ -14,7 +15,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <GlobalErrorCapture />
+        {children}
+      </body>
     </html>
   );
 }
