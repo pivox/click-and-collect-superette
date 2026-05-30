@@ -140,7 +140,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             $order,
             'Commande annulée automatiquement',
             'تم إلغاء الطلب آليًا',
-            'Votre Kadhia a été annulée car le marchand n\'a pas répondu à temps.',
+            'Votre Kadhia a été annulée car le marchand n’a pas répondu à temps.',
             'تم إلغاء القاضية لأن التاجر لم يرد في الوقت المناسب.',
             self::TYPE_MERCHANT_RESPONSE_TIMEOUT,
         );
@@ -156,7 +156,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             $order,
             'Réponse nécessaire',
             'يلزم الرد',
-            'Votre Kadhia a été acceptée partiellement. Confirmez vos modifications avant l\'expiration du délai.',
+            'Votre Kadhia a été acceptée partiellement. Confirmez vos modifications avant l’expiration du délai.',
             'تم قبول القاضية جزئياً. أكدوا التعديلات قبل انتهاء المهلة.',
             $cycleType,
         );
@@ -172,7 +172,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             $order,
             'Commande annulée automatiquement',
             'تم إلغاء الطلب آليًا',
-            'Votre Kadhia a été annulée car l\'acceptation partielle n\'a pas été confirmée à temps.',
+            'Votre Kadhia a été annulée car l’acceptation partielle n’a pas été confirmée à temps.',
             'تم إلغاء القاضية لأن القبول الجزئي لم يتم تأكيده في الوقت المناسب.',
             self::TYPE_PARTIAL_ACCEPTANCE_TIMEOUT,
         );
