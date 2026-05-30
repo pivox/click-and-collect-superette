@@ -16,7 +16,9 @@ use App\Repository\KadhiaLineRepository;
 use App\Repository\KadhiaRepository;
 use App\Repository\MerchantProductRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -34,6 +36,8 @@ final readonly class UpsertKadhiaLineProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private KadhiaOutputFactory $kadhiaOutputFactory,
         private Security $security,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -80,7 +84,9 @@ final readonly class UpsertKadhiaLineProcessor implements ProcessorInterface
         }
 
         $line = $this->kadhiaLineRepository->findOneByKadhiaAndProduct($kadhia, $merchantProduct);
-        if (null === $line) {
+        $isNew = null === $line;
+
+        if ($isNew) {
             $line = (new KadhiaLine())
                 ->setMerchantProduct($merchantProduct)
                 ->setUnitPriceTnd($merchantProduct->getPriceTnd())
@@ -92,6 +98,13 @@ final readonly class UpsertKadhiaLineProcessor implements ProcessorInterface
         }
 
         $this->entityManager->flush();
+
+        $this->logger->info('kadhia.line.upserted', [
+            'kadhia_id' => $kadhiaId,
+            'merchant_product_id' => $merchantProductId,
+            'quantity' => $data->quantity,
+            'action' => $isNew ? 'created' : 'updated',
+        ]);
 
         return $this->kadhiaOutputFactory->toOutput($kadhia);
     }

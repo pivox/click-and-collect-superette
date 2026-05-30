@@ -30,8 +30,17 @@ final readonly class PartialAcceptanceReminderMessageHandler
 
     public function __invoke(PartialAcceptanceReminderMessage $message): void
     {
+        $this->logger->debug('messenger.received', [
+            'message' => PartialAcceptanceReminderMessage::class,
+            'order_id' => $message->orderId,
+        ]);
+
         try {
             $this->handle($message);
+            $this->logger->info('messenger.handled', [
+                'message' => PartialAcceptanceReminderMessage::class,
+                'order_id' => $message->orderId,
+            ]);
         } catch (\Throwable $exception) {
             $this->logger->error('messenger.failure', [
                 'message' => PartialAcceptanceReminderMessage::class,
@@ -47,18 +56,36 @@ final readonly class PartialAcceptanceReminderMessageHandler
     private function handle(PartialAcceptanceReminderMessage $message): void
     {
         if (!Uuid::isValid($message->orderId)) {
+            $this->logger->warning('messenger.skipped', [
+                'message' => PartialAcceptanceReminderMessage::class,
+                'order_id' => $message->orderId,
+                'reason' => 'invalid_uuid',
+            ]);
+
             return;
         }
 
         $this->entityManager->wrapInTransaction(function () use ($message): void {
             $order = $this->orderRepository->find($message->orderId);
             if (null === $order || OrderStatus::PartiallyAccepted !== $order->getStatus()) {
+                $this->logger->warning('messenger.skipped', [
+                    'message' => PartialAcceptanceReminderMessage::class,
+                    'order_id' => $message->orderId,
+                    'reason' => null === $order ? 'order_not_found' : 'wrong_status',
+                ]);
+
                 return;
             }
 
             $pickupSlot = $order->getPickupSlot();
             $now = $this->clock->now();
             if (null === $pickupSlot || $now >= $pickupSlot->getStartsAt()) {
+                $this->logger->warning('messenger.skipped', [
+                    'message' => PartialAcceptanceReminderMessage::class,
+                    'order_id' => $message->orderId,
+                    'reason' => null === $pickupSlot ? 'no_pickup_slot' : 'slot_already_started',
+                ]);
+
                 return;
             }
 

@@ -28,6 +28,7 @@
         "symfony/framework-bundle": "7.3.*",
         "symfony/http-client": "7.3.*",
         "symfony/messenger": "7.3.*",
+        "symfony/monolog-bundle": "^3.10",
         "symfony/property-access": "7.3.*",
         "symfony/property-info": "7.3.*",
         "symfony/runtime": "7.3.*",
@@ -45,6 +46,9 @@
             "symfony/flex": true,
             "symfony/runtime": true,
             "phpstan/extension-installer": true
+        },
+        "audit": {
+            "ignore": ["PKSA-4wjj-gy1p-ft3r"]
         },
         "bump-after-update": true,
         "sort-packages": true

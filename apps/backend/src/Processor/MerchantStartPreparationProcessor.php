@@ -15,6 +15,8 @@ use App\Security\MerchantShopAccessChecker;
 use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -31,6 +33,8 @@ final readonly class MerchantStartPreparationProcessor implements ProcessorInter
         private EntityManagerInterface $entityManager,
         private OrderStatusLogRecorder $orderStatusLogRecorder,
         private NotificationService $notificationService,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -62,15 +66,44 @@ final readonly class MerchantStartPreparationProcessor implements ProcessorInter
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
 
+        $this->logger->debug('merchant.order_preparation.start', [
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+        ]);
+
+        // State machine: startPreparing() throws \LogicException if the order is not accepted.
+        // flush() is outside this block so the state change always reaches the DB on success.
         try {
             $order->startPreparing();
             $this->orderStatusLogRecorder->record($order, OrderStatus::Preparing);
-            $this->notificationService->notifyCustomerOrderPreparing($order);
         } catch (\LogicException $e) {
+            $this->logger->warning('merchant.order_preparation.rejected', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'reason' => $e->getMessage(),
+            ]);
             throw new ConflictHttpException($e->getMessage());
         }
 
         $this->entityManager->flush();
+
+        $this->logger->info('merchant.order_preparation_started', [
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+        ]);
+
+        // Notification is best-effort: failure must not roll back the preparation.
+        try {
+            $this->notificationService->notifyCustomerOrderPreparing($order);
+            $this->entityManager->flush();
+        } catch (\Throwable $e) {
+            $this->logger->error('merchant.order_preparation.notification_failed', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+        }
 
         return MerchantOrderCollectionProvider::toOutput($order);
     }

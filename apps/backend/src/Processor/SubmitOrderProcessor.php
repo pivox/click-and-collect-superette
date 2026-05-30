@@ -25,6 +25,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -48,6 +49,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         private MerchantResponseTimeoutScheduler $merchantResponseTimeoutScheduler,
         private ClockInterface $clock,
         private int $partialAcceptanceExpirationLeadSeconds,
+        #[Autowire(service: 'monolog.logger.order')]
         private LoggerInterface $logger,
     ) {
     }
@@ -62,18 +64,30 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             throw new \InvalidArgumentException('SubmitOrderInput expected.');
         }
 
+        $kadhiaId = (string) ($uriVariables['kadhiaId'] ?? '');
+        $slotId = $data->pickupSlotId;
+
+        $this->logger->debug('order.submit.start', [
+            'kadhia_id' => $kadhiaId,
+            'slot_id' => $slotId,
+        ]);
+
         $user = $this->security->getUser();
         if (!$user instanceof User) {
+            $this->logRejected('CUSTOMER_ACCESS_REQUIRED', $kadhiaId, $slotId);
             throw new AccessDeniedHttpException('CUSTOMER_ACCESS_REQUIRED');
         }
 
-        $kadhiaId = (string) ($uriVariables['kadhiaId'] ?? '');
+        $userId = $user->getId()->toRfc4122();
+
         if (!Uuid::isValid($kadhiaId)) {
+            $this->logRejected('KADHIA_NOT_FOUND', $kadhiaId, $slotId, $userId);
             throw new NotFoundHttpException('KADHIA_NOT_FOUND');
         }
 
         $kadhia = $this->kadhiaRepository->findByIdAndCustomer($kadhiaId, $user);
         if (null === $kadhia) {
+            $this->logRejected('KADHIA_NOT_FOUND', $kadhiaId, $slotId, $userId);
             throw new NotFoundHttpException('KADHIA_NOT_FOUND');
         }
 
@@ -83,49 +97,65 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             if (null !== $activeOrder) {
                 return $this->orderOutputFactory->toOutput($activeOrder);
             }
+            $this->logRejected('KADHIA_NOT_DRAFT', $kadhiaId, $slotId, $userId);
             throw new UnprocessableEntityHttpException('KADHIA_NOT_DRAFT');
         }
 
         $shop = $kadhia->getShop();
+        $storeId = $shop->getId()->toRfc4122();
+
         if (!$shop->isActive()) {
+            $this->logRejected('STORE_NOT_FOUND', $kadhiaId, $slotId, $userId, $storeId);
             throw new NotFoundHttpException('STORE_NOT_FOUND');
         }
 
-        if (!Uuid::isValid($data->pickupSlotId)) {
+        if (!Uuid::isValid((string) $slotId)) {
+            $this->logRejected('PICKUP_SLOT_NOT_FOUND', $kadhiaId, $slotId, $userId, $storeId);
             throw new NotFoundHttpException('PICKUP_SLOT_NOT_FOUND');
         }
 
-        $slot = $this->pickupSlotRepository->find($data->pickupSlotId);
+        $slot = $this->pickupSlotRepository->find($slotId);
         if (null === $slot || !$slot->isActive() || !$slot->getShop()->getId()->equals($shop->getId())) {
+            $this->logRejected('PICKUP_SLOT_NOT_FOUND', $kadhiaId, $slotId, $userId, $storeId);
             throw new NotFoundHttpException('PICKUP_SLOT_NOT_FOUND');
         }
 
         if ($slot->isFull()) {
+            $this->logRejected('PICKUP_SLOT_FULL', $kadhiaId, $slotId, $userId, $storeId);
             throw new UnprocessableEntityHttpException('PICKUP_SLOT_FULL');
         }
 
         if ($slot->getEndsAt() <= new \DateTimeImmutable()) {
+            $this->logRejected('PICKUP_SLOT_EXPIRED', $kadhiaId, $slotId, $userId, $storeId);
             throw new UnprocessableEntityHttpException('PICKUP_SLOT_EXPIRED');
         }
 
         if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $slot->getStartsAt(), $slot->getEndsAt())) {
+            $this->logRejected('PICKUP_SLOT_CLOSED', $kadhiaId, $slotId, $userId, $storeId);
             throw new UnprocessableEntityHttpException('PICKUP_SLOT_CLOSED');
         }
 
         if ($kadhia->getLines()->isEmpty()) {
+            $this->logRejected('KADHIA_EMPTY', $kadhiaId, $slotId, $userId, $storeId);
             throw new UnprocessableEntityHttpException('KADHIA_EMPTY');
         }
 
         foreach ($kadhia->getLines() as $kadhiaLine) {
             $product = $kadhiaLine->getMerchantProduct();
             if (!$product->isAvailable() || !$product->isVisible()) {
+                $this->logRejected('PRODUCT_UNAVAILABLE', $kadhiaId, $slotId, $userId, $storeId);
                 throw new UnprocessableEntityHttpException('PRODUCT_UNAVAILABLE');
             }
         }
 
         $existingOrder = $this->orderRepository->findPartiallyAcceptedByKadhia($kadhia);
         if (null !== $existingOrder) {
-            $this->denyLatePartialAcceptanceResubmission($existingOrder->getPickupSlot() ?? $slot);
+            try {
+                $this->denyLatePartialAcceptanceResubmission($existingOrder->getPickupSlot() ?? $slot);
+            } catch (UnprocessableEntityHttpException $e) {
+                $this->logRejected('PARTIAL_ACCEPTANCE_EXPIRED', $kadhiaId, $slotId, $userId, $storeId);
+                throw $e;
+            }
         }
 
         try {
@@ -139,12 +169,43 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             );
         } catch (\RuntimeException $e) {
             if ('PICKUP_SLOT_FULL' === $e->getMessage()) {
+                $this->logRejected('PICKUP_SLOT_FULL', $kadhiaId, $slotId, $userId, $storeId);
                 throw new UnprocessableEntityHttpException('PICKUP_SLOT_FULL');
             }
+            $this->logger->error('order.submit.failed', [
+                'kadhia_id' => $kadhiaId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        } catch (\Throwable $e) {
+            // Catches DBAL/ORM exceptions that do not extend \RuntimeException in DBAL 4.
+            $this->logger->error('order.submit.transaction_failed', [
+                'kadhia_id' => $kadhiaId,
+                'slot_id' => $slotId,
+                'user_id' => $userId,
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
             throw $e;
         }
 
-        $this->merchantResponseTimeoutScheduler->scheduleForSubmittedOrder($result->order);
+        $orderId = $result->order->getId()->toRfc4122();
+
+        try {
+            $this->merchantResponseTimeoutScheduler->scheduleForSubmittedOrder($result->order);
+            $this->logger->info('order.submit.timeout_scheduled', [
+                'order_id' => $orderId,
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('order.submit.timeout_schedule_failed', [
+                'order_id' => $orderId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
 
         return $result->output;
     }
@@ -303,5 +364,16 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         ]);
 
         return new SubmittedOrderResult($order, $this->orderOutputFactory->toOutput($order));
+    }
+
+    private function logRejected(string $reason, string $kadhiaId, ?string $slotId = null, ?string $userId = null, ?string $storeId = null): void
+    {
+        $this->logger->warning('order.submit.rejected', [
+            'reason' => $reason,
+            'kadhia_id' => $kadhiaId,
+            'slot_id' => $slotId,
+            'user_id' => $userId,
+            'store_id' => $storeId,
+        ]);
     }
 }

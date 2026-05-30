@@ -11,6 +11,8 @@ use App\ApiResource\AdminStoreOutputFactory;
 use App\Entity\Shop;
 use App\Repository\AdminStoreRepository;
 use App\Service\AdminAuditLogger;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -23,6 +25,8 @@ final readonly class AdminDeactivateStoreProcessor implements ProcessorInterface
         private AdminStoreRepository $adminStoreRepository,
         private AdminStoreOutputFactory $adminStoreOutputFactory,
         private AdminAuditLogger $auditLogger,
+        #[Autowire(service: 'monolog.logger.admin')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -35,15 +39,27 @@ final readonly class AdminDeactivateStoreProcessor implements ProcessorInterface
         $storeId = (string) ($uriVariables['storeId'] ?? '');
         $shop = $this->resolveShop($storeId);
 
-        $shop->setActive(false);
-        $this->auditLogger->log(
-            action: 'store.deactivate',
-            resourceType: 'store',
-            resourceId: $shop->getId()->toRfc4122(),
-            summary: \sprintf('Supérette "%s" désactivée.', $shop->getName()),
-            metadata: ['name' => $shop->getName()],
-        );
-        $this->adminStoreRepository->save($shop);
+        $this->logger->debug('admin.store_deactivate.start', ['store_id' => $storeId]);
+
+        try {
+            $shop->setActive(false);
+            $this->auditLogger->log(
+                action: 'store.deactivate',
+                resourceType: 'store',
+                resourceId: $shop->getId()->toRfc4122(),
+                summary: \sprintf('Supérette "%s" désactivée.', $shop->getName()),
+                metadata: ['name' => $shop->getName()],
+            );
+            $this->adminStoreRepository->save($shop);
+            $this->logger->info('store.deactivated', ['store_id' => $storeId]);
+        } catch (\Throwable $e) {
+            $this->logger->error('admin.store_deactivate.failed', [
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
 
         return $this->adminStoreOutputFactory->create(
             shop: $shop,

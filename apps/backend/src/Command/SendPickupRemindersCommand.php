@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Service\PickupReminderSender;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 #[AsCommand(
     name: 'app:orders:send-pickup-reminders',
@@ -16,8 +18,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 final class SendPickupRemindersCommand extends Command
 {
-    public function __construct(private readonly PickupReminderSender $sender)
-    {
+    public function __construct(
+        private readonly PickupReminderSender $sender,
+        #[Autowire(service: 'monolog.logger.order')]
+        private readonly LoggerInterface $logger,
+    ) {
         parent::__construct();
     }
 
@@ -26,6 +31,8 @@ final class SendPickupRemindersCommand extends Command
         $sent = $this->sender->sendDueReminders();
 
         $output->writeln(\sprintf('sent_reminders: %d', $sent));
+
+        $this->logger->info('order.pickup_reminders_sent', ['count' => $sent]);
 
         return Command::SUCCESS;
     }

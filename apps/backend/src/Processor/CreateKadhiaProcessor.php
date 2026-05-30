@@ -13,7 +13,9 @@ use App\Entity\User;
 use App\Factory\KadhiaOutputFactory;
 use App\Repository\ShopRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -28,6 +30,8 @@ final readonly class CreateKadhiaProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private KadhiaOutputFactory $kadhiaOutputFactory,
         private Security $security,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -56,6 +60,13 @@ final readonly class CreateKadhiaProcessor implements ProcessorInterface
             throw new NotFoundHttpException('STORE_NOT_FOUND');
         }
 
+        $userId = $user->getId()->toRfc4122();
+
+        $this->logger->debug('kadhia.create.start', [
+            'store_id' => $storeId,
+            'user_id' => $userId,
+        ]);
+
         $kadhia = (new Kadhia())
             ->setCustomer($user)
             ->setShop($shop)
@@ -63,6 +74,12 @@ final readonly class CreateKadhiaProcessor implements ProcessorInterface
 
         $this->entityManager->persist($kadhia);
         $this->entityManager->flush();
+
+        $this->logger->info('kadhia.created', [
+            'kadhia_id' => $kadhia->getId()->toRfc4122(),
+            'store_id' => $storeId,
+            'user_id' => $userId,
+        ]);
 
         return $this->kadhiaOutputFactory->toOutput($kadhia);
     }

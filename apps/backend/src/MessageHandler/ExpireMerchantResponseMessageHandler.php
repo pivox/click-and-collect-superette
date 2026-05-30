@@ -29,8 +29,17 @@ final readonly class ExpireMerchantResponseMessageHandler
 
     public function __invoke(ExpireMerchantResponseMessage $message): void
     {
+        $this->logger->debug('messenger.received', [
+            'message' => ExpireMerchantResponseMessage::class,
+            'order_id' => $message->orderId,
+        ]);
+
         try {
             $this->handle($message);
+            $this->logger->info('messenger.handled', [
+                'message' => ExpireMerchantResponseMessage::class,
+                'order_id' => $message->orderId,
+            ]);
         } catch (\Throwable $exception) {
             $this->logger->error('messenger.failure', [
                 'message' => ExpireMerchantResponseMessage::class,
@@ -46,12 +55,24 @@ final readonly class ExpireMerchantResponseMessageHandler
     private function handle(ExpireMerchantResponseMessage $message): void
     {
         if (!Uuid::isValid($message->orderId)) {
+            $this->logger->warning('messenger.skipped', [
+                'message' => ExpireMerchantResponseMessage::class,
+                'order_id' => $message->orderId,
+                'reason' => 'invalid_uuid',
+            ]);
+
             return;
         }
 
         $this->entityManager->wrapInTransaction(function () use ($message): void {
             $order = $this->orderRepository->find($message->orderId);
             if (null === $order || OrderStatus::Submitted !== $order->getStatus()) {
+                $this->logger->warning('messenger.skipped', [
+                    'message' => ExpireMerchantResponseMessage::class,
+                    'order_id' => $message->orderId,
+                    'reason' => null === $order ? 'order_not_found' : 'wrong_status',
+                ]);
+
                 return;
             }
 

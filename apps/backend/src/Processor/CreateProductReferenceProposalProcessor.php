@@ -15,7 +15,9 @@ use App\Repository\CategoryRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -32,6 +34,8 @@ final readonly class CreateProductReferenceProposalProcessor implements Processo
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private EntityManagerInterface $entityManager,
         private Security $security,
+        #[Autowire(service: 'monolog.logger.catalog')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -106,5 +110,10 @@ final readonly class CreateProductReferenceProposalProcessor implements Processo
 
         $this->entityManager->persist($proposal);
         $this->entityManager->flush();
+
+        $this->logger->info('catalog.product_proposal.created', [
+            'proposal_id' => $proposal->getId()->toRfc4122(),
+            'store_id' => $storeId,
+        ]);
     }
 }

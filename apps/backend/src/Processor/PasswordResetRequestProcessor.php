@@ -12,6 +12,8 @@ use App\Repository\UserRepository;
 use App\Service\PasswordResetTokenManager;
 use App\Service\PasswordResetTokenSenderInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * @implements ProcessorInterface<PasswordResetRequestInput, PasswordResetOutput>
@@ -25,6 +27,8 @@ final readonly class PasswordResetRequestProcessor implements ProcessorInterface
         private PasswordResetTokenManager $tokenManager,
         private PasswordResetTokenSenderInterface $tokenSender,
         private EntityManagerInterface $entityManager,
+        #[Autowire(service: 'monolog.logger.security')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -39,12 +43,31 @@ final readonly class PasswordResetRequestProcessor implements ProcessorInterface
         }
 
         $email = strtolower($data->email);
+        $emailHash = hash('sha256', $email);
+
+        // debug only — neutral, does not reveal user existence
+        $this->logger->debug('security.password_reset.requested', ['email_hash' => $emailHash]);
+
         $user = $this->userRepository->findOneBy(['email' => $email]);
 
         if (null !== $user && \in_array('ROLE_CUSTOMER', $user->getRoles(), true) && null === $user->getDeletedAt()) {
-            $rawToken = $this->tokenManager->createForUser($user);
-            $this->entityManager->flush();
-            $this->tokenSender->send($user, $rawToken);
+            try {
+                $rawToken = $this->tokenManager->createForUser($user);
+                $this->entityManager->flush();
+                $this->tokenSender->send($user, $rawToken);
+                // info — no user identifier logged, only correlation hash
+                $this->logger->info('security.password_reset.sent', ['email_hash' => $emailHash]);
+            } catch (\Throwable $e) {
+                $this->logger->error('security.password_reset.failed', [
+                    'email_hash' => $emailHash,
+                    'exception_class' => $e::class,
+                    'exception_message' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
+        } else {
+            // debug — not warning, to avoid revealing user non-existence via log level
+            $this->logger->debug('security.password_reset.user_not_eligible', ['email_hash' => $emailHash]);
         }
 
         return new PasswordResetOutput(self::NEUTRAL_MESSAGE);

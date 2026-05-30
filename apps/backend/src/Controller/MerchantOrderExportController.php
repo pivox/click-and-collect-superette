@@ -10,7 +10,9 @@ use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -26,6 +28,8 @@ final class MerchantOrderExportController extends AbstractController
         private readonly ShopRepository $shopRepository,
         private readonly OrderRepository $orderRepository,
         private readonly MerchantShopAccessChecker $merchantShopAccessChecker,
+        #[Autowire(service: 'monolog.logger.order')]
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -58,11 +62,19 @@ final class MerchantOrderExportController extends AbstractController
         $status = $this->parseStatus($request->query->get('status'));
         $orders = $this->orderRepository->findForExport($shop, $status, $dateFrom, $dateTo);
 
-        $filename = \sprintf('commandes-%s-%s-%s.csv',
-            $storeId,
-            $dateFrom->format('Y-m-d'),
-            (clone $dateTo)->setTime(0, 0)->format('Y-m-d'),
-        );
+        $rowCount = \count($orders);
+        $dateFromStr = $dateFrom->format('Y-m-d');
+        $dateToStr = (clone $dateTo)->setTime(0, 0)->format('Y-m-d');
+
+        $this->logger->info('merchant.orders_exported', [
+            'store_id' => $storeId,
+            'date_from' => $dateFromStr,
+            'date_to' => $dateToStr,
+            'row_count' => $rowCount,
+            'status_filter' => $status?->value,
+        ]);
+
+        $filename = \sprintf('commandes-%s-%s-%s.csv', $storeId, $dateFromStr, $dateToStr);
 
         $response = new StreamedResponse(function () use ($orders): void {
             $stream = fopen('php://output', 'w');

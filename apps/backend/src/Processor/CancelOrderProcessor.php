@@ -14,7 +14,9 @@ use App\Repository\OrderRepository;
 use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -32,6 +34,8 @@ final readonly class CancelOrderProcessor implements ProcessorInterface
         private OrderOutputFactory $orderOutputFactory,
         private Security $security,
         private NotificationService $notificationService,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -46,7 +50,9 @@ final readonly class CancelOrderProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('CUSTOMER_ACCESS_REQUIRED');
         }
 
+        $userId = $user->getId()->toRfc4122();
         $orderId = (string) ($uriVariables['orderId'] ?? '');
+
         if (!Uuid::isValid($orderId)) {
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
@@ -56,22 +62,51 @@ final readonly class CancelOrderProcessor implements ProcessorInterface
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
 
+        $storeId = $order->getShop()->getId()->toRfc4122();
+
+        $this->logger->debug('customer.order_cancel.start', [
+            'order_id' => $orderId,
+            'user_id' => $userId,
+            'store_id' => $storeId,
+        ]);
+
         if (OrderStatus::Submitted !== $order->getStatus()) {
+            $this->logger->warning('customer.order_cancel.rejected', [
+                'order_id' => $orderId,
+                'user_id' => $userId,
+                'store_id' => $storeId,
+                'reason' => 'ORDER_NOT_SUBMITTED',
+            ]);
             throw new ConflictHttpException('ORDER_NOT_SUBMITTED');
         }
 
-        $order->cancel();
-        $slot = $order->getPickupSlot();
-        if (null !== $slot) {
-            $this->entityManager->getConnection()->executeStatement(
-                'UPDATE pickup_slots SET booked_count = CASE WHEN booked_count > 0 THEN booked_count - 1 ELSE 0 END WHERE id = :id',
-                ['id' => $slot->getId()->toBinary()],
-            );
+        try {
+            $order->cancel();
+            $slot = $order->getPickupSlot();
+            if (null !== $slot) {
+                $this->entityManager->getConnection()->executeStatement(
+                    'UPDATE pickup_slots SET booked_count = CASE WHEN booked_count > 0 THEN booked_count - 1 ELSE 0 END WHERE id = :id',
+                    ['id' => $slot->getId()->toBinary()],
+                );
+            }
+            $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled);
+            $this->notificationService->notifyMerchantOrderCancelled($order);
+            $this->entityManager->flush();
+            $this->logger->info('customer.order_cancelled', [
+                'order_id' => $orderId,
+                'user_id' => $userId,
+                'store_id' => $storeId,
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('customer.order_cancel.failed', [
+                'order_id' => $orderId,
+                'user_id' => $userId,
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
         }
-        $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled);
-        $this->notificationService->notifyMerchantOrderCancelled($order);
-
-        $this->entityManager->flush();
 
         return $this->orderOutputFactory->toOutput($order);
     }

@@ -19,6 +19,8 @@ use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use App\Service\PartialAcceptanceExpirationScheduler;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -37,6 +39,8 @@ final readonly class MerchantPartiallyAcceptOrderProcessor implements ProcessorI
         private OrderStatusLogRecorder $orderStatusLogRecorder,
         private NotificationService $notificationService,
         private PartialAcceptanceExpirationScheduler $partialAcceptanceExpirationScheduler,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -108,6 +112,12 @@ final readonly class MerchantPartiallyAcceptOrderProcessor implements ProcessorI
             }
         }
 
+        $this->logger->debug('merchant.order_partial_accept.start', [
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+            'rejected_count' => \count($rejectedProductIds),
+        ]);
+
         try {
             $this->entityManager->wrapInTransaction(function () use ($order, $kadhia, $rejectedProductIds, $data): void {
                 $order->partiallyAccept($data->notes);
@@ -129,10 +139,38 @@ final readonly class MerchantPartiallyAcceptOrderProcessor implements ProcessorI
                 $this->entityManager->flush();
             });
         } catch (\LogicException $e) {
+            $this->logger->warning('merchant.order_partial_accept.rejected', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'reason' => $e->getMessage(),
+            ]);
             throw new ConflictHttpException($e->getMessage());
+        } catch (\Throwable $e) {
+            $this->logger->error('merchant.order_partial_accept.failed', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
         }
 
-        $this->partialAcceptanceExpirationScheduler->scheduleForPartiallyAcceptedOrder($order);
+        $this->logger->info('merchant.order_partially_accepted', [
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+            'rejected_count' => \count($rejectedProductIds),
+        ]);
+
+        try {
+            $this->partialAcceptanceExpirationScheduler->scheduleForPartiallyAcceptedOrder($order);
+        } catch (\Throwable $e) {
+            $this->logger->error('merchant.order_partial_accept.scheduler_failed', [
+                'order_id' => $orderId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
 
         return MerchantOrderCollectionProvider::toOutput($order);
     }

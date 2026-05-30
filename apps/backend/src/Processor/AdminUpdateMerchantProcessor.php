@@ -13,6 +13,8 @@ use App\Provider\AdminMerchantItemProvider;
 use App\Repository\AdminMerchantRepository;
 use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -27,6 +29,8 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private RequestStack $requestStack,
         private AdminAuditLogger $auditLogger,
+        #[Autowire(service: 'monolog.logger.admin')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -45,6 +49,14 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
 
         // Only update fields that were explicitly provided in the request body
         $payload = $this->currentPayload();
+
+        $knownFields = ['first_name', 'last_name', 'phone', 'is_active'];
+        $updatedFields = array_values(array_intersect(array_keys($payload), $knownFields));
+
+        $this->logger->debug('admin.merchant_update.start', [
+            'merchant_id' => $merchantId,
+            'updated_fields' => $updatedFields,
+        ]);
 
         if (\array_key_exists('first_name', $payload) && null !== $data->firstName) {
             $merchant->setFirstName($data->firstName);
@@ -69,14 +81,27 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
             $merchant->setName($firstName.' '.$lastName);
         }
 
-        $this->auditLogger->log(
-            action: 'merchant.update',
-            resourceType: 'merchant',
-            resourceId: $merchant->getId()->toRfc4122(),
-            summary: \sprintf('Compte marchand %s modifié.', $merchant->getEmail()),
-            metadata: ['email' => $merchant->getEmail()],
-        );
-        $this->entityManager->flush();
+        try {
+            $this->auditLogger->log(
+                action: 'merchant.update',
+                resourceType: 'merchant',
+                resourceId: $merchant->getId()->toRfc4122(),
+                summary: \sprintf('Compte marchand %s modifié.', $merchant->getEmail()),
+                metadata: ['email' => $merchant->getEmail()],
+            );
+            $this->entityManager->flush();
+            $this->logger->info('merchant.updated', [
+                'merchant_id' => $merchantId,
+                'updated_fields' => $updatedFields,
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('admin.merchant_update.failed', [
+                'merchant_id' => $merchantId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
 
         return AdminMerchantItemProvider::toOutput($merchant, $this->adminMerchantRepository->countStores($merchant));
     }

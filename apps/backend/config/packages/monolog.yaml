@@ -1,0 +1,41 @@
+monolog:
+    channels:
+        - order
+        - security
+        - catalog
+        - admin
+        - notification
+
+when@dev:
+    monolog:
+        handlers:
+            main:
+                type: rotating_file
+                path: '%kernel.logs_dir%/%kernel.environment%.log'
+                level: debug
+                max_files: 7
+            console:
+                type: console
+                process_psr_3_messages: false
+                channels: ['!event', '!doctrine', '!console']
+
+when@test:
+    monolog:
+        handlers:
+            main:
+                type: null
+
+when@prod:
+    monolog:
+        handlers:
+            main:
+                type: rotating_file
+                path: '%kernel.logs_dir%/%kernel.environment%.log'
+                level: info
+                max_files: 30
+                channels: ['!event']
+            error_file:
+                type: rotating_file
+                path: '%kernel.logs_dir%/error.log'
+                level: error
+                max_files: 30

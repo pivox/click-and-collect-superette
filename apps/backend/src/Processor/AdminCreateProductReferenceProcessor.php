@@ -16,6 +16,8 @@ use App\Repository\AdminBrandRepository;
 use App\Repository\AdminCategoryRepository;
 use App\Repository\AdminProductReferenceRepository;
 use App\Service\AdminAuditLogger;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
@@ -28,6 +30,8 @@ final readonly class AdminCreateProductReferenceProcessor implements ProcessorIn
         private AdminBrandRepository $adminBrandRepository,
         private AdminCategoryRepository $adminCategoryRepository,
         private AdminAuditLogger $auditLogger,
+        #[Autowire(service: 'monolog.logger.admin')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -55,6 +59,7 @@ final readonly class AdminCreateProductReferenceProcessor implements ProcessorIn
 
         $barcode = null !== $data->barcode && '' !== trim($data->barcode) ? trim($data->barcode) : null;
         if (null !== $barcode && null !== $this->adminProductReferenceRepository->findOneByBarcode($barcode)) {
+            $this->logger->warning('admin.product_reference.barcode_duplicate', ['barcode_suffix' => substr($barcode, -4)]);
             throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BARCODE_DUPLICATE');
         }
 
@@ -74,14 +79,27 @@ final readonly class AdminCreateProductReferenceProcessor implements ProcessorIn
             ->setCountry(null !== $data->country && '' !== trim($data->country) ? trim($data->country) : 'TN')
             ->setStatus($status);
 
-        $this->auditLogger->log(
-            action: 'product_reference.create',
-            resourceType: 'product_reference',
-            resourceId: $productReference->getId()->toRfc4122(),
-            summary: \sprintf('Produit référentiel "%s" créé.', $productReference->getNameFr()),
-            metadata: ['name_fr' => $productReference->getNameFr()],
-        );
-        $this->adminProductReferenceRepository->save($productReference);
+        try {
+            $this->auditLogger->log(
+                action: 'product_reference.create',
+                resourceType: 'product_reference',
+                resourceId: $productReference->getId()->toRfc4122(),
+                summary: \sprintf('Produit référentiel "%s" créé.', $productReference->getNameFr()),
+                metadata: ['name_fr' => $productReference->getNameFr()],
+            );
+            $this->adminProductReferenceRepository->save($productReference);
+
+            $this->logger->info('admin.product_reference.created', [
+                'product_reference_id' => $productReference->getId()->toRfc4122(),
+                'status' => $status->value,
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('admin.product_reference.create_failed', [
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
 
         return AdminProductReferenceItemProvider::toOutput($productReference);
     }
