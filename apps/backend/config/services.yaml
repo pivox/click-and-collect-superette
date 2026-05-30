@@ -26,6 +26,10 @@ services:
     App\:
         resource: '../src/'
 
+    App\Monolog\CorrelationIdProcessor:
+        tags:
+            - { name: monolog.processor }
+
     App\OpenApi\JwtOpenApiDecorator:
         decorates: 'api_platform.openapi.factory'
         arguments: ['@.inner']

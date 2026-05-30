@@ -5,6 +5,7 @@ monolog:
         - catalog
         - admin
         - notification
+        - front
 
 when@dev:
     monolog:
@@ -39,3 +40,9 @@ when@prod:
                 path: '%kernel.logs_dir%/error.log'
                 level: error
                 max_files: 30
+            front:
+                type: rotating_file
+                path: '%kernel.logs_dir%/front.%kernel.environment%.log'
+                level: warning
+                max_files: 30
+                channels: ['front']

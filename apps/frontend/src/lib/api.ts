@@ -22,7 +22,7 @@ export const apiClient = axios.create({
   },
 });
 
-// Attach JWT token — path-aware: admin and merchant spaces have separate tokens.
+// Attach JWT token and correlation ID per request.
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const isAdminPath = window.location.pathname.startsWith('/admin');
@@ -35,6 +35,8 @@ apiClient.interceptors.request.use((config) => {
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Unique ID per request — used for front/backend log correlation.
+    config.headers['X-Client-Request-Id'] = crypto.randomUUID();
   }
   return config;
 });
