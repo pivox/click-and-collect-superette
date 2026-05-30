@@ -71,15 +71,11 @@ final readonly class MerchantStartPreparationProcessor implements ProcessorInter
             'store_id' => $storeId,
         ]);
 
+        // State machine: startPreparing() throws \LogicException if the order is not accepted.
+        // flush() is outside this block so the state change always reaches the DB on success.
         try {
             $order->startPreparing();
             $this->orderStatusLogRecorder->record($order, OrderStatus::Preparing);
-            $this->notificationService->notifyCustomerOrderPreparing($order);
-            $this->entityManager->flush();
-            $this->logger->info('merchant.order_preparation_started', [
-                'order_id' => $orderId,
-                'store_id' => $storeId,
-            ]);
         } catch (\LogicException $e) {
             $this->logger->warning('merchant.order_preparation.rejected', [
                 'order_id' => $orderId,
@@ -87,14 +83,25 @@ final readonly class MerchantStartPreparationProcessor implements ProcessorInter
                 'reason' => $e->getMessage(),
             ]);
             throw new ConflictHttpException($e->getMessage());
+        }
+
+        $this->entityManager->flush();
+
+        $this->logger->info('merchant.order_preparation_started', [
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+        ]);
+
+        // Notification is best-effort: failure must not roll back the preparation.
+        try {
+            $this->notificationService->notifyCustomerOrderPreparing($order);
         } catch (\Throwable $e) {
-            $this->logger->error('merchant.order_preparation.failed', [
+            $this->logger->error('merchant.order_preparation.notification_failed', [
                 'order_id' => $orderId,
                 'store_id' => $storeId,
                 'exception_class' => $e::class,
                 'exception_message' => $e->getMessage(),
             ]);
-            throw $e;
         }
 
         return MerchantOrderCollectionProvider::toOutput($order);

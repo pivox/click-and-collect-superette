@@ -95,9 +95,9 @@ final readonly class AdminArchiveStoreProcessor implements ProcessorInterface
                 metadata: ['name' => $shop->getName(), 'reason' => $reason],
             );
             $this->adminStoreRepository->save($shop);
+            // reason is stored in audit metadata — not repeated in Monolog to avoid free-text in log files
             $this->logger->info('store.archived', [
                 'store_id' => $shop->getId()->toRfc4122(),
-                'reason' => $reason,
             ]);
         });
 

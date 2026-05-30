@@ -178,6 +178,17 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
                 'exception_message' => $e->getMessage(),
             ]);
             throw $e;
+        } catch (\Throwable $e) {
+            // Catches DBAL/ORM exceptions that do not extend \RuntimeException in DBAL 4.
+            $this->logger->error('order.submit.transaction_failed', [
+                'kadhia_id' => $kadhiaId,
+                'slot_id' => $slotId,
+                'user_id' => $userId,
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
         }
 
         $orderId = $result->order->getId()->toRfc4122();

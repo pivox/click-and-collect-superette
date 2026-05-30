@@ -72,14 +72,10 @@ final readonly class MerchantMarkReadyProcessor implements ProcessorInterface
             'store_id' => $storeId,
         ]);
 
+        // State machine: markReady() throws \LogicException if the order is not in the right status.
+        // flush() is outside this block so the state change always reaches the DB on success.
         try {
             $this->orderTransitionService->markReady($order);
-            $this->notificationService->notifyCustomerOrderReady($order);
-            $this->entityManager->flush();
-            $this->logger->info('merchant.order_ready', [
-                'order_id' => $orderId,
-                'store_id' => $storeId,
-            ]);
         } catch (\LogicException $e) {
             $this->logger->warning('merchant.order_ready.rejected', [
                 'order_id' => $orderId,
@@ -87,14 +83,25 @@ final readonly class MerchantMarkReadyProcessor implements ProcessorInterface
                 'reason' => $e->getMessage(),
             ]);
             throw new ConflictHttpException($e->getMessage());
+        }
+
+        $this->entityManager->flush();
+
+        $this->logger->info('merchant.order_ready', [
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+        ]);
+
+        // Notification is best-effort: failure must not roll back the ready state.
+        try {
+            $this->notificationService->notifyCustomerOrderReady($order);
         } catch (\Throwable $e) {
-            $this->logger->error('merchant.order_ready.failed', [
+            $this->logger->error('merchant.order_ready.notification_failed', [
                 'order_id' => $orderId,
                 'store_id' => $storeId,
                 'exception_class' => $e::class,
                 'exception_message' => $e->getMessage(),
             ]);
-            throw $e;
         }
 
         try {

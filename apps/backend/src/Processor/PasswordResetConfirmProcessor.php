@@ -44,12 +44,12 @@ final readonly class PasswordResetConfirmProcessor implements ProcessorInterface
             $this->logger->info('security.password_reset.confirmed');
         } catch (BadRequestHttpException $e) {
             // Expected business failures — invalid, used or expired token
-            $this->logger->warning('security.password_reset.failed', [
+            $this->logger->warning('security.password_reset.token_invalid', [
                 'reason' => $e->getMessage(),
             ]);
             throw $e;
         } catch (\Throwable $e) {
-            $this->logger->error('security.password_reset.failed', [
+            $this->logger->error('security.password_reset.infrastructure_failed', [
                 'exception_class' => $e::class,
                 'exception_message' => $e->getMessage(),
             ]);
