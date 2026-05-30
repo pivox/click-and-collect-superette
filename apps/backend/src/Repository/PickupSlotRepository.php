@@ -171,6 +171,7 @@ class PickupSlotRepository extends ServiceEntityRepository
     public function findAvailableForShop(Shop $shop, ?\DateTimeImmutable $after = null): array
     {
         $after ??= new \DateTimeImmutable();
+        $after = PickupSlotDisplayTime::fromStoredLocalClock($after);
 
         $slots = $this->findBy(
             ['shop' => $shop, 'isActive' => true],
@@ -180,7 +181,7 @@ class PickupSlotRepository extends ServiceEntityRepository
         return array_values(
             array_filter(
                 $slots,
-                static fn (PickupSlot $s): bool => $s->getStartsAt() > $after && !$s->isFull(),
+                static fn (PickupSlot $s): bool => PickupSlotDisplayTime::fromStoredLocalClock($s->getStartsAt()) > $after && !$s->isFull(),
             ),
         );
     }

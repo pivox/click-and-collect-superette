@@ -48,12 +48,13 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
 
         $dateParam = $this->requestStack->getCurrentRequest()?->query->get('date');
         [$from, $to] = $this->resolveDayWindow($dateParam);
+        $to = null !== $to ? PickupSlotDisplayTime::fromStoredLocalClock($to) : null;
 
         $activeClosures = $this->exceptionalClosureRepository->findActiveForShop($shop);
         $availableSlots = array_values(array_filter(
             $this->pickupSlotRepository->findAvailableForShop($shop, $from),
             static fn (PickupSlot $slot): bool => !self::overlapsActiveClosure($activeClosures, $slot)
-                && (null === $to || $slot->getStartsAt() < $to),
+                && (null === $to || PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt()) < $to),
         ));
 
         $items = array_map(
@@ -75,8 +76,14 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
      */
     private static function overlapsActiveClosure(array $activeClosures, PickupSlot $slot): bool
     {
+        $slotStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt());
+        $slotEndsAt = PickupSlotDisplayTime::fromStoredLocalClock($slot->getEndsAt());
+
         foreach ($activeClosures as $closure) {
-            if ($closure->getStartsAt() < $slot->getEndsAt() && $closure->getEndsAt() > $slot->getStartsAt()) {
+            $closureStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($closure->getStartsAt());
+            $closureEndsAt = PickupSlotDisplayTime::fromStoredLocalClock($closure->getEndsAt());
+
+            if ($closureStartsAt < $slotEndsAt && $closureEndsAt > $slotStartsAt) {
                 return true;
             }
         }
@@ -85,7 +92,7 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
     }
 
     /**
-     * Returns [from, to) boundaries for the requested day in UTC.
+     * Returns [from, to) boundaries for the requested day in Tunisia local time.
      * null       → [now, null) — all future slots, no upper bound (backward-compatible)
      * "today"    → [now, start of tomorrow)
      * "tomorrow" → [start of tomorrow, start of day+2)
@@ -95,14 +102,14 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
      */
     private function resolveDayWindow(?string $dateParam): array
     {
-        $utc = new \DateTimeZone('UTC');
-        $tomorrow = new \DateTimeImmutable('tomorrow midnight', $utc);
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $tomorrow = new \DateTimeImmutable('tomorrow midnight', $timezone);
 
         return match ($dateParam) {
-            'today' => [new \DateTimeImmutable('now', $utc), $tomorrow],
+            'today' => [new \DateTimeImmutable('now', $timezone), $tomorrow],
             'tomorrow' => [$tomorrow, $tomorrow->modify('+1 day')],
             'after' => [$tomorrow->modify('+1 day'), $tomorrow->modify('+2 days')],
-            default => [new \DateTimeImmutable('now', $utc), null],
+            default => [new \DateTimeImmutable('now', $timezone), null],
         };
     }
 }

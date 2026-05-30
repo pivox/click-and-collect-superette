@@ -6,8 +6,8 @@ namespace App\Repository;
 
 use App\Entity\ExceptionalClosure;
 use App\Entity\Shop;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -52,22 +52,22 @@ class ExceptionalClosureRepository extends ServiceEntityRepository
         \DateTimeImmutable $endsAt,
         ?ExceptionalClosure $excludeClosure = null,
     ): bool {
-        $queryBuilder = $this->createQueryBuilder('closure')
-            ->andWhere('IDENTITY(closure.shop) = :shopId')
-            ->andWhere('closure.isActive = true')
-            ->andWhere('closure.startsAt < :endsAt')
-            ->andWhere('closure.endsAt > :startsAt')
-            ->setMaxResults(1)
-            ->setParameter('shopId', $shop->getId(), 'uuid')
-            ->setParameter('startsAt', $startsAt, Types::DATETIME_IMMUTABLE)
-            ->setParameter('endsAt', $endsAt, Types::DATETIME_IMMUTABLE);
+        $rangeStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($startsAt);
+        $rangeEndsAt = PickupSlotDisplayTime::fromStoredLocalClock($endsAt);
 
-        if (null !== $excludeClosure) {
-            $queryBuilder
-                ->andWhere('closure.id != :excludeClosureId')
-                ->setParameter('excludeClosureId', $excludeClosure->getId(), 'uuid');
+        foreach ($this->findActiveForShop($shop) as $closure) {
+            if (null !== $excludeClosure && $closure->getId()->equals($excludeClosure->getId())) {
+                continue;
+            }
+
+            $closureStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($closure->getStartsAt());
+            $closureEndsAt = PickupSlotDisplayTime::fromStoredLocalClock($closure->getEndsAt());
+
+            if ($closureStartsAt < $rangeEndsAt && $closureEndsAt > $rangeStartsAt) {
+                return true;
+            }
         }
 
-        return null !== $queryBuilder->getQuery()->getOneOrNullResult();
+        return false;
     }
 }

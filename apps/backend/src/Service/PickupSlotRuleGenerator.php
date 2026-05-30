@@ -88,8 +88,14 @@ final readonly class PickupSlotRuleGenerator
      */
     private function overlapsActiveClosure(array $activeClosures, \DateTimeImmutable $startsAt, \DateTimeImmutable $endsAt): bool
     {
+        $slotStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($startsAt);
+        $slotEndsAt = PickupSlotDisplayTime::fromStoredLocalClock($endsAt);
+
         foreach ($activeClosures as $closure) {
-            if ($closure->getStartsAt() < $endsAt && $closure->getEndsAt() > $startsAt) {
+            $closureStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($closure->getStartsAt());
+            $closureEndsAt = PickupSlotDisplayTime::fromStoredLocalClock($closure->getEndsAt());
+
+            if ($closureStartsAt < $slotEndsAt && $closureEndsAt > $slotStartsAt) {
                 return true;
             }
         }

@@ -39,6 +39,38 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
         self::assertSame('Fermeture inventaire', $closures[0]->getReason());
     }
 
+    public function testMerchantExceptionalClosureCreatePreservesManualUtcInstantAsTunisiaLocalTime(): void
+    {
+        $merchant = $this->createUser('merchant-closure-create-utc@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $storeId = $shop->getId()->toRfc4122();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/exceptional-closures', $storeId),
+            [
+                'starts_at' => '2030-05-28T16:00:00+00:00',
+                'ends_at' => '2030-05-28T17:00:00+00:00',
+                'reason' => 'Inventaire',
+            ],
+            $merchant,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('2030-05-28T17:00:00+01:00', $payload['starts_at']);
+        self::assertSame('2030-05-28T18:00:00+01:00', $payload['ends_at']);
+
+        $this->entityManager->clear();
+        $listResponse = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/exceptional-closures', $storeId), user: $merchant);
+        self::assertSame(200, $listResponse->getStatusCode());
+        $listPayload = $this->decodeJson($listResponse);
+
+        self::assertSame(1, $listPayload['total']);
+        self::assertSame('2030-05-28T17:00:00+01:00', $listPayload['items'][0]['starts_at']);
+        self::assertSame('2030-05-28T18:00:00+01:00', $listPayload['items'][0]['ends_at']);
+    }
+
     public function testCollectionReturnsOnlyClosuresForMerchantShop(): void
     {
         $merchant = $this->createUser('merchant-closure-list@example.test', ['ROLE_MERCHANT']);
@@ -170,6 +202,38 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
         self::assertTrue($outside->isActive());
     }
 
+    public function testCreateUtcClosureDisablesMatchingLocalClockPickupSlot(): void
+    {
+        $merchant = $this->createUser('merchant-closure-disable-utc-slot@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $storeId = $shop->getId()->toRfc4122();
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $slot = $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('2030-05-28 17:00:00', $timezone),
+            new \DateTimeImmutable('2030-05-28 18:00:00', $timezone),
+            4,
+        );
+        $slotId = $slot->getId();
+
+        $this->entityManager->clear();
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/exceptional-closures', $storeId),
+            [
+                'starts_at' => '2030-05-28T16:00:00+00:00',
+                'ends_at' => '2030-05-28T17:00:00+00:00',
+                'reason' => 'Inventaire',
+            ],
+            $merchant,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+        $storedSlot = $this->entityManager->getRepository(PickupSlot::class)->find($slotId);
+        self::assertNotNull($storedSlot);
+        self::assertFalse($storedSlot->isActive());
+    }
+
     public function testCreateClosureRejectsBookedPickupSlotInRange(): void
     {
         $merchant = $this->createUser('merchant-closure-booked-create@example.test', ['ROLE_MERCHANT']);
@@ -245,6 +309,26 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('EXCEPTIONAL_CLOSURE_STARTS_AT_MUST_BE_BEFORE_ENDS_AT', (string) $response->getContent());
     }
 
+    public function testPatchClosureRejectsUtcManualStartAfterExistingLocalEnd(): void
+    {
+        $merchant = $this->createUser('merchant-closure-patch-utc-boundary@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $storeId = $shop->getId()->toRfc4122();
+        $closure = $this->createClosure($shop, '2030-05-28 17:00:00', '2030-05-28 18:00:00', 'Inventaire');
+        $closureId = $closure->getId()->toRfc4122();
+
+        $this->entityManager->clear();
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/exceptional-closures/%s', $storeId, $closureId),
+            ['starts_at' => '2030-05-28T17:30:00+00:00'],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('EXCEPTIONAL_CLOSURE_STARTS_AT_MUST_BE_BEFORE_ENDS_AT', (string) $response->getContent());
+    }
+
     public function testMerchantCannotCreateOrReactivatePickupSlotInsideActiveClosure(): void
     {
         $merchant = $this->createUser('merchant-closure-slot-create-blocked@example.test', ['ROLE_MERCHANT']);
@@ -281,6 +365,40 @@ final class MerchantExceptionalClosureApiTest extends FunctionalApiTestCase
 
         self::assertSame(422, $patchResponse->getStatusCode());
         self::assertStringContainsString('PICKUP_SLOT_OVERLAPS_EXCEPTIONAL_CLOSURE', (string) $patchResponse->getContent());
+    }
+
+    public function testMerchantCannotCreateManualPickupSlotInsideUtcCreatedClosure(): void
+    {
+        $merchant = $this->createUser('merchant-closure-slot-utc-blocked@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $storeId = $shop->getId()->toRfc4122();
+
+        $closureResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/exceptional-closures', $storeId),
+            [
+                'starts_at' => '2030-05-28T16:00:00+00:00',
+                'ends_at' => '2030-05-28T17:00:00+00:00',
+                'reason' => 'Inventaire',
+            ],
+            $merchant,
+        );
+        self::assertSame(201, $closureResponse->getStatusCode());
+
+        $this->entityManager->clear();
+        $createResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $storeId),
+            [
+                'starts_at' => '2030-05-28T16:00:00+00:00',
+                'ends_at' => '2030-05-28T17:00:00+00:00',
+                'capacity' => 4,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(422, $createResponse->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_OVERLAPS_EXCEPTIONAL_CLOSURE', (string) $createResponse->getContent());
     }
 
     public function testPublicPickupSlotCollectionHidesSlotsInsideActiveClosure(): void

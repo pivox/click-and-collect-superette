@@ -13,6 +13,7 @@ use App\Repository\ExceptionalClosureRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\ExceptionalClosureImpactService;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -61,8 +62,12 @@ final readonly class UpdateMerchantExceptionalClosureProcessor implements Proces
             throw new NotFoundHttpException('EXCEPTIONAL_CLOSURE_NOT_FOUND');
         }
 
-        $startsAt = $data->startsAt ?? $closure->getStartsAt();
-        $endsAt = $data->endsAt ?? $closure->getEndsAt();
+        $startsAt = null !== $data->startsAt
+            ? PickupSlotDisplayTime::fromPayloadInstant($data->startsAt)
+            : PickupSlotDisplayTime::fromStoredLocalClock($closure->getStartsAt());
+        $endsAt = null !== $data->endsAt
+            ? PickupSlotDisplayTime::fromPayloadInstant($data->endsAt)
+            : PickupSlotDisplayTime::fromStoredLocalClock($closure->getEndsAt());
         if ($startsAt >= $endsAt) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'EXCEPTIONAL_CLOSURE_STARTS_AT_MUST_BE_BEFORE_ENDS_AT');
         }
@@ -70,10 +75,10 @@ final readonly class UpdateMerchantExceptionalClosureProcessor implements Proces
         $this->exceptionalClosureImpactService->applyClosureImpact($shop, $startsAt, $endsAt);
 
         if (null !== $data->startsAt) {
-            $closure->setStartsAt($data->startsAt);
+            $closure->setStartsAt($startsAt);
         }
         if (null !== $data->endsAt) {
-            $closure->setEndsAt($data->endsAt);
+            $closure->setEndsAt($endsAt);
         }
         if (null !== $data->reason) {
             $closure->setReason($data->reason);
@@ -88,8 +93,8 @@ final readonly class UpdateMerchantExceptionalClosureProcessor implements Proces
     {
         return new MerchantExceptionalClosureOutput(
             id: $closure->getId()->toRfc4122(),
-            startsAt: $closure->getStartsAt()->format(\DateTimeInterface::ATOM),
-            endsAt: $closure->getEndsAt()->format(\DateTimeInterface::ATOM),
+            startsAt: PickupSlotDisplayTime::toLocalAtom($closure->getStartsAt()),
+            endsAt: PickupSlotDisplayTime::toLocalAtom($closure->getEndsAt()),
             reason: $closure->getReason(),
             isActive: $closure->isActive(),
         );
