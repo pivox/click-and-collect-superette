@@ -66,7 +66,7 @@ export default function OrdersListPage() {
                     <Badge tone={badge.tone}>{badge.label}</Badge>
                   </div>
                   <div className="mt-2 flex items-baseline justify-between text-xs text-muted">
-                    <span>Superette El Amel</span>
+                    <span>{o.shopName ?? "Supérette"}</span>
                     <span className="font-black text-ink">
                       {formatTnd(o.totalAmountTnd)}
                     </span>

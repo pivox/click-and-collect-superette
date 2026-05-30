@@ -45,13 +45,7 @@ export interface Shop {
   logoLetter?: string;
 }
 
-export type ProductCategory =
-  | "dairy"
-  | "drinks"
-  | "grocery"
-  | "hygiene"
-  | "snacks"
-  | "other";
+export type ProductCategory = string;
 
 export interface ProductOffer {
   id: string;
@@ -65,6 +59,8 @@ export interface ProductOffer {
   isAvailable: boolean;
   photoUrl: string | null;
   category: ProductCategory;
+  categoryNameFr?: string | null;
+  categoryNameAr?: string | null;
   /** Emoji fallback used by the prototype when no photo is provided. */
   emoji?: string;
 }
@@ -80,6 +76,9 @@ export interface KadhiaLine {
 export interface Kadhia {
   id: string;
   shopId: string;
+  shopName?: string | null;
+  shopAddress?: string | null;
+  shopCity?: string | null;
   status: OrderStatus;
   lines: KadhiaLine[];
   totalTnd: string;
@@ -100,6 +99,9 @@ export interface PickupSlot {
 export interface Order {
   id: string;
   shopId: string;
+  shopName?: string | null;
+  shopAddress?: string | null;
+  shopCity?: string | null;
   status: OrderStatus;
   totalAmountTnd: string;
   pickupSlot: PickupSlot | null;

@@ -24,7 +24,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 🇹🇳 TND
               </span>
             </header>
-            <main className="relative px-4 pt-4 pb-24 md:p-7">
+            <main className="relative px-4 pt-4 pb-40 md:p-7">
               {children}
             </main>
           </div>

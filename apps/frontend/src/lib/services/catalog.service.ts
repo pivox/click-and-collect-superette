@@ -1,11 +1,11 @@
-import type { ProductCategory, ProductOffer } from "@/types";
+import type { ProductOffer } from "@/types";
 import { MOCK_PRODUCTS } from "@/lib/mock/products.mock";
 import { apiClient } from "@/lib/api";
 import { USE_MOCKS, mockDelay } from "./index";
 
 export interface CatalogQuery {
   shopId: string;
-  category?: ProductOffer["category"] | "all";
+  category?: string | "all";
   search?: string;
 }
 
@@ -16,28 +16,13 @@ interface CatalogApiItem {
   name_fr: string;
   name_ar: string | null;
   brand: string | null;
+  category: string;
+  category_ar: string | null;
   category_slug: string;
   volume: string | null;
   unit: string;
   price_tnd: string;
   is_available: boolean;
-}
-
-const VALID_CATEGORIES = [
-  "dairy",
-  "drinks",
-  "grocery",
-  "hygiene",
-  "snacks",
-  "other",
-] as const satisfies readonly ProductCategory[];
-
-function toProductCategory(slug: string): ProductCategory {
-  if ((VALID_CATEGORIES as readonly string[]).includes(slug)) {
-    return slug as ProductCategory;
-  }
-  console.warn(`[catalog.service] Unknown category slug "${slug}", mapped to "other"`);
-  return "other";
 }
 
 export async function listCatalog(q: CatalogQuery): Promise<ProductOffer[]> {
@@ -68,7 +53,7 @@ export async function listCatalog(q: CatalogQuery): Promise<ProductOffer[]> {
     nameAr: item.name_ar,
     brand: item.brand ?? "",
     volume: (() => {
-      if (item.volume === null) return null;
+      if (item.volume === null || item.volume === "" || item.volume === "undefined") return null;
       const parsed = parseFloat(item.volume);
       if (Number.isNaN(parsed)) {
         console.warn(
@@ -82,6 +67,8 @@ export async function listCatalog(q: CatalogQuery): Promise<ProductOffer[]> {
     priceTnd: item.price_tnd,
     isAvailable: item.is_available,
     photoUrl: null,
-    category: toProductCategory(item.category_slug),
+    category: item.category_slug,
+    categoryNameFr: item.category,
+    categoryNameAr: item.category_ar,
   }));
 }

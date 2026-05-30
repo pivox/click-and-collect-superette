@@ -9,6 +9,7 @@ use App\Entity\PickupSlot;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\OrderStatus;
+use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
 
@@ -179,8 +180,8 @@ final class MerchantOrderExportApiTest extends FunctionalApiTestCase
         // Phone starting with '+' is prefixed with "'" per OWASP CSV injection prevention
         self::assertSame("'+21698765432", $row['customer_phone']);
         self::assertSame('0.000', $row['total_tnd']);
-        self::assertSame($slot->getStartsAt()->format(\DateTimeInterface::ATOM), $row['pickup_starts_at']);
-        self::assertSame($slot->getEndsAt()->format(\DateTimeInterface::ATOM), $row['pickup_ends_at']);
+        self::assertSame(PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()), $row['pickup_starts_at']);
+        self::assertSame(PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()), $row['pickup_ends_at']);
         self::assertNotEmpty($row['created_at']);
         self::assertNotEmpty($row['updated_at']);
     }

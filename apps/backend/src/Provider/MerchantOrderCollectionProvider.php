@@ -14,6 +14,7 @@ use App\Entity\OrderLine;
 use App\Repository\OrderRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -83,8 +84,8 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
             totalTnd: $order->getTotalTnd(),
             pickupSlot: null === $slot ? null : [
                 'id' => $slot->getId()->toRfc4122(),
-                'starts_at' => $slot->getStartsAt()->format(\DateTimeInterface::ATOM),
-                'ends_at' => $slot->getEndsAt()->format(\DateTimeInterface::ATOM),
+                'starts_at' => PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()),
+                'ends_at' => PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()),
             ],
             lineCount: $order->getLines()->count(),
             createdAt: $order->getCreatedAt()->format(\DateTimeInterface::ATOM),

@@ -12,7 +12,7 @@ use App\Entity\PickupSlot;
 use App\Repository\ExceptionalClosureRepository;
 use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
-use App\Service\PickupSlotRuleGenerator;
+use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -56,12 +56,11 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
                 && (null === $to || $slot->getStartsAt() < $to),
         ));
 
-        $tunis = new \DateTimeZone(PickupSlotRuleGenerator::TIMEZONE);
         $items = array_map(
             static fn (PickupSlot $slot): PickupSlotOutput => new PickupSlotOutput(
                 id: $slot->getId()->toRfc4122(),
-                startsAt: self::reinterpretAsLocalTime($slot->getStartsAt(), $tunis),
-                endsAt: self::reinterpretAsLocalTime($slot->getEndsAt(), $tunis),
+                startsAt: PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()),
+                endsAt: PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()),
                 capacity: $slot->getCapacity(),
                 availableCount: $slot->getAvailableCount(),
             ),
@@ -83,18 +82,6 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
         }
 
         return false;
-    }
-
-    /**
-     * The slot generator stores Africa/Tunis local times in a TIMESTAMP WITHOUT TIME ZONE
-     * column. Doctrine reads them back in the default PHP timezone (UTC), producing a
-     * datetime with the wrong offset. We reinterpret the stored time components as
-     * Africa/Tunis so the client receives the correct ISO-8601 offset (+01:00).
-     */
-    private static function reinterpretAsLocalTime(\DateTimeImmutable $dt, \DateTimeZone $tz): string
-    {
-        return (\DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $dt->format('Y-m-d H:i:s'), $tz) ?: $dt)
-            ->format(\DateTimeInterface::ATOM);
     }
 
     /**

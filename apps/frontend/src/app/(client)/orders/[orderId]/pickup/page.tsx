@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Summary, SummaryRow } from "@/components/ui/Summary";
 import { QrPlaceholder } from "@/components/ui/QrPlaceholder";
 import { getOrder } from "@/lib/services";
-import { formatTime } from "@/lib/format";
+import { formatSlotRange } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import type { Order } from "@/types";
 
@@ -93,6 +93,11 @@ export default function PickupQrPage({
   }
 
   const badge = orderStatusBadge(order.status);
+  const storeName = order.shopName ?? "Supérette";
+  const storeAddress = [order.shopAddress, order.shopCity].filter(Boolean).join(", ") || "—";
+  const pickupSlotLabel = order.pickupSlot
+    ? formatSlotRange(order.pickupSlot.startsAt, order.pickupSlot.endsAt)
+    : "—";
 
   if (order.status !== "ready" && order.status !== "pickup_pending") return null;
 
@@ -120,16 +125,9 @@ export default function PickupQrPage({
 
       <Card className="mt-4">
         <Summary>
-          <SummaryRow label="Supérette" value="Superette El Amel" />
-          <SummaryRow label="Adresse" value="Rue de Carthage, Tunis" />
-          <SummaryRow
-            label="Créneau"
-            value={
-              order.pickupSlot
-                ? `Aujourd'hui · ${formatTime(order.pickupSlot.startsAt)}`
-                : "—"
-            }
-          />
+          <SummaryRow label="Supérette" value={storeName} />
+          <SummaryRow label="Adresse" value={storeAddress} />
+          <SummaryRow label="Créneau" value={pickupSlotLabel} />
         </Summary>
       </Card>
     </>

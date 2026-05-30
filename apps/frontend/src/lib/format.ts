@@ -44,6 +44,10 @@ export function formatTime(iso: string): string {
   }
 }
 
+export function formatSlotRange(startsAt: string, endsAt: string): string {
+  return `${formatSlotDate(startsAt)} - ${formatTime(endsAt)}`;
+}
+
 const SHORT_DATE_FR = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
   month: "short",

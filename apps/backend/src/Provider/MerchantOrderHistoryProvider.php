@@ -15,6 +15,7 @@ use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -167,8 +168,8 @@ final readonly class MerchantOrderHistoryProvider implements ProviderInterface
             ),
             total: $order->getTotalTnd(),
             pickupSlot: null === $slot ? null : new MerchantOrderHistoryPickupSlotOutput(
-                startsAt: $slot->getStartsAt()->format(\DateTimeInterface::ATOM),
-                endsAt: $slot->getEndsAt()->format(\DateTimeInterface::ATOM),
+                startsAt: PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()),
+                endsAt: PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()),
             ),
             createdAt: $order->getCreatedAt()->format(\DateTimeInterface::ATOM),
             updatedAt: $order->getUpdatedAt()->format(\DateTimeInterface::ATOM),

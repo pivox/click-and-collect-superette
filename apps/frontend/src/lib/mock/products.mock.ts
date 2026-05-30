@@ -17,6 +17,7 @@ export const MOCK_PRODUCTS: ProductOffer[] = [
     isAvailable: true,
     photoUrl: null,
     category: "dairy",
+    categoryNameFr: "Lait & frais",
     emoji: "🥛",
   },
   {
@@ -31,6 +32,7 @@ export const MOCK_PRODUCTS: ProductOffer[] = [
     isAvailable: true,
     photoUrl: null,
     category: "grocery",
+    categoryNameFr: "Épicerie",
     emoji: "🍝",
   },
   {
@@ -45,6 +47,7 @@ export const MOCK_PRODUCTS: ProductOffer[] = [
     isAvailable: true,
     photoUrl: null,
     category: "drinks",
+    categoryNameFr: "Boissons",
     emoji: "🧃",
   },
   {
@@ -59,6 +62,7 @@ export const MOCK_PRODUCTS: ProductOffer[] = [
     isAvailable: true,
     photoUrl: null,
     category: "grocery",
+    categoryNameFr: "Épicerie",
     emoji: "🥫",
   },
   {
@@ -73,6 +77,7 @@ export const MOCK_PRODUCTS: ProductOffer[] = [
     isAvailable: true,
     photoUrl: null,
     category: "snacks",
+    categoryNameFr: "Snacks",
     emoji: "🍪",
   },
   {
@@ -87,6 +92,7 @@ export const MOCK_PRODUCTS: ProductOffer[] = [
     isAvailable: true,
     photoUrl: null,
     category: "hygiene",
+    categoryNameFr: "Hygiène",
     emoji: "🧼",
   },
   {
@@ -101,6 +107,7 @@ export const MOCK_PRODUCTS: ProductOffer[] = [
     isAvailable: true,
     photoUrl: null,
     category: "drinks",
+    categoryNameFr: "Boissons",
     emoji: "💧",
   },
   {
@@ -115,6 +122,7 @@ export const MOCK_PRODUCTS: ProductOffer[] = [
     isAvailable: true,
     photoUrl: null,
     category: "other",
+    categoryNameFr: "Autre",
     emoji: "🍅",
   },
 ];
