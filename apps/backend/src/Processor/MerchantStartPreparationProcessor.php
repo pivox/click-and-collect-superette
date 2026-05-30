@@ -95,6 +95,7 @@ final readonly class MerchantStartPreparationProcessor implements ProcessorInter
         // Notification is best-effort: failure must not roll back the preparation.
         try {
             $this->notificationService->notifyCustomerOrderPreparing($order);
+            $this->entityManager->flush();
         } catch (\Throwable $e) {
             $this->logger->error('merchant.order_preparation.notification_failed', [
                 'order_id' => $orderId,

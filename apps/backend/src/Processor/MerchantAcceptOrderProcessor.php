@@ -95,6 +95,7 @@ final readonly class MerchantAcceptOrderProcessor implements ProcessorInterface
         // Notification is best-effort: failure must not roll back the acceptance.
         try {
             $this->notificationService->notifyCustomerOrderAccepted($order);
+            $this->entityManager->flush();
         } catch (\Throwable $e) {
             $this->logger->error('merchant.order_accept.notification_failed', [
                 'order_id' => $orderId,

@@ -95,6 +95,7 @@ final readonly class MerchantMarkReadyProcessor implements ProcessorInterface
         // Notification is best-effort: failure must not roll back the ready state.
         try {
             $this->notificationService->notifyCustomerOrderReady($order);
+            $this->entityManager->flush();
         } catch (\Throwable $e) {
             $this->logger->error('merchant.order_ready.notification_failed', [
                 'order_id' => $orderId,
