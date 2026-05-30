@@ -162,7 +162,7 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
                 'last_name' => $customer->getLastName(),
                 'phone' => $customer->getPhone(),
             ],
-            lines: \array_map(
+            lines: array_map(
                 static fn (OrderLine $line): array => [
                     'merchant_product_id' => $line->getMerchantProduct()->getId()->toRfc4122(),
                     'name' => $line->getMerchantProduct()->getDisplayNameFr(),

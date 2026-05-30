@@ -43,7 +43,7 @@ final readonly class PasswordResetRequestProcessor implements ProcessorInterface
         }
 
         $email = strtolower($data->email);
-        $emailHash = \hash('sha256', $email);
+        $emailHash = hash('sha256', $email);
 
         // debug only — neutral, does not reveal user existence
         $this->logger->debug('security.password_reset.requested', ['email_hash' => $emailHash]);

@@ -47,7 +47,7 @@ final readonly class AdminCreateMerchantProcessor implements ProcessorInterface
         }
 
         $email = strtolower($data->email);
-        $emailHash = \hash('sha256', $email);
+        $emailHash = hash('sha256', $email);
 
         $this->logger->debug('admin.merchant_create.start', ['email_hash' => $emailHash]);
 

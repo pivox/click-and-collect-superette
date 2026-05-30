@@ -51,7 +51,7 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
         $payload = $this->currentPayload();
 
         $knownFields = ['first_name', 'last_name', 'phone', 'is_active'];
-        $updatedFields = \array_values(\array_intersect(\array_keys($payload), $knownFields));
+        $updatedFields = array_values(array_intersect(array_keys($payload), $knownFields));
 
         $this->logger->debug('admin.merchant_update.start', [
             'merchant_id' => $merchantId,
