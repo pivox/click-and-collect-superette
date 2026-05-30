@@ -11,6 +11,7 @@ use App\Repository\ExceptionalClosureRepository;
 use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -59,8 +60,12 @@ final readonly class UpdateMerchantPickupSlotProcessor implements ProcessorInter
             throw new NotFoundHttpException('PICKUP_SLOT_NOT_FOUND');
         }
 
-        $startsAt = $data->startsAt ?? $slot->getStartsAt();
-        $endsAt = $data->endsAt ?? $slot->getEndsAt();
+        $startsAt = null !== $data->startsAt
+            ? PickupSlotDisplayTime::fromPayloadInstant($data->startsAt)
+            : $slot->getStartsAt();
+        $endsAt = null !== $data->endsAt
+            ? PickupSlotDisplayTime::fromPayloadInstant($data->endsAt)
+            : $slot->getEndsAt();
         $isActive = $data->isActive ?? $slot->isActive();
         if ($startsAt >= $endsAt) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_STARTS_AT_MUST_BE_BEFORE_ENDS_AT');
@@ -79,10 +84,10 @@ final readonly class UpdateMerchantPickupSlotProcessor implements ProcessorInter
         }
 
         if (null !== $data->startsAt) {
-            $slot->setStartsAt($data->startsAt);
+            $slot->setStartsAt($startsAt);
         }
         if (null !== $data->endsAt) {
-            $slot->setEndsAt($data->endsAt);
+            $slot->setEndsAt($endsAt);
         }
         if (null !== $data->capacity) {
             $slot->setCapacity($data->capacity);

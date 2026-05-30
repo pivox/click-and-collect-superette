@@ -12,6 +12,7 @@ use App\Repository\ExceptionalClosureRepository;
 use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -57,18 +58,21 @@ final readonly class CreateMerchantPickupSlotProcessor implements ProcessorInter
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
 
-        if ($this->pickupSlotRepository->hasActiveOverlapForShop($shop, $data->startsAt, $data->endsAt)) {
+        $startsAt = PickupSlotDisplayTime::fromPayloadInstant($data->startsAt);
+        $endsAt = PickupSlotDisplayTime::fromPayloadInstant($data->endsAt);
+
+        if ($this->pickupSlotRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXISTING_SLOT');
         }
 
-        if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $data->startsAt, $data->endsAt)) {
+        if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXCEPTIONAL_CLOSURE');
         }
 
         $slot = (new PickupSlot())
             ->setShop($shop)
-            ->setStartsAt($data->startsAt)
-            ->setEndsAt($data->endsAt)
+            ->setStartsAt($startsAt)
+            ->setEndsAt($endsAt)
             ->setCapacity($data->capacity)
             ->setActive(true);
 
