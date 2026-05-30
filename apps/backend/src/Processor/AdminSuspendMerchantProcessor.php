@@ -58,7 +58,6 @@ final readonly class AdminSuspendMerchantProcessor implements ProcessorInterface
             $this->entityManager->flush();
             $this->logger->info('merchant.suspended', [
                 'merchant_id' => $merchantId,
-                'email' => $merchant->getEmail(),
             ]);
         } catch (\Throwable $e) {
             $this->logger->error('admin.merchant_suspend.failed', [

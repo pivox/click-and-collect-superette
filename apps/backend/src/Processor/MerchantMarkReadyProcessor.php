@@ -15,6 +15,8 @@ use App\Service\NotificationService;
 use App\Service\OrderTransitionService;
 use App\Service\PickupReminderScheduler;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -32,6 +34,8 @@ final readonly class MerchantMarkReadyProcessor implements ProcessorInterface
         private OrderTransitionService $orderTransitionService,
         private NotificationService $notificationService,
         private PickupReminderScheduler $pickupReminderScheduler,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -63,15 +67,49 @@ final readonly class MerchantMarkReadyProcessor implements ProcessorInterface
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
 
+        $this->logger->debug('merchant.order_ready.start', [
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+        ]);
+
         try {
             $this->orderTransitionService->markReady($order);
             $this->notificationService->notifyCustomerOrderReady($order);
+            $this->entityManager->flush();
+            $this->logger->info('merchant.order_ready', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
         } catch (\LogicException $e) {
+            $this->logger->warning('merchant.order_ready.rejected', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'reason' => $e->getMessage(),
+            ]);
             throw new ConflictHttpException($e->getMessage());
+        } catch (\Throwable $e) {
+            $this->logger->error('merchant.order_ready.failed', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
         }
 
-        $this->entityManager->flush();
-        $this->pickupReminderScheduler->scheduleForReadyOrder($order);
+        try {
+            $this->pickupReminderScheduler->scheduleForReadyOrder($order);
+            $this->logger->info('merchant.order_ready.pickup_reminder_scheduled', [
+                'order_id' => $orderId,
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('merchant.order_ready.pickup_reminder_schedule_failed', [
+                'order_id' => $orderId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
 
         return MerchantOrderCollectionProvider::toOutput($order);
     }

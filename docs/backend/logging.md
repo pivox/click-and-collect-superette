@@ -13,14 +13,24 @@ Par environnement :
 
 ---
 
+## Règles de sécurité (non négociables)
+
+- **Ne jamais loguer** : mots de passe, tokens JWT, refresh tokens, token reset password, secrets API.
+- **Ne jamais loguer** : email en clair, téléphone, adresse, contenu brut d'une Kadhia, note libre complète utilisateur, token QR.
+- **Identifiants opaques uniquement** : `order_id`, `store_id`, `merchant_id`, `user_id`, `pickup_session_id`, `kadhia_id`, `slot_id`.
+- **Email** : utiliser `email_hash = hash('sha256', strtolower($email))` pour corrélation si nécessaire. Jamais l'email en clair dans Monolog (l'`AdminAuditLogger` gère ses propres métadonnées en base).
+- **Texte libre utilisateur** : éviter ou tronquer. Utiliser `has_note = true/false` plutôt que le contenu.
+
+---
+
 ## Canaux
 
 | Canal | Service(s) | Rôle |
 |---|---|---|
-| `order` | `SubmitOrderProcessor`, `OrderStatusLogRecorder` | Cycle de vie des commandes, transitions de statut |
-| `security` | `LastLoginAtSubscriber` | Connexions, événements d'authentification |
+| `order` | `SubmitOrderProcessor`, `OrderStatusLogRecorder`, `MerchantRejectOrderProcessor`, `MerchantStartPreparationProcessor`, `MerchantMarkReadyProcessor`, `CancelOrderProcessor`, processeurs pickup/retrait | Cycle de vie des commandes, transitions statut, QR, retrait |
+| `security` | `LastLoginAtSubscriber`, `PasswordResetRequestProcessor`, `PasswordResetConfirmProcessor` | Connexions, authentification, reset password |
 | `catalog` | `ImportProductsCommand` | Import Open*Facts, produits ignorés ou en erreur |
-| `admin` | `AdminArchiveStoreProcessor`, `AdminActivateMerchantProcessor`, `AdminSuspendMerchantProcessor` | Actions admin critiques |
+| `admin` | `AdminArchiveStoreProcessor`, `AdminActivateStoreProcessor`, `AdminDeactivateStoreProcessor`, `AdminActivateMerchantProcessor`, `AdminSuspendMerchantProcessor`, `AdminCreateMerchantProcessor`, `AdminUpdateMerchantProcessor` | Actions admin critiques |
 | `notification` | `NotificationService` | Envoi et persistance des notifications in-app |
 | `app` (défaut) | MessageHandlers (4) | Traitements asynchrones Messenger |
 
@@ -30,27 +40,93 @@ Par environnement :
 
 | Niveau | Quand l'utiliser |
 |---|---|
-| `debug` | Données détaillées utiles en dev uniquement — paramètres d'entrée, état intermédiaire |
+| `debug` | Données détaillées utiles en dev uniquement — paramètres d'entrée, état intermédiaire. Jamais de données sensibles même en debug. |
 | `info` | Événement métier important terminé normalement |
-| `warning` | Anomalie récupérable — slot plein, UUID invalide ignoré, statut inattendu |
+| `warning` | Anomalie récupérable — rejet métier, conflit d'état, slot plein, UUID invalide ignoré |
 | `error` | Échec non récupérable — exception Messenger, flush échoué, API externe en erreur |
 
 ---
 
-## Événements instrumentés
+## Événements instrumentés — Canal `order`
 
-### Canal `order`
+### Soumission commande (`SubmitOrderProcessor`)
 
 | Clé | Niveau | Contexte |
 |---|---|---|
 | `order.submit.start` | debug | `kadhia_id`, `slot_id` |
+| `order.submit.rejected` | warning | `reason`, `kadhia_id`, `slot_id`, `user_id`, `store_id` |
 | `order.submitted` | info | `order_id`, `store_id`, `submission_type` |
-| `order.slot_full` | warning | `slot_id`, `kadhia_id` |
+| `order.slot_full` | warning | `slot_id`, `kadhia_id` (lock concurrent) |
 | `order.submit.failed` | error | `kadhia_id`, `exception_class`, `exception_message` |
+| `order.submit.timeout_scheduled` | info | `order_id` |
+| `order.submit.timeout_schedule_failed` | error | `order_id`, `exception_class`, `exception_message` |
+
+**Valeurs de `reason` pour `order.submit.rejected`** :
+`CUSTOMER_ACCESS_REQUIRED`, `KADHIA_NOT_FOUND`, `KADHIA_NOT_DRAFT`, `STORE_NOT_FOUND`,
+`PICKUP_SLOT_NOT_FOUND`, `PICKUP_SLOT_FULL`, `PICKUP_SLOT_EXPIRED`, `PICKUP_SLOT_CLOSED`,
+`KADHIA_EMPTY`, `PRODUCT_UNAVAILABLE`, `PARTIAL_ACCEPTANCE_EXPIRED`
+
+### Transitions statut commande (`OrderStatusLogRecorder`)
+
+| Clé | Niveau | Contexte |
+|---|---|---|
 | `order.status_change.start` | debug | `order_id`, `from_status`, `to_status` |
 | `order.status_changed` | info | `order_id`, `store_id`, `from_status`, `to_status` |
 
-### Canal `security`
+### Actions marchand commandes
+
+| Clé | Niveau | Contexte |
+|---|---|---|
+| `merchant.order_reject.start` | debug | `order_id`, `store_id` |
+| `merchant.order_reject.rejected` | warning | `order_id`, `store_id`, `reason` |
+| `merchant.order_rejected` | info | `order_id`, `store_id` |
+| `merchant.order_reject.failed` | error | `order_id`, `store_id`, `exception_class`, `exception_message` |
+| `merchant.order_preparation.start` | debug | `order_id`, `store_id` |
+| `merchant.order_preparation.rejected` | warning | `order_id`, `store_id`, `reason` |
+| `merchant.order_preparation_started` | info | `order_id`, `store_id` |
+| `merchant.order_preparation.failed` | error | `order_id`, `store_id`, `exception_class`, `exception_message` |
+| `merchant.order_ready.start` | debug | `order_id`, `store_id` |
+| `merchant.order_ready.rejected` | warning | `order_id`, `store_id`, `reason` |
+| `merchant.order_ready` | info | `order_id`, `store_id` |
+| `merchant.order_ready.failed` | error | `order_id`, `store_id`, `exception_class`, `exception_message` |
+| `merchant.order_ready.pickup_reminder_scheduled` | info | `order_id` |
+| `merchant.order_ready.pickup_reminder_schedule_failed` | error | `order_id`, `exception_class`, `exception_message` |
+
+### Annulation commande client (`CancelOrderProcessor`)
+
+| Clé | Niveau | Contexte |
+|---|---|---|
+| `customer.order_cancel.start` | debug | `order_id`, `user_id`, `store_id` |
+| `customer.order_cancel.rejected` | warning | `order_id`, `user_id`, `store_id`, `reason` |
+| `customer.order_cancelled` | info | `order_id`, `user_id`, `store_id` |
+| `customer.order_cancel.failed` | error | `order_id`, `user_id`, `store_id`, `exception_class`, `exception_message` |
+
+### Parcours QR / retrait
+
+| Clé | Niveau | Contexte |
+|---|---|---|
+| `pickup.scan.start` | debug | `pickup_session_id`, `order_id`, `store_id` |
+| `pickup.scan.rejected` | warning | `reason`, `pickup_session_id`?, `order_id`?, `store_id`? |
+| `pickup.scanned` | info | `pickup_session_id`, `order_id`, `store_id`, `idempotent`? |
+| `pickup.scan.failed` | error | `pickup_session_id`, `order_id`, `store_id`, `exception_class`, `exception_message` |
+| `pickup.confirm_merchant.start` | debug | `pickup_session_id`, `order_id`, `store_id` |
+| `pickup.confirm_merchant.rejected` | warning | `reason`, `pickup_session_id`, `order_id`?, `store_id`? |
+| `pickup.confirm_merchant.done` | info | `pickup_session_id`, `order_id`, `store_id`, `completed` |
+| `pickup.confirm_merchant.failed` | error | `pickup_session_id`, `order_id`, `store_id`, `exception_class`, `exception_message` |
+| `pickup.confirm_customer.start` | debug | `pickup_session_id`, `order_id`, `store_id` |
+| `pickup.confirm_customer.rejected` | warning | `reason`, `pickup_session_id`, `order_id`?, `store_id`? |
+| `pickup.confirm_customer.done` | info | `pickup_session_id`, `order_id`, `store_id`, `completed` |
+| `pickup.confirm_customer.failed` | error | `pickup_session_id`, `order_id`, `store_id`, `exception_class`, `exception_message` |
+| `pickup.force_complete.start` | debug | `pickup_session_id`, `order_id`, `store_id` |
+| `pickup.force_complete.rejected` | warning | `reason`, `pickup_session_id`, `order_id`, `store_id` |
+| `pickup.force_completed` | info | `pickup_session_id`, `order_id`, `store_id`, `has_note` |
+| `pickup.force_complete.failed` | error | `pickup_session_id`, `order_id`, `store_id`, `exception_class`, `exception_message` |
+
+> `?` = présent seulement si disponible à ce stade. `ownership_mismatch` est loggué sans `order_id` ni `store_id` pour ne pas révéler d'information.
+
+---
+
+## Événements instrumentés — Canal `security`
 
 | Clé | Niveau | Contexte |
 |---|---|---|
@@ -58,8 +134,16 @@ Par environnement :
 | `security.login` | info | `user_id` |
 | `security.login.skipped` | warning | `reason`, `user_id` ou `class` |
 | `security.login.update_failed` | error | `user_id`, `exception_class`, `exception_message` |
+| `security.password_reset.requested` | debug | `email_hash` |
+| `security.password_reset.user_not_eligible` | debug | `email_hash` (debug, pas warning — ne révèle pas l'inexistence du compte) |
+| `security.password_reset.sent` | info | `email_hash` |
+| `security.password_reset.failed` | warning ou error | `email_hash`?, `reason`?, `exception_class`?, `exception_message`? |
+| `security.password_reset.confirm.start` | debug | — |
+| `security.password_reset.confirmed` | info | — |
 
-### Canal `catalog`
+---
+
+## Événements instrumentés — Canal `catalog`
 
 | Clé | Niveau | Contexte |
 |---|---|---|
@@ -68,23 +152,41 @@ Par environnement :
 | `catalog.import.done` | info | `sources`, `fetched`, `inserted`, `updated`, `skipped`, `errors` |
 | `catalog.import.fetch_failed` | error | `url`, `exception_class`, `exception_message` |
 
-### Canal `admin`
+---
+
+## Événements instrumentés — Canal `admin`
 
 | Clé | Niveau | Contexte |
 |---|---|---|
-| `admin.archive_store.start` | debug | `store_id` |
-| `admin.archive_store.already_archived` | warning | `store_id` |
-| `store.archived` | info | `store_id`, `reason` |
+| `admin.merchant_create.start` | debug | `email_hash` |
+| `admin.merchant_create.rejected` | warning | `reason`, `email_hash` |
+| `merchant.created` | info | `merchant_id` |
+| `admin.merchant_create.failed` | error | `email_hash`, `exception_class`, `exception_message` |
+| `admin.merchant_update.start` | debug | `merchant_id`, `updated_fields` (noms uniquement) |
+| `merchant.updated` | info | `merchant_id`, `updated_fields` |
+| `admin.merchant_update.failed` | error | `merchant_id`, `exception_class`, `exception_message` |
 | `admin.merchant_activate.start` | debug | `merchant_id` |
 | `admin.merchant_activate.already_active` | warning | `merchant_id` |
-| `merchant.activated` | info | `merchant_id`, `email` |
+| `merchant.activated` | info | `merchant_id` |
 | `admin.merchant_activate.failed` | error | `merchant_id`, `exception_class`, `exception_message` |
 | `admin.merchant_suspend.start` | debug | `merchant_id` |
 | `admin.merchant_suspend.already_inactive` | warning | `merchant_id` |
-| `merchant.suspended` | info | `merchant_id`, `email` |
+| `merchant.suspended` | info | `merchant_id` |
 | `admin.merchant_suspend.failed` | error | `merchant_id`, `exception_class`, `exception_message` |
+| `admin.archive_store.start` | debug | `store_id` |
+| `admin.archive_store.already_archived` | warning | `store_id` |
+| `store.archived` | info | `store_id`, `reason` |
+| `admin.store_activate.start` | debug | `store_id` |
+| `admin.store_activate.rejected` | warning | `store_id`, `reason` |
+| `store.activated` | info | `store_id` |
+| `admin.store_activate.failed` | error | `store_id`, `exception_class`, `exception_message` |
+| `admin.store_deactivate.start` | debug | `store_id` |
+| `store.deactivated` | info | `store_id` |
+| `admin.store_deactivate.failed` | error | `store_id`, `exception_class`, `exception_message` |
 
-### Canal `notification`
+---
+
+## Événements instrumentés — Canal `notification`
 
 | Clé | Niveau | Contexte |
 |---|---|---|
@@ -93,7 +195,9 @@ Par environnement :
 | `notification.no_owner` | warning | `order_id`, `store_id` |
 | `notification.failed` | error | `type`, `order_id`, `exception_class`, `exception_message` |
 
-### Canal `app` (MessageHandlers)
+---
+
+## Événements instrumentés — Canal `app` (MessageHandlers)
 
 | Clé | Niveau | Contexte |
 |---|---|---|
@@ -101,14 +205,6 @@ Par environnement :
 | `messenger.handled` | info | `message`, `order_id` |
 | `messenger.skipped` | warning | `message`, `order_id`, `reason` |
 | `messenger.failure` | error | `message`, `order_id`, `exception_class`, `exception_message` |
-
----
-
-## Règles de sécurité
-
-- **Ne jamais loguer** : mots de passe, tokens JWT, secrets d'API, contenu brut d'une Kadhia.
-- Les `user_id` et `order_id` sont des UUIDs opaques — pas d'information personnelle.
-- En prod, le niveau `info` minimum évite de polluer les logs avec les `debug` de dev.
 
 ---
 

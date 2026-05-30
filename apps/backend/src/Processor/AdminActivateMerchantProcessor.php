@@ -58,7 +58,6 @@ final readonly class AdminActivateMerchantProcessor implements ProcessorInterfac
             $this->entityManager->flush();
             $this->logger->info('merchant.activated', [
                 'merchant_id' => $merchantId,
-                'email' => $merchant->getEmail(),
             ]);
         } catch (\Throwable $e) {
             $this->logger->error('admin.merchant_activate.failed', [

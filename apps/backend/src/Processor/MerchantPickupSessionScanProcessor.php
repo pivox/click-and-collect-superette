@@ -15,6 +15,8 @@ use App\Repository\PickupSessionRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\OrderTransitionService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -29,6 +31,8 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private OrderTransitionService $orderTransitionService,
         private EntityManagerInterface $entityManager,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -44,38 +48,95 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
 
         $pickupSession = $this->pickupSessionRepository->findOneByToken(Uuid::fromString($data->token));
         if (null === $pickupSession) {
+            $this->logger->warning('pickup.scan.rejected', [
+                'reason' => 'PICKUP_SESSION_NOT_FOUND',
+            ]);
             throw new NotFoundHttpException('PICKUP_SESSION_NOT_FOUND');
         }
 
         $order = $pickupSession->getOrder();
+        $pickupSessionId = $pickupSession->getId()->toRfc4122();
+        $orderId = $order->getId()->toRfc4122();
+        $storeId = $order->getShop()->getId()->toRfc4122();
+
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($order->getShop());
+
+        $this->logger->debug('pickup.scan.start', [
+            'pickup_session_id' => $pickupSessionId,
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+        ]);
 
         // A session that was consumed cannot retroactively become an expired scan.
         if ($pickupSession->isUsed() || OrderStatus::Completed === $order->getStatus()) {
+            $this->logger->warning('pickup.scan.rejected', [
+                'reason' => 'PICKUP_SESSION_ALREADY_USED',
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
             throw new ConflictHttpException('PICKUP_SESSION_ALREADY_USED');
         }
 
         $now = new \DateTimeImmutable();
         if ($pickupSession->isExpired($now)) {
+            $this->logger->warning('pickup.scan.rejected', [
+                'reason' => 'PICKUP_SESSION_EXPIRED',
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
             throw new ConflictHttpException('PICKUP_SESSION_EXPIRED');
         }
 
         if (OrderStatus::PickupPending === $order->getStatus() && null !== $pickupSession->getScannedAt()) {
+            $this->logger->info('pickup.scanned', [
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'idempotent' => true,
+            ]);
+
             return $this->toOutput($pickupSession);
         }
 
         if (OrderStatus::Ready !== $order->getStatus()) {
+            $this->logger->warning('pickup.scan.rejected', [
+                'reason' => 'ORDER_NOT_READY',
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
             throw new ConflictHttpException('ORDER_NOT_READY');
         }
 
         try {
             $pickupSession->scan($now);
             $this->orderTransitionService->markPickupPending($order);
+            $this->entityManager->flush();
+            $this->logger->info('pickup.scanned', [
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
         } catch (\LogicException $e) {
+            $this->logger->warning('pickup.scan.rejected', [
+                'reason' => $e->getMessage(),
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
             throw new ConflictHttpException($e->getMessage());
+        } catch (\Throwable $e) {
+            $this->logger->error('pickup.scan.failed', [
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
         }
-
-        $this->entityManager->flush();
 
         return $this->toOutput($pickupSession);
     }
@@ -101,7 +162,7 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
                 'last_name' => $customer->getLastName(),
                 'phone' => $customer->getPhone(),
             ],
-            lines: array_map(
+            lines: \array_map(
                 static fn (OrderLine $line): array => [
                     'merchant_product_id' => $line->getMerchantProduct()->getId()->toRfc4122(),
                     'name' => $line->getMerchantProduct()->getDisplayNameFr(),

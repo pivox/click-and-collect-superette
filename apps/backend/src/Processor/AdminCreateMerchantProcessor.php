@@ -15,6 +15,8 @@ use App\Repository\UserRepository;
 use App\Service\AdminAuditLogger;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -29,6 +31,8 @@ final readonly class AdminCreateMerchantProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
         private AdminAuditLogger $auditLogger,
+        #[Autowire(service: 'monolog.logger.admin')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -43,9 +47,16 @@ final readonly class AdminCreateMerchantProcessor implements ProcessorInterface
         }
 
         $email = strtolower($data->email);
+        $emailHash = \hash('sha256', $email);
+
+        $this->logger->debug('admin.merchant_create.start', ['email_hash' => $emailHash]);
 
         // Check email uniqueness before attempting insert
         if (null !== $this->userRepository->findOneBy(['email' => $email])) {
+            $this->logger->warning('admin.merchant_create.rejected', [
+                'reason' => 'ADMIN_MERCHANT_EMAIL_ALREADY_EXISTS',
+                'email_hash' => $emailHash,
+            ]);
             throw new UnprocessableEntityHttpException('ADMIN_MERCHANT_EMAIL_ALREADY_EXISTS');
         }
 
@@ -72,8 +83,22 @@ final readonly class AdminCreateMerchantProcessor implements ProcessorInterface
                 metadata: ['email' => $email],
             );
             $this->entityManager->flush();
+            $this->logger->info('merchant.created', [
+                'merchant_id' => $user->getId()->toRfc4122(),
+            ]);
         } catch (UniqueConstraintViolationException) {
+            $this->logger->warning('admin.merchant_create.rejected', [
+                'reason' => 'ADMIN_MERCHANT_EMAIL_ALREADY_EXISTS',
+                'email_hash' => $emailHash,
+            ]);
             throw new UnprocessableEntityHttpException('ADMIN_MERCHANT_EMAIL_ALREADY_EXISTS');
+        } catch (\Throwable $e) {
+            $this->logger->error('admin.merchant_create.failed', [
+                'email_hash' => $emailHash,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
         }
 
         return AdminMerchantItemProvider::toOutput($user, $this->adminMerchantRepository->countStores($user));

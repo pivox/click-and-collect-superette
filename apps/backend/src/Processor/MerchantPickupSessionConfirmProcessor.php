@@ -13,6 +13,8 @@ use App\Repository\PickupSessionRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\OrderTransitionService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -26,6 +28,8 @@ final readonly class MerchantPickupSessionConfirmProcessor implements ProcessorI
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private OrderTransitionService $orderTransitionService,
         private EntityManagerInterface $entityManager,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -38,26 +42,63 @@ final readonly class MerchantPickupSessionConfirmProcessor implements ProcessorI
         $pickupSessionId = (string) ($uriVariables['id'] ?? '');
         $pickupSession = $this->pickupSessionRepository->findOneByIdWithOrder($pickupSessionId);
         if (null === $pickupSession) {
+            $this->logger->warning('pickup.confirm_merchant.rejected', [
+                'reason' => 'PICKUP_SESSION_NOT_FOUND',
+                'pickup_session_id' => $pickupSessionId,
+            ]);
             throw new NotFoundHttpException('PICKUP_SESSION_NOT_FOUND');
         }
 
         $order = $pickupSession->getOrder();
+        $orderId = $order->getId()->toRfc4122();
+        $storeId = $order->getShop()->getId()->toRfc4122();
+
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($order->getShop());
+
+        $this->logger->debug('pickup.confirm_merchant.start', [
+            'pickup_session_id' => $pickupSessionId,
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+        ]);
 
         // A consumed session or completed order must not be reclassified as a scan/state error.
         if ($pickupSession->isUsed() || OrderStatus::Completed === $order->getStatus()) {
+            $this->logger->warning('pickup.confirm_merchant.rejected', [
+                'reason' => 'PICKUP_SESSION_ALREADY_USED',
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
             throw new ConflictHttpException('PICKUP_SESSION_ALREADY_USED');
         }
 
         if (null === $pickupSession->getScannedAt()) {
+            $this->logger->warning('pickup.confirm_merchant.rejected', [
+                'reason' => 'PICKUP_SESSION_NOT_SCANNED',
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
             throw new ConflictHttpException('PICKUP_SESSION_NOT_SCANNED');
         }
 
         if ($pickupSession->isExpired()) {
+            $this->logger->warning('pickup.confirm_merchant.rejected', [
+                'reason' => 'PICKUP_SESSION_EXPIRED',
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
             throw new ConflictHttpException('PICKUP_SESSION_EXPIRED');
         }
 
         if (OrderStatus::PickupPending !== $order->getStatus()) {
+            $this->logger->warning('pickup.confirm_merchant.rejected', [
+                'reason' => 'ORDER_NOT_PICKUP_PENDING',
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
             throw new ConflictHttpException('ORDER_NOT_PICKUP_PENDING');
         }
 
@@ -66,11 +107,31 @@ final readonly class MerchantPickupSessionConfirmProcessor implements ProcessorI
             if ($pickupSession->isUsed()) {
                 $this->orderTransitionService->markCompleted($order);
             }
+            $this->entityManager->flush();
+            $this->logger->info('pickup.confirm_merchant.done', [
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'completed' => $pickupSession->isUsed(),
+            ]);
         } catch (\LogicException $e) {
+            $this->logger->warning('pickup.confirm_merchant.rejected', [
+                'reason' => $e->getMessage(),
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+            ]);
             throw new ConflictHttpException($e->getMessage());
+        } catch (\Throwable $e) {
+            $this->logger->error('pickup.confirm_merchant.failed', [
+                'pickup_session_id' => $pickupSessionId,
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
         }
-
-        $this->entityManager->flush();
 
         return $this->toOutput($pickupSession);
     }
