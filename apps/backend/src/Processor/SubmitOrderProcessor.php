@@ -65,7 +65,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         }
 
         $kadhiaId = (string) ($uriVariables['kadhiaId'] ?? '');
-        $slotId = $data->pickupSlotId ?? null;
+        $slotId = $data->pickupSlotId;
 
         $this->logger->debug('order.submit.start', [
             'kadhia_id' => $kadhiaId,
