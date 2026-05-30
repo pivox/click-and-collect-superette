@@ -13,6 +13,8 @@ use App\Repository\UserRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -26,6 +28,8 @@ final readonly class CustomerRegistrationProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
         private JWTTokenManagerInterface $jwtTokenManager,
+        #[Autowire(service: 'monolog.logger.security')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -40,7 +44,15 @@ final readonly class CustomerRegistrationProcessor implements ProcessorInterface
         }
 
         $email = strtolower($data->email);
+        $emailHash = hash('sha256', $email);
+
+        $this->logger->debug('security.customer_register.start', ['email_hash' => $emailHash]);
+
         if (null !== $this->userRepository->findOneBy(['email' => $email])) {
+            $this->logger->warning('security.customer_register.rejected', [
+                'reason' => 'AUTH_EMAIL_ALREADY_EXISTS',
+                'email_hash' => $emailHash,
+            ]);
             throw new ConflictHttpException('AUTH_EMAIL_ALREADY_EXISTS');
         }
 
@@ -60,8 +72,22 @@ final readonly class CustomerRegistrationProcessor implements ProcessorInterface
         try {
             $this->entityManager->persist($user);
             $this->entityManager->flush();
+            $this->logger->info('security.customer_registered', [
+                'user_id' => $user->getId()->toRfc4122(),
+            ]);
         } catch (UniqueConstraintViolationException) {
+            $this->logger->warning('security.customer_register.rejected', [
+                'reason' => 'AUTH_EMAIL_ALREADY_EXISTS',
+                'email_hash' => $emailHash,
+            ]);
             throw new ConflictHttpException('AUTH_EMAIL_ALREADY_EXISTS');
+        } catch (\Throwable $e) {
+            $this->logger->error('security.customer_register.failed', [
+                'email_hash' => $emailHash,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
         }
 
         return new CustomerRegistrationOutput(

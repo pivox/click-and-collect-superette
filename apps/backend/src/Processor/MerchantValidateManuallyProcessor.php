@@ -14,6 +14,8 @@ use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\OrderTransitionService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -29,6 +31,8 @@ final readonly class MerchantValidateManuallyProcessor implements ProcessorInter
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private OrderTransitionService $orderTransitionService,
         private EntityManagerInterface $entityManager,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -64,12 +68,37 @@ final readonly class MerchantValidateManuallyProcessor implements ProcessorInter
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
 
+        $this->logger->debug('merchant.order_validate_manual.start', [
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+        ]);
+
         if (OrderStatus::Ready !== $order->getStatus()) {
+            $this->logger->warning('merchant.order_validate_manual.rejected', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'reason' => 'ORDER_NOT_READY',
+            ]);
             throw new ConflictHttpException('ORDER_NOT_READY');
         }
 
-        $this->orderTransitionService->completeManually($order, $data->note);
-        $this->entityManager->flush();
+        try {
+            $this->orderTransitionService->completeManually($order, $data->note);
+            $this->entityManager->flush();
+            $this->logger->info('merchant.order_validated_manually', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'has_note' => '' !== trim($data->note ?? ''),
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('merchant.order_validate_manual.failed', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
 
         return new MerchantValidateManuallyOutput(
             id: $order->getId()->toRfc4122(),

@@ -15,6 +15,8 @@ use App\Security\MerchantShopAccessChecker;
 use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -31,6 +33,8 @@ final readonly class MerchantAcceptOrderProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private OrderStatusLogRecorder $orderStatusLogRecorder,
         private NotificationService $notificationService,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -62,15 +66,43 @@ final readonly class MerchantAcceptOrderProcessor implements ProcessorInterface
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
 
+        $this->logger->debug('merchant.order_accept.start', [
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+        ]);
+
+        // State machine: accept() throws \LogicException if order is not submitted.
+        // flush() is outside so the state change always reaches the DB on success.
         try {
             $order->accept();
             $this->orderStatusLogRecorder->record($order, OrderStatus::Accepted);
-            $this->notificationService->notifyCustomerOrderAccepted($order);
         } catch (\LogicException $e) {
+            $this->logger->warning('merchant.order_accept.rejected', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'reason' => $e->getMessage(),
+            ]);
             throw new ConflictHttpException($e->getMessage());
         }
 
         $this->entityManager->flush();
+
+        $this->logger->info('merchant.order_accepted', [
+            'order_id' => $orderId,
+            'store_id' => $storeId,
+        ]);
+
+        // Notification is best-effort: failure must not roll back the acceptance.
+        try {
+            $this->notificationService->notifyCustomerOrderAccepted($order);
+        } catch (\Throwable $e) {
+            $this->logger->error('merchant.order_accept.notification_failed', [
+                'order_id' => $orderId,
+                'store_id' => $storeId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+        }
 
         return MerchantOrderCollectionProvider::toOutput($order);
     }

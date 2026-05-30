@@ -14,6 +14,8 @@ use App\Repository\AdminProductReferenceRepository;
 use App\Repository\ProductReferenceProposalRepository;
 use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -29,6 +31,8 @@ final readonly class AdminMergeProductProposalProcessor implements ProcessorInte
         private AdminProductReferenceRepository $productReferenceRepository,
         private EntityManagerInterface $entityManager,
         private AdminAuditLogger $auditLogger,
+        #[Autowire(service: 'monolog.logger.admin')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -53,6 +57,10 @@ final readonly class AdminMergeProductProposalProcessor implements ProcessorInte
         }
 
         if (ProductReferenceProposalStatus::Pending !== $proposal->getStatus()) {
+            $this->logger->warning('admin.product_proposal.already_processed', [
+                'proposal_id' => $proposalId,
+                'status' => $proposal->getStatus()->value,
+            ]);
             throw new ConflictHttpException('ADMIN_PRODUCT_PROPOSAL_ALREADY_PROCESSED');
         }
 
@@ -62,20 +70,38 @@ final readonly class AdminMergeProductProposalProcessor implements ProcessorInte
         }
 
         if (ProductReferenceStatus::Archived === $productReference->getStatus()) {
+            $this->logger->warning('admin.product_proposal.merge_archived_reference', [
+                'proposal_id' => $proposalId,
+                'product_reference_id' => $data->productReferenceId,
+            ]);
             throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_IS_ARCHIVED');
         }
 
-        $proposal->setStatus(ProductReferenceProposalStatus::Merged);
-        $proposal->setCreatedProductReference($productReference);
+        try {
+            $proposal->setStatus(ProductReferenceProposalStatus::Merged);
+            $proposal->setCreatedProductReference($productReference);
 
-        $this->auditLogger->log(
-            action: 'product_proposal.merge',
-            resourceType: 'product_proposal',
-            resourceId: $proposalId,
-            summary: \sprintf('Proposition produit "%s" fusionnée avec référence existante.', $proposal->getNameFr()),
-            metadata: ['product_reference_id' => $productReference->getId()->toRfc4122()],
-        );
+            $this->auditLogger->log(
+                action: 'product_proposal.merge',
+                resourceType: 'product_proposal',
+                resourceId: $proposalId,
+                summary: \sprintf('Proposition produit "%s" fusionnée avec référence existante.', $proposal->getNameFr()),
+                metadata: ['product_reference_id' => $productReference->getId()->toRfc4122()],
+            );
 
-        $this->entityManager->flush();
+            $this->entityManager->flush();
+
+            $this->logger->info('admin.product_proposal.merged', [
+                'proposal_id' => $proposalId,
+                'product_reference_id' => $productReference->getId()->toRfc4122(),
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('admin.product_proposal.merge_failed', [
+                'proposal_id' => $proposalId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
     }
 }

@@ -11,6 +11,8 @@ use App\Dto\GenerateSlotsInput;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\PickupSlotRuleGenerator;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -23,6 +25,8 @@ final readonly class GenerateMerchantPickupSlotRulesProcessor implements Process
         private ShopRepository $shopRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
         private PickupSlotRuleGenerator $pickupSlotRuleGenerator,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -49,6 +53,13 @@ final readonly class GenerateMerchantPickupSlotRulesProcessor implements Process
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($shop);
 
         $result = $this->pickupSlotRuleGenerator->generateForShop($shop, horizonMonths: $data->horizonMonths);
+
+        $this->logger->info('merchant.pickup_rules.generated', [
+            'store_id' => $storeId,
+            'generated_count' => $result->generatedCount,
+            'skipped_existing' => $result->skippedExistingCount,
+            'skipped_closure' => $result->skippedClosureCount,
+        ]);
 
         return new PickupSlotRuleGenerationOutput(
             storeId: $shop->getId()->toRfc4122(),

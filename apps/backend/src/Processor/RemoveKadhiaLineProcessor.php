@@ -12,7 +12,9 @@ use App\Repository\KadhiaLineRepository;
 use App\Repository\KadhiaRepository;
 use App\Repository\MerchantProductRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -29,6 +31,8 @@ final readonly class RemoveKadhiaLineProcessor implements ProcessorInterface
         private KadhiaLineRepository $kadhiaLineRepository,
         private EntityManagerInterface $entityManager,
         private Security $security,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -74,5 +78,10 @@ final readonly class RemoveKadhiaLineProcessor implements ProcessorInterface
 
         $this->entityManager->remove($line);
         $this->entityManager->flush();
+
+        $this->logger->info('kadhia.line.removed', [
+            'kadhia_id' => $kadhiaId,
+            'merchant_product_id' => $merchantProductId,
+        ]);
     }
 }

@@ -12,6 +12,8 @@ use App\Enum\ProductReferenceProposalStatus;
 use App\Repository\ProductReferenceProposalRepository;
 use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -25,6 +27,8 @@ final readonly class AdminRejectProductProposalProcessor implements ProcessorInt
         private ProductReferenceProposalRepository $proposalRepository,
         private EntityManagerInterface $entityManager,
         private AdminAuditLogger $auditLogger,
+        #[Autowire(service: 'monolog.logger.admin')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -49,20 +53,37 @@ final readonly class AdminRejectProductProposalProcessor implements ProcessorInt
         }
 
         if (ProductReferenceProposalStatus::Pending !== $proposal->getStatus()) {
+            $this->logger->warning('admin.product_proposal.already_processed', [
+                'proposal_id' => $proposalId,
+                'status' => $proposal->getStatus()->value,
+            ]);
             throw new ConflictHttpException('ADMIN_PRODUCT_PROPOSAL_ALREADY_PROCESSED');
         }
 
-        $proposal->setStatus(ProductReferenceProposalStatus::Rejected);
-        $proposal->setRejectionReason($data->reason);
+        try {
+            $proposal->setStatus(ProductReferenceProposalStatus::Rejected);
+            $proposal->setRejectionReason($data->reason);
 
-        $this->auditLogger->log(
-            action: 'product_proposal.reject',
-            resourceType: 'product_proposal',
-            resourceId: $proposalId,
-            summary: \sprintf('Proposition produit "%s" rejetée.', $proposal->getNameFr()),
-            metadata: ['rejection_reason' => $data->reason],
-        );
+            $this->auditLogger->log(
+                action: 'product_proposal.reject',
+                resourceType: 'product_proposal',
+                resourceId: $proposalId,
+                summary: \sprintf('Proposition produit "%s" rejetée.', $proposal->getNameFr()),
+                metadata: ['rejection_reason' => $data->reason],
+            );
 
-        $this->entityManager->flush();
+            $this->entityManager->flush();
+
+            $this->logger->info('admin.product_proposal.rejected', [
+                'proposal_id' => $proposalId,
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('admin.product_proposal.reject_failed', [
+                'proposal_id' => $proposalId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
     }
 }

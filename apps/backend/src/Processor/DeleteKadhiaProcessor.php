@@ -10,7 +10,9 @@ use App\Entity\User;
 use App\Enum\KadhiaStatus;
 use App\Repository\KadhiaRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -25,6 +27,8 @@ final readonly class DeleteKadhiaProcessor implements ProcessorInterface
         private KadhiaRepository $kadhiaRepository,
         private EntityManagerInterface $entityManager,
         private Security $security,
+        #[Autowire(service: 'monolog.logger.order')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -49,11 +53,26 @@ final readonly class DeleteKadhiaProcessor implements ProcessorInterface
             throw new NotFoundHttpException('KADHIA_NOT_FOUND');
         }
 
+        $this->logger->debug('kadhia.delete.start', [
+            'kadhia_id' => $kadhiaId,
+            'user_id' => $user->getId()->toRfc4122(),
+        ]);
+
         if (KadhiaStatus::Draft !== $kadhia->getStatus()) {
+            $this->logger->warning('kadhia.delete.rejected', [
+                'kadhia_id' => $kadhiaId,
+                'reason' => 'KADHIA_NOT_DELETABLE',
+                'status' => $kadhia->getStatus()->value,
+            ]);
             throw new UnprocessableEntityHttpException('KADHIA_NOT_DELETABLE');
         }
 
         $this->entityManager->remove($kadhia);
         $this->entityManager->flush();
+
+        $this->logger->info('kadhia.deleted', [
+            'kadhia_id' => $kadhiaId,
+            'user_id' => $user->getId()->toRfc4122(),
+        ]);
     }
 }

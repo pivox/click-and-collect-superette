@@ -11,6 +11,8 @@ use App\Enum\ProductReferenceStatus;
 use App\Provider\AdminProductReferenceItemProvider;
 use App\Repository\AdminProductReferenceRepository;
 use App\Service\AdminAuditLogger;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -22,6 +24,8 @@ final readonly class AdminArchiveProductReferenceProcessor implements ProcessorI
     public function __construct(
         private AdminProductReferenceRepository $adminProductReferenceRepository,
         private AdminAuditLogger $auditLogger,
+        #[Autowire(service: 'monolog.logger.admin')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -41,15 +45,30 @@ final readonly class AdminArchiveProductReferenceProcessor implements ProcessorI
             throw new NotFoundHttpException('ADMIN_PRODUCT_REFERENCE_NOT_FOUND');
         }
 
-        $productReference->setStatus(ProductReferenceStatus::Archived);
-        $this->auditLogger->log(
-            action: 'product_reference.archive',
-            resourceType: 'product_reference',
-            resourceId: $productReference->getId()->toRfc4122(),
-            summary: \sprintf('Produit référentiel "%s" archivé.', $productReference->getNameFr()),
-            metadata: ['name_fr' => $productReference->getNameFr()],
-        );
-        $this->adminProductReferenceRepository->save($productReference);
+        $this->logger->debug('admin.product_reference.archive.start', ['product_reference_id' => $productReferenceId]);
+
+        try {
+            $productReference->setStatus(ProductReferenceStatus::Archived);
+            $this->auditLogger->log(
+                action: 'product_reference.archive',
+                resourceType: 'product_reference',
+                resourceId: $productReference->getId()->toRfc4122(),
+                summary: \sprintf('Produit référentiel "%s" archivé.', $productReference->getNameFr()),
+                metadata: ['name_fr' => $productReference->getNameFr()],
+            );
+            $this->adminProductReferenceRepository->save($productReference);
+
+            $this->logger->info('admin.product_reference.archived', [
+                'product_reference_id' => $productReferenceId,
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('admin.product_reference.archive_failed', [
+                'product_reference_id' => $productReferenceId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
 
         return AdminProductReferenceItemProvider::toOutput($productReference);
     }

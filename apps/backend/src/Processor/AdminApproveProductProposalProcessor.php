@@ -19,6 +19,8 @@ use App\Repository\AdminProductReferenceRepository;
 use App\Repository\ProductReferenceProposalRepository;
 use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -36,6 +38,8 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
         private AdminCategoryRepository $categoryRepository,
         private EntityManagerInterface $entityManager,
         private AdminAuditLogger $auditLogger,
+        #[Autowire(service: 'monolog.logger.admin')]
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -56,26 +60,46 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
         }
 
         if (ProductReferenceProposalStatus::Pending !== $proposal->getStatus()) {
+            $this->logger->warning('admin.product_proposal.already_processed', [
+                'proposal_id' => $proposalId,
+                'status' => $proposal->getStatus()->value,
+            ]);
             throw new ConflictHttpException('ADMIN_PRODUCT_PROPOSAL_ALREADY_PROCESSED');
         }
 
         $input = $data instanceof AdminApproveProductProposalInput ? $data : new AdminApproveProductProposalInput();
 
-        if (null !== $input->productReferenceId) {
-            $productReference = $this->linkToExisting($proposal, $input->productReferenceId);
-        } else {
-            $productReference = $this->createFromData($proposal, $input->canonicalData);
+        try {
+            if (null !== $input->productReferenceId) {
+                $productReference = $this->linkToExisting($proposal, $input->productReferenceId);
+            } else {
+                $productReference = $this->createFromData($proposal, $input->canonicalData);
+            }
+
+            $this->auditLogger->log(
+                action: 'product_proposal.approve',
+                resourceType: 'product_proposal',
+                resourceId: $proposalId,
+                summary: \sprintf('Proposition produit "%s" validée.', $proposal->getNameFr()),
+                metadata: ['product_reference_id' => $productReference->getId()->toRfc4122()],
+            );
+
+            $this->entityManager->flush();
+
+            $this->logger->info('admin.product_proposal.approved', [
+                'proposal_id' => $proposalId,
+                'product_reference_id' => $productReference->getId()->toRfc4122(),
+            ]);
+        } catch (NotFoundHttpException|UnprocessableEntityHttpException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            $this->logger->error('admin.product_proposal.approve_failed', [
+                'proposal_id' => $proposalId,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+            throw $e;
         }
-
-        $this->auditLogger->log(
-            action: 'product_proposal.approve',
-            resourceType: 'product_proposal',
-            resourceId: $proposalId,
-            summary: \sprintf('Proposition produit "%s" validée.', $proposal->getNameFr()),
-            metadata: ['product_reference_id' => $productReference->getId()->toRfc4122()],
-        );
-
-        $this->entityManager->flush();
     }
 
     private function linkToExisting(ProductReferenceProposal $proposal, string $productReferenceId): ProductReference
