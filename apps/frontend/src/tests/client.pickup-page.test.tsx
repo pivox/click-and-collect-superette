@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -139,6 +139,71 @@ describe('PickupQrPage', () => {
     expect(screen.getByText('CMD-ORDER1')).toBeTruthy();
     expect(screen.getByText('Supérette El Amen')).toBeTruthy();
     expect(screen.getByText('Rue de la Liberté, Tunis')).toBeTruthy();
+  });
+
+  it('rafraîchit automatiquement après scan marchand et affiche la confirmation client', async () => {
+    const intervalCallbacks: Array<() => void> = [];
+    const componentIntervalIds = new Set<number>();
+    const originalSetInterval = window.setInterval.bind(window);
+    const originalClearInterval = window.clearInterval.bind(window);
+    let nextIntervalId = 1000;
+    const setIntervalSpy = vi
+      .spyOn(window, 'setInterval')
+      .mockImplementation(((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+        if (timeout === 4000 && typeof handler === 'function') {
+          const intervalId = nextIntervalId;
+          nextIntervalId += 1;
+          componentIntervalIds.add(intervalId);
+          intervalCallbacks.push(handler as () => void);
+          return intervalId;
+        }
+
+        return (originalSetInterval as unknown as (...params: unknown[]) => number)(
+          handler,
+          timeout,
+          ...args,
+        );
+      }) as typeof window.setInterval);
+    const clearIntervalSpy = vi
+      .spyOn(window, 'clearInterval')
+      .mockImplementation(((intervalId?: number) => {
+        if (typeof intervalId === 'number' && componentIntervalIds.has(intervalId)) {
+          componentIntervalIds.delete(intervalId);
+          return;
+        }
+
+        originalClearInterval(intervalId);
+      }) as typeof window.clearInterval);
+
+    try {
+      vi.mocked(getOrder)
+        .mockResolvedValueOnce(makeOrder('ready'))
+        .mockResolvedValueOnce(makeOrder('pickup_pending'));
+
+      render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Présente ce QR code au comptoir/i)).toBeTruthy();
+      });
+      await waitFor(() => {
+        expect(intervalCallbacks.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const refreshAfterScan = intervalCallbacks[intervalCallbacks.length - 1];
+        await refreshAfterScan();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Retrait scanné par le marchand/i)).toBeTruthy();
+      });
+      expect(screen.getByRole('button', { name: /J'ai récupéré ma Kadhia/i })).toBeTruthy();
+      expect(getOrder).toHaveBeenCalledTimes(2);
+      expect(getPickupSession).toHaveBeenCalledTimes(2);
+    } finally {
+      setIntervalSpy.mockRestore();
+      clearIntervalSpy.mockRestore();
+    }
   });
 
   it('affiche la confirmation client pour une commande pickup_pending', async () => {

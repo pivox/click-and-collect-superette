@@ -23,6 +23,8 @@ import type {
   PickupSession,
 } from "@/types";
 
+const PICKUP_STATUS_POLL_MS = 4000;
+
 function confirmErrorMessage(err: unknown): string {
   const status = (err as { response?: { status?: number } }).response?.status;
   if (status === 409) {
@@ -51,6 +53,8 @@ export default function PickupQrPage({
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirmationResult, setConfirmationResult] =
     useState<CustomerPickupSessionConfirmation | null>(null);
+  const pollingPickupSessionId = pickupSession?.id;
+  const pollingPickupSessionExpired = pickupSession?.isExpired ?? false;
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -87,6 +91,53 @@ export default function PickupQrPage({
       cancelled = true;
     };
   }, [orderId, user, authLoading, reloadKey]);
+
+  useEffect(() => {
+    if (
+      authLoading ||
+      !user ||
+      !fetchDone ||
+      fetchError ||
+      order?.status !== "ready" ||
+      !pollingPickupSessionId ||
+      pollingPickupSessionExpired
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const refreshAfterScan = async () => {
+      try {
+        const freshOrder = await getOrder(orderId);
+        if (cancelled) return;
+
+        setOrder(freshOrder);
+        if (freshOrder?.status === "ready" || freshOrder?.status === "pickup_pending") {
+          const freshSession = await getPickupSession(orderId);
+          if (!cancelled) setPickupSession(freshSession);
+        } else if (!cancelled) {
+          setPickupSession(null);
+        }
+      } catch (err) {
+        console.error("[pickup] refresh after scan failed", { orderId, err });
+      }
+    };
+
+    const intervalId = window.setInterval(refreshAfterScan, PICKUP_STATUS_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [
+    authLoading,
+    fetchDone,
+    fetchError,
+    order?.status,
+    orderId,
+    pollingPickupSessionExpired,
+    pollingPickupSessionId,
+    user,
+  ]);
 
   async function handleCustomerConfirm() {
     if (!pickupSession) return;
