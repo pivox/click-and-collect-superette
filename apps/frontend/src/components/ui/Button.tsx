@@ -4,6 +4,13 @@ import { cn } from "@/lib/cn";
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "md" | "lg";
 
+interface ButtonClassNameOptions {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  full?: boolean;
+  className?: string;
+}
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -27,6 +34,22 @@ const SIZE: Record<ButtonSize, string> = {
   lg: "min-h-[48px] px-5 text-sm",
 };
 
+export function getButtonClassName({
+  variant = "primary",
+  size = "lg",
+  full,
+  className,
+}: ButtonClassNameOptions = {}) {
+  return cn(
+    "inline-flex items-center justify-center gap-2 rounded-md font-black transition-colors",
+    "disabled:opacity-50 disabled:cursor-not-allowed",
+    VARIANT[variant],
+    SIZE[size],
+    full && "w-full",
+    className,
+  );
+}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
     { variant = "primary", size = "lg", full, className, children, ...rest },
@@ -35,14 +58,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-md font-black transition-colors",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-          VARIANT[variant],
-          SIZE[size],
-          full && "w-full",
-          className,
-        )}
+        className={getButtonClassName({ variant, size, full, className })}
         {...rest}
       >
         {children}

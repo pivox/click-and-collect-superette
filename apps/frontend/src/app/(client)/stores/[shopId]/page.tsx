@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Hero } from "@/components/layout/Hero";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { getButtonClassName } from "@/components/ui/Button";
 import { Summary, SummaryRow } from "@/components/ui/Summary";
 import { StickyBottom } from "@/components/layout/StickyBottom";
 import { getShop } from "@/lib/services";
@@ -65,8 +65,11 @@ export default async function StoreDetailPage({
 
           {/* CTA inline sur desktop */}
           <div className="hidden md:block">
-            <Link href={`/stores/${shop.id}/catalog`}>
-              <Button full>Commencer ma Kadhia</Button>
+            <Link
+              href={`/stores/${shop.id}/catalog`}
+              className={getButtonClassName({ full: true })}
+            >
+              Commencer ma Kadhia
             </Link>
           </div>
         </div>
@@ -74,8 +77,11 @@ export default async function StoreDetailPage({
 
       {/* CTA sticky sur mobile */}
       <StickyBottom className="md:hidden">
-        <Link href={`/stores/${shop.id}/catalog`}>
-          <Button full>Commencer ma Kadhia</Button>
+        <Link
+          href={`/stores/${shop.id}/catalog`}
+          className={getButtonClassName({ full: true })}
+        >
+          Commencer ma Kadhia
         </Link>
       </StickyBottom>
     </>

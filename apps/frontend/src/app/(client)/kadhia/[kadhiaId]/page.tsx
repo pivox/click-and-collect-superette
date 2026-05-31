@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Button, getButtonClassName } from "@/components/ui/Button";
 import { Summary, SummaryRow } from "@/components/ui/Summary";
 import { StickyBottom } from "@/components/layout/StickyBottom";
 import { KadhiaLineRow } from "@/components/product/KadhiaLineRow";
@@ -197,8 +197,8 @@ export default function KadhiaDetailPage({
         <TopBar title="Kadhia" backHref="/kadhia" />
         <Card className="text-center">
           <p className="text-sm text-muted">{loadError}</p>
-          <Link href="/kadhia" className="mt-4 inline-block">
-            <Button>Mes Kadhia</Button>
+          <Link href="/kadhia" className={getButtonClassName({ className: "mt-4" })}>
+            Mes Kadhia
           </Link>
         </Card>
       </>
@@ -242,8 +242,8 @@ export default function KadhiaDetailPage({
             <p className="mt-2 text-sm text-muted">
               Ajoute des produits depuis le catalogue de ta supérette.
             </p>
-            <Link href={catalogHref} className="mt-4 inline-block">
-              <Button>Aller au catalogue</Button>
+            <Link href={catalogHref} className={getButtonClassName({ className: "mt-4" })}>
+              Aller au catalogue
             </Link>
           </Card>
         </>
@@ -296,12 +296,15 @@ export default function KadhiaDetailPage({
 
           <StickyBottom>
             {isDraft ? (
-              <Link href="/kadhia/slot">
-                <Button full>Choisir un créneau</Button>
+              <Link href="/kadhia/slot" className={getButtonClassName({ full: true })}>
+                Choisir un créneau
               </Link>
             ) : kadhia.orderId ? (
-              <Link href={`/orders/${kadhia.orderId}`}>
-                <Button full>Suivre la commande</Button>
+              <Link
+                href={`/orders/${kadhia.orderId}`}
+                className={getButtonClassName({ full: true })}
+              >
+                Suivre la commande
               </Link>
             ) : null}
           </StickyBottom>

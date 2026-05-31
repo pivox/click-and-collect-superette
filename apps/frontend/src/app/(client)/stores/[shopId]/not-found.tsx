@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
-import { Button } from "@/components/ui/Button";
+import { getButtonClassName } from "@/components/ui/Button";
 
 export default function StoreNotFound() {
   return (
@@ -10,8 +10,8 @@ export default function StoreNotFound() {
         <p className="text-sm text-muted">
           Cette supérette n&apos;existe pas ou n&apos;est plus disponible.
         </p>
-        <Link href="/stores">
-          <Button>Voir toutes les supérettes</Button>
+        <Link href="/stores" className={getButtonClassName()}>
+          Voir toutes les supérettes
         </Link>
       </div>
     </>

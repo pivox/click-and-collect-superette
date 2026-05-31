@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Hero } from "@/components/layout/Hero";
-import { Button } from "@/components/ui/Button";
+import { getButtonClassName } from "@/components/ui/Button";
 import { StoreCard } from "@/components/store/StoreCard";
 import { Card } from "@/components/ui/Card";
 import { ActiveKadhiaBanner } from "@/components/store/ActiveKadhiaBanner";
@@ -31,11 +31,14 @@ export default async function HomePage() {
           subtitle="Scanne le QR code d'une supérette ou trouve un magasin proche."
           actions={
             <>
-              <Link href="/stores/by-qr-scan">
-                <Button variant="secondary">Scanner un QR code</Button>
+              <Link
+                href="/stores/by-qr-scan"
+                className={getButtonClassName({ variant: "secondary" })}
+              >
+                Scanner un QR code
               </Link>
-              <Link href="/stores">
-                <Button variant="ghost">Chercher une supérette</Button>
+              <Link href="/stores" className={getButtonClassName({ variant: "ghost" })}>
+                Chercher une supérette
               </Link>
             </>
           }
@@ -60,8 +63,11 @@ export default async function HomePage() {
                 <KPI label="note" value={featuredShop.rating.toFixed(1)} />
               )}
             </div>
-            <Link href={`/stores/${featuredShop.id}/catalog`} className="mt-4">
-              <Button full>Voir le catalogue</Button>
+            <Link
+              href={`/stores/${featuredShop.id}/catalog`}
+              className={getButtonClassName({ full: true, className: "mt-4" })}
+            >
+              Voir le catalogue
             </Link>
           </Card>
         )}
@@ -75,11 +81,17 @@ export default async function HomePage() {
           subtitle="Scanne le QR code d'une supérette ou trouve un magasin proche."
           actions={
             <>
-              <Link href="/stores/by-qr-scan">
-                <Button variant="secondary" full>Scanner un QR code</Button>
+              <Link
+                href="/stores/by-qr-scan"
+                className={getButtonClassName({ variant: "secondary", full: true })}
+              >
+                Scanner un QR code
               </Link>
-              <Link href="/stores">
-                <Button variant="ghost" full>Chercher une supérette</Button>
+              <Link
+                href="/stores"
+                className={getButtonClassName({ variant: "ghost", full: true })}
+              >
+                Chercher une supérette
               </Link>
             </>
           }
