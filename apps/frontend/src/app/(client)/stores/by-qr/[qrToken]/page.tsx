@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getShopBySlug } from "@/lib/services";
+import { getShopBySlug, recordStoreVisit } from "@/lib/services";
 
 export default function ByQrPage({
   params,
@@ -19,6 +19,14 @@ export default function ByQrPage({
           setError(true);
           return;
         }
+
+        void recordStoreVisit(shop.id, "qr_code").catch((err) => {
+          const status = (err as { response?: { status?: number } }).response?.status;
+          if (status !== 401 && status !== 403) {
+            console.error("[store-qr] recordStoreVisit failed", { shopId: shop.id, err });
+          }
+        });
+
         router.replace(`/stores/${shop.id}/catalog`);
       })
       .catch(() => setError(true));
