@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge, orderStatusBadge } from "@/components/ui/Badge";
 import { Summary, SummaryRow } from "@/components/ui/Summary";
 import { Timeline } from "@/components/ui/Timeline";
-import { Button } from "@/components/ui/Button";
+import { Button, getButtonClassName } from "@/components/ui/Button";
 import { StickyBottom } from "@/components/layout/StickyBottom";
 import { getOrder, projectTimeline } from "@/lib/services";
 import { formatTnd, formatSlotRange } from "@/lib/format";
@@ -166,8 +166,11 @@ export default function OrderTrackingPage({
           {/* CTA inline sur desktop */}
           <div className="hidden md:block mt-4">
             {showQrCta ? (
-              <Link href={`/orders/${order.id}/pickup`}>
-                <Button full>Afficher le QR retrait</Button>
+              <Link
+                href={`/orders/${order.id}/pickup`}
+                className={getButtonClassName({ full: true })}
+              >
+                Afficher le QR retrait
               </Link>
             ) : (
               <Button full disabled>
@@ -181,8 +184,11 @@ export default function OrderTrackingPage({
       {/* CTA sticky sur mobile */}
       <StickyBottom className="md:hidden">
         {showQrCta ? (
-          <Link href={`/orders/${order.id}/pickup`}>
-            <Button full>Afficher le QR retrait</Button>
+          <Link
+            href={`/orders/${order.id}/pickup`}
+            className={getButtonClassName({ full: true })}
+          >
+            Afficher le QR retrait
           </Link>
         ) : (
           <Button full disabled>

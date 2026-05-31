@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
+import { Button, getButtonClassName } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Summary, SummaryRow } from "@/components/ui/Summary";
 import { KadhiaLineRow } from "@/components/product/KadhiaLineRow";
@@ -52,8 +52,8 @@ export function KadhiaPanel({ kadhia }: KadhiaPanelProps) {
             Choisir un créneau
           </Button>
         ) : (
-          <Link href="/kadhia/slot">
-            <Button full>Choisir un créneau</Button>
+          <Link href="/kadhia/slot" className={getButtonClassName({ full: true })}>
+            Choisir un créneau
           </Link>
         )}
       </div>

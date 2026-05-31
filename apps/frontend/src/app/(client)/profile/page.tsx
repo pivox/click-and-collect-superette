@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, User } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { getButtonClassName } from "@/components/ui/Button";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 
 function initials(name: string, email: string): string {
@@ -43,11 +43,14 @@ export default function ProfilePage() {
             Connecte-toi pour accéder à ta Kadhia et suivre tes commandes.
           </p>
           <div className="mt-6 grid gap-3">
-            <Link href="/login">
-              <Button full>Se connecter</Button>
+            <Link href="/login" className={getButtonClassName({ full: true })}>
+              Se connecter
             </Link>
-            <Link href="/register">
-              <Button full variant="ghost">Créer un compte</Button>
+            <Link
+              href="/register"
+              className={getButtonClassName({ full: true, variant: "ghost" })}
+            >
+              Créer un compte
             </Link>
           </div>
         </Card>

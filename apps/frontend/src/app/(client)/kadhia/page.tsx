@@ -7,7 +7,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Pill, PillRow } from "@/components/ui/Pill";
 import { Card } from "@/components/ui/Card";
 import { Badge, orderStatusBadge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { getButtonClassName } from "@/components/ui/Button";
 import { listMyKadhias } from "@/lib/services";
 import type { KadhiaListItem } from "@/lib/services/kadhia.service";
 import { formatTnd, formatRelativeDate } from "@/lib/format";
@@ -24,8 +24,8 @@ function EmptyState({ tab }: { tab: TabKey }) {
         <p className="mt-1 text-sm text-muted">
           Scanne le QR code d&apos;une supérette pour commencer.
         </p>
-        <Link href="/stores" className="mt-4 inline-block">
-          <Button>Trouver une supérette</Button>
+        <Link href="/stores" className={getButtonClassName({ className: "mt-4" })}>
+          Trouver une supérette
         </Link>
       </div>
     );
@@ -67,12 +67,12 @@ function KadhiaCard({ item }: { item: KadhiaListItem }) {
 
       <div className="flex gap-2">
         {isDraft ? (
-          <Link href={`/kadhia/${item.id}`}>
-            <Button>Continuer</Button>
+          <Link href={`/kadhia/${item.id}`} className={getButtonClassName()}>
+            Continuer
           </Link>
         ) : (
-          <Link href={`/kadhia/${item.id}`}>
-            <Button>Voir</Button>
+          <Link href={`/kadhia/${item.id}`} className={getButtonClassName()}>
+            Voir
           </Link>
         )}
       </div>
