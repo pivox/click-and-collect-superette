@@ -153,7 +153,7 @@ describe('MerchantOrdersPage', () => {
     clearIntervalSpy.mockRestore();
   });
 
-  it('keeps the latest active orders response when an older request resolves later', async () => {
+  it('skips silent polling while the visible active orders load is pending', async () => {
     let intervalCallback: TimerHandler | undefined;
     let resolveInitialOrders!: (orders: MerchantOrderList) => void;
     const initialOrdersPromise = new Promise<MerchantOrderList>((resolve) => {
@@ -179,8 +179,85 @@ describe('MerchantOrdersPage', () => {
         realClearInterval(intervalId);
       });
 
+    vi.mocked(listMerchantOrders).mockReturnValueOnce(initialOrdersPromise);
+
+    const { unmount } = render(React.createElement(MerchantOrdersPage));
+
+    await waitFor(() => expect(listMerchantOrders).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      if (typeof intervalCallback === 'function') {
+        intervalCallback();
+      }
+    });
+
+    expect(listMerchantOrders).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveInitialOrders({
+        items: [
+          {
+            id: 'order-initial',
+            store_id: 'store-1',
+            order_number: 44,
+            order_number_display: '#0044',
+            status: 'submitted',
+            total_tnd: '12.000',
+            pickup_slot: null,
+            line_count: 2,
+            created_at: '2026-05-23T08:00:00+01:00',
+            updated_at: '2026-05-23T08:00:00+01:00',
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 20,
+      });
+      await initialOrdersPromise;
+    });
+
+    expect(await screen.findByText('#0044')).toBeInTheDocument();
+
+    unmount();
+    expect(clearIntervalSpy).toHaveBeenCalledWith(pollIntervalId);
+    setIntervalSpy.mockRestore();
+    clearIntervalSpy.mockRestore();
+  });
+
+  it('keeps the latest active orders response when an older poll resolves later', async () => {
+    let intervalCallback: TimerHandler | undefined;
+    let resolveFirstPoll!: (orders: MerchantOrderList) => void;
+    const firstPollPromise = new Promise<MerchantOrderList>((resolve) => {
+      resolveFirstPoll = resolve;
+    });
+    const pollIntervalId = 789 as unknown as NodeJS.Timeout;
+    const realSetInterval = window.setInterval;
+    const realClearInterval = window.clearInterval;
+    const setIntervalSpy = vi
+      .spyOn(window, 'setInterval')
+      .mockImplementation(((callback: TimerHandler, timeout?: number) => {
+        if (timeout === 30_000) {
+          intervalCallback = callback;
+          return pollIntervalId;
+        }
+
+        return realSetInterval(callback, timeout) as unknown as NodeJS.Timeout;
+      }) as unknown as typeof window.setInterval);
+    const clearIntervalSpy = vi
+      .spyOn(window, 'clearInterval')
+      .mockImplementation((intervalId?: string | number | NodeJS.Timeout) => {
+        if (intervalId === pollIntervalId) return;
+        realClearInterval(intervalId);
+      });
+
     vi.mocked(listMerchantOrders)
-      .mockReturnValueOnce(initialOrdersPromise)
+      .mockResolvedValueOnce({
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+      })
+      .mockReturnValueOnce(firstPollPromise)
       .mockResolvedValueOnce({
         items: [
           {
@@ -204,6 +281,7 @@ describe('MerchantOrdersPage', () => {
     const { unmount } = render(React.createElement(MerchantOrdersPage));
 
     await waitFor(() => expect(listMerchantOrders).toHaveBeenCalledTimes(1));
+    await screen.findByText('Aucune commande dans ce filtre.');
 
     await act(async () => {
       if (typeof intervalCallback === 'function') {
@@ -212,10 +290,18 @@ describe('MerchantOrdersPage', () => {
     });
 
     await waitFor(() => expect(listMerchantOrders).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      if (typeof intervalCallback === 'function') {
+        intervalCallback();
+      }
+    });
+
+    await waitFor(() => expect(listMerchantOrders).toHaveBeenCalledTimes(3));
     expect(await screen.findByText('#0045')).toBeInTheDocument();
 
     await act(async () => {
-      resolveInitialOrders({
+      resolveFirstPoll({
         items: [
           {
             id: 'order-stale',
@@ -234,7 +320,7 @@ describe('MerchantOrdersPage', () => {
         page: 1,
         limit: 20,
       });
-      await initialOrdersPromise;
+      await firstPollPromise;
     });
 
     expect(screen.queryByText('#0044')).not.toBeInTheDocument();

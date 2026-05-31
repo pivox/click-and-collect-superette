@@ -122,13 +122,16 @@ export default function MerchantOrdersPage() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const activeOrdersRequestId = useRef(0);
+  const activeOrdersVisibleRequestId = useRef(0);
   const historyRequestId = useRef(0);
 
   const loadOrders = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!merchant) return;
+    if (silent && activeOrdersVisibleRequestId.current > 0) return;
     const requestId = activeOrdersRequestId.current + 1;
     activeOrdersRequestId.current = requestId;
     if (!silent) {
+      activeOrdersVisibleRequestId.current = requestId;
       setIsLoading(true);
     }
     setError(null);
@@ -144,6 +147,9 @@ export default function MerchantOrdersPage() {
         setError('Impossible de charger les commandes.');
       }
     } finally {
+      if (!silent && activeOrdersVisibleRequestId.current === requestId) {
+        activeOrdersVisibleRequestId.current = 0;
+      }
       if (activeOrdersRequestId.current === requestId) {
         setIsLoading(false);
       }
