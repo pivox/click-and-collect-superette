@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DayStrip } from '@/components/merchant/creneaux/DayStrip';
 import { SlotCard } from '@/components/merchant/creneaux/SlotCard';
+import { SlotCreateModal } from '@/components/merchant/creneaux/SlotCreateModal';
 import { RuleAccordion } from '@/components/merchant/creneaux/RuleAccordion';
 import { GenerateBanner } from '@/components/merchant/creneaux/GenerateBanner';
 import { ClosureAccordion } from '@/components/merchant/creneaux/ClosureAccordion';
@@ -175,6 +176,47 @@ describe('DayStrip', () => {
       }),
     );
     expect(screen.getByLabelText('Fermeture exceptionnelle')).toBeInTheDocument();
+  });
+});
+
+// ─── SlotCreateModal ────────────────────────────────────────────────────────
+
+describe('SlotCreateModal', () => {
+  it('envoie les heures saisies en timezone Tunisie sans conversion navigateur', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const onClose = vi.fn();
+
+    render(
+      React.createElement(SlotCreateModal, {
+        initialDate: new Date(2026, 4, 28),
+        onSubmit,
+        onClose,
+      }),
+    );
+
+    fireEvent.change(screen.getByLabelText('Date'), {
+      target: { value: '2026-05-28' },
+    });
+    fireEvent.change(screen.getByLabelText('Heure début'), {
+      target: { value: '17:00' },
+    });
+    fireEvent.change(screen.getByLabelText('Heure fin'), {
+      target: { value: '18:00' },
+    });
+    fireEvent.change(screen.getByLabelText(/Capacité/), {
+      target: { value: '6' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Créer le créneau/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        starts_at: '2026-05-28T17:00:00+01:00',
+        ends_at: '2026-05-28T18:00:00+01:00',
+        capacity: 6,
+      });
+    });
+    expect(onClose).toHaveBeenCalled();
   });
 });
 

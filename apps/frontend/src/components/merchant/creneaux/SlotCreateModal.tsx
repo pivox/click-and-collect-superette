@@ -5,16 +5,16 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import type { CreateSlotPayload } from '@/lib/types/merchant-slots.types';
 
+const TUNIS_UTC_OFFSET = '+01:00';
+
 export interface SlotCreateModalProps {
   initialDate: Date;
   onSubmit: (payload: CreateSlotPayload) => Promise<void>;
   onClose: () => void;
 }
 
-function toDatetimeLocal(dateString: string, time: string): string {
-  const [year, month, day] = dateString.split('-').map(Number);
-  const [h, m] = time.split(':').map(Number);
-  return new Date(year, month - 1, day, h, m, 0, 0).toISOString();
+function toTunisDatetime(dateString: string, time: string): string {
+  return `${dateString}T${time}:00${TUNIS_UTC_OFFSET}`;
 }
 
 export function SlotCreateModal({
@@ -47,8 +47,8 @@ export function SlotCreateModal({
     setSaving(true);
     try {
       await onSubmit({
-        starts_at: toDatetimeLocal(date, startTime),
-        ends_at: toDatetimeLocal(date, endTime),
+        starts_at: toTunisDatetime(date, startTime),
+        ends_at: toTunisDatetime(date, endTime),
         capacity: cap,
       });
       onClose();
