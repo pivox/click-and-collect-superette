@@ -160,9 +160,13 @@ export default function ProduitsPage() {
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-h1 font-black">Produits référentiel</h1>
-        <Button size="md" onClick={() => { setEditTarget(null); setDrawerOpen(true); }}>
+        <Button
+          size="md"
+          className="w-full sm:w-auto"
+          onClick={() => { setEditTarget(null); setDrawerOpen(true); }}
+        >
           + Nouveau produit
         </Button>
       </div>
@@ -177,7 +181,7 @@ export default function ProduitsPage() {
         <select
           value={brandFilter}
           onChange={(e) => setBrandFilter(e.target.value)}
-          className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary"
+          className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary sm:w-auto"
         >
           <option value="">Toutes les marques</option>
           {filterBrands.map((b) => <option key={b.id} value={b.id}>{b.canonical_name}</option>)}
@@ -185,7 +189,7 @@ export default function ProduitsPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary"
+          className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary sm:w-auto"
         >
           <option value="">Toutes les catégories</option>
           {filterCategories.map((c) => <option key={c.id} value={c.id}>{c.name_fr}</option>)}
@@ -193,7 +197,7 @@ export default function ProduitsPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary"
+          className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary sm:w-auto"
         >
           <option value="">Tous les statuts</option>
           <option value="draft">Brouillon</option>
