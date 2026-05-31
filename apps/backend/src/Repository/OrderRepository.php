@@ -9,6 +9,7 @@ use App\Entity\Order;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\OrderStatus;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
@@ -249,6 +250,9 @@ class OrderRepository extends ServiceEntityRepository
         \DateTimeImmutable $to,
         array $statuses,
     ): array {
+        $localFrom = PickupSlotDisplayTime::fromPayloadInstant($from);
+        $localTo = PickupSlotDisplayTime::fromPayloadInstant($to);
+
         /** @var list<Order> $result */
         $result = $this->createQueryBuilder('o')
             ->innerJoin('o.pickupSlot', 'slot')
@@ -259,8 +263,8 @@ class OrderRepository extends ServiceEntityRepository
             ->andWhere('slot.startsAt >= :from')
             ->andWhere('slot.startsAt < :to')
             ->setParameter('statuses', array_map(static fn (OrderStatus $s) => $s->value, $statuses))
-            ->setParameter('from', $from, Types::DATETIME_IMMUTABLE)
-            ->setParameter('to', $to, Types::DATETIME_IMMUTABLE)
+            ->setParameter('from', $localFrom, Types::DATETIME_IMMUTABLE)
+            ->setParameter('to', $localTo, Types::DATETIME_IMMUTABLE)
             ->getQuery()
             ->getResult();
 
