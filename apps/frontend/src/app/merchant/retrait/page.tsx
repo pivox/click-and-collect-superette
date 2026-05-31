@@ -39,6 +39,30 @@ function fallbackOrderLabel(orderId: string | undefined): string {
   return orderId ? `#${orderId.slice(0, 8).toUpperCase()}` : '';
 }
 
+const PICKUP_STATUS_LABELS: Record<string, string> = {
+  pickup_pending: 'retrait en cours',
+  ready: 'prête au retrait',
+  completed: 'retrait finalisé',
+  cancelled: 'annulée',
+  rejected: 'refusée',
+};
+
+function pickupStatusLabel(status: string): string {
+  return PICKUP_STATUS_LABELS[status] ?? status;
+}
+
+function pickupResultText(orderId: string, status: string, manual = false): string {
+  const orderLabel = `#${orderId.slice(0, 8).toUpperCase()}`;
+
+  if (status === 'completed') {
+    return manual
+      ? `Retrait finalisé manuellement pour la commande ${orderLabel}`
+      : `Retrait finalisé pour la commande ${orderLabel}`;
+  }
+
+  return `Commande ${orderLabel} — ${pickupStatusLabel(status)}`;
+}
+
 function lineTotalMillimes(line: MerchantPickupSessionScanResult['lines'][number]): number {
   return Math.round(Number.parseFloat(line.unit_price_tnd) * 1000) * line.quantity;
 }
@@ -310,7 +334,8 @@ export default function MerchantPickupPage() {
                   <p className="text-xs font-extrabold uppercase text-muted">Session de retrait</p>
                   <h2 className="mt-1 text-h2 font-black">Commande {orderLabel}</h2>
                   <p className="mt-1 text-sm text-muted">
-                    Scan à {formatTime(session.scanned_at)} · statut {session.status}
+                    Scan à {formatTime(session.scanned_at)} · statut{' '}
+                    {pickupStatusLabel(session.status)}
                   </p>
                 </div>
                 <div className="grid gap-4 p-5 md:grid-cols-2">
@@ -411,7 +436,7 @@ export default function MerchantPickupPage() {
             <div className="mt-4 rounded-md bg-status-ready-bg px-4 py-4 text-center">
               <p className="text-lg font-black text-status-ready">Retrait validé ✓</p>
               <p className="mt-1 text-sm text-muted">
-                Commande #{codeResult.order_id.slice(0, 8).toUpperCase()} — {codeResult.status}
+                {pickupResultText(codeResult.order_id, codeResult.status)}
               </p>
               <Button
                 variant="ghost"
@@ -471,8 +496,7 @@ export default function MerchantPickupPage() {
                 Retrait validé manuellement ✓
               </p>
               <p className="mt-1 text-sm text-muted">
-                Commande #{manualResult.order_id.slice(0, 8).toUpperCase()} —{' '}
-                {manualResult.status}
+                {pickupResultText(manualResult.order_id, manualResult.status, true)}
               </p>
               <Button
                 variant="ghost"

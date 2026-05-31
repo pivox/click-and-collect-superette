@@ -4,7 +4,9 @@ import MerchantPickupPage from '@/app/merchant/retrait/page';
 import {
   confirmMerchantPickupSession,
   forceCompleteMerchantPickupSession,
+  redeemByCode,
   scanMerchantPickupSession,
+  validateManually,
 } from '@/lib/services/merchant-pickup.service';
 import type { MerchantPickupSessionScanResult } from '@/lib/types/merchant.types';
 
@@ -21,6 +23,8 @@ vi.mock('@/lib/services/merchant-pickup.service', () => ({
   scanMerchantPickupSession: vi.fn(),
   confirmMerchantPickupSession: vi.fn(),
   forceCompleteMerchantPickupSession: vi.fn(),
+  redeemByCode: vi.fn(),
+  validateManually: vi.fn(),
 }));
 
 const scanResult: MerchantPickupSessionScanResult = {
@@ -71,6 +75,8 @@ describe('MerchantPickupPage', () => {
     expect(await screen.findByText('Commande #0042')).toBeInTheDocument();
     expect(screen.getByText('Haythem Mabrouk')).toBeInTheDocument();
     expect(screen.getByText('Lait Vitalait 1L')).toBeInTheDocument();
+    expect(screen.getByText(/statut retrait en cours/)).toBeInTheDocument();
+    expect(screen.queryByText(/statut pickup_pending/)).not.toBeInTheDocument();
   });
 
   it('displays a backend error message when the scan fails', async () => {
@@ -292,5 +298,49 @@ describe('MerchantPickupPage', () => {
 
     expect(screen.queryByText('Commande #0042')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Token QR de retrait')).toHaveValue('');
+  });
+
+  it('displays a business label after redeeming a pickup code', async () => {
+    vi.mocked(redeemByCode).mockResolvedValueOnce({
+      order_id: 'f055d691-1111-4111-8111-111111111111',
+      status: 'completed',
+    });
+
+    render(<MerchantPickupPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Code 4 chiffres' }));
+    fireEvent.change(screen.getByLabelText('Code de retrait (4 chiffres)'), {
+      target: { value: '1234' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Valider' }));
+
+    expect(
+      await screen.findByText('Retrait finalisé pour la commande #F055D691'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/— completed/)).not.toBeInTheDocument();
+  });
+
+  it('displays a business label after a manual pickup validation', async () => {
+    vi.mocked(validateManually).mockResolvedValueOnce({
+      id: 'validation-1',
+      order_id: 'f055d691-1111-4111-8111-111111111111',
+      status: 'completed',
+    });
+
+    render(<MerchantPickupPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Manuel' }));
+    fireEvent.change(screen.getByLabelText('Identifiant de commande (UUID)'), {
+      target: { value: 'f055d691-1111-4111-8111-111111111111' },
+    });
+    fireEvent.change(screen.getByLabelText('Motif (obligatoire, 5 caractères minimum)'), {
+      target: { value: 'Client présent sans QR.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Valider manuellement' }));
+
+    expect(
+      await screen.findByText('Retrait finalisé manuellement pour la commande #F055D691'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/— completed/)).not.toBeInTheDocument();
   });
 });
