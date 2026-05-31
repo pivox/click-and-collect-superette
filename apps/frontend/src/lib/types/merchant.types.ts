@@ -171,6 +171,7 @@ export interface MerchantOrderMutationResult {
 }
 
 export interface MerchantPickupSessionCustomer {
+  display_name?: string | null;
   first_name: string | null;
   last_name: string | null;
   phone: string | null;

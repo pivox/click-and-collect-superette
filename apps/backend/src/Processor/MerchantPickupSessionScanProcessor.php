@@ -10,6 +10,7 @@ use App\ApiResource\MerchantPickupSessionScanOutput;
 use App\Dto\MerchantPickupSessionScanInput;
 use App\Entity\OrderLine;
 use App\Entity\PickupSession;
+use App\Entity\User;
 use App\Enum\OrderStatus;
 use App\Repository\PickupSessionRepository;
 use App\Security\MerchantShopAccessChecker;
@@ -159,6 +160,7 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
             status: $order->getStatus()->value,
             scannedAt: $scannedAt->format(\DateTimeInterface::ATOM),
             customer: [
+                'display_name' => self::displayName($customer),
                 'first_name' => $customer->getFirstName(),
                 'last_name' => $customer->getLastName(),
                 'phone' => $customer->getPhone(),
@@ -173,5 +175,20 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
                 $order->getLines()->toArray(),
             ),
         );
+    }
+
+    private static function displayName(User $customer): ?string
+    {
+        $displayName = trim($customer->getName());
+        if ('' !== $displayName) {
+            return $displayName;
+        }
+
+        $fallback = trim(implode(' ', array_filter([
+            $customer->getFirstName(),
+            $customer->getLastName(),
+        ])));
+
+        return '' === $fallback ? null : $fallback;
     }
 }
