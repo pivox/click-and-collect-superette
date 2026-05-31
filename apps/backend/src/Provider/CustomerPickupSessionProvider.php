@@ -47,7 +47,7 @@ final readonly class CustomerPickupSessionProvider implements ProviderInterface
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
 
-        if (OrderStatus::Ready !== $order->getStatus()) {
+        if (!\in_array($order->getStatus(), [OrderStatus::Ready, OrderStatus::PickupPending], true)) {
             throw new ConflictHttpException('ORDER_NOT_READY');
         }
 

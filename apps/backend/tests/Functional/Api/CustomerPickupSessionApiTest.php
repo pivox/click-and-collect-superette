@@ -44,6 +44,29 @@ final class CustomerPickupSessionApiTest extends FunctionalApiTestCase
         self::assertFalse($payload['is_expired']);
     }
 
+    public function testGetPickupSessionAllowsPickupPendingOrder(): void
+    {
+        $customer = $this->createUser('pickup-session-pending@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $order = $this->createReadyOrder($customer, $shop);
+        $pickupSession = new PickupSession($order);
+        $pickupSession->scan();
+        $order->startPickup();
+        $this->entityManager->persist($pickupSession);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/me/orders/%s/pickup-session', $order->getId()->toRfc4122()),
+            user: $customer,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame($pickupSession->getId()->toRfc4122(), $payload['id']);
+        self::assertSame($pickupSession->getToken()->toRfc4122(), $payload['qr_payload']);
+    }
+
     public function testGetPickupSessionForAnotherCustomerReturns404(): void
     {
         $customerA = $this->createUser('pickup-session-a@example.test', ['ROLE_CUSTOMER']);

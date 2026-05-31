@@ -1,4 +1,9 @@
-import type { Order, TimelineStep } from "@/types";
+import type {
+  CustomerPickupSessionConfirmation,
+  Order,
+  PickupSession,
+  TimelineStep,
+} from "@/types";
 import { MOCK_ORDER } from "@/lib/mock/orders.mock";
 import { apiClient } from "@/lib/api";
 import { USE_MOCKS, mockDelay } from "./index";
@@ -25,6 +30,28 @@ interface RawOrder {
   updated_at: string;
   pickup_code?: string | null;
 }
+
+interface RawPickupSession {
+  id: string;
+  token: string;
+  expires_at: string;
+  is_used: boolean;
+  is_expired: boolean;
+  qr_payload: string;
+}
+
+interface RawCustomerPickupSessionConfirmation {
+  id: string;
+  order_id: string;
+  order_status: Order["status"];
+  scanned_at: string;
+  merchant_confirmed_at: string | null;
+  customer_confirmed_at: string | null;
+  is_used: boolean;
+  is_completed: boolean;
+}
+
+const MOCK_PICKUP_SESSION_TOKEN = "11111111-1111-4111-8111-111111111111";
 
 /** Derive a display code from UUID since the backend has no dedicated code field. */
 function deriveCode(id: string): string {
@@ -61,6 +88,32 @@ function mapRawOrder(raw: RawOrder): Order {
   };
 }
 
+function mapRawPickupSession(raw: RawPickupSession): PickupSession {
+  return {
+    id: raw.id,
+    token: raw.token,
+    expiresAt: raw.expires_at,
+    isUsed: raw.is_used,
+    isExpired: raw.is_expired,
+    qrPayload: raw.qr_payload,
+  };
+}
+
+function mapRawCustomerPickupSessionConfirmation(
+  raw: RawCustomerPickupSessionConfirmation,
+): CustomerPickupSessionConfirmation {
+  return {
+    id: raw.id,
+    orderId: raw.order_id,
+    orderStatus: raw.order_status,
+    scannedAt: raw.scanned_at,
+    merchantConfirmedAt: raw.merchant_confirmed_at,
+    customerConfirmedAt: raw.customer_confirmed_at,
+    isUsed: raw.is_used,
+    isCompleted: raw.is_completed,
+  };
+}
+
 export async function listOrders(): Promise<Order[]> {
   if (USE_MOCKS) {
     return mockDelay([MOCK_ORDER]);
@@ -84,6 +137,55 @@ export async function getOrder(orderId: string): Promise<Order | null> {
     if (status === 404) return null;
     throw err;
   }
+}
+
+export async function getPickupSession(orderId: string): Promise<PickupSession | null> {
+  if (USE_MOCKS) {
+    if (orderId === MOCK_ORDER.id || orderId === MOCK_ORDER.code) {
+      return mockDelay({
+        id: "pickup-session-demo",
+        token: MOCK_PICKUP_SESSION_TOKEN,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        isUsed: false,
+        isExpired: false,
+        qrPayload: MOCK_PICKUP_SESSION_TOKEN,
+      });
+    }
+    return mockDelay(null);
+  }
+  try {
+    const { data } = await apiClient.get<RawPickupSession>(
+      `/api/me/orders/${orderId}/pickup-session`,
+    );
+    return mapRawPickupSession(data);
+  } catch (err) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+    if (status === 404) return null;
+    throw err;
+  }
+}
+
+export async function confirmCustomerPickupSession(
+  sessionId: string,
+): Promise<CustomerPickupSessionConfirmation> {
+  if (USE_MOCKS) {
+    return mockDelay({
+      id: sessionId,
+      orderId: MOCK_ORDER.id,
+      orderStatus: "pickup_pending",
+      scannedAt: new Date().toISOString(),
+      merchantConfirmedAt: null,
+      customerConfirmedAt: new Date().toISOString(),
+      isUsed: false,
+      isCompleted: false,
+    });
+  }
+
+  const { data } = await apiClient.patch<RawCustomerPickupSessionConfirmation>(
+    `/api/me/pickup-sessions/${sessionId}/confirm`,
+    {},
+  );
+  return mapRawCustomerPickupSessionConfirmation(data);
 }
 
 /** Project an order's status onto the 5-step customer timeline. */

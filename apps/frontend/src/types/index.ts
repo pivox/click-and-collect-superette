@@ -119,6 +119,26 @@ export interface Order {
   pickupCode?: string | null;
 }
 
+export interface PickupSession {
+  id: string;
+  token: string;
+  expiresAt: string;
+  isUsed: boolean;
+  isExpired: boolean;
+  qrPayload: string;
+}
+
+export interface CustomerPickupSessionConfirmation {
+  id: string;
+  orderId: string;
+  orderStatus: OrderStatus;
+  scannedAt: string;
+  merchantConfirmedAt: string | null;
+  customerConfirmedAt: string | null;
+  isUsed: boolean;
+  isCompleted: boolean;
+}
+
 /** Step shown on the customer order tracking timeline. */
 export interface TimelineStep {
   key: "submitted" | "accepted" | "preparing" | "ready" | "completed";
