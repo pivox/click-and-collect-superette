@@ -22,6 +22,7 @@ const ACTIVE_ORDER_STATUSES = 'submitted,accepted,partially_accepted,preparing,r
 const HISTORY_PICKUP_STATUSES = 'ready,pickup_pending';
 const HISTORY_CLOSED_STATUSES = 'completed,cancelled,rejected';
 const ORDERS_PAGE_LIMIT = 20;
+const ACTIVE_ORDERS_POLL_MS = 30_000;
 const URGENT_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 
 type OrdersTab = 'active' | 'history';
@@ -120,18 +121,38 @@ export default function MerchantOrdersPage() {
   const [historyOrders, setHistoryOrders] = useState<MerchantOrderHistoryList | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const activeOrdersRequestId = useRef(0);
+  const activeOrdersVisibleRequestId = useRef(0);
   const historyRequestId = useRef(0);
 
-  const loadOrders = useCallback(async () => {
+  const loadOrders = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!merchant) return;
-    setIsLoading(true);
+    if (silent && activeOrdersVisibleRequestId.current > 0) return;
+    const requestId = activeOrdersRequestId.current + 1;
+    activeOrdersRequestId.current = requestId;
+    if (!silent) {
+      activeOrdersVisibleRequestId.current = requestId;
+      setIsLoading(true);
+    }
     setError(null);
     try {
-      setOrders(await listMerchantOrders(merchant.store.id, { status: ACTIVE_ORDER_STATUSES }));
+      const nextOrders = await listMerchantOrders(merchant.store.id, {
+        status: ACTIVE_ORDER_STATUSES,
+      });
+      if (activeOrdersRequestId.current === requestId) {
+        setOrders(nextOrders);
+      }
     } catch {
-      setError('Impossible de charger les commandes.');
+      if (activeOrdersRequestId.current === requestId) {
+        setError('Impossible de charger les commandes.');
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent && activeOrdersVisibleRequestId.current === requestId) {
+        activeOrdersVisibleRequestId.current = 0;
+      }
+      if (activeOrdersRequestId.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, [merchant]);
 
@@ -168,8 +189,15 @@ export default function MerchantOrdersPage() {
   };
 
   useEffect(() => {
+    if (selectedTab !== 'active') return;
+
     void loadOrders();
-  }, [loadOrders]);
+    const intervalId = window.setInterval(() => {
+      void loadOrders({ silent: true });
+    }, ACTIVE_ORDERS_POLL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadOrders, selectedTab]);
 
   useEffect(() => {
     if (selectedTab === 'history') {
