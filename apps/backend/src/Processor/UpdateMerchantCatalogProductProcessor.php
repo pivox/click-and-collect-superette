@@ -7,10 +7,15 @@ namespace App\Processor;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\MerchantCatalogUpdateInput;
+use App\Entity\User;
+use App\Enum\MerchantProductPriceChangeType;
+use App\Enum\MerchantProductPriceSource;
 use App\Repository\MerchantCategoryRepository;
 use App\Repository\MerchantProductRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\MerchantProductPriceService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -25,7 +30,9 @@ final readonly class UpdateMerchantCatalogProductProcessor implements ProcessorI
         private MerchantProductRepository $merchantProductRepository,
         private MerchantCategoryRepository $merchantCategoryRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
+        private MerchantProductPriceService $priceService,
         private EntityManagerInterface $entityManager,
+        private Security $security,
     ) {
     }
 
@@ -52,7 +59,14 @@ final readonly class UpdateMerchantCatalogProductProcessor implements ProcessorI
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($merchantProduct->getShop());
 
         if (null !== $data->priceTnd) {
-            $merchantProduct->setPriceTnd($data->priceTnd);
+            $user = $this->security->getUser();
+            $this->priceService->changePrice(
+                merchantProduct: $merchantProduct,
+                newPrice: $data->priceTnd,
+                changeType: MerchantProductPriceChangeType::ManualUpdate,
+                source: MerchantProductPriceSource::MerchantDashboard,
+                changedByUser: $user instanceof User ? $user : null,
+            );
         }
         if (null !== $data->isAvailable) {
             $merchantProduct->setAvailable($data->isAvailable);

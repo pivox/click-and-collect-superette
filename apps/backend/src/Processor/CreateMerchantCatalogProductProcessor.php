@@ -8,14 +8,18 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\MerchantCatalogCreateInput;
 use App\Entity\MerchantProduct;
+use App\Entity\User;
+use App\Enum\MerchantProductPriceSource;
 use App\Enum\ProductReferenceStatus;
 use App\Repository\MerchantCategoryRepository;
 use App\Repository\MerchantProductRepository;
 use App\Repository\ProductReferenceRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\MerchantProductPriceService;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -33,7 +37,9 @@ final readonly class CreateMerchantCatalogProductProcessor implements ProcessorI
         private MerchantProductRepository $merchantProductRepository,
         private MerchantCategoryRepository $merchantCategoryRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
+        private MerchantProductPriceService $priceService,
         private EntityManagerInterface $entityManager,
+        private Security $security,
     ) {
     }
 
@@ -96,6 +102,12 @@ final readonly class CreateMerchantCatalogProductProcessor implements ProcessorI
         }
 
         $this->entityManager->persist($merchantProduct);
+        $user = $this->security->getUser();
+        $this->priceService->recordInitialPrice(
+            merchantProduct: $merchantProduct,
+            source: MerchantProductPriceSource::MerchantDashboard,
+            changedByUser: $user instanceof User ? $user : null,
+        );
 
         try {
             $this->entityManager->flush();

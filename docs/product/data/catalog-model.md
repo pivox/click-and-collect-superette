@@ -70,6 +70,24 @@ merchant_note: null
 - Un produit non disponible ne doit pas être commandable.
 - Un produit invisible ne doit pas apparaître côté client.
 
+## Historique des prix marchand
+
+Le prix courant reste stocké directement sur `MerchantProduct` pour garder le catalogue rapide à lire.
+Chaque changement réel de prix ajoute une ligne append-only dans `merchant_product_price_history`.
+
+Règles MVP :
+
+- le premier prix est historisé avec `oldPrice = null` et `changeType = initial` ;
+- un enregistrement sans changement de prix ne crée pas de doublon ;
+- l'historique est rattaché au produit marchand et au marchand propriétaire de la supérette ;
+- une ancienne commande garde son snapshot de prix dans `OrderLine.unitPriceTnd`.
+
+Endpoints backend :
+
+- `PATCH /api/merchant/products/{merchantProductId}/price` — modifie le prix courant et retourne `lastPriceChange` si le prix a réellement changé ;
+- `GET /api/merchant/products/{merchantProductId}/price-history` — lecture par le marchand propriétaire ;
+- `GET /api/admin/merchant-products/{merchantProductId}/price-history` — lecture admin.
+
 ## Cas produit manquant
 
 1. Le marchand cherche un produit.
