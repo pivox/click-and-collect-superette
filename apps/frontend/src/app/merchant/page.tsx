@@ -48,7 +48,7 @@ export default function MerchantDashboardPage() {
           </p>
         </div>
         <Button variant="ghost" size="md" onClick={() => void loadDashboard()}>
-          Réessayer
+          {error ? 'Réessayer' : 'Actualiser'}
         </Button>
       </div>
 
