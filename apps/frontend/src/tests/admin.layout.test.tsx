@@ -41,7 +41,11 @@ describe('AdminShell', () => {
       React.createElement(AdminShell, null, React.createElement('p', null, 'Contenu admin')),
     );
 
-    expect(container.firstElementChild).toHaveClass('min-h-screen');
+    expect(container.firstElementChild).toHaveClass(
+      'min-h-screen',
+      'md:h-screen',
+      'md:overflow-hidden',
+    );
     expect(screen.getByRole('navigation', { name: 'Navigation admin' })).toHaveClass(
       'hidden',
       'md:flex',
