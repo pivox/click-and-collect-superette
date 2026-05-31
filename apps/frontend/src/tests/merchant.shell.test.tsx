@@ -3,6 +3,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MerchantShell } from '@/components/merchant/MerchantShell';
 import { listMerchantNotifications } from '@/lib/services/merchant-notifications.service';
+import { listMerchantSlots } from '@/lib/services/merchant-slots.service';
 
 let pathname = '/merchant';
 
@@ -24,6 +25,10 @@ vi.mock('@/lib/services/merchant-notifications.service', () => ({
   listMerchantNotifications: vi.fn(),
 }));
 
+vi.mock('@/lib/services/merchant-slots.service', () => ({
+  listMerchantSlots: vi.fn(),
+}));
+
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -43,6 +48,7 @@ describe('MerchantShell', () => {
       total: 0,
       page: 1,
     });
+    vi.mocked(listMerchantSlots).mockResolvedValue([]);
   });
 
   it('renders active merchant navigation and disabled future sections', async () => {
