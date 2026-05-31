@@ -98,7 +98,11 @@ vendor/bin/php-cs-fixer fix --dry-run --diff
 Depuis la racine du monorepo avec Docker :
 
 ```bash
+docker compose exec -T backend composer install
 docker compose exec -T backend vendor/bin/phpunit
 ```
+
+L'image Docker backend initialise le volume `vendor` avec les dépendances de production.
+La commande `composer install` installe donc les dépendances de développement nécessaires aux tests (`phpunit`, `phpstan`, `php-cs-fixer`) dans le volume local.
 
 La configuration PHPUnit force `APP_ENV=test` et `memory_limit=512M` pour éviter les faux échecs liés au conteneur backend lancé en environnement `dev`.
