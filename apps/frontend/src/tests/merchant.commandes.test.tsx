@@ -46,6 +46,8 @@ describe('MerchantOrdersPage', () => {
         {
           id: 'order-1',
           store_id: 'store-1',
+          order_number: 42,
+          order_number_display: '#0042',
           status: 'submitted',
           total_tnd: '18.500',
           pickup_slot: {
@@ -71,13 +73,13 @@ describe('MerchantOrdersPage', () => {
     );
     expect(listMerchantOrderHistory).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Commandes' })).toBeInTheDocument();
-    expect(screen.getByText('order-1')).toBeInTheDocument();
+    expect(screen.getByText('#0042')).toBeInTheDocument();
     expect(screen.getByText('Soumise')).toBeInTheDocument();
     expect(screen.getByText('18,500 TND')).toBeInTheDocument();
     expect(
       screen.getAllByText((_, node) => node?.textContent?.includes('4 produits') ?? false).length,
     ).toBeGreaterThan(0);
-    const detailLink = await screen.findByRole('link', { name: /voir la commande order-1/i });
+    const detailLink = await screen.findByRole('link', { name: /voir la commande #0042/i });
     expect(detailLink).toHaveAttribute('href', '/merchant/commandes/order-1');
   });
 
@@ -86,6 +88,8 @@ describe('MerchantOrdersPage', () => {
       items: [
         {
           id: 'order-ready-1',
+          order_number: 43,
+          order_number_display: '#0043',
           status: 'ready',
           status_label_fr: 'Prête',
           status_label_ar: 'جاهزة',
@@ -124,7 +128,7 @@ describe('MerchantOrdersPage', () => {
 
     expect(screen.getByRole('tab', { name: 'À retirer' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Clôturées' })).toBeInTheDocument();
-    expect(screen.getByText('order-ready-1')).toBeInTheDocument();
+    expect(screen.getByText('#0043')).toBeInTheDocument();
     expect(screen.getByText('Prête')).toBeInTheDocument();
     expect(screen.getByText('42,300 TND')).toBeInTheDocument();
     expect(screen.getByText('Fatma Ben Ali')).toBeInTheDocument();
@@ -139,7 +143,7 @@ describe('MerchantOrdersPage', () => {
       ).length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getByRole('link', { name: /voir la commande order-ready-1/i }),
+      screen.getByRole('link', { name: /voir la commande #0043/i }),
     ).toHaveAttribute('href', '/merchant/commandes/order-ready-1');
   });
 

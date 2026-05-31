@@ -110,7 +110,7 @@ export interface Order {
   readyAt: string | null;
   completedAt: string | null;
   rejectionReason: string | null;
-  /** Order code shown to user, e.g. "CMD-4821". */
+  /** Order code shown to user, e.g. "#0042" or a legacy short code. */
   code: string;
   lines: KadhiaLine[];
   /** Optional note left by customer to the merchant. */

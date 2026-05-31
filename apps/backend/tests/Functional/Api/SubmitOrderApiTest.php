@@ -50,6 +50,8 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertSame($kadhia->getId()->toRfc4122(), $payload['kadhia_id']);
         self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
         self::assertSame($shop->getName(), $payload['store_name']);
+        self::assertSame(1, $payload['order_number']);
+        self::assertSame('#0001', $payload['order_number_display']);
         self::assertSame($slot->getId()->toRfc4122(), $payload['pickup_slot_id']);
         self::assertSame($slot->getId()->toRfc4122(), $payload['pickup_slot']['id']);
         self::assertSame(PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()), $payload['pickup_slot']['starts_at']);
@@ -73,11 +75,58 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
         $orders = $this->entityManager->getRepository(Order::class)->findAll();
         self::assertCount(1, $orders);
+        self::assertSame(1, $orders[0]->getOrderNumber());
+        self::assertSame('#0001', $orders[0]->getOrderNumberDisplay());
 
         $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findAll();
         self::assertCount(1, $logs);
         self::assertSame(OrderStatus::Submitted, $logs[0]->getStatus());
         self::assertNull($logs[0]->getNote());
+    }
+
+    public function testSubmitOrderAssignsSequentialOrderNumbersPerShop(): void
+    {
+        $customer = $this->createUser('submit-order-number-sequence@example.test', ['ROLE_CUSTOMER']);
+        $shopA = $this->createShop();
+        $shopB = $this->createShop();
+        $slotA = $this->createPickupSlot($shopA, capacity: 5);
+        $slotB = $this->createPickupSlot($shopB, capacity: 5);
+        $productA = $this->createMerchantProduct($shopA, '1.000');
+        $productB = $this->createMerchantProduct($shopB, '1.500');
+
+        $firstShopAKadhia = $this->createKadhiaWithLine($customer, $shopA, $productA, quantity: 1, unitPriceTnd: '1.000');
+        $secondShopAKadhia = $this->createKadhiaWithLine($customer, $shopA, $productA, quantity: 2, unitPriceTnd: '1.000');
+        $firstShopBKadhia = $this->createKadhiaWithLine($customer, $shopB, $productB, quantity: 1, unitPriceTnd: '1.500');
+
+        $firstShopAResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $firstShopAKadhia->getId()),
+            ['pickup_slot_id' => $slotA->getId()->toRfc4122()],
+            $customer,
+        );
+        $secondShopAResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $secondShopAKadhia->getId()),
+            ['pickup_slot_id' => $slotA->getId()->toRfc4122()],
+            $customer,
+        );
+        $firstShopBResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $firstShopBKadhia->getId()),
+            ['pickup_slot_id' => $slotB->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(201, $firstShopAResponse->getStatusCode());
+        self::assertSame(201, $secondShopAResponse->getStatusCode());
+        self::assertSame(201, $firstShopBResponse->getStatusCode());
+
+        self::assertSame(1, $this->decodeJson($firstShopAResponse)['order_number']);
+        self::assertSame('#0001', $this->decodeJson($firstShopAResponse)['order_number_display']);
+        self::assertSame(2, $this->decodeJson($secondShopAResponse)['order_number']);
+        self::assertSame('#0002', $this->decodeJson($secondShopAResponse)['order_number_display']);
+        self::assertSame(1, $this->decodeJson($firstShopBResponse)['order_number']);
+        self::assertSame('#0001', $this->decodeJson($firstShopBResponse)['order_number_display']);
     }
 
     public function testSubmitOrderWithNotes(): void
@@ -350,6 +399,7 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
             ->setPickupSlot($slot);
         $this->entityManager->persist($existingOrder);
         $existingOrder->submit();
+        $existingOrder->assignOrderNumber(12);
         $existingOrder->accept();
         // Force status to partially_accepted via reflection to bypass transition guard
         $ref = new \ReflectionProperty(Order::class, 'status');
@@ -368,6 +418,8 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertSame(201, $response->getStatusCode());
         $payload = $this->decodeJson($response);
         self::assertSame('submitted', $payload['status']);
+        self::assertSame(12, $payload['order_number']);
+        self::assertSame('#0012', $payload['order_number_display']);
 
         $this->entityManager->clear();
 
@@ -380,6 +432,7 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertSame(OrderStatus::Submitted, $logs[0]->getStatus());
         self::assertNull($logs[0]->getNote());
         self::assertSame(OrderStatus::Submitted, $orders[0]->getStatus());
+        self::assertSame(12, $orders[0]->getOrderNumber());
     }
 
     public function testSubmitOrderResubmitAfterPartialAcceptanceDeadlineReturns422(): void
@@ -552,6 +605,8 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
         // Same order returned — no duplicate created
         self::assertSame($firstOrderId, $secondPayload['id']);
+        self::assertSame($firstPayload['order_number'], $secondPayload['order_number']);
+        self::assertSame($firstPayload['order_number_display'], $secondPayload['order_number_display']);
         $this->entityManager->clear();
         self::assertCount(1, $this->entityManager->getRepository(Order::class)->findAll());
 

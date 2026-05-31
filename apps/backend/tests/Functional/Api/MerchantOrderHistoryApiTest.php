@@ -34,13 +34,17 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
         ];
 
         foreach ($statuses as $index => $status) {
-            $this->createOrder(
+            $order = $this->createOrder(
                 $customer,
                 $shop,
                 $status,
                 createdAt: new \DateTimeImmutable(\sprintf('2026-05-%02dT10:00:00+01:00', $index + 1)),
                 pickupSlot: 0 === $index ? $slot : null,
             );
+            if (0 === $index) {
+                $order->assignOrderNumber(42);
+                $this->entityManager->flush();
+            }
         }
         $this->createOrder($customer, $shop, OrderStatus::Draft, new \DateTimeImmutable('2026-05-20T10:00:00+01:00'));
 
@@ -70,6 +74,8 @@ final class MerchantOrderHistoryApiTest extends FunctionalApiTestCase
         $submitted = $payload['items'][8];
         self::assertSame('Commande envoyée', $submitted['status_label_fr']);
         self::assertSame('تم إرسال الطلب', $submitted['status_label_ar']);
+        self::assertSame(42, $submitted['order_number']);
+        self::assertSame('#0042', $submitted['order_number_display']);
         self::assertSame('Ali', $submitted['customer']['first_name']);
         self::assertSame('Ben Salah', $submitted['customer']['last_name']);
         self::assertSame('+21622111000', $submitted['customer']['phone']);

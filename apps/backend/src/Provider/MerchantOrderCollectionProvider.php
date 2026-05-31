@@ -80,6 +80,8 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
         return new MerchantOrderSummaryOutput(
             id: $order->getId()->toRfc4122(),
             storeId: $order->getShop()->getId()->toRfc4122(),
+            orderNumber: $order->getOrderNumber(),
+            orderNumberDisplay: $order->getOrderNumberDisplay(),
             status: $order->getStatus()->value,
             totalTnd: $order->getTotalTnd(),
             pickupSlot: null === $slot ? null : [
@@ -110,6 +112,8 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
         return new MerchantOrderOutput(
             id: $order->getId()->toRfc4122(),
             storeId: $order->getShop()->getId()->toRfc4122(),
+            orderNumber: $order->getOrderNumber(),
+            orderNumberDisplay: $order->getOrderNumberDisplay(),
             status: $order->getStatus()->value,
             totalTnd: $order->getTotalTnd(),
             pickupSlotId: $slot?->getId()->toRfc4122(),

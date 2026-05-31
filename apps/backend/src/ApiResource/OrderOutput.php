@@ -76,6 +76,12 @@ final readonly class OrderOutput
         #[SerializedName('store_city')]
         public ?string $storeCity,
         #[Groups(['order:read'])]
+        #[SerializedName('order_number')]
+        public ?int $orderNumber,
+        #[Groups(['order:read'])]
+        #[SerializedName('order_number_display')]
+        public ?string $orderNumberDisplay,
+        #[Groups(['order:read'])]
         public string $status,
         #[Groups(['order:read'])]
         #[SerializedName('total_tnd')]

@@ -1,5 +1,6 @@
 import type { Kadhia, KadhiaLine, ProductOffer } from "@/types";
 import { apiClient } from "@/lib/api";
+import { displayOrderCode } from "@/lib/order-number";
 import { USE_MOCKS, mockDelay } from "./index";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -454,7 +455,12 @@ export async function submitKadhia(params: SubmitKadhiaParams): Promise<Submitte
   const kadhiaId = readActiveId(shopId);
   if (!kadhiaId) throw new Error("KADHIA_NOT_FOUND");
 
-  const { data: order } = await apiClient.post<{ id: string; code: string }>(
+  const { data: order } = await apiClient.post<{
+    id: string;
+    code?: string | null;
+    order_number?: number | string | null;
+    order_number_display?: string | null;
+  }>(
     `/api/me/kadhias/${kadhiaId}/submit`,
     { pickup_slot_id: pickupSlotId, notes: customerNote },
   );
@@ -462,5 +468,5 @@ export async function submitKadhia(params: SubmitKadhiaParams): Promise<Submitte
   writeActiveId(shopId, null);
   writeContext(null);
 
-  return { orderId: order.id, orderCode: order.code };
+  return { orderId: order.id, orderCode: displayOrderCode(order) || order.code || '' };
 }

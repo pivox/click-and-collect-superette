@@ -7,6 +7,7 @@ import type {
 } from "@/types";
 import { MOCK_ORDER } from "@/lib/mock/orders.mock";
 import { apiClient } from "@/lib/api";
+import { displayOrderCode } from "@/lib/order-number";
 import { USE_MOCKS, mockDelay } from "./index";
 
 /** Raw shape returned by GET /api/me/orders and /api/me/orders/{id}. */
@@ -17,6 +18,8 @@ interface RawOrder {
   store_name?: string | null;
   store_address?: string | null;
   store_city?: string | null;
+  order_number?: number | string | null;
+  order_number_display?: string | null;
   status: string;
   total_tnd: string;
   pickup_slot_id: string | null;
@@ -72,11 +75,6 @@ interface RawCustomerOrderStatusSnapshot {
 
 const MOCK_PICKUP_SESSION_TOKEN = "11111111-1111-4111-8111-111111111111";
 
-/** Derive a display code from UUID since the backend has no dedicated code field. */
-function deriveCode(id: string): string {
-  return `CMD-${id.slice(0, 8).toUpperCase()}`;
-}
-
 function mapRawOrder(raw: RawOrder): Order {
   return {
     id: raw.id,
@@ -100,7 +98,7 @@ function mapRawOrder(raw: RawOrder): Order {
     readyAt: null,
     completedAt: null,
     rejectionReason: null,
-    code: deriveCode(raw.id),
+    code: displayOrderCode(raw),
     customerNote: raw.notes ?? null,
     lines: [],
     pickupCode: raw.pickup_code ?? null,

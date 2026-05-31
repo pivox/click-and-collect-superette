@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { cn } from '@/lib/cn';
 import { formatTime, formatTnd } from '@/lib/format';
+import { displayOrderCode } from '@/lib/order-number';
 import {
   listMerchantOrderHistory,
   listMerchantOrders,
@@ -263,11 +264,12 @@ export default function MerchantOrdersPage() {
                 {filtered.map((order) => {
                   const urgent = isUrgent(order.pickup_slot?.starts_at);
                   const urgencyText = urgencyLabel(order.pickup_slot?.starts_at);
+                  const orderLabel = displayOrderCode(order);
                   return (
                     <Link
                       key={order.id}
                       href={`/merchant/commandes/${order.id}`}
-                      aria-label={`Voir la commande ${order.order_number ?? order.id}`}
+                      aria-label={`Voir la commande ${orderLabel}`}
                       className={cn(
                         'grid gap-3 p-5 transition hover:bg-soft focus:outline-none focus:ring-2 focus:ring-primary md:grid-cols-[1fr_auto]',
                         urgent && 'border-l-4 border-status-cancel',
@@ -275,7 +277,7 @@ export default function MerchantOrdersPage() {
                     >
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <strong>{order.order_number ?? order.id}</strong>
+                          <strong>{orderLabel}</strong>
                           <OrderStatusBadge status={order.status} />
                           {urgent && urgencyText && (
                             <span className="rounded-full bg-status-cancel-bg px-2 py-0.5 text-xs font-extrabold text-status-cancel">
@@ -356,30 +358,33 @@ export default function MerchantOrdersPage() {
           ) : historyOrders && historyOrders.items.length > 0 ? (
             <>
               <div className="divide-y divide-line">
-                {historyOrders.items.map((order) => (
-                  <Link
-                    key={order.id}
-                    href={`/merchant/commandes/${order.id}`}
-                    aria-label={`Voir la commande ${order.order_number ?? order.id}`}
-                    className="grid gap-3 p-5 transition hover:bg-soft focus:outline-none focus:ring-2 focus:ring-primary md:grid-cols-[1fr_auto]"
-                  >
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <strong>{order.order_number ?? order.id}</strong>
-                        <OrderStatusBadge status={order.status} />
+                {historyOrders.items.map((order) => {
+                  const orderLabel = displayOrderCode(order);
+                  return (
+                    <Link
+                      key={order.id}
+                      href={`/merchant/commandes/${order.id}`}
+                      aria-label={`Voir la commande ${orderLabel}`}
+                      className="grid gap-3 p-5 transition hover:bg-soft focus:outline-none focus:ring-2 focus:ring-primary md:grid-cols-[1fr_auto]"
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <strong>{orderLabel}</strong>
+                          <OrderStatusBadge status={order.status} />
+                        </div>
+                        <p className="mt-2 text-sm text-muted">
+                          <span>{historyCustomerName(order)}</span>
+                          {order.pickup_slot?.starts_at
+                            ? ` · rendez-vous ${formatTime(order.pickup_slot.starts_at)}`
+                            : ''}
+                          {' · '}
+                          mis à jour {formatTime(order.updated_at)}
+                        </p>
                       </div>
-                      <p className="mt-2 text-sm text-muted">
-                        <span>{historyCustomerName(order)}</span>
-                        {order.pickup_slot?.starts_at
-                          ? ` · rendez-vous ${formatTime(order.pickup_slot.starts_at)}`
-                          : ''}
-                        {' · '}
-                        mis à jour {formatTime(order.updated_at)}
-                      </p>
-                    </div>
-                    <strong className="text-right text-lg">{formatTnd(order.total)}</strong>
-                  </Link>
-                ))}
+                      <strong className="text-right text-lg">{formatTnd(order.total)}</strong>
+                    </Link>
+                  );
+                })}
               </div>
               <HistoryPagination
                 page={historyOrders.page}

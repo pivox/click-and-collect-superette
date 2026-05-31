@@ -86,6 +86,8 @@ final readonly class MerchantOrderItemProvider implements ProviderInterface
         return new MerchantOrderDetailOutput(
             id: $order->getId()->toRfc4122(),
             storeId: $order->getShop()->getId()->toRfc4122(),
+            orderNumber: $order->getOrderNumber(),
+            orderNumberDisplay: $order->getOrderNumberDisplay(),
             status: $order->getStatus()->value,
             totalTnd: $order->getTotalTnd(),
             pickupSlot: null === $slot ? null : [

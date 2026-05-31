@@ -51,6 +51,18 @@ class OrderRepository extends ServiceEntityRepository
         ]);
     }
 
+    public function nextOrderNumberForShop(Shop $shop): int
+    {
+        $max = $this->createQueryBuilder('o')
+            ->select('COALESCE(MAX(o.orderNumber), 0)')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return ((int) $max) + 1;
+    }
+
     /**
      * @return list<Order>
      */

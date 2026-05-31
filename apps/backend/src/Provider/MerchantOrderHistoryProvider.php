@@ -158,6 +158,8 @@ final readonly class MerchantOrderHistoryProvider implements ProviderInterface
 
         return new MerchantOrderHistoryItemOutput(
             id: $order->getId()->toRfc4122(),
+            orderNumber: $order->getOrderNumber(),
+            orderNumberDisplay: $order->getOrderNumberDisplay(),
             status: $status->value,
             statusLabelFr: $status->labelFr(),
             statusLabelAr: $status->labelAr(),

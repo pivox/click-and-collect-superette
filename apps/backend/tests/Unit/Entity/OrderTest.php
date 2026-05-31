@@ -83,6 +83,34 @@ final class OrderTest extends TestCase
         self::assertSame(OrderStatus::Submitted, $order->getStatus());
     }
 
+    public function testAssignOrderNumberStoresReadableDisplay(): void
+    {
+        $order = new Order();
+        $order->assignOrderNumber(42);
+
+        self::assertSame(42, $order->getOrderNumber());
+        self::assertSame('#0042', $order->getOrderNumberDisplay());
+    }
+
+    public function testAssignOrderNumberRejectsInvalidNumber(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ORDER_NUMBER_INVALID');
+
+        (new Order())->assignOrderNumber(0);
+    }
+
+    public function testAssignOrderNumberCannotChangeExistingNumber(): void
+    {
+        $order = new Order();
+        $order->assignOrderNumber(42);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ORDER_NUMBER_ALREADY_ASSIGNED');
+
+        $order->assignOrderNumber(43);
+    }
+
     public function testSubmitThrowsWhenNotDraft(): void
     {
         $order = new Order();

@@ -20,6 +20,7 @@ use App\Repository\OrderRepository;
 use App\Repository\PickupSlotRepository;
 use App\Service\MerchantResponseTimeoutScheduler;
 use App\Service\NotificationService;
+use App\Service\OrderNumberGenerator;
 use App\Service\OrderStatusLogRecorder;
 use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
@@ -44,6 +45,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         private OrderRepository $orderRepository,
         private EntityManagerInterface $entityManager,
         private OrderStatusLogRecorder $orderStatusLogRecorder,
+        private OrderNumberGenerator $orderNumberGenerator,
         private OrderOutputFactory $orderOutputFactory,
         private Security $security,
         private NotificationService $notificationService,
@@ -260,6 +262,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         }
 
         $order->recomputeTotal();
+        $this->orderNumberGenerator->assignNextIfMissing($order);
         $order->submit();
         $this->orderStatusLogRecorder->record($order, OrderStatus::Submitted);
 
@@ -357,6 +360,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         }
 
         $order->recomputeTotal();
+        $this->orderNumberGenerator->assignNextIfMissing($order);
         $order->resubmit();
         $this->orderStatusLogRecorder->record($order, OrderStatus::Submitted);
 
