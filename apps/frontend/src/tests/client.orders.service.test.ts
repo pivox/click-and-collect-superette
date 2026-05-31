@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '@/lib/api';
 
 vi.mock('@/lib/api', () => ({
-  apiClient: { get: vi.fn() },
+  apiClient: { get: vi.fn(), patch: vi.fn() },
 }));
 
 // Disable mocks so the real API path is exercised
@@ -11,7 +11,13 @@ vi.mock('@/lib/services', async (importOriginal) => {
   return { ...actual, USE_MOCKS: false };
 });
 
-import { getOrder, projectTimeline } from '@/lib/services/orders.service';
+import {
+  confirmCustomerPickupSession,
+  getOrder,
+  getOrderStatus,
+  getPickupSession,
+  projectTimeline,
+} from '@/lib/services/orders.service';
 import type { Order } from '@/types';
 
 function makeAxiosError(status: number) {
@@ -39,6 +45,42 @@ const RAW_ORDER = {
   lines: [],
   created_at: '2026-05-28T10:00:00Z',
   updated_at: '2026-05-28T10:00:00Z',
+};
+
+const RAW_PICKUP_SESSION = {
+  id: 'pickup-session-uuid-1',
+  token: '11111111-1111-4111-8111-111111111111',
+  expires_at: '2026-05-29T10:00:00+01:00',
+  is_used: false,
+  is_expired: false,
+  qr_payload: '11111111-1111-4111-8111-111111111111',
+};
+
+const RAW_CUSTOMER_CONFIRMATION = {
+  id: 'pickup-session-uuid-1',
+  order_id: 'order-uuid-1',
+  order_status: 'pickup_pending',
+  scanned_at: '2026-05-28T10:05:00+01:00',
+  merchant_confirmed_at: null,
+  customer_confirmed_at: '2026-05-28T10:06:00+01:00',
+  is_used: false,
+  is_completed: false,
+};
+
+const RAW_CUSTOMER_ORDER_STATUS = {
+  order_id: 'order-uuid-1',
+  status: 'pickup_pending',
+  status_label_fr: 'Retrait en cours',
+  status_label_ar: 'Pickup in progress AR',
+  updated_at: '2026-05-28T10:06:00+01:00',
+  pickup_session: {
+    exists: true,
+    is_scanned: true,
+    merchant_confirmed: false,
+    customer_confirmed: true,
+    is_used: false,
+    force_completed_by_merchant: false,
+  },
 };
 
 describe('getOrder', () => {
@@ -90,6 +132,102 @@ describe('getOrder', () => {
   it('propage l\'erreur réseau (pas de response.status)', async () => {
     vi.mocked(apiClient.get).mockRejectedValue(new Error('Network Error'));
     await expect(getOrder('order-uuid-1')).rejects.toThrow('Network Error');
+  });
+});
+
+describe('getPickupSession', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('retourne une session de retrait mappée sur une réponse 200', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: RAW_PICKUP_SESSION });
+
+    const session = await getPickupSession('order-uuid-1');
+
+    expect(session).toEqual({
+      id: 'pickup-session-uuid-1',
+      token: '11111111-1111-4111-8111-111111111111',
+      expiresAt: '2026-05-29T10:00:00+01:00',
+      isUsed: false,
+      isExpired: false,
+      qrPayload: '11111111-1111-4111-8111-111111111111',
+    });
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/me/orders/order-uuid-1/pickup-session',
+    );
+  });
+
+  it('retourne null sur une réponse 404', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(makeAxiosError(404));
+
+    await expect(getPickupSession('order-uuid-missing')).resolves.toBeNull();
+  });
+
+  it('propage une réponse 409', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(makeAxiosError(409));
+
+    await expect(getPickupSession('order-uuid-1')).rejects.toMatchObject({
+      response: { status: 409 },
+    });
+  });
+});
+
+describe('confirmCustomerPickupSession', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('confirme la réception client et mappe la réponse', async () => {
+    vi.mocked(apiClient.patch).mockResolvedValue({
+      data: RAW_CUSTOMER_CONFIRMATION,
+    });
+
+    const result = await confirmCustomerPickupSession('pickup-session-uuid-1');
+
+    expect(result).toEqual({
+      id: 'pickup-session-uuid-1',
+      orderId: 'order-uuid-1',
+      orderStatus: 'pickup_pending',
+      scannedAt: '2026-05-28T10:05:00+01:00',
+      merchantConfirmedAt: null,
+      customerConfirmedAt: '2026-05-28T10:06:00+01:00',
+      isUsed: false,
+      isCompleted: false,
+    });
+    expect(apiClient.patch).toHaveBeenCalledWith(
+      '/api/me/pickup-sessions/pickup-session-uuid-1/confirm',
+      {},
+    );
+  });
+});
+
+describe('getOrderStatus', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('retourne le statut de commande et les flags de session de retrait', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: RAW_CUSTOMER_ORDER_STATUS });
+
+    const status = await getOrderStatus('order-uuid-1');
+
+    expect(status).toEqual({
+      orderId: 'order-uuid-1',
+      status: 'pickup_pending',
+      statusLabelFr: 'Retrait en cours',
+      statusLabelAr: 'Pickup in progress AR',
+      updatedAt: '2026-05-28T10:06:00+01:00',
+      pickupSession: {
+        exists: true,
+        isScanned: true,
+        merchantConfirmed: false,
+        customerConfirmed: true,
+        isUsed: false,
+        forceCompletedByMerchant: false,
+      },
+    });
+    expect(apiClient.get).toHaveBeenCalledWith('/api/me/orders/order-uuid-1/status');
+  });
+
+  it('retourne null sur une réponse 404', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(makeAxiosError(404));
+
+    await expect(getOrderStatus('order-uuid-missing')).resolves.toBeNull();
   });
 });
 
