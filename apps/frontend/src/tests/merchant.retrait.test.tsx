@@ -35,7 +35,12 @@ const scanResult: MerchantPickupSessionScanResult = {
   order_number_display: '#0042',
   status: 'pickup_pending',
   scanned_at: '2026-05-24T10:00:00+00:00',
-  customer: { first_name: 'Haythem', last_name: 'Mabrouk', phone: '+21600000000' },
+  customer: {
+    display_name: 'Haythem Mabrouk',
+    first_name: 'Haythem',
+    last_name: 'Mabrouk',
+    phone: '+21600000000',
+  },
   lines: [
     {
       merchant_product_id: 'product-1',
@@ -78,6 +83,28 @@ describe('MerchantPickupPage', () => {
     expect(screen.getByText('Lait Vitalait 1L')).toBeInTheDocument();
     expect(screen.getByText(/statut retrait en cours/)).toBeInTheDocument();
     expect(screen.queryByText(/statut pickup_pending/)).not.toBeInTheDocument();
+  });
+
+  it('uses the customer display name when first and last name are missing', async () => {
+    vi.mocked(scanMerchantPickupSession).mockResolvedValueOnce({
+      ...scanResult,
+      customer: {
+        display_name: 'Client Demo',
+        first_name: null,
+        last_name: null,
+        phone: null,
+      },
+    });
+
+    render(<MerchantPickupPage />);
+
+    fireEvent.change(screen.getByLabelText('Token QR de retrait'), {
+      target: { value: '11111111-1111-4111-8111-111111111111' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Identifier la Kadhia' }));
+
+    expect(await screen.findByText('Client Demo')).toBeInTheDocument();
+    expect(screen.queryByText('Client non renseigné')).not.toBeInTheDocument();
   });
 
   it('displays a backend error message when the scan fails', async () => {

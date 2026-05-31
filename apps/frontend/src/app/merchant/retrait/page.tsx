@@ -69,10 +69,15 @@ function lineTotalTnd(line: MerchantPickupSessionScanResult['lines'][number]): s
 }
 
 function customerName(session: MerchantPickupSessionScanResult): string {
-  return (
-    [session.customer.first_name, session.customer.last_name].filter(Boolean).join(' ') ||
-    'Client non renseigné'
-  );
+  const displayName = session.customer.display_name?.trim();
+  if (displayName) return displayName;
+
+  const splitName = [session.customer.first_name, session.customer.last_name]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
+  return splitName || 'Client non renseigné';
 }
 
 function actionStatusText(

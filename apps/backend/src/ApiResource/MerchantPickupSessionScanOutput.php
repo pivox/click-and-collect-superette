@@ -29,7 +29,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 final readonly class MerchantPickupSessionScanOutput
 {
     /**
-     * @param array{first_name: ?string, last_name: ?string, phone: ?string}                                $customer
+     * @param array{display_name: ?string, first_name: ?string, last_name: ?string, phone: ?string}         $customer
      * @param list<array{merchant_product_id: string, name: string, quantity: int, unit_price_tnd: string}> $lines
      */
     public function __construct(

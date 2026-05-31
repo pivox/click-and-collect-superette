@@ -49,6 +49,7 @@ final class MerchantPickupSessionScanApiTest extends FunctionalApiTestCase
         self::assertSame('#0042', $payload['order_number_display']);
         self::assertSame('pickup_pending', $payload['status']);
         self::assertNotEmpty($payload['scanned_at']);
+        self::assertSame('Haythem Mabrouk', $payload['customer']['display_name']);
         self::assertSame('Haythem', $payload['customer']['first_name']);
         self::assertSame('Mabrouk', $payload['customer']['last_name']);
         self::assertSame('+21600000000', $payload['customer']['phone']);
@@ -72,6 +73,40 @@ final class MerchantPickupSessionScanApiTest extends FunctionalApiTestCase
         $logs = $this->entityManager->getRepository(OrderStatusLog::class)->findBy(['order' => $updatedOrder]);
         self::assertCount(1, $logs);
         self::assertSame(OrderStatus::PickupPending, $logs[0]->getStatus());
+    }
+
+    public function testScanUsesCustomerDisplayNameWhenFirstAndLastNameAreMissing(): void
+    {
+        $merchant = $this->createUser('merchant-scan-display-name@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-scan-display-name@example.test', ['ROLE_CUSTOMER']);
+        $customer
+            ->setName('Client Demo')
+            ->setFirstName(null)
+            ->setLastName(null)
+            ->setPhone(null);
+        $this->entityManager->flush();
+
+        $product = $this->createMerchantProduct($shop, '1.000');
+        $order = $this->createReadyOrder($customer, $shop, $product);
+        $pickupSession = new PickupSession($order);
+        $this->entityManager->persist($pickupSession);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'POST',
+            '/api/merchant/pickup-sessions/scan',
+            ['token' => $pickupSession->getToken()->toRfc4122()],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = $this->decodeJson($response);
+        self::assertSame('Client Demo', $payload['customer']['display_name']);
+        self::assertNull($payload['customer']['first_name']);
+        self::assertNull($payload['customer']['last_name']);
+        self::assertNull($payload['customer']['phone']);
     }
 
     public function testScanIsIdempotentWhenAlreadyScannedAndPickupPending(): void
