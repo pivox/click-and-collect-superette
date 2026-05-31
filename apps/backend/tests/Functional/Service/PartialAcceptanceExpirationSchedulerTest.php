@@ -41,6 +41,27 @@ final class PartialAcceptanceExpirationSchedulerTest extends FunctionalApiTestCa
         self::assertSame(10_800_000, $bus->dispatched[1]->last(DelayStamp::class)?->getDelay());
     }
 
+    public function testPartiallyAcceptedOrderWithStoredLocalClockSlotUsesTunisInstantForDeadlines(): void
+    {
+        $now = new \DateTimeImmutable('2026-05-16T10:00:00+00:00');
+        $bus = new PartialAcceptanceRecordingMessageBus();
+        $scheduler = new PartialAcceptanceExpirationScheduler($bus, new MockClock($now), 14400, 7200);
+
+        $order = $this->createPartiallyAcceptedOrderWithSlot($now->modify('+4 hours'));
+        $orderId = $order->getId();
+        $this->entityManager->clear();
+        $order = $this->entityManager->getRepository(Order::class)->find($orderId);
+        self::assertNotNull($order);
+
+        $scheduler->scheduleForPartiallyAcceptedOrder($order);
+
+        self::assertCount(2, $bus->dispatched);
+        self::assertInstanceOf(PartialAcceptanceReminderMessage::class, $bus->dispatched[0]->getMessage());
+        self::assertNull($bus->dispatched[0]->last(DelayStamp::class));
+        self::assertInstanceOf(ExpirePartialAcceptanceMessage::class, $bus->dispatched[1]->getMessage());
+        self::assertSame(7_200_000, $bus->dispatched[1]->last(DelayStamp::class)?->getDelay());
+    }
+
     public function testReminderDispatchesImmediatelyWhenReminderWindowAlreadyStarted(): void
     {
         $now = new \DateTimeImmutable('2026-05-16 10:00:00');

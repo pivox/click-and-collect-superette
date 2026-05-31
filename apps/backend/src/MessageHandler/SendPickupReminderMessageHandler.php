@@ -9,6 +9,7 @@ use App\Message\SendPickupReminderMessage;
 use App\Repository\OrderRepository;
 use App\Repository\PickupSessionRepository;
 use App\Service\NotificationService;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Clock\ClockInterface;
@@ -89,17 +90,18 @@ final readonly class SendPickupReminderMessageHandler
 
         $pickupSlot = $order->getPickupSlot();
         $now = $this->clock->now();
-        if (null === $pickupSlot || $now >= $pickupSlot->getStartsAt()) {
+        $slotStartsAt = null !== $pickupSlot ? PickupSlotDisplayTime::fromStoredLocalClock($pickupSlot->getStartsAt()) : null;
+        if (null === $slotStartsAt || $now >= $slotStartsAt) {
             $this->logger->warning('messenger.skipped', [
                 'message' => SendPickupReminderMessage::class,
                 'order_id' => $message->orderId,
-                'reason' => null === $pickupSlot ? 'no_pickup_slot' : 'slot_already_started',
+                'reason' => null === $slotStartsAt ? 'no_pickup_slot' : 'slot_already_started',
             ]);
 
             return;
         }
 
-        if ($now < $pickupSlot->getStartsAt()->modify('-1 hour')) {
+        if ($now < $slotStartsAt->modify('-1 hour')) {
             return;
         }
 

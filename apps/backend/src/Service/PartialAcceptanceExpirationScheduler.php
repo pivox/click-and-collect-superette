@@ -35,7 +35,7 @@ final readonly class PartialAcceptanceExpirationScheduler
         }
 
         $now = $this->clock->now();
-        $slotStartsAt = $pickupSlot->getStartsAt();
+        $slotStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($pickupSlot->getStartsAt());
         if ($now >= $slotStartsAt) {
             return;
         }

@@ -8,6 +8,7 @@ use App\Enum\OrderStatus;
 use App\Message\ExpirePartialAcceptanceMessage;
 use App\Repository\OrderRepository;
 use App\Service\OrderTransitionService;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Clock\ClockInterface;
@@ -88,7 +89,8 @@ final readonly class ExpirePartialAcceptanceMessageHandler
                 return;
             }
 
-            $expiresAt = $pickupSlot->getStartsAt()->modify('-'.$this->partialAcceptanceExpirationLeadSeconds.' seconds');
+            $slotStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($pickupSlot->getStartsAt());
+            $expiresAt = $slotStartsAt->modify('-'.$this->partialAcceptanceExpirationLeadSeconds.' seconds');
             if ($now < $expiresAt) {
                 return;
             }

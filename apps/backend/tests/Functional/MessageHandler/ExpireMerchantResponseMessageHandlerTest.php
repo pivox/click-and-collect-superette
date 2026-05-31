@@ -47,6 +47,23 @@ final class ExpireMerchantResponseMessageHandlerTest extends FunctionalApiTestCa
         self::assertSame('تم إلغاء الطلب آليًا', $notifications[0]->getTitleAr());
     }
 
+    public function testHandlerCancelsSubmittedOrderAtStoredLocalClockTimeout(): void
+    {
+        $order = $this->createOrderWithStatus(OrderStatus::Submitted, new \DateTimeImmutable('2026-05-16T12:00:00+00:00'), booked: true);
+        $orderId = $order->getId();
+        $this->entityManager->clear();
+
+        $this->createHandler(new \DateTimeImmutable('2026-05-16T10:00:00+00:00'))(
+            new ExpireMerchantResponseMessage($orderId->toRfc4122())
+        );
+
+        $this->entityManager->clear();
+        $updatedOrder = $this->entityManager->getRepository(Order::class)->find($orderId);
+        self::assertNotNull($updatedOrder);
+        self::assertSame(OrderStatus::Cancelled, $updatedOrder->getStatus());
+        self::assertSame(0, $updatedOrder->getPickupSlot()?->getBookedCount());
+    }
+
     public function testHandlerDoesNothingBeforeTimeoutWindow(): void
     {
         $order = $this->createOrderWithStatus(OrderStatus::Submitted, new \DateTimeImmutable('2026-05-16 13:00:00'), booked: true);

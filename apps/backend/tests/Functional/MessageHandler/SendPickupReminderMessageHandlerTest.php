@@ -40,6 +40,20 @@ final class SendPickupReminderMessageHandlerTest extends FunctionalApiTestCase
         self::assertStringContainsString($order->getShop()->getName(), $notifications[0]->getBodyAr());
     }
 
+    public function testHandlerCreatesReminderForStoredLocalClockSlotInReminderWindow(): void
+    {
+        $order = $this->createReadyOrderWithPickupSession(new \DateTimeImmutable('2026-05-16T11:30:00+00:00'));
+        $orderId = $order->getId();
+        $this->entityManager->clear();
+        $handler = $this->createHandler(new \DateTimeImmutable('2026-05-16T10:45:00+00:00'));
+
+        $handler(new SendPickupReminderMessage($orderId->toRfc4122()));
+
+        $updatedOrder = $this->entityManager->getRepository(Order::class)->find($orderId);
+        self::assertNotNull($updatedOrder);
+        self::assertCount(1, $this->findNotifications($updatedOrder));
+    }
+
     public function testHandlerDoesNothingBeforeReminderWindow(): void
     {
         $order = $this->createReadyOrderWithPickupSession(new \DateTimeImmutable('2026-05-16 12:00:00'));

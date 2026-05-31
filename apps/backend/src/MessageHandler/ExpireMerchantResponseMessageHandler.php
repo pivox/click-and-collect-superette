@@ -8,6 +8,7 @@ use App\Enum\OrderStatus;
 use App\Message\ExpireMerchantResponseMessage;
 use App\Repository\OrderRepository;
 use App\Service\OrderTransitionService;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Clock\ClockInterface;
@@ -78,11 +79,12 @@ final readonly class ExpireMerchantResponseMessageHandler
 
             $pickupSlot = $order->getPickupSlot();
             $now = $this->clock->now();
-            if (null === $pickupSlot || $now >= $pickupSlot->getStartsAt()) {
+            $slotStartsAt = null !== $pickupSlot ? PickupSlotDisplayTime::fromStoredLocalClock($pickupSlot->getStartsAt()) : null;
+            if (null === $slotStartsAt || $now >= $slotStartsAt) {
                 return;
             }
 
-            $expiresAt = $pickupSlot->getStartsAt()->modify('-'.$this->merchantResponseTimeoutLeadSeconds.' seconds');
+            $expiresAt = $slotStartsAt->modify('-'.$this->merchantResponseTimeoutLeadSeconds.' seconds');
             if ($now < $expiresAt) {
                 return;
             }

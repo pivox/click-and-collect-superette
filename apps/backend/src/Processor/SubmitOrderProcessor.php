@@ -21,6 +21,7 @@ use App\Repository\PickupSlotRepository;
 use App\Service\MerchantResponseTimeoutScheduler;
 use App\Service\NotificationService;
 use App\Service\OrderStatusLogRecorder;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -125,12 +126,16 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             throw new UnprocessableEntityHttpException('PICKUP_SLOT_FULL');
         }
 
-        if ($slot->getEndsAt() <= new \DateTimeImmutable()) {
+        $now = $this->clock->now();
+        $slotStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt());
+        $slotEndsAt = PickupSlotDisplayTime::fromStoredLocalClock($slot->getEndsAt());
+
+        if ($slotEndsAt <= $now) {
             $this->logRejected('PICKUP_SLOT_EXPIRED', $kadhiaId, $slotId, $userId, $storeId);
             throw new UnprocessableEntityHttpException('PICKUP_SLOT_EXPIRED');
         }
 
-        if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $slot->getStartsAt(), $slot->getEndsAt())) {
+        if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $slotStartsAt, $slotEndsAt)) {
             $this->logRejected('PICKUP_SLOT_CLOSED', $kadhiaId, $slotId, $userId, $storeId);
             throw new UnprocessableEntityHttpException('PICKUP_SLOT_CLOSED');
         }
@@ -213,11 +218,12 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
     private function denyLatePartialAcceptanceResubmission(\App\Entity\PickupSlot $slot): void
     {
         $now = $this->clock->now();
-        if ($now >= $slot->getStartsAt()) {
+        $slotStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt());
+        if ($now >= $slotStartsAt) {
             throw new UnprocessableEntityHttpException('PARTIAL_ACCEPTANCE_EXPIRED');
         }
 
-        $expiresAt = $slot->getStartsAt()->modify('-'.$this->partialAcceptanceExpirationLeadSeconds.' seconds');
+        $expiresAt = $slotStartsAt->modify('-'.$this->partialAcceptanceExpirationLeadSeconds.' seconds');
         if ($now >= $expiresAt) {
             throw new UnprocessableEntityHttpException('PARTIAL_ACCEPTANCE_EXPIRED');
         }

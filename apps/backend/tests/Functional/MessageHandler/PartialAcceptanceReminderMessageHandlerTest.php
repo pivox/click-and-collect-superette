@@ -41,6 +41,22 @@ final class PartialAcceptanceReminderMessageHandlerTest extends FunctionalApiTes
         self::assertSame('يلزم الرد', $notifications[0]->getTitleAr());
     }
 
+    public function testHandlerCreatesReminderForStoredLocalClockSlotInReminderWindow(): void
+    {
+        $order = $this->createPartiallyAcceptedOrder(new \DateTimeImmutable('2026-05-16T14:00:00+00:00'));
+        $orderId = $order->getId();
+        $this->entityManager->clear();
+
+        $this->createHandler(new \DateTimeImmutable('2026-05-16T10:30:00+00:00'))(
+            new PartialAcceptanceReminderMessage($orderId->toRfc4122(), Uuid::v4()->toRfc4122())
+        );
+
+        $this->entityManager->clear();
+        $updatedOrder = $this->entityManager->getRepository(Order::class)->find($orderId);
+        self::assertNotNull($updatedOrder);
+        self::assertCount(1, $this->findReminderNotifications($updatedOrder));
+    }
+
     public function testHandlerDoesNothingBeforeReminderWindow(): void
     {
         $order = $this->createPartiallyAcceptedOrder(new \DateTimeImmutable('2026-05-16 15:00:00'));

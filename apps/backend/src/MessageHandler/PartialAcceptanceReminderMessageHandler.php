@@ -8,6 +8,7 @@ use App\Enum\OrderStatus;
 use App\Message\PartialAcceptanceReminderMessage;
 use App\Repository\OrderRepository;
 use App\Service\NotificationService;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Clock\ClockInterface;
@@ -79,18 +80,19 @@ final readonly class PartialAcceptanceReminderMessageHandler
 
             $pickupSlot = $order->getPickupSlot();
             $now = $this->clock->now();
-            if (null === $pickupSlot || $now >= $pickupSlot->getStartsAt()) {
+            $slotStartsAt = null !== $pickupSlot ? PickupSlotDisplayTime::fromStoredLocalClock($pickupSlot->getStartsAt()) : null;
+            if (null === $slotStartsAt || $now >= $slotStartsAt) {
                 $this->logger->warning('messenger.skipped', [
                     'message' => PartialAcceptanceReminderMessage::class,
                     'order_id' => $message->orderId,
-                    'reason' => null === $pickupSlot ? 'no_pickup_slot' : 'slot_already_started',
+                    'reason' => null === $slotStartsAt ? 'no_pickup_slot' : 'slot_already_started',
                 ]);
 
                 return;
             }
 
-            $remindsAt = $pickupSlot->getStartsAt()->modify('-'.$this->partialAcceptanceReminderLeadSeconds.' seconds');
-            $expiresAt = $pickupSlot->getStartsAt()->modify('-'.$this->partialAcceptanceExpirationLeadSeconds.' seconds');
+            $remindsAt = $slotStartsAt->modify('-'.$this->partialAcceptanceReminderLeadSeconds.' seconds');
+            $expiresAt = $slotStartsAt->modify('-'.$this->partialAcceptanceExpirationLeadSeconds.' seconds');
             if ($now < $remindsAt || $now >= $expiresAt) {
                 return;
             }

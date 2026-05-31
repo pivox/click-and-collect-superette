@@ -33,7 +33,7 @@ final readonly class PickupReminderScheduler
         }
 
         $now = $this->clock->now();
-        $slotStartsAt = $pickupSlot->getStartsAt();
+        $slotStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($pickupSlot->getStartsAt());
         if ($now >= $slotStartsAt) {
             return;
         }

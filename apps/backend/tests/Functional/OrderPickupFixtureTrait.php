@@ -14,6 +14,7 @@ use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\ProductReferenceStatus;
+use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -76,8 +77,8 @@ trait OrderPickupFixtureTrait
     {
         $slot = (new PickupSlot())
             ->setShop($shop)
-            ->setStartsAt($startsAt)
-            ->setEndsAt($startsAt->modify('+1 hour'))
+            ->setStartsAt(PickupSlotDisplayTime::fromPayloadInstant($startsAt))
+            ->setEndsAt(PickupSlotDisplayTime::fromPayloadInstant($startsAt->modify('+1 hour')))
             ->setCapacity(5);
 
         $this->entityManager->persist($slot);
