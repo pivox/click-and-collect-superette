@@ -7,6 +7,7 @@ import {
   listMerchantOrderHistory,
   listMerchantOrders,
 } from '@/lib/services/merchant-orders.service';
+import type { MerchantOrderList } from '@/lib/types/merchant.types';
 
 const merchantContext = {
   merchant: {
@@ -145,6 +146,99 @@ describe('MerchantOrdersPage', () => {
 
     await waitFor(() => expect(listMerchantOrders).toHaveBeenCalledTimes(2));
     expect(await screen.findByText('#0044')).toBeInTheDocument();
+
+    unmount();
+    expect(clearIntervalSpy).toHaveBeenCalledWith(pollIntervalId);
+    setIntervalSpy.mockRestore();
+    clearIntervalSpy.mockRestore();
+  });
+
+  it('keeps the latest active orders response when an older request resolves later', async () => {
+    let intervalCallback: TimerHandler | undefined;
+    let resolveInitialOrders!: (orders: MerchantOrderList) => void;
+    const initialOrdersPromise = new Promise<MerchantOrderList>((resolve) => {
+      resolveInitialOrders = resolve;
+    });
+    const pollIntervalId = 456 as unknown as NodeJS.Timeout;
+    const realSetInterval = window.setInterval;
+    const realClearInterval = window.clearInterval;
+    const setIntervalSpy = vi
+      .spyOn(window, 'setInterval')
+      .mockImplementation(((callback: TimerHandler, timeout?: number) => {
+        if (timeout === 30_000) {
+          intervalCallback = callback;
+          return pollIntervalId;
+        }
+
+        return realSetInterval(callback, timeout) as unknown as NodeJS.Timeout;
+      }) as unknown as typeof window.setInterval);
+    const clearIntervalSpy = vi
+      .spyOn(window, 'clearInterval')
+      .mockImplementation((intervalId?: string | number | NodeJS.Timeout) => {
+        if (intervalId === pollIntervalId) return;
+        realClearInterval(intervalId);
+      });
+
+    vi.mocked(listMerchantOrders)
+      .mockReturnValueOnce(initialOrdersPromise)
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: 'order-fresh',
+            store_id: 'store-1',
+            order_number: 45,
+            order_number_display: '#0045',
+            status: 'submitted',
+            total_tnd: '13.000',
+            pickup_slot: null,
+            line_count: 1,
+            created_at: '2026-05-23T08:01:00+01:00',
+            updated_at: '2026-05-23T08:01:00+01:00',
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 20,
+      });
+
+    const { unmount } = render(React.createElement(MerchantOrdersPage));
+
+    await waitFor(() => expect(listMerchantOrders).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      if (typeof intervalCallback === 'function') {
+        intervalCallback();
+      }
+    });
+
+    await waitFor(() => expect(listMerchantOrders).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('#0045')).toBeInTheDocument();
+
+    await act(async () => {
+      resolveInitialOrders({
+        items: [
+          {
+            id: 'order-stale',
+            store_id: 'store-1',
+            order_number: 44,
+            order_number_display: '#0044',
+            status: 'submitted',
+            total_tnd: '12.000',
+            pickup_slot: null,
+            line_count: 2,
+            created_at: '2026-05-23T08:00:00+01:00',
+            updated_at: '2026-05-23T08:00:00+01:00',
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 20,
+      });
+      await initialOrdersPromise;
+    });
+
+    expect(screen.queryByText('#0044')).not.toBeInTheDocument();
+    expect(screen.getByText('#0045')).toBeInTheDocument();
 
     unmount();
     expect(clearIntervalSpy).toHaveBeenCalledWith(pollIntervalId);
