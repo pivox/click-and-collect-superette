@@ -128,6 +128,24 @@ export interface PickupSession {
   qrPayload: string;
 }
 
+export interface CustomerOrderPickupSessionStatus {
+  exists: boolean;
+  isScanned: boolean;
+  merchantConfirmed: boolean;
+  customerConfirmed: boolean;
+  isUsed: boolean;
+  forceCompletedByMerchant: boolean;
+}
+
+export interface CustomerOrderStatusSnapshot {
+  orderId: string;
+  status: OrderStatus;
+  statusLabelFr: string;
+  statusLabelAr: string;
+  updatedAt: string;
+  pickupSession: CustomerOrderPickupSessionStatus;
+}
+
 export interface CustomerPickupSessionConfirmation {
   id: string;
   orderId: string;

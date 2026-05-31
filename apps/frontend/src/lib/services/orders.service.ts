@@ -1,4 +1,5 @@
 import type {
+  CustomerOrderStatusSnapshot,
   CustomerPickupSessionConfirmation,
   Order,
   PickupSession,
@@ -49,6 +50,24 @@ interface RawCustomerPickupSessionConfirmation {
   customer_confirmed_at: string | null;
   is_used: boolean;
   is_completed: boolean;
+}
+
+interface RawCustomerOrderPickupSessionStatus {
+  exists: boolean;
+  is_scanned: boolean;
+  merchant_confirmed: boolean;
+  customer_confirmed: boolean;
+  is_used: boolean;
+  force_completed_by_merchant: boolean;
+}
+
+interface RawCustomerOrderStatusSnapshot {
+  order_id: string;
+  status: Order["status"];
+  status_label_fr: string;
+  status_label_ar: string;
+  updated_at: string;
+  pickup_session: RawCustomerOrderPickupSessionStatus;
 }
 
 const MOCK_PICKUP_SESSION_TOKEN = "11111111-1111-4111-8111-111111111111";
@@ -114,6 +133,26 @@ function mapRawCustomerPickupSessionConfirmation(
   };
 }
 
+function mapRawCustomerOrderStatusSnapshot(
+  raw: RawCustomerOrderStatusSnapshot,
+): CustomerOrderStatusSnapshot {
+  return {
+    orderId: raw.order_id,
+    status: raw.status,
+    statusLabelFr: raw.status_label_fr,
+    statusLabelAr: raw.status_label_ar,
+    updatedAt: raw.updated_at,
+    pickupSession: {
+      exists: raw.pickup_session.exists,
+      isScanned: raw.pickup_session.is_scanned,
+      merchantConfirmed: raw.pickup_session.merchant_confirmed,
+      customerConfirmed: raw.pickup_session.customer_confirmed,
+      isUsed: raw.pickup_session.is_used,
+      forceCompletedByMerchant: raw.pickup_session.force_completed_by_merchant,
+    },
+  };
+}
+
 export async function listOrders(): Promise<Order[]> {
   if (USE_MOCKS) {
     return mockDelay([MOCK_ORDER]);
@@ -158,6 +197,41 @@ export async function getPickupSession(orderId: string): Promise<PickupSession |
       `/api/me/orders/${orderId}/pickup-session`,
     );
     return mapRawPickupSession(data);
+  } catch (err) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+    if (status === 404) return null;
+    throw err;
+  }
+}
+
+export async function getOrderStatus(
+  orderId: string,
+): Promise<CustomerOrderStatusSnapshot | null> {
+  if (USE_MOCKS) {
+    if (orderId === MOCK_ORDER.id || orderId === MOCK_ORDER.code) {
+      return mockDelay({
+        orderId: MOCK_ORDER.id,
+        status: MOCK_ORDER.status,
+        statusLabelFr: "Prête à retirer",
+        statusLabelAr: "Ready for pickup AR",
+        updatedAt: new Date().toISOString(),
+        pickupSession: {
+          exists: true,
+          isScanned: false,
+          merchantConfirmed: false,
+          customerConfirmed: false,
+          isUsed: false,
+          forceCompletedByMerchant: false,
+        },
+      });
+    }
+    return mockDelay(null);
+  }
+  try {
+    const { data } = await apiClient.get<RawCustomerOrderStatusSnapshot>(
+      `/api/me/orders/${orderId}/status`,
+    );
+    return mapRawCustomerOrderStatusSnapshot(data);
   } catch (err) {
     const status = (err as { response?: { status?: number } }).response?.status;
     if (status === 404) return null;

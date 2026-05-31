@@ -16,6 +16,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/services', () => ({
   confirmCustomerPickupSession: vi.fn(),
   getOrder: vi.fn(),
+  getOrderStatus: vi.fn(),
   getPickupSession: vi.fn(),
   USE_MOCKS: false,
   mockDelay: (v: unknown) => Promise.resolve(v),
@@ -29,6 +30,7 @@ import PickupQrPage from '@/app/(client)/orders/[orderId]/pickup/page';
 import {
   confirmCustomerPickupSession,
   getOrder,
+  getOrderStatus,
   getPickupSession,
 } from '@/lib/services';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
@@ -69,6 +71,24 @@ function makeOrder(status: OrderStatus) {
     code: 'CMD-ORDER1',
     customerNote: null,
     lines: [],
+  };
+}
+
+function makeOrderStatus(customerConfirmed = false) {
+  return {
+    orderId: 'order-uuid-1',
+    status: 'pickup_pending' as const,
+    statusLabelFr: 'Retrait en cours',
+    statusLabelAr: 'Pickup in progress AR',
+    updatedAt: '2026-05-28T10:06:00+01:00',
+    pickupSession: {
+      exists: true,
+      isScanned: true,
+      merchantConfirmed: false,
+      customerConfirmed,
+      isUsed: false,
+      forceCompletedByMerchant: false,
+    },
   };
 }
 
@@ -129,6 +149,7 @@ describe('PickupQrPage', () => {
     vi.clearAllMocks();
     mockAuth(MOCK_USER);
     vi.mocked(getPickupSession).mockResolvedValue(PICKUP_SESSION);
+    vi.mocked(getOrderStatus).mockResolvedValue(makeOrderStatus(false));
   });
 
   it('affiche un état de chargement (null) pendant authLoading', () => {
@@ -254,6 +275,21 @@ describe('PickupQrPage', () => {
       );
     });
     expect(screen.getByText(/Confirmation client enregistrée/i)).toBeTruthy();
+  });
+
+  it('préserve une confirmation client déjà persistée sur une commande pickup_pending', async () => {
+    vi.mocked(getOrder).mockResolvedValue(makeOrder('pickup_pending'));
+    vi.mocked(getOrderStatus).mockResolvedValue(makeOrderStatus(true));
+
+    render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+
+    const button = await screen.findByRole('button', {
+      name: /Réception confirmée/i,
+    });
+
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/Confirmation client enregistrée/i)).toBeTruthy();
+    expect(confirmCustomerPickupSession).not.toHaveBeenCalled();
   });
 
   it('continue le rafraîchissement après confirmation client et quitte le retrait une fois finalisé', async () => {

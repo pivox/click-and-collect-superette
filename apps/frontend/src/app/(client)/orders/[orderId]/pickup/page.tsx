@@ -13,11 +13,13 @@ import { QrPlaceholder } from "@/components/ui/QrPlaceholder";
 import {
   confirmCustomerPickupSession,
   getOrder,
+  getOrderStatus,
   getPickupSession,
 } from "@/lib/services";
 import { formatSlotRange } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import type {
+  CustomerOrderPickupSessionStatus,
   CustomerPickupSessionConfirmation,
   Order,
   PickupSession,
@@ -36,6 +38,16 @@ function confirmErrorMessage(err: unknown): string {
   return "La validation a échoué. Réessaie dans un instant.";
 }
 
+async function getPersistedPickupSessionStatus(
+  orderId: string,
+  orderStatus: Order["status"],
+): Promise<CustomerOrderPickupSessionStatus | null> {
+  if (orderStatus !== "pickup_pending") return null;
+
+  const statusSnapshot = await getOrderStatus(orderId);
+  return statusSnapshot?.pickupSession ?? null;
+}
+
 export default function PickupQrPage({
   params,
 }: {
@@ -46,6 +58,8 @@ export default function PickupQrPage({
   const { user, isLoading: authLoading } = useClientAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [pickupSession, setPickupSession] = useState<PickupSession | null>(null);
+  const [pickupSessionStatus, setPickupSessionStatus] =
+    useState<CustomerOrderPickupSessionStatus | null>(null);
   const [fetchDone, setFetchDone] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -65,6 +79,7 @@ export default function PickupQrPage({
     setFetchDone(false);
     setOrder(null);
     setPickupSession(null);
+    setPickupSessionStatus(null);
     setConfirmError(null);
     setConfirmationResult(null);
 
@@ -73,8 +88,14 @@ export default function PickupQrPage({
         if (cancelled) return;
         setOrder(data);
         if (data?.status === "ready" || data?.status === "pickup_pending") {
-          const session = await getPickupSession(orderId);
-          if (!cancelled) setPickupSession(session);
+          const [session, sessionStatus] = await Promise.all([
+            getPickupSession(orderId),
+            getPersistedPickupSessionStatus(orderId, data.status),
+          ]);
+          if (!cancelled) {
+            setPickupSession(session);
+            setPickupSessionStatus(sessionStatus);
+          }
         }
       })
       .catch((err) => {
@@ -114,10 +135,17 @@ export default function PickupQrPage({
 
         setOrder(freshOrder);
         if (freshOrder?.status === "ready" || freshOrder?.status === "pickup_pending") {
-          const freshSession = await getPickupSession(orderId);
-          if (!cancelled) setPickupSession(freshSession);
+          const [freshSession, freshSessionStatus] = await Promise.all([
+            getPickupSession(orderId),
+            getPersistedPickupSessionStatus(orderId, freshOrder.status),
+          ]);
+          if (!cancelled) {
+            setPickupSession(freshSession);
+            setPickupSessionStatus(freshSessionStatus);
+          }
         } else if (!cancelled) {
           setPickupSession(null);
+          setPickupSessionStatus(null);
         }
       } catch (err) {
         console.error("[pickup] refresh after scan failed", { orderId, err });
@@ -242,7 +270,10 @@ export default function PickupQrPage({
 
   const displayedStatus = confirmationResult?.orderStatus ?? order.status;
   const displayedBadge = orderStatusBadge(displayedStatus);
-  const customerConfirmed = Boolean(confirmationResult?.customerConfirmedAt);
+  const customerConfirmed = Boolean(
+    confirmationResult?.customerConfirmedAt || pickupSessionStatus?.customerConfirmed,
+  );
+  const waitingForMerchantConfirmation = customerConfirmed && !confirmationResult?.isCompleted;
 
   return (
     <>
@@ -283,7 +314,7 @@ export default function PickupQrPage({
                   ? "Validation..."
                   : "J'ai récupéré ma Kadhia"}
             </Button>
-            {confirmationResult && !confirmationResult.isCompleted && (
+            {waitingForMerchantConfirmation && (
               <p className="mx-auto mt-3 max-w-xs text-xs font-bold text-primary leading-relaxed">
                 Confirmation client enregistrée. En attente de la validation marchand.
               </p>

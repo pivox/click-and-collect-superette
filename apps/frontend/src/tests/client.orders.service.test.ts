@@ -14,6 +14,7 @@ vi.mock('@/lib/services', async (importOriginal) => {
 import {
   confirmCustomerPickupSession,
   getOrder,
+  getOrderStatus,
   getPickupSession,
   projectTimeline,
 } from '@/lib/services/orders.service';
@@ -64,6 +65,22 @@ const RAW_CUSTOMER_CONFIRMATION = {
   customer_confirmed_at: '2026-05-28T10:06:00+01:00',
   is_used: false,
   is_completed: false,
+};
+
+const RAW_CUSTOMER_ORDER_STATUS = {
+  order_id: 'order-uuid-1',
+  status: 'pickup_pending',
+  status_label_fr: 'Retrait en cours',
+  status_label_ar: 'Pickup in progress AR',
+  updated_at: '2026-05-28T10:06:00+01:00',
+  pickup_session: {
+    exists: true,
+    is_scanned: true,
+    merchant_confirmed: false,
+    customer_confirmed: true,
+    is_used: false,
+    force_completed_by_merchant: false,
+  },
 };
 
 describe('getOrder', () => {
@@ -178,6 +195,39 @@ describe('confirmCustomerPickupSession', () => {
       '/api/me/pickup-sessions/pickup-session-uuid-1/confirm',
       {},
     );
+  });
+});
+
+describe('getOrderStatus', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('retourne le statut de commande et les flags de session de retrait', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: RAW_CUSTOMER_ORDER_STATUS });
+
+    const status = await getOrderStatus('order-uuid-1');
+
+    expect(status).toEqual({
+      orderId: 'order-uuid-1',
+      status: 'pickup_pending',
+      statusLabelFr: 'Retrait en cours',
+      statusLabelAr: 'Pickup in progress AR',
+      updatedAt: '2026-05-28T10:06:00+01:00',
+      pickupSession: {
+        exists: true,
+        isScanned: true,
+        merchantConfirmed: false,
+        customerConfirmed: true,
+        isUsed: false,
+        forceCompletedByMerchant: false,
+      },
+    });
+    expect(apiClient.get).toHaveBeenCalledWith('/api/me/orders/order-uuid-1/status');
+  });
+
+  it('retourne null sur une réponse 404', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(makeAxiosError(404));
+
+    await expect(getOrderStatus('order-uuid-missing')).resolves.toBeNull();
   });
 });
 
