@@ -51,4 +51,29 @@ describe('client catalog service', () => {
       categoryNameFr: 'Alimentaire',
     });
   });
+
+  it("traite l'absence de volume comme une valeur vide sans warning", async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const itemWithoutVolume: Partial<typeof RAW_CATALOG.items[number]> = {
+      ...RAW_CATALOG.items[0],
+    };
+    delete itemWithoutVolume.volume;
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { items: [itemWithoutVolume] },
+    });
+
+    const products = await listCatalog({
+      shopId: 'store-1',
+      category: 'all',
+      search: '',
+    });
+
+    expect(apiClient.get).toHaveBeenCalledWith('/api/stores/store-1/catalog', {
+      params: { category: undefined, query: '' },
+    });
+    expect(products[0].volume).toBeNull();
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
 });

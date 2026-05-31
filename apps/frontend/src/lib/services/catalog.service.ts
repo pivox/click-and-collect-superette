@@ -19,7 +19,7 @@ interface CatalogApiItem {
   category: string;
   category_ar: string | null;
   category_slug: string;
-  volume: string | null;
+  volume?: string | null;
   unit: string;
   price_tnd: string;
   is_available: boolean;
@@ -53,7 +53,7 @@ export async function listCatalog(q: CatalogQuery): Promise<ProductOffer[]> {
     nameAr: item.name_ar,
     brand: item.brand ?? "",
     volume: (() => {
-      if (item.volume === null || item.volume === "" || item.volume === "undefined") return null;
+      if (item.volume == null || item.volume === "" || item.volume === "undefined") return null;
       const parsed = parseFloat(item.volume);
       if (Number.isNaN(parsed)) {
         console.warn(
