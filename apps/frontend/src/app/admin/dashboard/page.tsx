@@ -180,10 +180,13 @@ export default function AdminDashboard() {
           </div>
           <div className="rounded-xl border border-line bg-card overflow-hidden">
             {recentLogs.map((log) => (
-              <div key={log.id} className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-0">
+              <div
+                key={log.id}
+                className="flex flex-col gap-1 border-b border-line px-4 py-3 last:border-0 sm:flex-row sm:items-center sm:gap-3"
+              >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{log.summary ?? log.action}</p>
-                  <p className="text-xs text-muted">{log.admin_email}</p>
+                  <p className="break-words text-sm font-medium">{log.summary ?? log.action}</p>
+                  <p className="break-all text-xs text-muted">{log.admin_email}</p>
                 </div>
                 <span className="shrink-0 text-xs text-muted">
                   {new Date(log.created_at).toLocaleString('fr-TN', {

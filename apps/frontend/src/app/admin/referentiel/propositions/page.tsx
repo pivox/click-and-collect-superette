@@ -78,7 +78,7 @@ export default function PropositionsPage() {
     <div>
       <h1 className="mb-5 text-h1 font-black">Propositions</h1>
       <div className="mb-4 flex flex-wrap items-center gap-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(['pending', 'approved', 'rejected'] as StatusFilter[]).map((s) => (
             <button
               key={s}
@@ -99,7 +99,7 @@ export default function PropositionsPage() {
           placeholder="Rechercher par nom…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full max-w-sm rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
       </div>
       {error && (
@@ -112,7 +112,7 @@ export default function PropositionsPage() {
       )}
       <div className="rounded-xl border border-line bg-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[820px] text-sm">
             <thead className="border-b border-line bg-soft">
               <tr>
                 <SortTh<Proposal>

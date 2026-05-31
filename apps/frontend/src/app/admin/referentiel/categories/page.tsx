@@ -104,9 +104,13 @@ export default function CategoriesPage() {
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-h1 font-black">Catégories</h1>
-        <Button size="md" onClick={() => { setEditTarget(null); setDrawerOpen(true); }}>
+        <Button
+          size="md"
+          className="w-full sm:w-auto"
+          onClick={() => { setEditTarget(null); setDrawerOpen(true); }}
+        >
           + Nouvelle catégorie
         </Button>
       </div>

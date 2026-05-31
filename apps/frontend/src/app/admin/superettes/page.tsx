@@ -191,9 +191,13 @@ export default function SuperettesPage() {
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-h1 font-black">Supérettes</h1>
-        <Button size="md" onClick={() => { setEditTarget(null); setDrawerOpen(true); }}>
+        <Button
+          size="md"
+          className="w-full sm:w-auto"
+          onClick={() => { setEditTarget(null); setDrawerOpen(true); }}
+        >
           + Nouvelle supérette
         </Button>
       </div>
@@ -201,7 +205,7 @@ export default function SuperettesPage() {
         <select
           value={isActiveFilter}
           onChange={(e) => setIsActiveFilter(e.target.value as '' | 'true' | 'false')}
-          className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary"
+          className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary sm:w-auto"
         >
           <option value="">Tous les statuts</option>
           <option value="true">Active</option>

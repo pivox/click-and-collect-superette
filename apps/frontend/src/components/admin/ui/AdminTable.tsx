@@ -44,7 +44,7 @@ export function AdminTable<T extends { id: string }>({
   return (
     <div className="rounded-xl border border-line bg-card overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[720px] text-sm">
           <thead className="border-b border-line bg-soft">
             <tr>
               {columns.map((col) => (
@@ -108,14 +108,15 @@ export function AdminTable<T extends { id: string }>({
         </table>
       </div>
       {pagination && (
-        <div className="flex items-center justify-between border-t border-line px-4 py-3">
+        <div className="flex flex-col gap-3 border-t border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-xs text-muted">
             {pagination.total} résultat{pagination.total !== 1 ? 's' : ''}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto">
             <Button
               variant="ghost"
               size="md"
+              className="shrink-0"
               disabled={pagination.page <= 1}
               onClick={() => pagination.onPageChange(pagination.page - 1)}
             >
@@ -127,6 +128,7 @@ export function AdminTable<T extends { id: string }>({
             <Button
               variant="ghost"
               size="md"
+              className="shrink-0"
               disabled={pagination.page >= pageCount}
               onClick={() => pagination.onPageChange(pagination.page + 1)}
             >

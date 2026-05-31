@@ -165,22 +165,22 @@ export default function AuditPage() {
           placeholder="Action (ex: store.archive)…"
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-auto"
         />
         <input
           type="text"
           placeholder="Type ressource (ex: store)…"
           value={resourceTypeFilter}
           onChange={(e) => setResourceTypeFilter(e.target.value)}
-          className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-auto"
         />
-        <div>
+        <div className="w-full sm:w-auto">
           <input
             type="text"
             placeholder="UUID admin…"
             value={adminFilter}
             onChange={(e) => setAdminFilter(e.target.value)}
-            className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
           {isInvalidAdminInput && (
             <p className="mt-1 text-xs text-status-cancel">Entrez un UUID valide pour filtrer.</p>
