@@ -14,20 +14,18 @@ export default function ByQrPage({
 
   useEffect(() => {
     void getShopBySlug(params.qrToken)
-      .then(async (shop) => {
+      .then((shop) => {
         if (!shop) {
           setError(true);
           return;
         }
 
-        try {
-          await recordStoreVisit(shop.id, "qr_code");
-        } catch (err) {
+        void recordStoreVisit(shop.id, "qr_code").catch((err) => {
           const status = (err as { response?: { status?: number } }).response?.status;
           if (status !== 401 && status !== 403) {
             console.error("[store-qr] recordStoreVisit failed", { shopId: shop.id, err });
           }
-        }
+        });
 
         router.replace(`/stores/${shop.id}/catalog`);
       })
