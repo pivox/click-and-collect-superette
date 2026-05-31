@@ -31,7 +31,8 @@ const scanResult: MerchantPickupSessionScanResult = {
   id: 'session-1',
   order_id: 'order-1',
   store_id: 'store-1',
-  order_number: '#0042',
+  order_number: 42,
+  order_number_display: '#0042',
   status: 'pickup_pending',
   scanned_at: '2026-05-24T10:00:00+00:00',
   customer: { first_name: 'Haythem', last_name: 'Mabrouk', phone: '+21600000000' },
@@ -315,7 +316,7 @@ describe('MerchantPickupPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Valider' }));
 
     expect(
-      await screen.findByText('Retrait finalisé pour la commande #F055D691'),
+      await screen.findByText('Retrait finalisé pour la commande CMD-F055D691'),
     ).toBeInTheDocument();
     expect(screen.queryByText(/— completed/)).not.toBeInTheDocument();
   });
@@ -339,7 +340,7 @@ describe('MerchantPickupPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Valider manuellement' }));
 
     expect(
-      await screen.findByText('Retrait finalisé manuellement pour la commande #F055D691'),
+      await screen.findByText('Retrait finalisé manuellement pour la commande CMD-F055D691'),
     ).toBeInTheDocument();
     expect(screen.queryByText(/— completed/)).not.toBeInTheDocument();
   });

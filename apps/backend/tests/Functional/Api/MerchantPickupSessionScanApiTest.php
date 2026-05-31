@@ -27,6 +27,7 @@ final class MerchantPickupSessionScanApiTest extends FunctionalApiTestCase
         $customer = $this->createCustomer('customer-scan@example.test');
         $product = $this->createMerchantProduct($shop, '2.800', 'Lait Vitalait 1L');
         $order = $this->createReadyOrder($customer, $shop, $product);
+        $order->assignOrderNumber(42);
         $pickupSession = new PickupSession($order);
         $this->entityManager->persist($pickupSession);
         $this->entityManager->flush();
@@ -44,8 +45,8 @@ final class MerchantPickupSessionScanApiTest extends FunctionalApiTestCase
         self::assertSame($pickupSession->getId()->toRfc4122(), $payload['id']);
         self::assertSame($order->getId()->toRfc4122(), $payload['order_id']);
         self::assertSame($shop->getId()->toRfc4122(), $payload['store_id']);
-        self::assertArrayHasKey('order_number', $payload);
-        self::assertNull($payload['order_number']);
+        self::assertSame(42, $payload['order_number']);
+        self::assertSame('#0042', $payload['order_number_display']);
         self::assertSame('pickup_pending', $payload['status']);
         self::assertNotEmpty($payload['scanned_at']);
         self::assertSame('Haythem', $payload['customer']['first_name']);

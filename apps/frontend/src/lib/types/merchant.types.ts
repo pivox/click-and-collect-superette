@@ -64,7 +64,8 @@ export interface MerchantOrderSummary {
   line_count: number;
   created_at: string;
   updated_at: string;
-  order_number?: string;
+  order_number?: number | string | null;
+  order_number_display?: string | null;
   customer_name?: string | null;
 }
 
@@ -96,7 +97,8 @@ export interface MerchantOrderHistoryItem {
   pickup_slot: MerchantOrderHistoryPickupSlot | null;
   created_at: string;
   updated_at: string;
-  order_number?: string;
+  order_number?: number | string | null;
+  order_number_display?: string | null;
 }
 
 export interface MerchantOrderHistoryList {
@@ -146,7 +148,8 @@ export interface MerchantOrderDetail {
   rejection_reason: string | null;
   created_at: string;
   updated_at: string;
-  order_number?: string;
+  order_number?: number | string | null;
+  order_number_display?: string | null;
 }
 
 export interface RejectMerchantOrderPayload {
@@ -184,7 +187,8 @@ export interface MerchantPickupSessionScanResult {
   id: string;
   order_id: string;
   store_id: string;
-  order_number: string | null;
+  order_number: number | string | null;
+  order_number_display?: string | null;
   status: MerchantOrderStatus;
   scanned_at: string;
   customer: MerchantPickupSessionCustomer;

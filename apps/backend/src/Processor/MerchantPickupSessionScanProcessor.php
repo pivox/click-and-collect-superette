@@ -154,7 +154,8 @@ final readonly class MerchantPickupSessionScanProcessor implements ProcessorInte
             id: $pickupSession->getId()->toRfc4122(),
             orderId: $order->getId()->toRfc4122(),
             storeId: $order->getShop()->getId()->toRfc4122(),
-            orderNumber: null,
+            orderNumber: $order->getOrderNumber(),
+            orderNumberDisplay: $order->getOrderNumberDisplay(),
             status: $order->getStatus()->value,
             scannedAt: $scannedAt->format(\DateTimeInterface::ATOM),
             customer: [

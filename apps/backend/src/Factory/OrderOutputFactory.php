@@ -33,6 +33,8 @@ final readonly class OrderOutputFactory
             storeName: $order->getShop()->getName(),
             storeAddress: $order->getShop()->getAddress(),
             storeCity: $order->getShop()->getCity(),
+            orderNumber: $order->getOrderNumber(),
+            orderNumberDisplay: $order->getOrderNumberDisplay(),
             status: $order->getStatus()->value,
             totalTnd: $order->getTotalTnd(),
             pickupSlotId: $slot?->getId()->toRfc4122(),

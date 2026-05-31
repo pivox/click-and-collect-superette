@@ -37,6 +37,8 @@ function makeOrder(status: MerchantOrderDetail['status']): MerchantOrderDetail {
   return {
     id: 'order-1',
     store_id: 'store-1',
+    order_number: 42,
+    order_number_display: '#0042',
     status,
     total_tnd: '18.500',
     pickup_slot: {
@@ -76,7 +78,7 @@ describe('MerchantOrderDetailPage', () => {
 
     render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
 
-    expect(await screen.findByRole('heading', { name: /commande order-1/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /commande #0042/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Accepter' }));
 
     await waitFor(() => expect(acceptMerchantOrder).toHaveBeenCalledWith('store-1', 'order-1'));

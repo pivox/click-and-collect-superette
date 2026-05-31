@@ -13,6 +13,12 @@ final readonly class MerchantOrderHistoryItemOutput
         #[Groups(['merchant_order_history:read'])]
         public string $id,
         #[Groups(['merchant_order_history:read'])]
+        #[SerializedName('order_number')]
+        public ?int $orderNumber,
+        #[Groups(['merchant_order_history:read'])]
+        #[SerializedName('order_number_display')]
+        public ?string $orderNumberDisplay,
+        #[Groups(['merchant_order_history:read'])]
         public string $status,
         #[Groups(['merchant_order_history:read'])]
         #[SerializedName('status_label_fr')]

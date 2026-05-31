@@ -13,6 +13,7 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: OrderRepository::class)]
 #[ORM\Table(name: 'orders')]
+#[ORM\UniqueConstraint(name: 'UNIQ_ORDERS_SHOP_NUMBER', columns: ['shop_id', 'order_number'])]
 #[ORM\Index(name: 'IDX_ORDERS_CUSTOMER', columns: ['customer_id'])]
 #[ORM\Index(name: 'IDX_ORDERS_SHOP', columns: ['shop_id'])]
 #[ORM\Index(name: 'IDX_ORDERS_STATUS', columns: ['status'])]
@@ -43,6 +44,9 @@ class Order
 
     #[ORM\Column(type: 'string', length: 32, enumType: OrderStatus::class)]
     private OrderStatus $status = OrderStatus::Draft;
+
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $orderNumber = null;
 
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $notes = null;
@@ -139,6 +143,35 @@ class Order
     public function getStatus(): OrderStatus
     {
         return $this->status;
+    }
+
+    public function getOrderNumber(): ?int
+    {
+        return $this->orderNumber;
+    }
+
+    public function getOrderNumberDisplay(): ?string
+    {
+        if (null === $this->orderNumber) {
+            return null;
+        }
+
+        return \sprintf('#%04d', $this->orderNumber);
+    }
+
+    public function assignOrderNumber(int $orderNumber): static
+    {
+        if ($orderNumber < 1) {
+            throw new \LogicException('ORDER_NUMBER_INVALID');
+        }
+
+        if (null !== $this->orderNumber && $this->orderNumber !== $orderNumber) {
+            throw new \LogicException('ORDER_NUMBER_ALREADY_ASSIGNED');
+        }
+
+        $this->orderNumber = $orderNumber;
+
+        return $this;
     }
 
     public function getNotes(): ?string

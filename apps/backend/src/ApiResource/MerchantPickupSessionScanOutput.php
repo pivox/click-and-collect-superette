@@ -44,7 +44,10 @@ final readonly class MerchantPickupSessionScanOutput
         public string $storeId,
         #[Groups(['merchant_pickup_session_scan:read'])]
         #[SerializedName('order_number')]
-        public ?string $orderNumber,
+        public ?int $orderNumber,
+        #[Groups(['merchant_pickup_session_scan:read'])]
+        #[SerializedName('order_number_display')]
+        public ?string $orderNumberDisplay,
         #[Groups(['merchant_pickup_session_scan:read'])]
         public string $status,
         #[Groups(['merchant_pickup_session_scan:read'])]

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import axios from 'axios';
 import { Button } from '@/components/ui/Button';
 import { formatTime, formatTnd } from '@/lib/format';
+import { displayOrderCode, fallbackOrderCode } from '@/lib/order-number';
 import {
   confirmMerchantPickupSession,
   forceCompleteMerchantPickupSession,
@@ -35,10 +36,6 @@ function apiErrorMessage(error: unknown): string {
   return "L'action n'a pas pu être effectuée. Réessaie.";
 }
 
-function fallbackOrderLabel(orderId: string | undefined): string {
-  return orderId ? `#${orderId.slice(0, 8).toUpperCase()}` : '';
-}
-
 const PICKUP_STATUS_LABELS: Record<string, string> = {
   pickup_pending: 'retrait en cours',
   ready: 'prête au retrait',
@@ -52,7 +49,7 @@ function pickupStatusLabel(status: string): string {
 }
 
 function pickupResultText(orderId: string, status: string, manual = false): string {
-  const orderLabel = `#${orderId.slice(0, 8).toUpperCase()}`;
+  const orderLabel = fallbackOrderCode(orderId);
 
   if (status === 'completed') {
     return manual
@@ -123,7 +120,7 @@ export default function MerchantPickupPage() {
   const [isMutating, setIsMutating] = useState(false);
 
   const trimmedToken = token.trim();
-  const orderLabel = session?.order_number ?? fallbackOrderLabel(session?.order_id);
+  const orderLabel = session ? displayOrderCode({ ...session, id: session.order_id }) : '';
   const canForceComplete =
     !!actionResult?.merchant_confirmed_at &&
     !actionResult.customer_confirmed_at &&

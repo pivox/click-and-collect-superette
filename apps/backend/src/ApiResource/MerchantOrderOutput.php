@@ -106,6 +106,12 @@ final readonly class MerchantOrderOutput
         #[SerializedName('store_id')]
         public string $storeId,
         #[Groups(['merchant_order:read'])]
+        #[SerializedName('order_number')]
+        public ?int $orderNumber,
+        #[Groups(['merchant_order:read'])]
+        #[SerializedName('order_number_display')]
+        public ?string $orderNumberDisplay,
+        #[Groups(['merchant_order:read'])]
         public string $status,
         #[Groups(['merchant_order:read'])]
         #[SerializedName('total_tnd')]

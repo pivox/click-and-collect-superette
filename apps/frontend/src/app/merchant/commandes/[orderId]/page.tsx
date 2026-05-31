@@ -8,6 +8,7 @@ import { RejectOrderDialog } from '@/components/merchant/RejectOrderDialog';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { formatTime, formatTnd } from '@/lib/format';
+import { displayOrderCode } from '@/lib/order-number';
 import {
   acceptMerchantOrder,
   getMerchantOrder,
@@ -107,6 +108,7 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
 
   const canMarkReady =
     order.lines.length > 0 && order.lines.every((line) => line.prepared);
+  const orderLabel = displayOrderCode(order);
 
   return (
     <div>
@@ -117,7 +119,7 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
       <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-h1 font-black">Commande {order.order_number ?? order.id}</h1>
+            <h1 className="text-h1 font-black">Commande {orderLabel}</h1>
             <OrderStatusBadge status={order.status} />
           </div>
           <p className="mt-1 text-sm text-muted">

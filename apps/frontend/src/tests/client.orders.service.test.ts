@@ -33,6 +33,8 @@ const RAW_ORDER = {
   store_name: 'Supérette El Amen',
   store_address: 'Rue de la Liberté',
   store_city: 'Tunis',
+  order_number: 42,
+  order_number_display: '#0042',
   status: 'ready',
   total_tnd: '12.500',
   pickup_slot_id: 'slot-uuid-1',
@@ -92,6 +94,7 @@ describe('getOrder', () => {
     expect(order).not.toBeNull();
     expect(order!.id).toBe('order-uuid-1');
     expect(order!.status).toBe('ready');
+    expect(order!.code).toBe('#0042');
     expect(order!.totalAmountTnd).toBe('12.500');
     expect(order!.shopName).toBe('Supérette El Amen');
     expect(order!.pickupSlot).toMatchObject({

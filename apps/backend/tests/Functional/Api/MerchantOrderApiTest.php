@@ -35,7 +35,9 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $customer = $this->createUser('customer-list@example.test', ['ROLE_CUSTOMER']);
 
         $slot = $this->createPickupSlot($shop);
-        $this->createSubmittedOrderWithSlot($customer, $shop, $slot);
+        $orderWithSlot = $this->createSubmittedOrderWithSlot($customer, $shop, $slot);
+        $orderWithSlot->assignOrderNumber(42);
+        $this->entityManager->flush();
         $this->createSubmittedOrder($customer, $shop);
 
         $response = $this->requestJson(
@@ -61,6 +63,8 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         ));
         self::assertCount(1, $itemWithSlot);
         self::assertSame($slot->getId()->toRfc4122(), $itemWithSlot[0]['pickup_slot']['id']);
+        self::assertSame(42, $itemWithSlot[0]['order_number']);
+        self::assertSame('#0042', $itemWithSlot[0]['order_number_display']);
     }
 
     public function testListOrdersDoesNotExposeCustomerContactOrSensitiveUserData(): void
@@ -176,6 +180,8 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         $product = $this->createMerchantProduct($shop, '2.500', 'Lait Vitalait 1L');
         $order = $this->createSubmittedOrderWithSlot($customer, $shop, $slot);
         $this->addOrderLine($order, $product, quantity: 2, unitPriceTnd: '2.500');
+        $order->assignOrderNumber(43);
+        $this->entityManager->flush();
 
         $response = $this->requestJson(
             'GET',
@@ -188,6 +194,8 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
 
         $payload = $this->decodeJson($response);
         self::assertSame($order->getId()->toRfc4122(), $payload['id']);
+        self::assertSame(43, $payload['order_number']);
+        self::assertSame('#0043', $payload['order_number_display']);
         self::assertSame('submitted', $payload['status']);
         self::assertSame('5.000', $payload['total_tnd']);
         self::assertSame($slot->getId()->toRfc4122(), $payload['pickup_slot']['id']);
