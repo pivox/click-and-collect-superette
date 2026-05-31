@@ -94,3 +94,11 @@ vendor/bin/phpunit
 vendor/bin/phpstan analyse --memory-limit=512M
 vendor/bin/php-cs-fixer fix --dry-run --diff
 ```
+
+Depuis la racine du monorepo avec Docker :
+
+```bash
+docker compose exec -T backend vendor/bin/phpunit
+```
+
+La configuration PHPUnit force `APP_ENV=test` et `memory_limit=512M` pour éviter les faux échecs liés au conteneur backend lancé en environnement `dev`.
