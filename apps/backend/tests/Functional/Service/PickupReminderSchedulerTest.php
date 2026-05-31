@@ -38,6 +38,26 @@ final class PickupReminderSchedulerTest extends FunctionalApiTestCase
         self::assertSame(1_800_000, $delayStamp->getDelay());
     }
 
+    public function testReadyOrderWithStoredLocalClockSlotUsesTunisInstantForDelay(): void
+    {
+        $now = new \DateTimeImmutable('2026-05-16T10:00:00+00:00');
+        $bus = new RecordingMessageBus();
+        $scheduler = new PickupReminderScheduler($bus, new MockClock($now));
+
+        $order = $this->createReadyOrderWithSlot($now->modify('+90 minutes'));
+        $orderId = $order->getId();
+        $this->entityManager->clear();
+        $order = $this->entityManager->getRepository(Order::class)->find($orderId);
+        self::assertNotNull($order);
+
+        $scheduler->scheduleForReadyOrder($order);
+
+        self::assertCount(1, $bus->dispatched);
+        $delayStamp = $bus->dispatched[0]->last(DelayStamp::class);
+        self::assertInstanceOf(DelayStamp::class, $delayStamp);
+        self::assertSame(1_800_000, $delayStamp->getDelay());
+    }
+
     public function testReadyOrderWithSlotLessThanOneHourAwayDispatchesImmediately(): void
     {
         $now = new \DateTimeImmutable('2026-05-16 10:00:00');

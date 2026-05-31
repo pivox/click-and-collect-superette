@@ -38,6 +38,25 @@ final class MerchantResponseTimeoutSchedulerTest extends FunctionalApiTestCase
         self::assertSame(3_600_000, $delayStamp->getDelay());
     }
 
+    public function testSubmittedOrderWithStoredLocalClockSlotUsesTunisInstantForTimeout(): void
+    {
+        $now = new \DateTimeImmutable('2026-05-16T10:00:00+00:00');
+        $bus = new MerchantResponseRecordingMessageBus();
+        $scheduler = new MerchantResponseTimeoutScheduler($bus, new MockClock($now), 7200);
+
+        $order = $this->createSubmittedOrderWithSlot($now->modify('+2 hours'));
+        $orderId = $order->getId();
+        $this->entityManager->clear();
+        $order = $this->entityManager->getRepository(Order::class)->find($orderId);
+        self::assertNotNull($order);
+
+        $scheduler->scheduleForSubmittedOrder($order);
+
+        self::assertCount(1, $bus->dispatched);
+        self::assertInstanceOf(ExpireMerchantResponseMessage::class, $bus->dispatched[0]->getMessage());
+        self::assertNull($bus->dispatched[0]->last(DelayStamp::class));
+    }
+
     public function testSubmittedOrderInsideTimeoutWindowDispatchesImmediately(): void
     {
         $now = new \DateTimeImmutable('2026-05-16 10:00:00');

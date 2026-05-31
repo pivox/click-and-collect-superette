@@ -265,6 +265,28 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('PICKUP_SLOT_EXPIRED', (string) $response->getContent());
     }
 
+    public function testSubmitOrderExpiredManualLocalClockSlotReturns422(): void
+    {
+        $customer = $this->createUser('submit-expired-local-clock@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop, capacity: 5, startsAtModifier: '-90 minutes', endsAtModifier: '-30 minutes');
+        $product = $this->createMerchantProduct($shop, '1.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '1.000');
+        $kadhiaId = $kadhia->getId()->toRfc4122();
+        $slotId = $slot->getId()->toRfc4122();
+        $this->entityManager->clear();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhiaId),
+            ['pickup_slot_id' => $slotId],
+            $customer,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_EXPIRED', (string) $response->getContent());
+    }
+
     public function testSubmitOrderClosedSlotReturns422(): void
     {
         $customer = $this->createUser('submit-closed-slot@example.test', ['ROLE_CUSTOMER']);
@@ -451,8 +473,8 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         $now = new \DateTimeImmutable();
         $slot = (new PickupSlot())
             ->setShop($shop)
-            ->setStartsAt($now->modify($startsAtModifier))
-            ->setEndsAt($now->modify($endsAtModifier))
+            ->setStartsAt(PickupSlotDisplayTime::fromPayloadInstant($now->modify($startsAtModifier)))
+            ->setEndsAt(PickupSlotDisplayTime::fromPayloadInstant($now->modify($endsAtModifier)))
             ->setCapacity($capacity);
 
         $this->entityManager->persist($slot);
