@@ -886,6 +886,11 @@ describe('MerchantCatalogPage', () => {
       merchant_note: 'Rupture temporaire',
       merchant_product_ids: ['mp-1'],
     });
+
+    await waitFor(() =>
+      expect(screen.queryByRole('checkbox', { name: 'Sélectionner Lait demi-écrémé' })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('1 produit mis à jour.')).toBeInTheDocument();
   });
 
   it('filters merchant catalogue products locally after submit', async () => {
