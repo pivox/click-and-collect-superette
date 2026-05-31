@@ -10,10 +10,14 @@ use App\ApiResource\BulkLocalProductCreatedOutput;
 use App\Dto\BulkLocalProductCreateInput;
 use App\Entity\MerchantLocalProduct;
 use App\Entity\MerchantProduct;
+use App\Entity\User;
+use App\Enum\MerchantProductPriceSource;
 use App\Repository\MerchantCategoryRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\MerchantProductPriceService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -28,7 +32,9 @@ final readonly class CreateBulkLocalProductProcessor implements ProcessorInterfa
         private ShopRepository $shopRepository,
         private MerchantCategoryRepository $merchantCategoryRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
+        private MerchantProductPriceService $priceService,
         private EntityManagerInterface $entityManager,
+        private Security $security,
     ) {
     }
 
@@ -75,8 +81,10 @@ final readonly class CreateBulkLocalProductProcessor implements ProcessorInterfa
 
         /** @var list<array{merchant_product_id: string, local_product_id: string, name_fr: string, price_tnd: string}> $items */
         $items = [];
+        $user = $this->security->getUser();
+        $changedByUser = $user instanceof User ? $user : null;
 
-        $this->entityManager->wrapInTransaction(function () use ($data, $shop, $merchantCategory, $baseNameFr, $baseNameAr, $brandName, $defaultCategoryName, &$items): void {
+        $this->entityManager->wrapInTransaction(function () use ($data, $shop, $merchantCategory, $baseNameFr, $baseNameAr, $brandName, $defaultCategoryName, $changedByUser, &$items): void {
             foreach ($data->formats as $format) {
                 $localProduct = (new MerchantLocalProduct())
                     ->setShop($shop)
@@ -107,6 +115,11 @@ final readonly class CreateBulkLocalProductProcessor implements ProcessorInterfa
 
                 $this->entityManager->persist($localProduct);
                 $this->entityManager->persist($merchantProduct);
+                $this->priceService->recordInitialPrice(
+                    merchantProduct: $merchantProduct,
+                    source: MerchantProductPriceSource::MerchantDashboard,
+                    changedByUser: $changedByUser,
+                );
 
                 $items[] = [
                     'merchant_product_id' => $merchantProduct->getId()->toRfc4122(),

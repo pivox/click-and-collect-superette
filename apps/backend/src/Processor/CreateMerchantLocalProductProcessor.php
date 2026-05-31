@@ -10,10 +10,14 @@ use App\ApiResource\MerchantLocalProductOutput;
 use App\Dto\MerchantLocalProductCreateInput;
 use App\Entity\MerchantLocalProduct;
 use App\Entity\MerchantProduct;
+use App\Entity\User;
+use App\Enum\MerchantProductPriceSource;
 use App\Repository\MerchantCategoryRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\MerchantProductPriceService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -28,7 +32,9 @@ final readonly class CreateMerchantLocalProductProcessor implements ProcessorInt
         private ShopRepository $shopRepository,
         private MerchantCategoryRepository $merchantCategoryRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
+        private MerchantProductPriceService $priceService,
         private EntityManagerInterface $entityManager,
+        private Security $security,
     ) {
     }
 
@@ -94,6 +100,12 @@ final readonly class CreateMerchantLocalProductProcessor implements ProcessorInt
 
         $this->entityManager->persist($localProduct);
         $this->entityManager->persist($merchantProduct);
+        $user = $this->security->getUser();
+        $this->priceService->recordInitialPrice(
+            merchantProduct: $merchantProduct,
+            source: MerchantProductPriceSource::MerchantDashboard,
+            changedByUser: $user instanceof User ? $user : null,
+        );
         $this->entityManager->flush();
 
         return new MerchantLocalProductOutput(
