@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { OrderStatusBadge } from '@/components/merchant/OrderStatusBadge';
 import { PartialAcceptDialog } from '@/components/merchant/PartialAcceptDialog';
 import { RejectOrderDialog } from '@/components/merchant/RejectOrderDialog';
@@ -46,6 +46,7 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [isPartialOpen, setIsPartialOpen] = useState(false);
+  const autoStartedPreparationOrderIds = useRef<Set<string>>(new Set());
 
   const loadOrder = useCallback(async () => {
     if (!merchant) return;
@@ -64,6 +65,29 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
   useEffect(() => {
     void loadOrder();
   }, [loadOrder]);
+
+  useEffect(() => {
+    if (!merchant || !order || order.status !== 'accepted') return;
+    if (autoStartedPreparationOrderIds.current.has(order.id)) return;
+
+    autoStartedPreparationOrderIds.current.add(order.id);
+    const storeId = merchant.store.id;
+
+    const startPreparation = async () => {
+      setIsMutating(true);
+      setError(null);
+      try {
+        await startMerchantOrderPreparation(storeId, params.orderId);
+        await loadOrder();
+      } catch (err) {
+        setError(apiErrorMessage(err));
+      } finally {
+        setIsMutating(false);
+      }
+    };
+
+    void startPreparation();
+  }, [loadOrder, merchant, order, params.orderId]);
 
   const runAction = async (action: (storeId: string) => Promise<unknown>) => {
     if (!merchant) return;

@@ -70,11 +70,16 @@ describe('MerchantOrderDetailPage', () => {
     vi.resetAllMocks();
   });
 
-  it('shows submitted actions and reloads after accept', async () => {
+  it('shows submitted actions and auto-starts preparation after accept reloads as accepted', async () => {
     vi.mocked(getMerchantOrder)
       .mockResolvedValueOnce(makeOrder('submitted'))
-      .mockResolvedValueOnce(makeOrder('accepted'));
+      .mockResolvedValueOnce(makeOrder('accepted'))
+      .mockResolvedValueOnce(makeOrder('preparing'));
     vi.mocked(acceptMerchantOrder).mockResolvedValue({ id: 'order-1', status: 'accepted' });
+    vi.mocked(startMerchantOrderPreparation).mockResolvedValue({
+      id: 'order-1',
+      status: 'preparing',
+    });
 
     render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
 
@@ -82,10 +87,13 @@ describe('MerchantOrderDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Accepter' }));
 
     await waitFor(() => expect(acceptMerchantOrder).toHaveBeenCalledWith('store-1', 'order-1'));
-    expect(getMerchantOrder).toHaveBeenCalledTimes(2);
+    await waitFor(() =>
+      expect(startMerchantOrderPreparation).toHaveBeenCalledWith('store-1', 'order-1'),
+    );
+    expect(getMerchantOrder).toHaveBeenCalledTimes(3);
   });
 
-  it('shows preparation action only for accepted orders', async () => {
+  it('automatically starts preparation when an accepted order is opened', async () => {
     vi.mocked(getMerchantOrder)
       .mockResolvedValueOnce(makeOrder('accepted'))
       .mockResolvedValueOnce(makeOrder('preparing'));
@@ -96,11 +104,10 @@ describe('MerchantOrderDetailPage', () => {
 
     render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Démarrer préparation' }));
-
     await waitFor(() =>
       expect(startMerchantOrderPreparation).toHaveBeenCalledWith('store-1', 'order-1'),
     );
+    expect(await screen.findByRole('button', { name: 'Commande prête' })).toBeInTheDocument();
   });
 
   it('shows line preparation and ready action only for preparing orders', async () => {
