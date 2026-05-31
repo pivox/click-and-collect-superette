@@ -55,6 +55,7 @@ export default function PickupQrPage({
     useState<CustomerPickupSessionConfirmation | null>(null);
   const pollingPickupSessionId = pickupSession?.id;
   const pollingPickupSessionExpired = pickupSession?.isExpired ?? false;
+  const pollingOrderStatus = order?.status;
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -98,9 +99,9 @@ export default function PickupQrPage({
       !user ||
       !fetchDone ||
       fetchError ||
-      order?.status !== "ready" ||
+      (pollingOrderStatus !== "ready" && pollingOrderStatus !== "pickup_pending") ||
       !pollingPickupSessionId ||
-      pollingPickupSessionExpired
+      (pollingOrderStatus === "ready" && pollingPickupSessionExpired)
     ) {
       return;
     }
@@ -132,8 +133,8 @@ export default function PickupQrPage({
     authLoading,
     fetchDone,
     fetchError,
-    order?.status,
     orderId,
+    pollingOrderStatus,
     pollingPickupSessionExpired,
     pollingPickupSessionId,
     user,

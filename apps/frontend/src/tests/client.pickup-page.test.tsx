@@ -43,6 +43,7 @@ const PICKUP_SESSION = {
   isExpired: false,
   qrPayload: '11111111-1111-4111-8111-111111111111',
 };
+const PICKUP_STATUS_POLL_MS = 4000;
 
 function makeOrder(status: OrderStatus) {
   return {
@@ -79,6 +80,49 @@ describe('PickupQrPage', () => {
       login: vi.fn(),
       logout: vi.fn(),
     } as unknown as ReturnType<typeof useClientAuth>);
+  }
+
+  function capturePickupPollingIntervals() {
+    const intervalCallbacks: Array<() => void> = [];
+    const componentIntervalIds = new Set<number>();
+    const originalSetInterval = window.setInterval.bind(window);
+    const originalClearInterval = window.clearInterval.bind(window);
+    let nextIntervalId = 1000;
+    const setIntervalSpy = vi
+      .spyOn(window, 'setInterval')
+      .mockImplementation(((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+        if (timeout === PICKUP_STATUS_POLL_MS && typeof handler === 'function') {
+          const intervalId = nextIntervalId;
+          nextIntervalId += 1;
+          componentIntervalIds.add(intervalId);
+          intervalCallbacks.push(handler as () => void);
+          return intervalId;
+        }
+
+        return (originalSetInterval as unknown as (...params: unknown[]) => number)(
+          handler,
+          timeout,
+          ...args,
+        );
+      }) as typeof window.setInterval);
+    const clearIntervalSpy = vi
+      .spyOn(window, 'clearInterval')
+      .mockImplementation(((intervalId?: number) => {
+        if (typeof intervalId === 'number' && componentIntervalIds.has(intervalId)) {
+          componentIntervalIds.delete(intervalId);
+          return;
+        }
+
+        originalClearInterval(intervalId);
+      }) as typeof window.clearInterval);
+
+    return {
+      intervalCallbacks,
+      restore: () => {
+        setIntervalSpy.mockRestore();
+        clearIntervalSpy.mockRestore();
+      },
+    };
   }
 
   beforeEach(() => {
@@ -142,38 +186,7 @@ describe('PickupQrPage', () => {
   });
 
   it('rafraîchit automatiquement après scan marchand et affiche la confirmation client', async () => {
-    const intervalCallbacks: Array<() => void> = [];
-    const componentIntervalIds = new Set<number>();
-    const originalSetInterval = window.setInterval.bind(window);
-    const originalClearInterval = window.clearInterval.bind(window);
-    let nextIntervalId = 1000;
-    const setIntervalSpy = vi
-      .spyOn(window, 'setInterval')
-      .mockImplementation(((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
-        if (timeout === 4000 && typeof handler === 'function') {
-          const intervalId = nextIntervalId;
-          nextIntervalId += 1;
-          componentIntervalIds.add(intervalId);
-          intervalCallbacks.push(handler as () => void);
-          return intervalId;
-        }
-
-        return (originalSetInterval as unknown as (...params: unknown[]) => number)(
-          handler,
-          timeout,
-          ...args,
-        );
-      }) as typeof window.setInterval);
-    const clearIntervalSpy = vi
-      .spyOn(window, 'clearInterval')
-      .mockImplementation(((intervalId?: number) => {
-        if (typeof intervalId === 'number' && componentIntervalIds.has(intervalId)) {
-          componentIntervalIds.delete(intervalId);
-          return;
-        }
-
-        originalClearInterval(intervalId);
-      }) as typeof window.clearInterval);
+    const polling = capturePickupPollingIntervals();
 
     try {
       vi.mocked(getOrder)
@@ -186,11 +199,11 @@ describe('PickupQrPage', () => {
         expect(screen.getByText(/Présente ce QR code au comptoir/i)).toBeTruthy();
       });
       await waitFor(() => {
-        expect(intervalCallbacks.length).toBeGreaterThan(0);
+        expect(polling.intervalCallbacks.length).toBeGreaterThan(0);
       });
 
       await act(async () => {
-        const refreshAfterScan = intervalCallbacks[intervalCallbacks.length - 1];
+        const refreshAfterScan = polling.intervalCallbacks[polling.intervalCallbacks.length - 1];
         await refreshAfterScan();
       });
 
@@ -201,8 +214,7 @@ describe('PickupQrPage', () => {
       expect(getOrder).toHaveBeenCalledTimes(2);
       expect(getPickupSession).toHaveBeenCalledTimes(2);
     } finally {
-      setIntervalSpy.mockRestore();
-      clearIntervalSpy.mockRestore();
+      polling.restore();
     }
   });
 
@@ -242,6 +254,54 @@ describe('PickupQrPage', () => {
       );
     });
     expect(screen.getByText(/Confirmation client enregistrée/i)).toBeTruthy();
+  });
+
+  it('continue le rafraîchissement après confirmation client et quitte le retrait une fois finalisé', async () => {
+    const polling = capturePickupPollingIntervals();
+
+    try {
+      vi.mocked(getOrder)
+        .mockResolvedValueOnce(makeOrder('pickup_pending'))
+        .mockResolvedValueOnce(makeOrder('completed'));
+      vi.mocked(confirmCustomerPickupSession).mockResolvedValue({
+        id: 'pickup-session-uuid-1',
+        orderId: 'order-uuid-1',
+        orderStatus: 'pickup_pending',
+        scannedAt: '2026-05-28T10:05:00+01:00',
+        merchantConfirmedAt: null,
+        customerConfirmedAt: '2026-05-28T10:06:00+01:00',
+        isUsed: false,
+        isCompleted: false,
+      });
+
+      render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+
+      const button = await screen.findByRole('button', {
+        name: /J'ai récupéré ma Kadhia/i,
+      });
+      await waitFor(() => {
+        expect(polling.intervalCallbacks.length).toBeGreaterThan(0);
+      });
+
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Confirmation client enregistrée/i)).toBeTruthy();
+      });
+
+      await act(async () => {
+        const refreshAfterCompletion = polling.intervalCallbacks[polling.intervalCallbacks.length - 1];
+        await refreshAfterCompletion();
+      });
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith('/orders/order-uuid-1');
+      });
+      expect(getOrder).toHaveBeenCalledTimes(2);
+      expect(getPickupSession).toHaveBeenCalledTimes(1);
+    } finally {
+      polling.restore();
+    }
   });
 
   it('affiche un message clair si le QR code est expiré', async () => {
