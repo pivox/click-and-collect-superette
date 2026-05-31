@@ -1,5 +1,6 @@
 import type { Kadhia, KadhiaLine, ProductOffer } from "@/types";
 import { apiClient } from "@/lib/api";
+import { MOCK_ORDER } from "@/lib/mock/orders.mock";
 import { displayOrderCode } from "@/lib/order-number";
 import { USE_MOCKS, mockDelay } from "./index";
 
@@ -442,14 +443,12 @@ export interface SubmittedOrder {
   orderCode: string;
 }
 
-const MOCK_ORDER_ID = "order-demo-4821";
-
 export async function submitKadhia(params: SubmitKadhiaParams): Promise<SubmittedOrder> {
   const { shopId, pickupSlotId, customerNote } = params;
 
   if (USE_MOCKS) {
     writeMock(null);
-    return mockDelay({ orderId: MOCK_ORDER_ID, orderCode: "CMD-4821" });
+    return mockDelay({ orderId: MOCK_ORDER.id, orderCode: MOCK_ORDER.code });
   }
 
   const kadhiaId = readActiveId(shopId);
