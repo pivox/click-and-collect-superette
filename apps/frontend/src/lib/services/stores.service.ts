@@ -54,6 +54,20 @@ export async function getShop(shopId: string): Promise<Shop | null> {
   }
 }
 
+export async function recordStoreVisit(
+  shopId: string,
+  source: "qr_code" | "search" | "manual" | "order" = "qr_code",
+): Promise<void> {
+  if (USE_MOCKS) return mockDelay(undefined);
+  if (typeof window !== "undefined" && !localStorage.getItem("jwt_token")) return;
+
+  await apiClient.post(
+    `/api/me/stores/${shopId}/visit`,
+    { source },
+    { skipAuthRedirect: true },
+  );
+}
+
 /** For the "shop reconnu après scan" flow — qrToken is the store's qrCodeToken. */
 export async function getShopBySlug(qrToken: string): Promise<Shop | null> {
   if (USE_MOCKS) {
