@@ -9,6 +9,7 @@ use App\Entity\Category;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
+use App\Entity\PickupSession;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
@@ -47,6 +48,52 @@ final class MerchantPickupCodeApiTest extends FunctionalApiTestCase
         $this->entityManager->refresh($order);
         self::assertSame(OrderStatus::Completed, $order->getStatus());
         self::assertNull($order->getPickupCode());
+    }
+
+    public function testRedeemByCodeMarksPickupSessionAsUsedForCustomerStatus(): void
+    {
+        $merchant = $this->createUser('merchant-redeem-session@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-redeem-session@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createReadyOrder($customer, $shop);
+        $pickupSession = new PickupSession($order);
+        $this->entityManager->persist($pickupSession);
+        $this->entityManager->flush();
+
+        $code = $order->getPickupCode();
+        self::assertNotNull($code);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/redeem-by-code', $shop->getId()),
+            ['pickupCode' => $code],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $this->entityManager->refresh($pickupSession);
+
+        self::assertTrue($pickupSession->isUsed());
+        self::assertNotNull($pickupSession->getScannedAt());
+        self::assertNotNull($pickupSession->getMerchantConfirmedAt());
+        self::assertNotNull($pickupSession->getCustomerConfirmedAt());
+
+        $statusResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/me/orders/%s/status', $order->getId()),
+            null,
+            $customer,
+        );
+
+        self::assertSame(200, $statusResponse->getStatusCode());
+        $payload = $this->decodeJson($statusResponse);
+        self::assertSame('completed', $payload['status']);
+        self::assertTrue($payload['pickup_session']['exists']);
+        self::assertTrue($payload['pickup_session']['is_scanned']);
+        self::assertTrue($payload['pickup_session']['merchant_confirmed']);
+        self::assertTrue($payload['pickup_session']['customer_confirmed']);
+        self::assertTrue($payload['pickup_session']['is_used']);
+        self::assertFalse($payload['pickup_session']['force_completed_by_merchant']);
     }
 
     public function testRedeemByCodeReturns404OnWrongCode(): void

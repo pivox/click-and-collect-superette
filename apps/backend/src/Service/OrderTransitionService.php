@@ -54,6 +54,7 @@ final readonly class OrderTransitionService
     public function completeByCode(Order $order, string $code): void
     {
         $order->redeemByCode($code);
+        $this->pickupSessionRepository->findOneByOrder($order)?->completeByCode();
         $this->orderStatusLogRecorder->record($order, OrderStatus::Completed, 'withdrawal_validated_by_code');
         $this->notificationService->notifyCustomerOrderCompleted($order);
         $this->notificationService->notifyMerchantPickupCompleted($order);
