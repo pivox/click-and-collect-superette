@@ -11,24 +11,32 @@ import { clientRegister } from '@/lib/services/auth.service';
 export default function ClientRegisterPage() {
   const router = useRouter();
   const isHydrated = useHydrated();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLabel = !isHydrated
+    ? 'Préparation du formulaire…'
+    : isSubmitting
+      ? 'Inscription…'
+      : "Créer mon compte";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!name.trim()) { setError('Le nom est requis.'); return; }
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const name = String(formData.get('name') ?? '').trim();
+    const email = String(formData.get('email') ?? '').trim();
+    const password = String(formData.get('password') ?? '');
+
+    if (!name) { setError('Le nom est requis.'); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Veuillez saisir une adresse email valide.");
       return;
     }
     if (password.trim().length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return; }
     setIsSubmitting(true);
     try {
-      await clientRegister(email.trim(), password, name.trim());
+      await clientRegister(email, password, name);
       router.push('/login');
     } catch (err) {
       const status = (err as { response?: { status?: number } }).response?.status;
@@ -63,10 +71,9 @@ export default function ClientRegisterPage() {
             </label>
             <input
               id="name"
+              name="name"
               type="text"
               autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
               className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -76,10 +83,9 @@ export default function ClientRegisterPage() {
             </label>
             <input
               id="reg-email"
+              name="email"
               type="email"
               autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -89,10 +95,9 @@ export default function ClientRegisterPage() {
             </label>
             <input
               id="reg-password"
+              name="password"
               type="password"
               autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -104,7 +109,7 @@ export default function ClientRegisterPage() {
           )}
 
           <Button full type="submit" disabled={!isHydrated || isSubmitting}>
-            {isSubmitting ? 'Inscription…' : "Créer mon compte"}
+            {submitLabel}
           </Button>
         </form>
 
