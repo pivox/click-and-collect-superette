@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Produit superette Tunisie - verification ready",
+  "type": "object",
+  "required": [
+    "sku",
+    "name_fr",
+    "category",
+    "subcategory",
+    "unit",
+    "brand",
+    "brand_candidates",
+    "commercial_identity",
+    "brand_verification",
+    "data_quality"
+  ],
+  "properties": {
+    "sku": { "type": "string" },
+    "name_fr": { "type": "string" },
+    "name_tn_latin": { "type": ["string", "null"] },
+    "name_ar": { "type": ["string", "null"] },
+    "category": { "type": "string" },
+    "subcategory": { "type": "string" },
+    "unit": { "type": ["string", "null"] },
+    "brand": {
+      "type": ["string", "null"],
+      "description": "Marque confirmee uniquement. Ne jamais copier automatiquement une marque candidate ici."
+    },
+    "brand_candidates": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "barcode": {
+      "type": ["string", "null"],
+      "description": "GTIN/EAN/UPC brut si disponible."
+    },
+    "commercial_identity": {
+      "type": "object",
+      "required": ["gtin", "gtin_type", "gtin_check_digit_valid", "gtin_verification_status", "barcode_source"],
+      "properties": {
+        "gtin": { "type": ["string", "null"] },
+        "gtin_type": { "type": ["string", "null"] },
+        "gtin_check_digit_valid": { "type": ["boolean", "null"] },
+        "gtin_verification_status": {
+          "type": "string",
+          "enum": ["missing", "format_valid", "verified_gs1", "verified_supplier", "invalid"]
+        },
+        "barcode_source": { "type": ["string", "null"] }
+      }
+    },
+    "brand_verification": {
+      "type": "object",
+      "required": ["brand_confirmed", "brand_candidates", "evidence_level"],
+      "properties": {
+        "brand_confirmed": { "type": ["string", "null"] },
+        "brand_candidates": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "evidence_level": {
+          "type": "string",
+          "enum": ["none", "weak", "medium", "strong"]
+        },
+        "evidence_type": { "type": ["string", "null"] },
+        "source_url": { "type": ["string", "null"] },
+        "supplier_name": { "type": ["string", "null"] },
+        "supplier_sku": { "type": ["string", "null"] },
+        "verified_at": { "type": ["string", "null"] }
+      }
+    },
+    "price_verification": { "type": "object" },
+    "data_quality": { "type": "object" }
+  }
+}
