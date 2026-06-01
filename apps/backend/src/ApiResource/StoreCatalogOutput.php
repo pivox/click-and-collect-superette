@@ -44,7 +44,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 final readonly class StoreCatalogOutput
 {
     /**
-     * @param list<StoreCatalogProductOutput> $items
+     * @param list<StoreCatalogProductOutput>  $items
      * @param list<StoreCatalogCategoryOutput> $categories
      */
     public function __construct(
