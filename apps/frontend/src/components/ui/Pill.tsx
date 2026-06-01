@@ -30,7 +30,7 @@ export function PillRow({
   return (
     <div
       className={cn(
-        "flex gap-2 overflow-x-auto pb-1 no-scrollbar",
+        "flex min-w-0 max-w-full gap-2 overflow-x-auto pb-1 no-scrollbar",
         className,
       )}
     >

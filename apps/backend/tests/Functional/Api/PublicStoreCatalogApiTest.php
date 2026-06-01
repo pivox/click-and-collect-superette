@@ -151,6 +151,38 @@ final class PublicStoreCatalogApiTest extends FunctionalApiTestCase
         self::assertSame('Lait & produits laitiers', $categoryPayload['items'][0]['category']);
     }
 
+    public function testPublicStoreCatalogIsPaginatedAndKeepsCategoryOptions(): void
+    {
+        $shop = $this->createShop();
+
+        foreach (['Abricots', 'Bananes', 'Carottes', 'Dattes', 'Eau minérale'] as $index => $name) {
+            $reference = $this->createProductReference(
+                brandName: 'Marque '.$index,
+                categoryName: 'Catégorie '.$index,
+                categorySlug: 'categorie-'.$index,
+                nameFr: $name,
+            );
+            $this->createMerchantProduct($shop, $reference);
+        }
+
+        $response = $this->requestJson('GET', \sprintf('/api/stores/%s/catalog?page=2&items_per_page=2', $shop->getId()));
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+
+        self::assertSame(2, $payload['page']);
+        self::assertSame(2, $payload['items_per_page']);
+        self::assertSame(5, $payload['total']);
+        self::assertSame(3, $payload['pages']);
+        self::assertCount(2, $payload['items']);
+        self::assertSame(['Carottes', 'Dattes'], array_column($payload['items'], 'name_fr'));
+        self::assertCount(5, $payload['categories']);
+        self::assertSame(
+            ['categorie-0', 'categorie-1', 'categorie-2', 'categorie-3', 'categorie-4'],
+            array_column($payload['categories'], 'key'),
+        );
+    }
+
     private function createProductReference(
         string $brandName,
         string $categoryName,
