@@ -1,0 +1,110 @@
+{
+  "meta": {
+    "catalog_name": "catalogue_superette_tunisie",
+    "catalog_version": "1.0.0",
+    "schema_version": "product_catalog_verification_ready.v1",
+    "version_status": "stable_draft",
+    "total_products": 5000,
+    "sample": true
+  },
+  "products": [
+    {
+      "sku": "SUPTUN-0001",
+      "name_fr": "Couscous fin 250 g",
+      "name_tn_latin": null,
+      "name_ar": null,
+      "category": "Épicerie salée",
+      "subcategory": "Céréales et féculents",
+      "unit": "250 g",
+      "brand": null,
+      "brand_candidates": ["Randa", "Warda", "Diari", "L'Epi d'Or", "Panzani", "Barilla"],
+      "brand_assignment_status": "candidate_only",
+      "brand_confidence": "category_level",
+      "barcode": null,
+      "estimated_price_tnd": null,
+      "vat_code": null,
+      "is_tunisian_product": true,
+      "is_fine_grocery": false,
+      "sales_channels": ["superette", "hanout", "epicerie", "epicerie_fine"],
+      "status": "draft",
+      "commercial_identity": {
+        "gtin": null,
+        "gtin_type": null,
+        "gtin_check_digit_valid": null,
+        "gtin_verification_status": "missing",
+        "barcode_source": null
+      },
+      "brand_verification": {
+        "brand_confirmed": null,
+        "brand_candidates": ["Randa", "Warda", "Diari", "L'Epi d'Or", "Panzani", "Barilla"],
+        "evidence_level": "none",
+        "evidence_type": null,
+        "source_url": null,
+        "supplier_name": null,
+        "supplier_sku": null,
+        "verified_at": null
+      },
+      "price_verification": {
+        "estimated_price_tnd": null,
+        "price_source": null,
+        "price_source_url": null,
+        "price_observed_at": null,
+        "price_confidence": "missing"
+      },
+      "data_quality": {
+        "import_status": "draft",
+        "commerce_ready": false,
+        "requires_manual_review": true
+      }
+    },
+    {
+      "sku": "SUPTUN-0002",
+      "name_fr": "Semoule moyenne 500 g",
+      "name_tn_latin": null,
+      "name_ar": null,
+      "category": "Épicerie salée",
+      "subcategory": "Céréales et féculents",
+      "unit": "500 g",
+      "brand": null,
+      "brand_candidates": ["Randa", "Warda", "Diari", "L'Epi d'Or"],
+      "brand_assignment_status": "candidate_only",
+      "brand_confidence": "category_level",
+      "barcode": null,
+      "estimated_price_tnd": null,
+      "vat_code": null,
+      "is_tunisian_product": true,
+      "is_fine_grocery": false,
+      "sales_channels": ["superette", "hanout", "epicerie", "epicerie_fine"],
+      "status": "draft",
+      "commercial_identity": {
+        "gtin": null,
+        "gtin_type": null,
+        "gtin_check_digit_valid": null,
+        "gtin_verification_status": "missing",
+        "barcode_source": null
+      },
+      "brand_verification": {
+        "brand_confirmed": null,
+        "brand_candidates": ["Randa", "Warda", "Diari", "L'Epi d'Or"],
+        "evidence_level": "none",
+        "evidence_type": null,
+        "source_url": null,
+        "supplier_name": null,
+        "supplier_sku": null,
+        "verified_at": null
+      },
+      "price_verification": {
+        "estimated_price_tnd": null,
+        "price_source": null,
+        "price_source_url": null,
+        "price_observed_at": null,
+        "price_confidence": "missing"
+      },
+      "data_quality": {
+        "import_status": "draft",
+        "commerce_ready": false,
+        "requires_manual_review": true
+      }
+    }
+  ]
+}
