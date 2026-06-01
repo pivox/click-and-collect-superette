@@ -14,6 +14,7 @@ use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
+use App\Service\PickupSlotDisplayTime;
 use App\Tests\Functional\Api\FunctionalApiTestCase;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -106,6 +107,38 @@ final class SeedDemoStoreCommandTest extends FunctionalApiTestCase
         $this->runCommand();
 
         self::assertSame(3, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
+    public function testSeedDemoStoreDeactivatesStalePickupSlotsOutsideRollingDemoWindow(): void
+    {
+        $this->createApprovedProductReference('6191234560002', 'Lait demi-écrémé UHT');
+
+        $this->runCommand();
+
+        $shop = $this->entityManager->getRepository(Shop::class)->findOneBy(['slug' => 'superette-el-amen']);
+        self::assertInstanceOf(Shop::class, $shop);
+
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $staleStartsAt = (new \DateTimeImmutable('today midnight', $timezone))->modify('+3 days')->setTime(16, 0);
+        $staleSlot = (new PickupSlot())
+            ->setShop($shop)
+            ->setStartsAt(PickupSlotDisplayTime::fromPayloadInstant($staleStartsAt))
+            ->setEndsAt(PickupSlotDisplayTime::fromPayloadInstant($staleStartsAt->modify('+30 minutes')))
+            ->setCapacity(5)
+            ->setActive(true);
+
+        $this->entityManager->persist($staleSlot);
+        $this->entityManager->flush();
+
+        $commandTester = $this->runCommand();
+        $this->entityManager->refresh($staleSlot);
+
+        self::assertFalse($staleSlot->isActive());
+        self::assertSame(3, $this->entityManager->getRepository(PickupSlot::class)->count([
+            'shop' => $shop,
+            'isActive' => true,
+        ]));
+        self::assertStringContainsString('pickup_slots_deactivated', $commandTester->getDisplay());
     }
 
     public function testSeedDemoStoreAllCatalogAssignsEveryApprovedProductReferenceOnly(): void

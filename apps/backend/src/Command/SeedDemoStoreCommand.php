@@ -146,6 +146,7 @@ final class SeedDemoStoreCommand extends Command
             ['visible_catalog_total' => (string) $visibleCatalogCount],
             ['pickup_slots_added' => (string) $slotResult['added']],
             ['pickup_slots_updated' => (string) $slotResult['updated']],
+            ['pickup_slots_deactivated' => (string) $slotResult['deactivated']],
         );
 
         return Command::SUCCESS;
@@ -288,7 +289,7 @@ final class SeedDemoStoreCommand extends Command
     }
 
     /**
-     * @return array{added: int, updated: int}
+     * @return array{added: int, updated: int, deactivated: int}
      */
     private function upsertDemoPickupSlots(Shop $shop): array
     {
@@ -298,11 +299,14 @@ final class SeedDemoStoreCommand extends Command
         $today = new \DateTimeImmutable('today midnight', $timezone);
         $added = 0;
         $updated = 0;
+        $deactivated = 0;
+        $activeDemoRangeKeys = [];
 
         foreach (self::DEMO_PICKUP_SLOTS as $slotDefinition) {
             $day = $today->modify(\sprintf('+%d days', $slotDefinition['day_offset']));
             $startsAt = $this->buildPickupSlotDateTime($day, $slotDefinition['start']);
             $endsAt = $this->buildPickupSlotDateTime($day, $slotDefinition['end']);
+            $activeDemoRangeKeys[$this->pickupSlotRangeKey($startsAt, $endsAt)] = true;
 
             $slot = $pickupSlotRepository->findOneForShopAndRange($shop, $startsAt, $endsAt);
             if (!$slot instanceof PickupSlot) {
@@ -321,7 +325,21 @@ final class SeedDemoStoreCommand extends Command
                 ->setActive(true);
         }
 
-        return ['added' => $added, 'updated' => $updated];
+        foreach ($pickupSlotRepository->findForShop($shop) as $slot) {
+            if (!$slot->isActive()) {
+                continue;
+            }
+
+            $rangeKey = $this->pickupSlotRangeKey($slot->getStartsAt(), $slot->getEndsAt());
+            if (isset($activeDemoRangeKeys[$rangeKey])) {
+                continue;
+            }
+
+            $slot->setActive(false);
+            ++$deactivated;
+        }
+
+        return ['added' => $added, 'updated' => $updated, 'deactivated' => $deactivated];
     }
 
     private function buildPickupSlotDateTime(\DateTimeImmutable $day, string $time): \DateTimeImmutable
@@ -329,6 +347,14 @@ final class SeedDemoStoreCommand extends Command
         [$hour, $minute] = array_map('intval', explode(':', $time));
 
         return PickupSlotDisplayTime::fromPayloadInstant($day->setTime($hour, $minute));
+    }
+
+    private function pickupSlotRangeKey(\DateTimeImmutable $startsAt, \DateTimeImmutable $endsAt): string
+    {
+        $startsAt = PickupSlotDisplayTime::fromStoredLocalClock($startsAt);
+        $endsAt = PickupSlotDisplayTime::fromStoredLocalClock($endsAt);
+
+        return $startsAt->format('Y-m-d H:i:s').'/'.$endsAt->format('Y-m-d H:i:s');
     }
 
     private function resolvePriceTnd(ProductReference $productReference): string
