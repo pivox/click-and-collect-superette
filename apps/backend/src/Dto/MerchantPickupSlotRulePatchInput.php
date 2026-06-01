@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
+use App\Service\PickupSlotDuration;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
@@ -35,6 +36,31 @@ final class MerchantPickupSlotRulePatchInput
             $context->buildViolation('PICKUP_SLOT_RULE_START_TIME_MUST_BE_BEFORE_END_TIME')
                 ->atPath('startTime')
                 ->addViolation();
+
+            return;
         }
+
+        $startTime = self::parseTime($this->startTime);
+        $endTime = self::parseTime($this->endTime);
+        if (null === $startTime || null === $endTime) {
+            return;
+        }
+
+        if (!PickupSlotDuration::isExactlyOneHour($startTime, $endTime)) {
+            $context->buildViolation('PICKUP_SLOT_RULE_MUST_LAST_ONE_HOUR')
+                ->atPath('endTime')
+                ->addViolation();
+        }
+    }
+
+    private static function parseTime(string $value): ?\DateTimeImmutable
+    {
+        $time = \DateTimeImmutable::createFromFormat('!H:i', $value);
+        $errors = \DateTimeImmutable::getLastErrors();
+        if (!$time instanceof \DateTimeImmutable || (false !== $errors && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            return null;
+        }
+
+        return $time;
     }
 }

@@ -13,6 +13,7 @@ use App\Repository\ExceptionalClosureRepository;
 use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
 use App\Service\PickupSlotDisplayTime;
+use App\Service\PickupSlotDuration;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -54,6 +55,7 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
         $availableSlots = array_values(array_filter(
             $this->pickupSlotRepository->findAvailableForShop($shop, $from),
             static fn (PickupSlot $slot): bool => !self::overlapsActiveClosure($activeClosures, $slot)
+                && self::isOneHourSlot($slot)
                 && (null === $to || PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt()) < $to),
         ));
 
@@ -89,6 +91,14 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
         }
 
         return false;
+    }
+
+    private static function isOneHourSlot(PickupSlot $slot): bool
+    {
+        return PickupSlotDuration::isExactlyOneHour(
+            PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt()),
+            PickupSlotDisplayTime::fromStoredLocalClock($slot->getEndsAt()),
+        );
     }
 
     /**

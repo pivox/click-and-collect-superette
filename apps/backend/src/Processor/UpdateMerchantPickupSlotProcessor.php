@@ -12,6 +12,7 @@ use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\PickupSlotDisplayTime;
+use App\Service\PickupSlotDuration;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -69,6 +70,10 @@ final readonly class UpdateMerchantPickupSlotProcessor implements ProcessorInter
         $isActive = $data->isActive ?? $slot->isActive();
         if ($startsAt >= $endsAt) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_STARTS_AT_MUST_BE_BEFORE_ENDS_AT');
+        }
+
+        if (!PickupSlotDuration::isExactlyOneHour($startsAt, $endsAt)) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_MUST_LAST_ONE_HOUR');
         }
 
         if (null !== $data->capacity && $data->capacity < $slot->getBookedCount()) {

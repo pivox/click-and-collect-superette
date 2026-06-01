@@ -27,7 +27,7 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertSame(1, $payload['weekday']);
         self::assertSame('09:00', $payload['start_time']);
-        self::assertSame('12:00', $payload['end_time']);
+        self::assertSame('10:00', $payload['end_time']);
         self::assertSame(5, $payload['capacity']);
         self::assertTrue($payload['is_active']);
 
@@ -63,7 +63,7 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
     {
         $merchant = $this->createUser('merchant-slot-rule-patch@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
-        $rule = $this->createRule($shop, 1, '09:00', '12:00', 5);
+        $rule = $this->createRule($shop, 1, '09:00', '10:00', 5);
 
         $response = $this->requestJson(
             'PATCH',
@@ -71,7 +71,7 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
             [
                 'weekday' => 4,
                 'start_time' => '14:00',
-                'end_time' => '16:00',
+                'end_time' => '15:00',
                 'capacity' => 8,
             ],
             $merchant,
@@ -81,7 +81,7 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertSame(4, $payload['weekday']);
         self::assertSame('14:00', $payload['start_time']);
-        self::assertSame('16:00', $payload['end_time']);
+        self::assertSame('15:00', $payload['end_time']);
         self::assertSame(8, $payload['capacity']);
 
         $this->entityManager->refresh($rule);
@@ -93,7 +93,7 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
     {
         $merchant = $this->createUser('merchant-slot-rule-delete@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
-        $rule = $this->createRule($shop, 1, '09:00', '12:00', 5);
+        $rule = $this->createRule($shop, 1, '09:00', '10:00', 5);
 
         $response = $this->requestJson(
             'DELETE',
@@ -129,7 +129,7 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         $owner = $this->createUser('merchant-slot-rule-mutation-owner@example.test', ['ROLE_MERCHANT']);
         $otherMerchant = $this->createUser('merchant-slot-rule-mutation-other@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($owner);
-        $rule = $this->createRule($shop, 1, '09:00', '12:00', 5);
+        $rule = $this->createRule($shop, 1, '09:00', '10:00', 5);
         $path = \sprintf('/api/merchant/stores/%s/pickup-slot-rules/%s', $shop->getId(), $rule->getId());
 
         $patchResponse = $this->requestJson('PATCH', $path, ['capacity' => 8], $otherMerchant);
@@ -147,11 +147,11 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
     {
         $merchant = $this->createUser('merchant-slot-rule-patch-partial@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
-        $rule = $this->createRule($shop, 1, '09:00', '12:00', 5);
+        $rule = $this->createRule($shop, 1, '09:00', '10:00', 5);
         $path = \sprintf('/api/merchant/stores/%s/pickup-slot-rules/%s', $shop->getId(), $rule->getId());
 
         $capacityResponse = $this->requestJson('PATCH', $path, ['capacity' => 7], $merchant);
-        $invalidRangeResponse = $this->requestJson('PATCH', $path, ['start_time' => '13:00'], $merchant);
+        $invalidRangeResponse = $this->requestJson('PATCH', $path, ['start_time' => '10:30'], $merchant);
 
         self::assertSame(200, $capacityResponse->getStatusCode());
         self::assertSame(422, $invalidRangeResponse->getStatusCode());
@@ -159,6 +159,43 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         self::assertNotNull($storedRule);
         self::assertSame(7, $storedRule->getCapacity());
         self::assertSame('09:00', $storedRule->getStartTime()->format('H:i'));
+    }
+
+    public function testPickupSlotRuleCreateRejectsRangeLongerThanOneHour(): void
+    {
+        $merchant = $this->createUser('merchant-slot-rule-duration-create@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slot-rules', $shop->getId()),
+            $this->validRulePayload(['start_time' => '17:00', 'end_time' => '23:00']),
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_RULE_MUST_LAST_ONE_HOUR', (string) $response->getContent());
+        self::assertSame(0, $this->entityManager->getRepository(PickupSlotRule::class)->count(['shop' => $shop]));
+    }
+
+    public function testPickupSlotRulePatchRejectsRangeLongerThanOneHour(): void
+    {
+        $merchant = $this->createUser('merchant-slot-rule-duration-patch@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $rule = $this->createRule($shop, 1, '09:00', '10:00', 5);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slot-rules/%s', $shop->getId(), $rule->getId()),
+            ['start_time' => '17:00', 'end_time' => '23:00'],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_RULE_MUST_LAST_ONE_HOUR', (string) $response->getContent());
+        $this->entityManager->refresh($rule);
+        self::assertSame('09:00', $rule->getStartTime()->format('H:i'));
+        self::assertSame('10:00', $rule->getEndTime()->format('H:i'));
     }
 
     public function testPickupSlotRuleCreateRejectsInvalidWeekdayTimeCapacityAndDuplicate(): void
@@ -396,7 +433,7 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         return array_replace([
             'weekday' => 1,
             'start_time' => '09:00',
-            'end_time' => '12:00',
+            'end_time' => '10:00',
             'capacity' => 5,
         ], $overrides);
     }

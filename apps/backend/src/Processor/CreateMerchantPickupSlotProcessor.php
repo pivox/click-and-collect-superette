@@ -13,6 +13,7 @@ use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\PickupSlotDisplayTime;
+use App\Service\PickupSlotDuration;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -60,6 +61,10 @@ final readonly class CreateMerchantPickupSlotProcessor implements ProcessorInter
 
         $startsAt = PickupSlotDisplayTime::fromPayloadInstant($data->startsAt);
         $endsAt = PickupSlotDisplayTime::fromPayloadInstant($data->endsAt);
+
+        if (!PickupSlotDuration::isExactlyOneHour($startsAt, $endsAt)) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_MUST_LAST_ONE_HOUR');
+        }
 
         if ($this->pickupSlotRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXISTING_SLOT');

@@ -199,6 +199,23 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         self::assertNotSame($alreadyStartedId, $payload['items'][0]['id']);
     }
 
+    public function testGetPickupSlotsExcludesSlotsLongerThanOneHour(): void
+    {
+        $shop = $this->createShop();
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
+
+        $longSlot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+7 hours'), 3);
+        $oneHourSlot = $this->createPickupSlot($shop, $now->modify('+8 hours'), $now->modify('+9 hours'), 3);
+
+        $response = $this->requestJson('GET', \sprintf('/api/stores/%s/pickup-slots', $shop->getId()));
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($oneHourSlot->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertNotSame($longSlot->getId()->toRfc4122(), $payload['items'][0]['id']);
+    }
+
     public function testGetPickupSlotsOnlyReturnsSlotsBelongingToRequestedShop(): void
     {
         $shop1 = $this->createShop();
@@ -299,7 +316,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         $response = $this->requestJson(
             'POST',
             \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()),
-            $this->validMerchantPickupSlotPayload($startsAt, $startsAt->modify('+30 minutes'), 6),
+            $this->validMerchantPickupSlotPayload($startsAt, $startsAt->modify('+1 hour'), 6),
             $merchant,
         );
 
@@ -378,7 +395,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         $response = $this->requestJson(
             'POST',
             \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()),
-            $this->validMerchantPickupSlotPayload($startsAt, $startsAt->modify('+30 minutes'), 6),
+            $this->validMerchantPickupSlotPayload($startsAt, $startsAt->modify('+1 hour'), 6),
             $otherMerchant,
         );
 
@@ -416,6 +433,24 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         );
 
         self::assertSame(422, $response->getStatusCode());
+        self::assertSame(0, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
+    public function testMerchantPickupSlotCreateRejectsSlotLongerThanOneHour(): void
+    {
+        $merchant = $this->createUser('merchant-slots-create-duration@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $startsAt = new \DateTimeImmutable('+1 day 17:00');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slots', $shop->getId()),
+            $this->validMerchantPickupSlotPayload($startsAt, $startsAt->modify('+6 hours'), 6),
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_MUST_LAST_ONE_HOUR', (string) $response->getContent());
         self::assertSame(0, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
     }
 
@@ -469,7 +504,7 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
             \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()),
             [
                 'starts_at' => $newStartsAt->format(\DateTimeInterface::ATOM),
-                'ends_at' => $newStartsAt->modify('+45 minutes')->format(\DateTimeInterface::ATOM),
+                'ends_at' => $newStartsAt->modify('+1 hour')->format(\DateTimeInterface::ATOM),
                 'capacity' => 8,
             ],
             $merchant,
@@ -524,6 +559,33 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
         $this->entityManager->refresh($slot);
         self::assertSame(3, $slot->getCapacity());
+    }
+
+    public function testMerchantPickupSlotPatchRejectsSlotLongerThanOneHour(): void
+    {
+        $merchant = $this->createUser('merchant-slots-patch-duration@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
+        $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+2 hours'), 3);
+        $newStartsAt = $now->modify('+3 hours');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()),
+            [
+                'starts_at' => $newStartsAt->format(\DateTimeInterface::ATOM),
+                'ends_at' => $newStartsAt->modify('+6 hours')->format(\DateTimeInterface::ATOM),
+            ],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_MUST_LAST_ONE_HOUR', (string) $response->getContent());
+        $this->entityManager->refresh($slot);
+        self::assertSame(
+            $now->modify('+1 hour')->format('Y-m-d H:i'),
+            PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt())->format('Y-m-d H:i'),
+        );
     }
 
     public function testMerchantPickupSlotPatchRejectsOverlapWithAnotherActiveSlot(): void
