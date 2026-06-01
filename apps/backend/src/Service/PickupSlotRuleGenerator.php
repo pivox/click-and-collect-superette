@@ -35,6 +35,10 @@ final readonly class PickupSlotRuleGenerator
         $activeClosures = $this->exceptionalClosureRepository->findActiveForShop($shop);
 
         foreach ($this->pickupSlotRuleRepository->findActiveForShop($shop) as $rule) {
+            if (!PickupSlotDuration::isExactlyOneHour($rule->getStartTime(), $rule->getEndTime())) {
+                continue;
+            }
+
             for ($date = $horizonStart; $date < $horizonEnd; $date = $date->modify('+1 day')) {
                 if ((int) $date->format('N') !== $rule->getWeekday()) {
                     continue;

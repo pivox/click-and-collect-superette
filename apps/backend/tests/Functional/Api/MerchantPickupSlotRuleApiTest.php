@@ -273,6 +273,28 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         }
     }
 
+    public function testGenerateSkipsLegacyLongRules(): void
+    {
+        $merchant = $this->createUser('merchant-slot-rule-generate-legacy-long@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $weekday = (int) (new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis')))->format('N');
+        $this->createRule($shop, $weekday, '09:00', '12:00', 6);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slot-rules/generate', $shop->getId()),
+            ['horizon_months' => 1],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(0, $payload['generated_count']);
+        self::assertSame(0, $payload['skipped_existing_count']);
+        self::assertSame(0, $payload['skipped_closure_count']);
+        self::assertSame(0, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
     public function testGenerateIsIdempotentAndDoesNotModifyExistingBookedSlot(): void
     {
         $merchant = $this->createUser('merchant-slot-rule-idempotent@example.test', ['ROLE_MERCHANT']);
