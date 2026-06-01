@@ -1,7 +1,32 @@
 'use client';
+import { isAxiosError } from 'axios';
 import { useState, type FormEvent } from 'react';
 import { useAdminAuth } from '@/lib/auth/AdminAuthContext';
 import { Button } from '@/components/ui/Button';
+
+function getAdminLoginErrorMessage(err: unknown): string {
+  if (isAxiosError(err)) {
+    const status = err.response?.status;
+
+    if (status === 401) {
+      return 'Email ou mot de passe incorrect.';
+    }
+    if (status === 403) {
+      return 'Accès réservé aux administrateurs.';
+    }
+    if (status === 429) {
+      return 'Trop de tentatives. Réessaie dans quelques minutes.';
+    }
+
+    return 'Une erreur est survenue. Réessaie plus tard.';
+  }
+
+  if (err instanceof Error && err.message === "Accès réservé à l'administration") {
+    return 'Accès réservé aux administrateurs.';
+  }
+
+  return 'Une erreur est survenue. Réessaie plus tard.';
+}
 
 export default function AdminLoginPage() {
   const { login } = useAdminAuth();
@@ -17,7 +42,7 @@ export default function AdminLoginPage() {
     try {
       await login(email, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Identifiants incorrects');
+      setError(getAdminLoginErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
