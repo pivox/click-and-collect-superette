@@ -64,8 +64,8 @@ final readonly class CreateMerchantPickupSlotRuleProcessor implements ProcessorI
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_RULE_START_TIME_MUST_BE_BEFORE_END_TIME');
         }
 
-        if (!PickupSlotDuration::isExactlyOneHour($startTime, $endTime)) {
-            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_RULE_MUST_LAST_ONE_HOUR');
+        if (!PickupSlotDuration::isAtLeastOneHour($startTime, $endTime)) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_RULE_RANGE_MUST_BE_AT_LEAST_ONE_HOUR');
         }
 
         if ($this->pickupSlotRuleRepository->hasActiveDuplicate($shop, $data->weekday, $startTime, $endTime)) {

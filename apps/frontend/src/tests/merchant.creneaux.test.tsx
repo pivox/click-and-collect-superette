@@ -248,7 +248,37 @@ describe('SlotCreateModal', () => {
 // ─── RuleForm ───────────────────────────────────────────────────────────────
 
 describe('RuleForm', () => {
-  it("refuse une règle dont le créneau ne dure pas exactement 1 heure", async () => {
+  it('accepte une plage de génération plus longue que 1 heure', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      React.createElement(RuleForm, {
+        onSubmit,
+        onCancel: vi.fn(),
+      }),
+    );
+
+    fireEvent.change(screen.getByLabelText('Heure début'), {
+      target: { value: '09:00' },
+    });
+    fireEvent.change(screen.getByLabelText('Heure fin'), {
+      target: { value: '18:00' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Ajouter/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(7);
+    });
+    expect(onSubmit).toHaveBeenCalledWith({
+      weekday: 1,
+      start_time: '09:00',
+      end_time: '18:00',
+      capacity: 6,
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('refuse une plage de génération de moins de 1 heure', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -266,7 +296,7 @@ describe('RuleForm', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /Ajouter/i }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('exactement 1 heure');
+    expect(await screen.findByRole('alert')).toHaveTextContent('au moins 1 heure');
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });

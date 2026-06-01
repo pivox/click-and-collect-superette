@@ -35,7 +35,7 @@ final readonly class PickupSlotRuleGenerator
         $activeClosures = $this->exceptionalClosureRepository->findActiveForShop($shop);
 
         foreach ($this->pickupSlotRuleRepository->findActiveForShop($shop) as $rule) {
-            if (!PickupSlotDuration::isExactlyOneHour($rule->getStartTime(), $rule->getEndTime())) {
+            if (!PickupSlotDuration::isAtLeastOneHour($rule->getStartTime(), $rule->getEndTime())) {
                 continue;
             }
 
@@ -44,35 +44,41 @@ final readonly class PickupSlotRuleGenerator
                     continue;
                 }
 
-                $startsAt = $this->combineDateAndTime($date, $rule->getStartTime(), $timezone);
-                $endsAt = $this->combineDateAndTime($date, $rule->getEndTime(), $timezone);
-
-                if ($startsAt <= $now) {
-                    continue;
-                }
-
-                if ($this->overlapsActiveClosure($activeClosures, $startsAt, $endsAt)) {
-                    ++$skippedClosureCount;
-                    continue;
-                }
-
-                if (
-                    null !== $this->pickupSlotRepository->findOneForShopAndRange($shop, $startsAt, $endsAt)
-                    || $this->pickupSlotRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)
+                $rangeEndsAt = $this->combineDateAndTime($date, $rule->getEndTime(), $timezone);
+                for (
+                    $startsAt = $this->combineDateAndTime($date, $rule->getStartTime(), $timezone);
+                    $startsAt->modify('+1 hour') <= $rangeEndsAt;
+                    $startsAt = $startsAt->modify('+1 hour')
                 ) {
-                    ++$skippedExistingCount;
-                    continue;
+                    $endsAt = $startsAt->modify('+1 hour');
+
+                    if ($startsAt <= $now) {
+                        continue;
+                    }
+
+                    if ($this->overlapsActiveClosure($activeClosures, $startsAt, $endsAt)) {
+                        ++$skippedClosureCount;
+                        continue;
+                    }
+
+                    if (
+                        null !== $this->pickupSlotRepository->findOneForShopAndRange($shop, $startsAt, $endsAt)
+                        || $this->pickupSlotRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)
+                    ) {
+                        ++$skippedExistingCount;
+                        continue;
+                    }
+
+                    $slot = (new PickupSlot())
+                        ->setShop($shop)
+                        ->setStartsAt($startsAt)
+                        ->setEndsAt($endsAt)
+                        ->setCapacity($rule->getCapacity())
+                        ->setActive(true);
+
+                    $this->entityManager->persist($slot);
+                    ++$generatedCount;
                 }
-
-                $slot = (new PickupSlot())
-                    ->setShop($shop)
-                    ->setStartsAt($startsAt)
-                    ->setEndsAt($endsAt)
-                    ->setCapacity($rule->getCapacity())
-                    ->setActive(true);
-
-                $this->entityManager->persist($slot);
-                ++$generatedCount;
             }
         }
 

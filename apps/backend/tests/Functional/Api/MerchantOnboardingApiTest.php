@@ -124,7 +124,7 @@ final class MerchantOnboardingApiTest extends FunctionalApiTestCase
         self::assertTrue($byKey['pickup_slots']['completed']);
     }
 
-    public function testPickupSlotsFalseWhenOnlyLegacyLongRuleExists(): void
+    public function testPickupSlotsTrueWhenOnlyLongGenerationRangeRuleExists(): void
     {
         $merchant = $this->createUser('onboarding-slots-legacy-long-rule@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
@@ -135,7 +135,7 @@ final class MerchantOnboardingApiTest extends FunctionalApiTestCase
         self::assertSame(200, $response->getStatusCode());
 
         $byKey = $this->indexStepsByKey($this->decodeJson($response)['steps']);
-        self::assertFalse($byKey['pickup_slots']['completed']);
+        self::assertTrue($byKey['pickup_slots']['completed']);
     }
 
     public function testPickupSlotsTrueWhenFuturePickupSlotExists(): void

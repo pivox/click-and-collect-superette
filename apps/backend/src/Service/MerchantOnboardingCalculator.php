@@ -103,7 +103,7 @@ final readonly class MerchantOnboardingCalculator
     {
         foreach ($shops as $shop) {
             foreach ($this->pickupSlotRuleRepository->findActiveForShop($shop) as $rule) {
-                if (PickupSlotDuration::isExactlyOneHour($rule->getStartTime(), $rule->getEndTime())) {
+                if (PickupSlotDuration::isAtLeastOneHour($rule->getStartTime(), $rule->getEndTime())) {
                     return true;
                 }
             }

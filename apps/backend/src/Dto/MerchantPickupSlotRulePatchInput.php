@@ -46,8 +46,8 @@ final class MerchantPickupSlotRulePatchInput
             return;
         }
 
-        if (!PickupSlotDuration::isExactlyOneHour($startTime, $endTime)) {
-            $context->buildViolation('PICKUP_SLOT_RULE_MUST_LAST_ONE_HOUR')
+        if (!PickupSlotDuration::isAtLeastOneHour($startTime, $endTime)) {
+            $context->buildViolation('PICKUP_SLOT_RULE_RANGE_MUST_BE_AT_LEAST_ONE_HOUR')
                 ->atPath('endTime')
                 ->addViolation();
         }
