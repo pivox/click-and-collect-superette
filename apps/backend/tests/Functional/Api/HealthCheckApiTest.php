@@ -16,6 +16,7 @@ final class HealthCheckApiTest extends FunctionalApiTestCase
 
         $payload = $this->decodeJson($response);
         self::assertSame('ok', $payload['status']);
+        self::assertSame(['database' => 'ok'], $payload['checks']);
         self::assertArrayHasKey('timestamp', $payload);
         self::assertIsString($payload['timestamp']);
         self::assertNotFalse(\DateTimeImmutable::createFromFormat(\DateTimeInterface::ATOM, $payload['timestamp']));
