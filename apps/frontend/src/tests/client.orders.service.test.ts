@@ -16,6 +16,7 @@ import {
   getOrder,
   getOrderStatus,
   getPickupSession,
+  listOrders,
   projectTimeline,
 } from '@/lib/services/orders.service';
 import type { Order } from '@/types';
@@ -84,6 +85,33 @@ const RAW_CUSTOMER_ORDER_STATUS = {
     force_completed_by_merchant: false,
   },
 };
+
+describe('listOrders', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('mappe la liste paginée des commandes retournée par le backend', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        items: [RAW_ORDER],
+        total: 1,
+        page: 1,
+        limit: 20,
+      },
+    });
+
+    const orders = await listOrders();
+
+    expect(orders).toHaveLength(1);
+    expect(orders[0]).toMatchObject({
+      id: 'order-uuid-1',
+      shopName: 'Supérette El Amen',
+      status: 'ready',
+      totalAmountTnd: '12.500',
+      code: '#0042',
+    });
+    expect(apiClient.get).toHaveBeenCalledWith('/api/me/orders');
+  });
+});
 
 describe('getOrder', () => {
   beforeEach(() => vi.clearAllMocks());

@@ -73,6 +73,11 @@ interface RawCustomerOrderStatusSnapshot {
   pickup_session: RawCustomerOrderPickupSessionStatus;
 }
 
+interface RawOrderList {
+  items?: RawOrder[];
+  "hydra:member"?: RawOrder[];
+}
+
 const MOCK_PICKUP_SESSION_TOKEN = "11111111-1111-4111-8111-111111111111";
 
 function mapRawOrder(raw: RawOrder): Order {
@@ -155,8 +160,8 @@ export async function listOrders(): Promise<Order[]> {
   if (USE_MOCKS) {
     return mockDelay([MOCK_ORDER]);
   }
-  const { data } = await apiClient.get<{ "hydra:member": RawOrder[] }>("/api/me/orders");
-  return (data["hydra:member"] ?? []).map(mapRawOrder);
+  const { data } = await apiClient.get<RawOrderList>("/api/me/orders");
+  return (data.items ?? data["hydra:member"] ?? []).map(mapRawOrder);
 }
 
 export async function getOrder(orderId: string): Promise<Order | null> {

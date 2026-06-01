@@ -93,7 +93,6 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
 
   const handleSubmit = async () => {
     if (!name.trim()) { setError('Le nom est obligatoire.'); return; }
-    if (!store && !ownerId) { setError('Le marchand est obligatoire.'); return; }
 
     setIsSubmitting(true);
     setError(null);
@@ -114,7 +113,7 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
         // no logoUrl/coverUrl in AdminStoreCreateInput
         await createStore({
           name: name.trim(),
-          ownerId,
+          ...(ownerId ? { ownerId } : {}),
           address: address.trim() || undefined,
           city: city.trim() || undefined,
           phone: phone.trim() || undefined,
@@ -174,7 +173,7 @@ export function StoreDrawer({ open, onClose, store, onSaved }: StoreDrawerProps)
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} maxLength={255} className={inputClass} />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-semibold">Marchand {!store && '*'}</label>
+          <label className="mb-1 block text-sm font-semibold">Marchand</label>
           <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className={inputClass}>
             <option value="">Choisir un marchand…</option>
             {merchants.map((m) => (

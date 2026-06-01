@@ -43,7 +43,7 @@ export interface StoreFilters {
 // Note: no logoUrl/coverUrl in create input (update only)
 export interface CreateStorePayload {
   name: string;
-  ownerId: string;
+  ownerId?: string;
   address?: string;
   city?: string;
   phone?: string;
