@@ -1,0 +1,37 @@
+{
+  "catalog_name": "catalogue_superette_tunisie",
+  "catalog_version": "1.0.0",
+  "schema_version": "product_catalog_verification_ready.v1",
+  "version_status": "stable_draft",
+  "full_catalogue": {
+    "expected_file": "catalogue_superette_tunisie_v1.0.0.json",
+    "expected_product_count": 5000,
+    "expected_full_file_sha256": "aebce31752e106ea41106faf48d2cb9de0816308ba72a877cc3ea34a2045be82",
+    "products_array_sha256": "11d23c8c823f44918bdca2f115c24844237c6eab8e1d72873077305573d7e15e",
+    "expected_status": "draft",
+    "commerce_ready": false
+  },
+  "quality_policy": {
+    "brand_field_policy": "brand must stay null until confirmed by GTIN/EAN, supplier reference, invoice, or exact product page",
+    "brand_candidates_policy": "brand_candidates are suggestions only and must not be imported as confirmed brands",
+    "price_policy": "estimated_price_tnd must remain null until price is confirmed or explicitly seeded for development"
+  },
+  "files": {
+    "readme": "README.md",
+    "manifest": "catalogue_superette_tunisie_versions_manifest.json",
+    "changelog": "CHANGELOG_catalogue_superette_tunisie.md",
+    "schema": "schema_produit_superette_tunisie_verification_ready.json",
+    "workflow": "workflow_verification_marque_ean_prix.md",
+    "sample": "catalogue_superette_tunisie_v1.0.0.sample.json",
+    "checksum": "catalogue_superette_tunisie_v1.0.0.json.sha256",
+    "local_add_guide": "AJOUTER_CATALOGUE_COMPLET_LOCAL.md"
+  },
+  "recommended_import_steps": [
+    "validate_json_syntax",
+    "assert_catalog_version_1_0_0",
+    "assert_5000_products",
+    "assert_required_fields",
+    "import_as_draft_product_references",
+    "do_not_mark_commerce_ready_without_verification"
+  ]
+}
