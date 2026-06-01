@@ -19,27 +19,12 @@ import {
   getShop,
   listCatalog,
 } from "@/lib/services";
+import type { CatalogCategoryOption } from "@/lib/services/catalog.service";
 import type { KadhiaListItem } from "@/lib/services/kadhia.service";
 import type { Kadhia, ProductOffer, Shop } from "@/types";
 import { formatTnd } from "@/lib/format";
 
-interface CategoryOption {
-  key: string;
-  labelFr: string;
-}
-
-function buildCategoryOptions(products: ProductOffer[]): CategoryOption[] {
-  const bySlug = new Map<string, string>();
-
-  products.forEach((product) => {
-    if (!product.category || bySlug.has(product.category)) return;
-    bySlug.set(product.category, product.categoryNameFr ?? product.category);
-  });
-
-  return Array.from(bySlug.entries())
-    .map(([key, labelFr]) => ({ key, labelFr }))
-    .sort((a, b) => a.labelFr.localeCompare(b.labelFr, "fr"));
-}
+const CATALOG_PAGE_SIZE = 30;
 
 export default function CatalogPage({
   params,
@@ -49,7 +34,7 @@ export default function CatalogPage({
   const { shopId } = params;
   const isHydrated = useHydrated();
   const [category, setCategory] = useState<string>("all");
-  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<CatalogCategoryOption[]>([]);
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<ProductOffer[]>([]);
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
@@ -61,29 +46,38 @@ export default function CatalogPage({
   const [selectorDrafts, setSelectorDrafts] = useState<KadhiaListItem[] | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [kadhiaLoadError, setKadhiaLoadError] = useState<string | null>(null);
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [catalogPages, setCatalogPages] = useState(1);
+  const [catalogTotal, setCatalogTotal] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let cancelled = false;
     setCatalogError(null);
     setIsLoading(true);
-    void listCatalog({ shopId, category, search })
-      .then((data) => { if (!cancelled) { setProducts(data); setIsLoading(false); } })
+    void listCatalog({
+      shopId,
+      category,
+      search,
+      page: 1,
+      itemsPerPage: CATALOG_PAGE_SIZE,
+    })
+      .then((data) => {
+        if (!cancelled) {
+          setProducts(data.items);
+          setCatalogPage(data.page);
+          setCatalogPages(data.pages);
+          setCatalogTotal(data.total);
+          if (category === "all") {
+            setCategoryOptions(data.categories);
+          }
+          setIsLoading(false);
+        }
+      })
       .catch(() => { if (!cancelled) { setCatalogError("Impossible de charger le catalogue."); setIsLoading(false); } });
     return () => { cancelled = true; };
   }, [shopId, category, search, retryKey]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void listCatalog({ shopId, category: "all", search: "" })
-      .then((data) => {
-        if (!cancelled) setCategoryOptions(buildCategoryOptions(data));
-      })
-      .catch(() => {
-        if (!cancelled) setCategoryOptions([]);
-      });
-    return () => { cancelled = true; };
-  }, [shopId, retryKey]);
 
   useEffect(() => {
     setKadhiaLoadError(null);
@@ -151,6 +145,31 @@ export default function CatalogPage({
     }
   };
 
+  const onLoadMore = async () => {
+    if (isLoadingMore || catalogPage >= catalogPages) return;
+
+    setIsLoadingMore(true);
+    setAddError(null);
+    try {
+      const nextPage = catalogPage + 1;
+      const data = await listCatalog({
+        shopId,
+        category,
+        search,
+        page: nextPage,
+        itemsPerPage: CATALOG_PAGE_SIZE,
+      });
+      setProducts((current) => [...current, ...data.items]);
+      setCatalogPage(data.page);
+      setCatalogPages(data.pages);
+      setCatalogTotal(data.total);
+    } catch {
+      setAddError("Impossible de charger plus de produits. Réessaie.");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   const cartCount = useMemo(
     () => kadhia?.lines.reduce((acc, l) => acc + l.quantity, 0) ?? 0,
     [kadhia],
@@ -166,6 +185,7 @@ export default function CatalogPage({
     : isStarting
       ? "…"
       : "Commencer";
+  const remainingProductCount = Math.max(catalogTotal - products.length, 0);
 
   return (
     <>
@@ -217,8 +237,8 @@ export default function CatalogPage({
       </PillRow>
 
       {/* Desktop : catalogue + KadhiaPanel sticky */}
-      <div className="md:grid md:grid-cols-[1fr_360px] md:gap-5 md:items-start">
-        <section>
+      <div className="min-w-0 md:grid md:grid-cols-[minmax(0,1fr)_360px] md:gap-5 md:items-start">
+        <section className="min-w-0">
           <header className="mb-2.5 flex items-baseline justify-between">
             <h3 className="m-0 text-h3 font-extrabold">Produits</h3>
             {hasActiveKadhia && (
@@ -286,15 +306,31 @@ export default function CatalogPage({
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
-              {products.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  onAdd={hasActiveKadhia && p.isAvailable ? onAdd : undefined}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
+                {products.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    onAdd={hasActiveKadhia && p.isAvailable ? onAdd : undefined}
+                  />
+                ))}
+              </div>
+              {remainingProductCount > 0 && (
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={onLoadMore}
+                    disabled={isLoadingMore}
+                  >
+                    {isLoadingMore
+                      ? "Chargement…"
+                      : `Afficher ${Math.min(CATALOG_PAGE_SIZE, remainingProductCount)} produits de plus`}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </section>
 

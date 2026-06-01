@@ -16,7 +16,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         {/* Responsive grid: sidebar (md+) + main. Children rendered once. */}
         <div className="min-h-screen md:grid md:grid-cols-[280px_1fr]">
           <DesktopNav />
-          <div className="flex flex-col">
+          <div data-testid="client-content-column" className="flex min-w-0 flex-col">
             {/* Desktop-only topbar with global search */}
             <header className="hidden md:flex items-center gap-4 border-b border-line bg-white/80 backdrop-blur-md px-7 py-3 sticky top-0 z-10">
               <GlobalSearchBar />
@@ -24,7 +24,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 🇹🇳 TND
               </span>
             </header>
-            <main className="relative px-4 pt-4 pb-40 md:p-7">
+            <main className="relative min-w-0 px-4 pt-4 pb-40 md:p-7">
               {children}
             </main>
           </div>

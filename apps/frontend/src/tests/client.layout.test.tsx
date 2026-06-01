@@ -32,4 +32,13 @@ describe('ClientLayout', () => {
     expect(container.querySelector('main')).toBeTruthy();
     expect(container.querySelector('main')?.textContent).toContain('page');
   });
+
+  it('contraint la colonne de contenu desktop pour éviter les débordements horizontaux', () => {
+    const { container } = render(<ClientLayout>page</ClientLayout>);
+    const contentColumn = container.querySelector('[data-testid="client-content-column"]');
+    const main = container.querySelector('main');
+
+    expect(contentColumn?.className).toContain('min-w-0');
+    expect(main?.className).toContain('min-w-0');
+  });
 });
