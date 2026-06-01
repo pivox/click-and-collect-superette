@@ -70,6 +70,19 @@ class ProductReference
     #[Assert\GreaterThanOrEqual(1)]
     private int $packQuantity = 1;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $aiEnrichedAt = null;
+
+    #[ORM\Column(type: 'decimal', precision: 5, scale: 3, nullable: true)]
+    private ?string $aiConfidence = null;
+
+    #[ORM\Column(length: 32, nullable: true)]
+    private ?string $aiSource = null;
+
+    /** @var array<string, mixed>|null */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $aiPreviousValues = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -264,6 +277,56 @@ class ProductReference
     public function setPackQuantity(int $packQuantity): static
     {
         $this->packQuantity = $packQuantity;
+
+        return $this;
+    }
+
+    public function getAiEnrichedAt(): ?\DateTimeImmutable
+    {
+        return $this->aiEnrichedAt;
+    }
+
+    public function setAiEnrichedAt(?\DateTimeImmutable $aiEnrichedAt): static
+    {
+        $this->aiEnrichedAt = $aiEnrichedAt;
+
+        return $this;
+    }
+
+    public function getAiConfidence(): ?string
+    {
+        return null === $this->aiConfidence ? null : bcadd($this->aiConfidence, '0', 3);
+    }
+
+    public function setAiConfidence(?string $aiConfidence): static
+    {
+        $this->aiConfidence = null === $aiConfidence ? null : bcadd($aiConfidence, '0', 3);
+
+        return $this;
+    }
+
+    public function getAiSource(): ?string
+    {
+        return $this->aiSource;
+    }
+
+    public function setAiSource(?string $aiSource): static
+    {
+        $this->aiSource = $aiSource;
+
+        return $this;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function getAiPreviousValues(): ?array
+    {
+        return $this->aiPreviousValues;
+    }
+
+    /** @param array<string, mixed>|null $aiPreviousValues */
+    public function setAiPreviousValues(?array $aiPreviousValues): static
+    {
+        $this->aiPreviousValues = $aiPreviousValues;
 
         return $this;
     }

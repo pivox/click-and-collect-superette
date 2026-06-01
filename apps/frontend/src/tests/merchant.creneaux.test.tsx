@@ -62,6 +62,15 @@ function todayIso(hour: number): string {
   return `${y}-${m}-${d}T${hh}:00:00+01:00`;
 }
 
+function tomorrowIso(hour: number): string {
+  const tomorrow = new Date(today.getTime() + 86400000);
+  const y = tomorrow.getFullYear();
+  const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const d = String(tomorrow.getDate()).padStart(2, '0');
+  const hh = String(hour).padStart(2, '0');
+  return `${y}-${m}-${d}T${hh}:00:00+01:00`;
+}
+
 function makeSlot(overrides: Partial<MerchantPickupSlot> = {}): MerchantPickupSlot {
   return {
     id: 'slot-1',
@@ -317,7 +326,7 @@ describe('SlotCoverageWarning', () => {
   it('ne montre pas d\'alerte quand un créneau valide d\'1 heure est disponible', () => {
     render(
       React.createElement(SlotCoverageWarning, {
-        slots: [makeSlot()],
+        slots: [makeSlot({ starts_at: tomorrowIso(17), ends_at: tomorrowIso(18) })],
       }),
     );
 

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { Sparkles } from 'lucide-react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
 import { ProductReferenceDrawer } from '@/components/admin/referentiel/produits/ProductReferenceDrawer';
@@ -9,9 +10,15 @@ import {
   listProductReferences,
   archiveProductReference,
 } from '@/lib/services/admin/product-references.service';
+import { runProductAiEnrichment } from '@/lib/services/admin/product-ai-enrichment.service';
 import { listBrands } from '@/lib/services/admin/brands.service';
 import { listCategories } from '@/lib/services/admin/categories.service';
-import type { ProductReference, Brand, Category } from '@/lib/types/admin/referentiel.types';
+import type {
+  ProductReference,
+  Brand,
+  Category,
+  ProductAiEnrichmentRunResult,
+} from '@/lib/types/admin/referentiel.types';
 import { cn } from '@/lib/cn';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -46,6 +53,10 @@ export default function ProduitsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ProductReference | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<ProductReference | null>(null);
+  const [aiLimit, setAiLimit] = useState(100);
+  const [aiResult, setAiResult] = useState<ProductAiEnrichmentRunResult | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [isAiRunning, setIsAiRunning] = useState(false);
 
   const { sorted, sortKey, sortDir, toggleSort } = useSort(products);
 
@@ -100,6 +111,24 @@ export default function ProduitsPage() {
       console.error('[produits] archiveProductReference failed', err);
       setError("Impossible d'archiver ce produit.");
       setArchiveTarget(null);
+    }
+  };
+
+  const handleAiRun = async () => {
+    const limit = Math.min(500, Math.max(1, Number.isFinite(aiLimit) ? aiLimit : 100));
+    setAiLimit(limit);
+    setIsAiRunning(true);
+    setAiError(null);
+    setAiResult(null);
+    try {
+      const result = await runProductAiEnrichment({ limit });
+      setAiResult(result);
+      void load();
+    } catch (err) {
+      console.error('[produits] runProductAiEnrichment failed', err);
+      setAiError('Impossible de lancer la recherche IA.');
+    } finally {
+      setIsAiRunning(false);
     }
   };
 
@@ -170,6 +199,57 @@ export default function ProduitsPage() {
           + Nouveau produit
         </Button>
       </div>
+      <section className="mb-4 rounded-xl border border-line bg-card p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-base font-black">Recherche IA</h2>
+            <p className="mt-1 text-sm text-muted">
+              Enrichissement des produits incomplets du référentiel.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <label className="text-sm font-semibold text-ink">
+              Nombre de produits à rechercher par IA
+              <input
+                type="number"
+                min={1}
+                max={500}
+                value={aiLimit}
+                onChange={(e) => setAiLimit(Number(e.target.value))}
+                className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-40"
+              />
+            </label>
+            <Button
+              size="md"
+              className="w-full sm:w-auto"
+              disabled={isAiRunning}
+              onClick={() => void handleAiRun()}
+            >
+              <Sparkles aria-hidden="true" size={16} />
+              {isAiRunning ? 'Recherche en cours…' : 'Lancer la recherche IA'}
+            </Button>
+          </div>
+        </div>
+        {aiResult && (
+          <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3 lg:grid-cols-6">
+            <span className="rounded-md bg-soft px-3 py-2 font-semibold">{aiResult.jobs_created} jobs créés</span>
+            <span className="rounded-md bg-soft px-3 py-2 font-semibold">{aiResult.jobs_submitted} jobs soumis</span>
+            <span className="rounded-md bg-soft px-3 py-2 font-semibold">{aiResult.jobs_applied_total} appliqués</span>
+            <span className="rounded-md bg-soft px-3 py-2 font-semibold">{aiResult.jobs_failed_total} échoués</span>
+            <span className="rounded-md bg-soft px-3 py-2 font-semibold">
+              {aiResult.active_batches_checked} batch{aiResult.active_batches_checked > 1 ? 's' : ''} vérifié{aiResult.active_batches_checked > 1 ? 's' : ''}
+            </span>
+            <span className={cn('rounded-md px-3 py-2 font-semibold', aiResult.openai_skipped ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700')}>
+              {aiResult.openai_skipped ? 'OpenAI non configuré' : 'OpenAI soumis'}
+            </span>
+          </div>
+        )}
+        {aiError && (
+          <div className="mt-3 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
+            {aiError}
+          </div>
+        )}
+      </section>
       <div className="mb-4 flex flex-wrap gap-3">
         <input
           type="text"
