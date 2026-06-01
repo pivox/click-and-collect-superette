@@ -3,6 +3,7 @@ import { isAxiosError } from 'axios';
 import { useState, type FormEvent } from 'react';
 import { useAdminAuth } from '@/lib/auth/AdminAuthContext';
 import { Button } from '@/components/ui/Button';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 
 function getAdminLoginErrorMessage(err: unknown): string {
   if (isAxiosError(err)) {
@@ -30,6 +31,7 @@ function getAdminLoginErrorMessage(err: unknown): string {
 
 export default function AdminLoginPage() {
   const { login } = useAdminAuth();
+  const isHydrated = useHydrated();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +100,7 @@ export default function AdminLoginPage() {
             </p>
           )}
 
-          <Button full type="submit" disabled={isSubmitting}>
+          <Button full type="submit" disabled={!isHydrated || isSubmitting}>
             {isSubmitting ? 'Connexion…' : 'Se connecter'}
           </Button>
         </form>

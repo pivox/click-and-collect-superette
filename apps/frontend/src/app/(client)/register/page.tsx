@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 import { clientRegister } from '@/lib/services/auth.service';
 
 export default function ClientRegisterPage() {
   const router = useRouter();
+  const isHydrated = useHydrated();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -101,7 +103,7 @@ export default function ClientRegisterPage() {
             </p>
           )}
 
-          <Button full type="submit" disabled={isSubmitting}>
+          <Button full type="submit" disabled={!isHydrated || isSubmitting}>
             {isSubmitting ? 'Inscription…' : "Créer mon compte"}
           </Button>
         </form>

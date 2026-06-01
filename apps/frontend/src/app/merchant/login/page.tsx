@@ -3,9 +3,11 @@
 import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 
 export default function MerchantLoginPage() {
   const { login } = useMerchantAuth();
+  const isHydrated = useHydrated();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export default function MerchantLoginPage() {
             </p>
           )}
 
-          <Button full type="submit" disabled={isSubmitting}>
+          <Button full type="submit" disabled={!isHydrated || isSubmitting}>
             {isSubmitting ? 'Connexion…' : 'Se connecter'}
           </Button>
         </form>

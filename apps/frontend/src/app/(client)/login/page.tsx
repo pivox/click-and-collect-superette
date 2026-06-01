@@ -7,10 +7,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 
 function LoginForm() {
   const { login } = useClientAuth();
   const router = useRouter();
+  const isHydrated = useHydrated();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get('redirect') ?? '/';
   const redirect =
@@ -94,7 +96,7 @@ function LoginForm() {
           </p>
         )}
 
-        <Button full type="submit" disabled={isSubmitting}>
+        <Button full type="submit" disabled={!isHydrated || isSubmitting}>
           {isSubmitting ? 'Connexion…' : 'Se connecter'}
         </Button>
       </form>
