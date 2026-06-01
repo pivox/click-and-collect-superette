@@ -167,6 +167,15 @@ class PickupSession
         $this->used = true;
     }
 
+    public function completeByCode(?\DateTimeImmutable $completedAt = null): void
+    {
+        $completedAt ??= new \DateTimeImmutable();
+        $this->scannedAt ??= $completedAt;
+        $this->merchantConfirmedAt ??= $completedAt;
+        $this->customerConfirmedAt ??= $completedAt;
+        $this->used = true;
+    }
+
     private function assertScanned(): void
     {
         if (null === $this->scannedAt) {
