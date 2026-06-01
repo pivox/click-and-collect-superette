@@ -6,8 +6,10 @@ import { DayStrip } from '@/components/merchant/creneaux/DayStrip';
 import { SlotCard } from '@/components/merchant/creneaux/SlotCard';
 import { SlotCreateModal } from '@/components/merchant/creneaux/SlotCreateModal';
 import { RuleAccordion } from '@/components/merchant/creneaux/RuleAccordion';
+import { RuleForm } from '@/components/merchant/creneaux/RuleForm';
 import { GenerateBanner } from '@/components/merchant/creneaux/GenerateBanner';
 import { ClosureAccordion } from '@/components/merchant/creneaux/ClosureAccordion';
+import { SlotCoverageWarning } from '@/components/merchant/SlotCoverageWarning';
 import MerchantCreneauxPage from '@/app/merchant/creneaux/page';
 import {
   listMerchantSlotRules,
@@ -217,6 +219,119 @@ describe('SlotCreateModal', () => {
       });
     });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("refuse un créneau qui ne dure pas exactement 1 heure", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      React.createElement(SlotCreateModal, {
+        initialDate: new Date(2026, 4, 28),
+        onSubmit,
+        onClose: vi.fn(),
+      }),
+    );
+
+    fireEvent.change(screen.getByLabelText('Heure début'), {
+      target: { value: '17:00' },
+    });
+    fireEvent.change(screen.getByLabelText('Heure fin'), {
+      target: { value: '17:30' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Créer le créneau/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('exactement 1 heure');
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+// ─── RuleForm ───────────────────────────────────────────────────────────────
+
+describe('RuleForm', () => {
+  it('accepte une plage de génération plus longue que 1 heure', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      React.createElement(RuleForm, {
+        onSubmit,
+        onCancel: vi.fn(),
+      }),
+    );
+
+    fireEvent.change(screen.getByLabelText('Heure début'), {
+      target: { value: '09:00' },
+    });
+    fireEvent.change(screen.getByLabelText('Heure fin'), {
+      target: { value: '18:00' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Ajouter/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(7);
+    });
+    expect(onSubmit).toHaveBeenCalledWith({
+      weekday: 1,
+      start_time: '09:00',
+      end_time: '18:00',
+      capacity: 6,
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('refuse une plage de génération de moins de 1 heure', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      React.createElement(RuleForm, {
+        onSubmit,
+        onCancel: vi.fn(),
+      }),
+    );
+
+    fireEvent.change(screen.getByLabelText('Heure début'), {
+      target: { value: '17:00' },
+    });
+    fireEvent.change(screen.getByLabelText('Heure fin'), {
+      target: { value: '17:30' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Ajouter/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('au moins 1 heure');
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+// ─── SlotCoverageWarning ────────────────────────────────────────────────────
+
+describe('SlotCoverageWarning', () => {
+  it("ignore les anciens créneaux longs pour l'alerte de couverture client", () => {
+    render(
+      React.createElement(SlotCoverageWarning, {
+        slots: [makeSlot({ ends_at: todayIso(23) })],
+      }),
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Aucun créneau disponible');
+  });
+
+  it('ne montre pas d\'alerte quand un créneau valide d\'1 heure est disponible', () => {
+    render(
+      React.createElement(SlotCoverageWarning, {
+        slots: [makeSlot()],
+      }),
+    );
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('affiche l\'alerte quand le seul créneau est complet', () => {
+    render(
+      React.createElement(SlotCoverageWarning, {
+        slots: [makeSlot({ booked_count: 6, capacity: 6 })],
+      }),
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Aucun créneau disponible');
   });
 });
 

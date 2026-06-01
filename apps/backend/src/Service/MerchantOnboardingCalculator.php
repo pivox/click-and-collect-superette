@@ -101,13 +101,21 @@ final readonly class MerchantOnboardingCalculator
     /** @param list<Shop> $shops */
     private function anyShopHasPickupSlotConfigured(array $shops): bool
     {
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
         foreach ($shops as $shop) {
-            if ($this->pickupSlotRuleRepository->count(['shop' => $shop, 'isActive' => true]) > 0) {
-                return true;
+            foreach ($this->pickupSlotRuleRepository->findActiveForShop($shop) as $rule) {
+                if (PickupSlotDuration::isAtLeastOneHour($rule->getStartTime(), $rule->getEndTime())) {
+                    return true;
+                }
             }
 
-            if ($this->pickupSlotRepository->countFutureActiveForShop($shop) > 0) {
-                return true;
+            foreach ($this->pickupSlotRepository->findAvailableForShop($shop, $now) as $slot) {
+                if (PickupSlotDuration::isExactlyOneHour(
+                    PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt()),
+                    PickupSlotDisplayTime::fromStoredLocalClock($slot->getEndsAt()),
+                )) {
+                    return true;
+                }
             }
         }
 

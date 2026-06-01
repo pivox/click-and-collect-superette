@@ -12,6 +12,7 @@ use App\Entity\PickupSlotRule;
 use App\Repository\PickupSlotRuleRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\PickupSlotDuration;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -61,6 +62,10 @@ final readonly class CreateMerchantPickupSlotRuleProcessor implements ProcessorI
 
         if ($startTime >= $endTime) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_RULE_START_TIME_MUST_BE_BEFORE_END_TIME');
+        }
+
+        if (!PickupSlotDuration::isAtLeastOneHour($startTime, $endTime)) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_RULE_RANGE_MUST_BE_AT_LEAST_ONE_HOUR');
         }
 
         if ($this->pickupSlotRuleRepository->hasActiveDuplicate($shop, $data->weekday, $startTime, $endTime)) {

@@ -299,7 +299,7 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
     {
         $customer = $this->createUser('submit-expired@example.test', ['ROLE_CUSTOMER']);
         $shop = $this->createShop();
-        $slot = $this->createPickupSlot($shop, capacity: 5, startsAtModifier: '-3 hours', endsAtModifier: '-1 hour');
+        $slot = $this->createPickupSlot($shop, capacity: 5, startsAtModifier: '-2 hours', endsAtModifier: '-1 hour');
         $product = $this->createMerchantProduct($shop, '1.000');
         $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '1.000');
 
@@ -361,6 +361,25 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
         self::assertSame(422, $response->getStatusCode());
         self::assertStringContainsString('PICKUP_SLOT_CLOSED', (string) $response->getContent());
+    }
+
+    public function testSubmitOrderLongSlotReturns422(): void
+    {
+        $customer = $this->createUser('submit-long-slot@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop, capacity: 5, startsAtModifier: '+4 hours', endsAtModifier: '+10 hours');
+        $product = $this->createMerchantProduct($shop, '1.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '1.000');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_SLOT_MUST_LAST_ONE_HOUR', (string) $response->getContent());
     }
 
     public function testSubmitOrderSlotFromAnotherShopReturns404(): void

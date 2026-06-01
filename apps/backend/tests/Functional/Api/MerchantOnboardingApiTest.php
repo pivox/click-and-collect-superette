@@ -124,6 +124,20 @@ final class MerchantOnboardingApiTest extends FunctionalApiTestCase
         self::assertTrue($byKey['pickup_slots']['completed']);
     }
 
+    public function testPickupSlotsTrueWhenOnlyLongGenerationRangeRuleExists(): void
+    {
+        $merchant = $this->createUser('onboarding-slots-legacy-long-rule@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $this->createActivePickupSlotRule($shop, '09:00', '12:00');
+
+        $response = $this->requestJson('GET', '/api/merchant/onboarding', null, $merchant);
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $byKey = $this->indexStepsByKey($this->decodeJson($response)['steps']);
+        self::assertTrue($byKey['pickup_slots']['completed']);
+    }
+
     public function testPickupSlotsTrueWhenFuturePickupSlotExists(): void
     {
         $merchant = $this->createUser('onboarding-slots-future@example.test', ['ROLE_MERCHANT']);
@@ -136,6 +150,20 @@ final class MerchantOnboardingApiTest extends FunctionalApiTestCase
 
         $byKey = $this->indexStepsByKey($this->decodeJson($response)['steps']);
         self::assertTrue($byKey['pickup_slots']['completed']);
+    }
+
+    public function testPickupSlotsFalseWhenOnlyLegacyLongFuturePickupSlotExists(): void
+    {
+        $merchant = $this->createUser('onboarding-slots-legacy-long-slot@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $this->createFuturePickupSlot($shop, durationHours: 3);
+
+        $response = $this->requestJson('GET', '/api/merchant/onboarding', null, $merchant);
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $byKey = $this->indexStepsByKey($this->decodeJson($response)['steps']);
+        self::assertFalse($byKey['pickup_slots']['completed']);
     }
 
     public function testPickupSlotsFalseWhenOnlyPastPickupSlotExists(): void
@@ -260,13 +288,13 @@ final class MerchantOnboardingApiTest extends FunctionalApiTestCase
         return $product;
     }
 
-    private function createActivePickupSlotRule(Shop $shop): PickupSlotRule
+    private function createActivePickupSlotRule(Shop $shop, string $startTime = '09:00', string $endTime = '10:00'): PickupSlotRule
     {
         $rule = (new PickupSlotRule())
             ->setShop($shop)
             ->setWeekday(1)
-            ->setStartTime(new \DateTimeImmutable('09:00'))
-            ->setEndTime(new \DateTimeImmutable('12:00'))
+            ->setStartTime(new \DateTimeImmutable('1970-01-01 '.$startTime.':00'))
+            ->setEndTime(new \DateTimeImmutable('1970-01-01 '.$endTime.':00'))
             ->setCapacity(5)
             ->setActive(true);
 
@@ -276,13 +304,13 @@ final class MerchantOnboardingApiTest extends FunctionalApiTestCase
         return $rule;
     }
 
-    private function createFuturePickupSlot(Shop $shop): PickupSlot
+    private function createFuturePickupSlot(Shop $shop, int $durationHours = 1): PickupSlot
     {
         $now = new \DateTimeImmutable();
         $slot = (new PickupSlot())
             ->setShop($shop)
             ->setStartsAt($now->modify('+2 hours'))
-            ->setEndsAt($now->modify('+3 hours'))
+            ->setEndsAt($now->modify(\sprintf('+%d hours', 2 + $durationHours)))
             ->setCapacity(5)
             ->setActive(true);
 

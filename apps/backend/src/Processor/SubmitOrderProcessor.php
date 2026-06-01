@@ -23,6 +23,7 @@ use App\Service\NotificationService;
 use App\Service\OrderNumberGenerator;
 use App\Service\OrderStatusLogRecorder;
 use App\Service\PickupSlotDisplayTime;
+use App\Service\PickupSlotDuration;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -131,6 +132,11 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         $now = $this->clock->now();
         $slotStartsAt = PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt());
         $slotEndsAt = PickupSlotDisplayTime::fromStoredLocalClock($slot->getEndsAt());
+
+        if (!PickupSlotDuration::isExactlyOneHour($slotStartsAt, $slotEndsAt)) {
+            $this->logRejected('PICKUP_SLOT_MUST_LAST_ONE_HOUR', $kadhiaId, $slotId, $userId, $storeId);
+            throw new UnprocessableEntityHttpException('PICKUP_SLOT_MUST_LAST_ONE_HOUR');
+        }
 
         if ($slotEndsAt <= $now) {
             $this->logRejected('PICKUP_SLOT_EXPIRED', $kadhiaId, $slotId, $userId, $storeId);
