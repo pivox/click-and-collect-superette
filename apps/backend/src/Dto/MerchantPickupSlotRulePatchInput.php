@@ -14,11 +14,11 @@ final class MerchantPickupSlotRulePatchInput
     #[Assert\Range(min: 1, max: 7)]
     public ?int $weekday = null;
 
-    #[Assert\Regex(pattern: '/^\d{2}:\d{2}$/', message: 'PICKUP_SLOT_RULE_INVALID_START_TIME')]
+    #[Assert\Regex(pattern: '/^(?:[01]\d|2[0-3]):[0-5]\d$/', message: 'PICKUP_SLOT_RULE_INVALID_START_TIME')]
     #[SerializedName('start_time')]
     public ?string $startTime = null;
 
-    #[Assert\Regex(pattern: '/^\d{2}:\d{2}$/', message: 'PICKUP_SLOT_RULE_INVALID_END_TIME')]
+    #[Assert\Regex(pattern: '/^(?:[01]\d|2[0-3]):[0-5]\d$/', message: 'PICKUP_SLOT_RULE_INVALID_END_TIME')]
     #[SerializedName('end_time')]
     public ?string $endTime = null;
 

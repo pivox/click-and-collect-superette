@@ -243,6 +243,38 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         self::assertSame('2030-05-29T10:00:00+01:00', $payload['items'][0]['starts_at']);
     }
 
+    public function testGetPickupSlotsDateTodayKeywordReturnsOnlyTodaySlots(): void
+    {
+        $shop = $this->createShop();
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $now = new \DateTimeImmutable('now', $timezone);
+
+        $todaySlot = $this->createPickupSlot(
+            $shop,
+            $now->modify('+1 hour'),
+            $now->modify('+2 hours'),
+            3,
+        );
+        $tomorrowDate = new \DateTimeImmutable('tomorrow midnight', $timezone);
+        $this->createPickupSlot($shop, $tomorrowDate->modify('+1 hour'), $tomorrowDate->modify('+2 hours'), 3);
+
+        $response = $this->requestJson('GET', \sprintf('/api/stores/%s/pickup-slots?date=today', $shop->getId()));
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($todaySlot->getId()->toRfc4122(), $payload['items'][0]['id']);
+    }
+
+    public function testGetPickupSlotsInvalidCalendarDateReturns400(): void
+    {
+        $shop = $this->createShop();
+
+        $response = $this->requestJson('GET', \sprintf('/api/stores/%s/pickup-slots?date=2030-02-30', $shop->getId()));
+
+        self::assertSame(400, $response->getStatusCode());
+    }
+
     public function testGetPickupSlotsOnlyReturnsSlotsBelongingToRequestedShop(): void
     {
         $shop1 = $this->createShop();

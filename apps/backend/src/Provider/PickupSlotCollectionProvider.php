@@ -15,6 +15,7 @@ use App\Repository\ShopRepository;
 use App\Service\PickupSlotDisplayTime;
 use App\Service\PickupSlotDuration;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -131,11 +132,12 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
 
         if (null !== $dateParam && 1 === preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateParam)) {
             $requestedDay = \DateTimeImmutable::createFromFormat('!Y-m-d', $dateParam, $timezone);
-            if ($requestedDay instanceof \DateTimeImmutable && $requestedDay->format('Y-m-d') === $dateParam) {
-                $from = $requestedDay <= $today ? $now : $requestedDay;
-
-                return [$from, $requestedDay->modify('+1 day')];
+            if (!$requestedDay instanceof \DateTimeImmutable || $requestedDay->format('Y-m-d') !== $dateParam) {
+                throw new BadRequestHttpException('PICKUP_SLOT_INVALID_DATE');
             }
+            $from = $requestedDay <= $today ? $now : $requestedDay;
+
+            return [$from, $requestedDay->modify('+1 day')];
         }
 
         return [$now, null];

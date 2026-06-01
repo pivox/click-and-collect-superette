@@ -275,6 +275,28 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         self::assertSame(409, $duplicate->getStatusCode());
     }
 
+    public function testGenerateSkipsLegacyRuleWithRangeShorterThanOneHour(): void
+    {
+        $merchant = $this->createUser('merchant-slot-rule-skip-short@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $weekday = (int) (new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis')))->format('N');
+        $this->createRule($shop, $weekday, '17:00', '17:30', 5);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/pickup-slot-rules/generate', $shop->getId()),
+            ['horizon_months' => 1],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(0, $payload['generated_count']);
+        self::assertSame(0, $payload['skipped_existing_count']);
+        self::assertSame(0, $payload['skipped_closure_count']);
+        self::assertCount(0, $this->entityManager->getRepository(PickupSlot::class)->findBy(['shop' => $shop]));
+    }
+
     public function testGenerateCreatesFourWeeksOfPickupSlotsFromActiveRules(): void
     {
         $merchant = $this->createUser('merchant-slot-rule-generate@example.test', ['ROLE_MERCHANT']);

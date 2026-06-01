@@ -313,6 +313,26 @@ describe('SlotCoverageWarning', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Aucun créneau disponible');
   });
+
+  it('ne montre pas d\'alerte quand un créneau valide d\'1 heure est disponible', () => {
+    render(
+      React.createElement(SlotCoverageWarning, {
+        slots: [makeSlot()],
+      }),
+    );
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('affiche l\'alerte quand le seul créneau est complet', () => {
+    render(
+      React.createElement(SlotCoverageWarning, {
+        slots: [makeSlot({ booked_count: 6, capacity: 6 })],
+      }),
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Aucun créneau disponible');
+  });
 });
 
 // ─── SlotCard ────────────────────────────────────────────────────────────────
