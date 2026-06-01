@@ -8,6 +8,7 @@ use App\Command\SeedDemoStoreCommand;
 use App\Entity\Brand;
 use App\Entity\Category;
 use App\Entity\MerchantProduct;
+use App\Entity\PickupSlot;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
@@ -72,6 +73,39 @@ final class SeedDemoStoreCommandTest extends FunctionalApiTestCase
 
         self::assertSame(2, $firstCount);
         self::assertSame($firstCount, $secondCount);
+    }
+
+    public function testSeedDemoStoreCreatesFuturePickupSlotsForClientJourney(): void
+    {
+        $this->createApprovedProductReference('6191234560002', 'Lait demi-écrémé UHT');
+
+        $this->runCommand();
+
+        $shop = $this->entityManager->getRepository(Shop::class)->findOneBy(['slug' => 'superette-el-amen']);
+        self::assertInstanceOf(Shop::class, $shop);
+
+        $slots = $this->entityManager->getRepository(PickupSlot::class)->findBy(['shop' => $shop], ['startsAt' => 'ASC']);
+        self::assertCount(3, $slots);
+
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $tomorrow = (new \DateTimeImmutable('tomorrow midnight', $timezone))->format('Y-m-d');
+        $afterTomorrow = (new \DateTimeImmutable('tomorrow midnight', $timezone))->modify('+1 day')->format('Y-m-d');
+
+        self::assertSame($tomorrow.' 10:00', $slots[0]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame($tomorrow.' 10:30', $slots[0]->getEndsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame(5, $slots[0]->getCapacity());
+
+        self::assertSame($tomorrow.' 14:00', $slots[1]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame($tomorrow.' 14:30', $slots[1]->getEndsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame(5, $slots[1]->getCapacity());
+
+        self::assertSame($afterTomorrow.' 10:00', $slots[2]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame($afterTomorrow.' 10:30', $slots[2]->getEndsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame(5, $slots[2]->getCapacity());
+
+        $this->runCommand();
+
+        self::assertSame(3, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
     }
 
     public function testSeedDemoStoreAllCatalogAssignsEveryApprovedProductReferenceOnly(): void

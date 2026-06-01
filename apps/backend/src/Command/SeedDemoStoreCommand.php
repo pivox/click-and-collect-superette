@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Entity\MerchantProduct;
+use App\Entity\PickupSlot;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
+use App\Repository\PickupSlotRepository;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -37,6 +40,14 @@ final class SeedDemoStoreCommand extends Command
     private const DEMO_STORE_CITY = 'Tunis';
     private const DEMO_STORE_COUNTRY = 'TN';
     private const DEMO_STORE_QR_CODE_TOKEN = 'demo-superette-el-amen';
+    private const DEMO_PICKUP_SLOT_CAPACITY = 5;
+
+    /** @var list<array{day_offset: int, start: string, end: string}> */
+    private const DEMO_PICKUP_SLOTS = [
+        ['day_offset' => 1, 'start' => '10:00', 'end' => '10:30'],
+        ['day_offset' => 1, 'start' => '14:00', 'end' => '14:30'],
+        ['day_offset' => 2, 'start' => '10:00', 'end' => '10:30'],
+    ];
 
     /** @var array<int, string> */
     private const DEMO_PRICE_BY_BARCODE = [
@@ -111,6 +122,7 @@ final class SeedDemoStoreCommand extends Command
         }
 
         $result = $this->upsertMerchantCatalog($shop, $productReferences);
+        $slotResult = $this->upsertDemoPickupSlots($shop);
         $this->entityManager->flush();
 
         $visibleCatalogCount = $this->entityManager->getRepository(MerchantProduct::class)->count([
@@ -132,6 +144,8 @@ final class SeedDemoStoreCommand extends Command
             ['products_added' => (string) $result['added']],
             ['products_updated' => (string) $result['updated']],
             ['visible_catalog_total' => (string) $visibleCatalogCount],
+            ['pickup_slots_added' => (string) $slotResult['added']],
+            ['pickup_slots_updated' => (string) $slotResult['updated']],
         );
 
         return Command::SUCCESS;
@@ -271,6 +285,50 @@ final class SeedDemoStoreCommand extends Command
         }
 
         return ['added' => $added, 'updated' => $updated];
+    }
+
+    /**
+     * @return array{added: int, updated: int}
+     */
+    private function upsertDemoPickupSlots(Shop $shop): array
+    {
+        /** @var PickupSlotRepository $pickupSlotRepository */
+        $pickupSlotRepository = $this->entityManager->getRepository(PickupSlot::class);
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $today = new \DateTimeImmutable('today midnight', $timezone);
+        $added = 0;
+        $updated = 0;
+
+        foreach (self::DEMO_PICKUP_SLOTS as $slotDefinition) {
+            $day = $today->modify(\sprintf('+%d days', $slotDefinition['day_offset']));
+            $startsAt = $this->buildPickupSlotDateTime($day, $slotDefinition['start']);
+            $endsAt = $this->buildPickupSlotDateTime($day, $slotDefinition['end']);
+
+            $slot = $pickupSlotRepository->findOneForShopAndRange($shop, $startsAt, $endsAt);
+            if (!$slot instanceof PickupSlot) {
+                $slot = (new PickupSlot())
+                    ->setShop($shop)
+                    ->setStartsAt($startsAt)
+                    ->setEndsAt($endsAt);
+                $this->entityManager->persist($slot);
+                ++$added;
+            } else {
+                ++$updated;
+            }
+
+            $slot
+                ->setCapacity(max(self::DEMO_PICKUP_SLOT_CAPACITY, $slot->getBookedCount() + 1))
+                ->setActive(true);
+        }
+
+        return ['added' => $added, 'updated' => $updated];
+    }
+
+    private function buildPickupSlotDateTime(\DateTimeImmutable $day, string $time): \DateTimeImmutable
+    {
+        [$hour, $minute] = array_map('intval', explode(':', $time));
+
+        return PickupSlotDisplayTime::fromPayloadInstant($day->setTime($hour, $minute));
     }
 
     private function resolvePriceTnd(ProductReference $productReference): string
