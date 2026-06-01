@@ -15,6 +15,33 @@ import { formatTnd, formatSlotRange } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import type { Order } from "@/types";
 
+function renderPickupAction(order: Order) {
+  if (order.status === "ready" || order.status === "pickup_pending") {
+    return (
+      <Link
+        href={`/orders/${order.id}/pickup`}
+        className={getButtonClassName({ full: true })}
+      >
+        Afficher le QR retrait
+      </Link>
+    );
+  }
+
+  if (order.status === "completed") {
+    return (
+      <Button full disabled>
+        Retrait finalisé
+      </Button>
+    );
+  }
+
+  return (
+    <Button full disabled>
+      QR retrait — disponible quand la commande est prête
+    </Button>
+  );
+}
+
 export default function OrderTrackingPage({
   params,
 }: {
@@ -73,7 +100,6 @@ export default function OrderTrackingPage({
 
   const badge = orderStatusBadge(order.status);
   const steps = projectTimeline(order);
-  const showQrCta = order.status === "ready" || order.status === "pickup_pending";
   const storeName = order.shopName ?? "Supérette";
   const pickupSlotLabel = order.pickupSlot
     ? formatSlotRange(order.pickupSlot.startsAt, order.pickupSlot.endsAt)
@@ -165,36 +191,14 @@ export default function OrderTrackingPage({
 
           {/* CTA inline sur desktop */}
           <div className="hidden md:block mt-4">
-            {showQrCta ? (
-              <Link
-                href={`/orders/${order.id}/pickup`}
-                className={getButtonClassName({ full: true })}
-              >
-                Afficher le QR retrait
-              </Link>
-            ) : (
-              <Button full disabled>
-                QR retrait — disponible quand prête
-              </Button>
-            )}
+            {renderPickupAction(order)}
           </div>
         </div>
       </div>
 
       {/* CTA sticky sur mobile */}
       <StickyBottom className="md:hidden">
-        {showQrCta ? (
-          <Link
-            href={`/orders/${order.id}/pickup`}
-            className={getButtonClassName({ full: true })}
-          >
-            Afficher le QR retrait
-          </Link>
-        ) : (
-          <Button full disabled>
-            QR retrait — disponible quand la commande est prête
-          </Button>
-        )}
+        {renderPickupAction(order)}
       </StickyBottom>
     </>
   );
