@@ -216,6 +216,33 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         self::assertNotSame($longSlot->getId()->toRfc4122(), $payload['items'][0]['id']);
     }
 
+    public function testGetPickupSlotsFiltersByRequestedLocalDate(): void
+    {
+        $shop = $this->createShop();
+        $timezone = new \DateTimeZone('Africa/Tunis');
+
+        $requestedDaySlot = $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('2030-05-29 10:00:00', $timezone),
+            new \DateTimeImmutable('2030-05-29 11:00:00', $timezone),
+            3,
+        );
+        $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('2030-05-30 10:00:00', $timezone),
+            new \DateTimeImmutable('2030-05-30 11:00:00', $timezone),
+            3,
+        );
+
+        $response = $this->requestJson('GET', \sprintf('/api/stores/%s/pickup-slots?date=2030-05-29', $shop->getId()));
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($requestedDaySlot->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertSame('2030-05-29T10:00:00+01:00', $payload['items'][0]['starts_at']);
+    }
+
     public function testGetPickupSlotsOnlyReturnsSlotsBelongingToRequestedShop(): void
     {
         $shop1 = $this->createShop();

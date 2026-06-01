@@ -104,6 +104,7 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
     /**
      * Returns [from, to) boundaries for the requested day in Tunisia local time.
      * null       → [now, null) — all future slots, no upper bound (backward-compatible)
+     * YYYY-MM-DD → [start of requested day, start of next day)
      * "today"    → [now, start of tomorrow)
      * "tomorrow" → [start of tomorrow, start of day+2)
      * "after"    → [start of day+2, start of day+3).
@@ -113,13 +114,30 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
     private function resolveDayWindow(?string $dateParam): array
     {
         $timezone = new \DateTimeZone('Africa/Tunis');
+        $now = new \DateTimeImmutable('now', $timezone);
+        $today = new \DateTimeImmutable('today midnight', $timezone);
         $tomorrow = new \DateTimeImmutable('tomorrow midnight', $timezone);
 
-        return match ($dateParam) {
-            'today' => [new \DateTimeImmutable('now', $timezone), $tomorrow],
+        $window = match ($dateParam) {
+            'today' => [$now, $tomorrow],
             'tomorrow' => [$tomorrow, $tomorrow->modify('+1 day')],
             'after' => [$tomorrow->modify('+1 day'), $tomorrow->modify('+2 days')],
-            default => [new \DateTimeImmutable('now', $timezone), null],
+            default => null,
         };
+
+        if (null !== $window) {
+            return $window;
+        }
+
+        if (null !== $dateParam && 1 === preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateParam)) {
+            $requestedDay = \DateTimeImmutable::createFromFormat('!Y-m-d', $dateParam, $timezone);
+            if ($requestedDay instanceof \DateTimeImmutable && $requestedDay->format('Y-m-d') === $dateParam) {
+                $from = $requestedDay <= $today ? $now : $requestedDay;
+
+                return [$from, $requestedDay->modify('+1 day')];
+            }
+        }
+
+        return [$now, null];
     }
 }
