@@ -1,0 +1,70 @@
+{
+  "catalog_name": "catalogue_superette_tunisie",
+  "current_version": "1.0.0",
+  "generated_at": "2026-06-01T00:00:00+00:00",
+  "files": [
+    {
+      "version": "1.0.0",
+      "file": "catalogue_superette_tunisie_v1.0.0.json",
+      "product_count": 5000,
+      "schema_version": "product_catalog_verification_ready.v1",
+      "sha256_products": "11d23c8c823f44918bdca2f115c24844237c6eab8e1d72873077305573d7e15e",
+      "status": "stable_draft"
+    }
+  ],
+  "history": [
+    {
+      "version": "0.1.0",
+      "date": "2026-05-30",
+      "type": "initial_catalog",
+      "product_count": 1000,
+      "description": "Création de la première base de produits pour supérette tunisienne."
+    },
+    {
+      "version": "0.2.0",
+      "date": "2026-05-30",
+      "type": "catalog_expansion",
+      "product_count": 3000,
+      "description": "Ajout de 2000 produits pour couvrir supérettes, hanout, épiceries et épiceries fines."
+    },
+    {
+      "version": "0.3.0",
+      "date": "2026-05-30",
+      "type": "catalog_expansion",
+      "product_count": 5000,
+      "description": "Ajout de 2000 produits supplémentaires et meilleure couverture des rayons."
+    },
+    {
+      "version": "0.4.0",
+      "date": "2026-05-30",
+      "type": "brand_candidate_enrichment",
+      "product_count": 5000,
+      "description": "Ajout de marques candidates par type de produit, sans marque confirmée inventée."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-05-30",
+      "type": "verification_ready",
+      "product_count": 5000,
+      "description": "Version structurée pour import BDD avec champs de vérification marque, GTIN/EAN, prix et qualité des données."
+    }
+  ],
+  "recommended_next_versions": [
+    {
+      "version": "1.1.0",
+      "description": "Ajout de synonymes name_tn_latin/name_ar et normalisation linguistique."
+    },
+    {
+      "version": "1.2.0",
+      "description": "Ajout progressif des codes GTIN/EAN et références fournisseurs."
+    },
+    {
+      "version": "1.3.0",
+      "description": "Ajout des prix TND vérifiés par source."
+    },
+    {
+      "version": "2.0.0",
+      "description": "Passage en catalogue commerce-ready avec marque/prix/EAN validés pour une majorité des produits."
+    }
+  ]
+}
