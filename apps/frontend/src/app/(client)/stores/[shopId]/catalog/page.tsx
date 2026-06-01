@@ -10,6 +10,7 @@ import { KadhiaPanel } from "@/components/product/KadhiaPanel";
 import { Button } from "@/components/ui/Button";
 import { KadhiaSelectorDialog } from "@/components/client/KadhiaSelectorDialog";
 import { ShoppingBasket } from "lucide-react";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import {
   addLine,
   createKadhia,
@@ -46,6 +47,7 @@ export default function CatalogPage({
   params: { shopId: string };
 }) {
   const { shopId } = params;
+  const isHydrated = useHydrated();
   const [category, setCategory] = useState<string>("all");
   const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
   const [search, setSearch] = useState("");
@@ -159,6 +161,11 @@ export default function CatalogPage({
     : `${cartCount} article${cartCount > 1 ? "s" : ""}`;
 
   const hasActiveKadhia = !!kadhia?.id;
+  const startLabel = !isHydrated
+    ? "Préparation…"
+    : isStarting
+      ? "…"
+      : "Commencer";
 
   return (
     <>
@@ -320,8 +327,12 @@ export default function CatalogPage({
           ) : (
             <div className="mx-auto flex max-w-md items-center justify-between gap-3">
               <p className="text-sm text-muted">Commence une Kadhia pour ajouter des produits.</p>
-              <Button onClick={onStart} disabled={isStarting} className="shrink-0">
-                {isStarting ? "…" : "Commencer"}
+              <Button
+                onClick={onStart}
+                disabled={!isHydrated || isStarting}
+                className="shrink-0"
+              >
+                {startLabel}
               </Button>
             </div>
           )}
