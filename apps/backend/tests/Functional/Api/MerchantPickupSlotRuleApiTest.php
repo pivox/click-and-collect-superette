@@ -198,6 +198,26 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         self::assertSame('10:00', $rule->getEndTime()->format('H:i'));
     }
 
+    public function testPickupSlotRulePatchAllowsCapacityOnlyUpdateOnLegacyLongRule(): void
+    {
+        $merchant = $this->createUser('merchant-slot-rule-legacy-capacity@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $rule = $this->createRule($shop, 1, '17:00', '23:00', 5);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slot-rules/%s', $shop->getId(), $rule->getId()),
+            ['capacity' => 8],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $this->entityManager->refresh($rule);
+        self::assertSame(8, $rule->getCapacity());
+        self::assertSame('17:00', $rule->getStartTime()->format('H:i'));
+        self::assertSame('23:00', $rule->getEndTime()->format('H:i'));
+    }
+
     public function testPickupSlotRuleCreateRejectsInvalidWeekdayTimeCapacityAndDuplicate(): void
     {
         $merchant = $this->createUser('merchant-slot-rule-validation@example.test', ['ROLE_MERCHANT']);

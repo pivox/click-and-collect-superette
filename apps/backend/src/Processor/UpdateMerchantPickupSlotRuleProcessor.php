@@ -63,12 +63,13 @@ final readonly class UpdateMerchantPickupSlotRuleProcessor implements ProcessorI
         $weekday = $data->weekday ?? $rule->getWeekday();
         $startTime = null !== $data->startTime ? $this->parseTime($data->startTime, 'PICKUP_SLOT_RULE_INVALID_START_TIME') : $rule->getStartTime();
         $endTime = null !== $data->endTime ? $this->parseTime($data->endTime, 'PICKUP_SLOT_RULE_INVALID_END_TIME') : $rule->getEndTime();
+        $timeRangeChanged = null !== $data->startTime || null !== $data->endTime;
 
         if ($startTime >= $endTime) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_RULE_START_TIME_MUST_BE_BEFORE_END_TIME');
         }
 
-        if (!PickupSlotDuration::isExactlyOneHour($startTime, $endTime)) {
+        if ($timeRangeChanged && !PickupSlotDuration::isExactlyOneHour($startTime, $endTime)) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_RULE_MUST_LAST_ONE_HOUR');
         }
 

@@ -55,8 +55,8 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
     }
     const [sh, sm] = startTime.split(':').map(Number);
     const [eh, em] = endTime.split(':').map(Number);
-    if (eh * 60 + em - (sh * 60 + sm) > 60) {
-      setErrors(['Un créneau ne peut pas dépasser 1 heure.']);
+    if (eh * 60 + em - (sh * 60 + sm) !== 60) {
+      setErrors(['Un créneau doit durer exactement 1 heure.']);
       return;
     }
     const cap = parseInt(capacity, 10);

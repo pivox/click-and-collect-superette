@@ -17,6 +17,11 @@ function toTunisDatetime(dateString: string, time: string): string {
   return `${dateString}T${time}:00${TUNIS_UTC_OFFSET}`;
 }
 
+function toMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
 export function SlotCreateModal({
   initialDate,
   onSubmit,
@@ -36,6 +41,10 @@ export function SlotCreateModal({
     e.preventDefault();
     if (startTime >= endTime) {
       setError("L'heure de fin doit être après l'heure de début.");
+      return;
+    }
+    if (toMinutes(endTime) - toMinutes(startTime) !== 60) {
+      setError('Le créneau doit durer exactement 1 heure.');
       return;
     }
     const cap = parseInt(capacity, 10);

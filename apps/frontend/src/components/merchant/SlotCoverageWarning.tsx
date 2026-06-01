@@ -5,10 +5,29 @@ import { useState } from 'react';
 import type { MerchantPickupSlot } from '@/lib/types/merchant-slots.types';
 
 const SIX_DAYS_MS = 6 * 24 * 60 * 60 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+function toTime(value: string): number {
+  return new Date(value).getTime();
+}
+
+function isClientUsableSlot(slot: MerchantPickupSlot, now: number, cutoff: number): boolean {
+  const startsAt = toTime(slot.starts_at);
+  const endsAt = toTime(slot.ends_at);
+
+  return (
+    slot.is_active &&
+    startsAt >= now &&
+    startsAt <= cutoff &&
+    slot.booked_count < slot.capacity &&
+    endsAt - startsAt === ONE_HOUR_MS
+  );
+}
 
 function hasSlotWithinSixDays(slots: MerchantPickupSlot[]): boolean {
-  const cutoff = Date.now() + SIX_DAYS_MS;
-  return slots.some((s) => new Date(s.starts_at).getTime() <= cutoff);
+  const now = Date.now();
+  const cutoff = now + SIX_DAYS_MS;
+  return slots.some((slot) => isClientUsableSlot(slot, now, cutoff));
 }
 
 export interface SlotCoverageWarningProps {

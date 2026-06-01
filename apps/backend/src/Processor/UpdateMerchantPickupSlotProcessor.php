@@ -68,11 +68,12 @@ final readonly class UpdateMerchantPickupSlotProcessor implements ProcessorInter
             ? PickupSlotDisplayTime::fromPayloadInstant($data->endsAt)
             : PickupSlotDisplayTime::fromStoredLocalClock($slot->getEndsAt());
         $isActive = $data->isActive ?? $slot->isActive();
+        $timeRangeChanged = null !== $data->startsAt || null !== $data->endsAt;
         if ($startsAt >= $endsAt) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_STARTS_AT_MUST_BE_BEFORE_ENDS_AT');
         }
 
-        if (!PickupSlotDuration::isExactlyOneHour($startsAt, $endsAt)) {
+        if ($timeRangeChanged && !PickupSlotDuration::isExactlyOneHour($startsAt, $endsAt)) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_MUST_LAST_ONE_HOUR');
         }
 

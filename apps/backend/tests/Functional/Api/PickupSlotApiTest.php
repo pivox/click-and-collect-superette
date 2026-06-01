@@ -588,6 +588,29 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         );
     }
 
+    public function testMerchantPickupSlotPatchAllowsCapacityOnlyUpdateOnLegacyLongSlot(): void
+    {
+        $merchant = $this->createUser('merchant-slots-patch-legacy-capacity@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Tunis'));
+        $slot = $this->createPickupSlot($shop, $now->modify('+1 hour'), $now->modify('+7 hours'), 3);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/pickup-slots/%s', $shop->getId(), $slot->getId()),
+            ['capacity' => 5],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $this->entityManager->refresh($slot);
+        self::assertSame(5, $slot->getCapacity());
+        self::assertSame(
+            $now->modify('+7 hours')->format('Y-m-d H:i'),
+            PickupSlotDisplayTime::fromStoredLocalClock($slot->getEndsAt())->format('Y-m-d H:i'),
+        );
+    }
+
     public function testMerchantPickupSlotPatchRejectsOverlapWithAnotherActiveSlot(): void
     {
         $merchant = $this->createUser('merchant-slots-patch-overlap@example.test', ['ROLE_MERCHANT']);
