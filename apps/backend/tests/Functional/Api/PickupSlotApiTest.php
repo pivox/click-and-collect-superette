@@ -251,8 +251,8 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
 
         $todaySlot = $this->createPickupSlot(
             $shop,
-            $now->modify('+1 hour'),
-            $now->modify('+2 hours'),
+            $now->modify('+5 minutes'),
+            $now->modify('+65 minutes'),
             3,
         );
         $tomorrowDate = new \DateTimeImmutable('tomorrow midnight', $timezone);
