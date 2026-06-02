@@ -65,3 +65,11 @@ export async function clientRegister(
 ): Promise<void> {
   await apiClient.post('/api/auth/register/customer', { email, password, name });
 }
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await apiClient.post('/api/auth/forgot-password', { email });
+}
+
+export async function confirmPasswordReset(token: string, password: string): Promise<void> {
+  await apiClient.post('/api/auth/reset-password', { token, password });
+}
