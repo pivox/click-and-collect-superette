@@ -1,7 +1,7 @@
 'use client';
 
 import { isAxiosError } from 'axios';
-import { Suspense, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -24,6 +24,15 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
+
+  useEffect(() => {
+    const msg = sessionStorage.getItem('login:flash');
+    if (msg) {
+      sessionStorage.removeItem('login:flash');
+      setFlash(msg);
+    }
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -59,6 +68,12 @@ function LoginForm() {
         <h1 className="mt-1 text-h2 font-black">Connexion</h1>
       </div>
 
+      {flash && (
+        <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+          {flash}
+        </p>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-semibold" htmlFor="email">
@@ -76,9 +91,17 @@ function LoginForm() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold" htmlFor="password">
-            Mot de passe
-          </label>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="text-sm font-semibold" htmlFor="password">
+              Mot de passe
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              Mot de passe oublié ?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"

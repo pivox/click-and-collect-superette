@@ -5,6 +5,7 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     app.password_reset_token_ttl: 3600
+    app.frontend_url: '%env(string:FRONTEND_URL)%'
     app.merchant_response_timeout_lead_seconds: 7200
     app.partial_acceptance_reminder_lead_seconds: 14400
     app.partial_acceptance_expiration_lead_seconds: 7200
@@ -17,6 +18,7 @@ services:
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
         bind:
             int $passwordResetTokenTtl: '%app.password_reset_token_ttl%'
+            string $frontendUrl: '%app.frontend_url%'
             int $merchantResponseTimeoutLeadSeconds: '%app.merchant_response_timeout_lead_seconds%'
             int $partialAcceptanceReminderLeadSeconds: '%app.partial_acceptance_reminder_lead_seconds%'
             int $partialAcceptanceExpirationLeadSeconds: '%app.partial_acceptance_expiration_lead_seconds%'
