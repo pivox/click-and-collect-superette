@@ -93,15 +93,15 @@ final class SeedDemoStoreCommandTest extends FunctionalApiTestCase
         $afterTomorrow = (new \DateTimeImmutable('tomorrow midnight', $timezone))->modify('+1 day')->format('Y-m-d');
 
         self::assertSame($tomorrow.' 10:00', $slots[0]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
-        self::assertSame($tomorrow.' 10:30', $slots[0]->getEndsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame($tomorrow.' 11:00', $slots[0]->getEndsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
         self::assertSame(5, $slots[0]->getCapacity());
 
         self::assertSame($tomorrow.' 14:00', $slots[1]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
-        self::assertSame($tomorrow.' 14:30', $slots[1]->getEndsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame($tomorrow.' 15:00', $slots[1]->getEndsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
         self::assertSame(5, $slots[1]->getCapacity());
 
         self::assertSame($afterTomorrow.' 10:00', $slots[2]->getStartsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
-        self::assertSame($afterTomorrow.' 10:30', $slots[2]->getEndsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
+        self::assertSame($afterTomorrow.' 11:00', $slots[2]->getEndsAt()->setTimezone($timezone)->format('Y-m-d H:i'));
         self::assertSame(5, $slots[2]->getCapacity());
 
         $this->runCommand();
