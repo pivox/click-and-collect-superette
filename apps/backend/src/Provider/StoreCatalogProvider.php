@@ -6,7 +6,9 @@ namespace App\Provider;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use App\ApiResource\StoreCatalogCategoryOutput;
 use App\ApiResource\StoreCatalogOutput;
+use App\Entity\MerchantProduct;
 use App\Mapper\StoreCatalogProductMapper;
 use App\Repository\MerchantProductRepository;
 use App\Repository\ShopRepository;
@@ -46,12 +48,57 @@ final readonly class StoreCatalogProvider implements ProviderInterface
         $request = $this->requestStack->getCurrentRequest();
         $query = $request?->query->getString('query') ?: null;
         $category = $request?->query->getString('category') ?: null;
+        $page = max(1, $request?->query->getInt('page', 1) ?? 1);
+        $itemsPerPage = min(100, max(1, $request?->query->getInt('items_per_page', 30) ?? 30));
+
+        $catalog = $this->merchantProductRepository->findPublicCatalogForShop($shop, $query, $category);
+        $total = \count($catalog);
+        $pages = max(1, (int) ceil($total / $itemsPerPage));
+        $page = min($page, $pages);
+        $paginatedCatalog = \array_slice($catalog, ($page - 1) * $itemsPerPage, $itemsPerPage);
 
         $items = array_map(
             $this->storeCatalogProductMapper->toOutput(...),
-            $this->merchantProductRepository->findPublicCatalogForShop($shop, $query, $category),
+            $paginatedCatalog,
         );
 
-        return new StoreCatalogOutput($items, $storeId);
+        return new StoreCatalogOutput(
+            items: $items,
+            categories: $this->buildCategories($catalog),
+            page: $page,
+            itemsPerPage: $itemsPerPage,
+            total: $total,
+            pages: $pages,
+            storeId: $storeId,
+        );
+    }
+
+    /**
+     * @param list<MerchantProduct> $catalog
+     *
+     * @return list<StoreCatalogCategoryOutput>
+     */
+    private function buildCategories(array $catalog): array
+    {
+        $categories = [];
+        foreach ($catalog as $merchantProduct) {
+            $key = $merchantProduct->getDisplayCategorySlug();
+            if (isset($categories[$key])) {
+                continue;
+            }
+
+            $categories[$key] = new StoreCatalogCategoryOutput(
+                key: $key,
+                labelFr: $merchantProduct->getDisplayCategoryName(),
+                labelAr: $merchantProduct->getDisplayCategoryNameAr(),
+            );
+        }
+
+        uasort(
+            $categories,
+            static fn (StoreCatalogCategoryOutput $left, StoreCatalogCategoryOutput $right): int => $left->labelFr <=> $right->labelFr,
+        );
+
+        return array_values($categories);
     }
 }

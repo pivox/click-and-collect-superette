@@ -8,7 +8,7 @@ import {
   getShop,
   listCatalog,
 } from '@/lib/services';
-import type { Kadhia, Shop } from '@/types';
+import type { Kadhia, ProductOffer, Shop } from '@/types';
 
 vi.mock('@/lib/services', () => ({
   activateKadhia: vi.fn(),
@@ -39,10 +39,34 @@ const EMPTY_KADHIA = {
   notes: null,
 } satisfies Kadhia;
 
+function makeProduct(index: number): ProductOffer {
+  return {
+    id: `product-${index}`,
+    productReferenceId: `ref-${index}`,
+    nameFr: `Produit test ${index}`,
+    nameAr: null,
+    brand: 'Marque test',
+    volume: 1,
+    unit: 'piece',
+    priceTnd: '1.000',
+    isAvailable: true,
+    photoUrl: null,
+    category: 'test',
+    categoryNameFr: 'Test',
+  };
+}
+
 describe('CatalogPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(listCatalog).mockResolvedValue([]);
+    vi.mocked(listCatalog).mockResolvedValue({
+      items: [],
+      categories: [],
+      page: 1,
+      itemsPerPage: 30,
+      total: 0,
+      pages: 1,
+    });
     vi.mocked(getCurrentKadhia).mockResolvedValue({ type: 'none' });
     vi.mocked(getShop).mockResolvedValue(SHOP);
   });
@@ -70,5 +94,42 @@ describe('CatalogPage', () => {
     fireEvent.click(startButton);
 
     await waitFor(() => expect(createKadhia).toHaveBeenCalledWith('store-1'));
+  });
+
+  it('charge le catalogue page par page et permet d’afficher la suite', async () => {
+    vi.mocked(listCatalog)
+      .mockResolvedValueOnce({
+        items: Array.from({ length: 30 }, (_, index) => makeProduct(index + 1)),
+        categories: [{ key: 'test', labelFr: 'Test', labelAr: null }],
+        page: 1,
+        itemsPerPage: 30,
+        total: 35,
+        pages: 2,
+      })
+      .mockResolvedValueOnce({
+        items: Array.from({ length: 5 }, (_, index) => makeProduct(index + 31)),
+        categories: [{ key: 'test', labelFr: 'Test', labelAr: null }],
+        page: 2,
+        itemsPerPage: 30,
+        total: 35,
+        pages: 2,
+      });
+
+    render(<CatalogPage params={{ shopId: 'store-1' }} />);
+
+    expect(await screen.findByText('Produit test 1')).toBeTruthy();
+    expect(screen.getByText('Produit test 30')).toBeTruthy();
+    expect(screen.queryByText('Produit test 31')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /afficher 5 produits de plus/i }));
+
+    await waitFor(() => expect(listCatalog).toHaveBeenCalledWith({
+      shopId: 'store-1',
+      category: 'all',
+      search: '',
+      page: 2,
+      itemsPerPage: 30,
+    }));
+    expect(await screen.findByText('Produit test 35')).toBeTruthy();
   });
 });

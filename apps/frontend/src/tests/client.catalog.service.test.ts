@@ -29,6 +29,13 @@ const RAW_CATALOG = {
       is_available: true,
     },
   ],
+  categories: [
+    { key: 'alimentaire', label_fr: 'Alimentaire', label_ar: null },
+  ],
+  page: 2,
+  items_per_page: 20,
+  total: 41,
+  pages: 3,
 };
 
 describe('client catalog service', () => {
@@ -37,18 +44,27 @@ describe('client catalog service', () => {
   it('transmet le slug catégorie backend et conserve son libellé', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({ data: RAW_CATALOG });
 
-    const products = await listCatalog({
+    const result = await listCatalog({
       shopId: 'store-1',
       category: 'alimentaire',
       search: 'coca',
+      page: 2,
+      itemsPerPage: 20,
     });
 
     expect(apiClient.get).toHaveBeenCalledWith('/api/stores/store-1/catalog', {
-      params: { category: 'alimentaire', query: 'coca' },
+      params: { category: 'alimentaire', query: 'coca', page: 2, items_per_page: 20 },
     });
-    expect(products[0]).toMatchObject({
+    expect(result.items[0]).toMatchObject({
       category: 'alimentaire',
       categoryNameFr: 'Alimentaire',
+    });
+    expect(result).toMatchObject({
+      page: 2,
+      itemsPerPage: 20,
+      total: 41,
+      pages: 3,
+      categories: [{ key: 'alimentaire', labelFr: 'Alimentaire', labelAr: null }],
     });
   });
 
@@ -62,16 +78,16 @@ describe('client catalog service', () => {
       data: { items: [itemWithoutVolume] },
     });
 
-    const products = await listCatalog({
+    const result = await listCatalog({
       shopId: 'store-1',
       category: 'all',
       search: '',
     });
 
     expect(apiClient.get).toHaveBeenCalledWith('/api/stores/store-1/catalog', {
-      params: { category: undefined, query: '' },
+      params: { category: undefined, query: '', page: 1, items_per_page: 30 },
     });
-    expect(products[0].volume).toBeNull();
+    expect(result.items[0].volume).toBeNull();
     expect(warnSpy).not.toHaveBeenCalled();
 
     warnSpy.mockRestore();

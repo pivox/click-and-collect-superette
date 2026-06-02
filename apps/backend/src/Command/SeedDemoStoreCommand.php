@@ -44,9 +44,9 @@ final class SeedDemoStoreCommand extends Command
 
     /** @var list<array{day_offset: int, start: string, end: string}> */
     private const DEMO_PICKUP_SLOTS = [
-        ['day_offset' => 1, 'start' => '10:00', 'end' => '10:30'],
-        ['day_offset' => 1, 'start' => '14:00', 'end' => '14:30'],
-        ['day_offset' => 2, 'start' => '10:00', 'end' => '10:30'],
+        ['day_offset' => 1, 'start' => '10:00', 'end' => '11:00'],
+        ['day_offset' => 1, 'start' => '14:00', 'end' => '15:00'],
+        ['day_offset' => 2, 'start' => '10:00', 'end' => '11:00'],
     ];
 
     /** @var array<int, string> */

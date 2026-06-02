@@ -55,9 +55,16 @@ const today = new Date();
 today.setHours(0, 0, 0, 0);
 
 function todayIso(hour: number): string {
-  const y = today.getFullYear();
-  const m = String(today.getMonth() + 1).padStart(2, '0');
-  const d = String(today.getDate()).padStart(2, '0');
+  return dayIso(0, hour);
+}
+
+function dayIso(daysFromToday: number, hour: number): string {
+  const date = new Date(today);
+  date.setDate(today.getDate() + daysFromToday);
+
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
   const hh = String(hour).padStart(2, '0');
   return `${y}-${m}-${d}T${hh}:00:00+01:00`;
 }
@@ -326,7 +333,7 @@ describe('SlotCoverageWarning', () => {
   it('ne montre pas d\'alerte quand un créneau valide d\'1 heure est disponible', () => {
     render(
       React.createElement(SlotCoverageWarning, {
-        slots: [makeSlot({ starts_at: tomorrowIso(17), ends_at: tomorrowIso(18) })],
+        slots: [makeSlot({ starts_at: dayIso(1, 17), ends_at: dayIso(1, 18) })],
       }),
     );
 
