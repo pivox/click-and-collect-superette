@@ -35,4 +35,9 @@ describe('hasActiveKadhia', () => {
     localStorage.setItem('kadhia:current', JSON.stringify({ shopId: 'store-2', lines: [{ id: 'l1' }] }));
     expect(hasActiveKadhia('store-1')).toBe(false);
   });
+
+  it('retourne false si kadhia:current contient du JSON invalide', () => {
+    localStorage.setItem('kadhia:current', '{invalid-json');
+    expect(hasActiveKadhia('store-1')).toBe(false);
+  });
 });

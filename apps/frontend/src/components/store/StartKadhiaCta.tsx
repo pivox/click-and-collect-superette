@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getButtonClassName } from '@/components/ui/Button';
 import { StoreSwitchWarning } from '@/components/store/StoreSwitchWarning';
 import { useSelectedStore } from '@/lib/store/SelectedStoreContext';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 import { hasActiveKadhia } from '@/lib/store/hasActiveKadhia';
 
 interface StartKadhiaCtaProps {
@@ -14,13 +15,16 @@ interface StartKadhiaCtaProps {
 export function StartKadhiaCta({ shop }: StartKadhiaCtaProps) {
   const router = useRouter();
   const { selectedStore, selectStore } = useSelectedStore();
+  const isHydrated = useHydrated();
   const [showWarning, setShowWarning] = useState(false);
 
+  // Wait for the provider to hydrate from localStorage before auto-selecting,
+  // otherwise selectedStore is null on first render and overwrites the persisted store.
   useEffect(() => {
-    if (!selectedStore) {
+    if (isHydrated && !selectedStore) {
       selectStore(shop);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isHydrated, selectedStore, selectStore, shop]);
 
   function handleClick() {
     if (selectedStore && selectedStore.id !== shop.id && hasActiveKadhia(selectedStore.id)) {

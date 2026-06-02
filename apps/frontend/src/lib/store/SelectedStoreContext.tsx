@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'selected_store';
 
@@ -10,7 +10,7 @@ export interface SelectedStore {
   logoLetter?: string | null;
 }
 
-interface SelectedStoreContextValue {
+export interface SelectedStoreContextValue {
   selectedStore: SelectedStore | null;
   selectStore: (shop: SelectedStore) => void;
   clearStore: () => void;
@@ -22,21 +22,42 @@ export function SelectedStoreProvider({ children }: { children: React.ReactNode 
   const [selectedStore, setSelectedStore] = useState<SelectedStore | null>(null);
 
   useEffect(() => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setSelectedStore(JSON.parse(raw) as SelectedStore);
-    } catch { /* ignore */ }
+      const parsed = JSON.parse(raw) as unknown;
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        'id' in parsed && typeof (parsed as Record<string, unknown>).id === 'string' &&
+        'name' in parsed && typeof (parsed as Record<string, unknown>).name === 'string'
+      ) {
+        setSelectedStore(parsed as SelectedStore);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    }
   }, []);
 
-  const selectStore = (shop: SelectedStore) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(shop));
+  const selectStore = useCallback((shop: SelectedStore) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(shop));
+    } catch {
+      // QuotaExceededError or SecurityError — still update React state
+    }
     setSelectedStore(shop);
-  };
+  }, []);
 
-  const clearStore = () => {
-    localStorage.removeItem(STORAGE_KEY);
+  const clearStore = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // SecurityError in restricted environments
+    }
     setSelectedStore(null);
-  };
+  }, []);
 
   return (
     <SelectedStoreContext.Provider value={{ selectedStore, selectStore, clearStore }}>

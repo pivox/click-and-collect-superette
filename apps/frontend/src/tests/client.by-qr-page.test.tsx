@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -21,6 +21,16 @@ vi.mock('@/lib/store/SelectedStoreContext', () => ({
 import ByQrPage from '@/app/(client)/stores/by-qr/[qrToken]/page';
 import { getShopBySlug, recordStoreVisit } from '@/lib/services';
 
+const SHOP = {
+  id: 'store-1',
+  name: 'Supérette El Amen',
+  slug: 'superette-el-amen',
+  city: 'Tunis',
+  isActive: true,
+  address: null,
+  phone: null,
+};
+
 describe('ByQrPage', () => {
   beforeEach(() => {
     replace.mockClear();
@@ -29,15 +39,7 @@ describe('ByQrPage', () => {
   });
 
   it('redirige vers le catalogue et auto-sélectionne le store', async () => {
-    vi.mocked(getShopBySlug).mockResolvedValue({
-      id: 'store-1',
-      name: 'Supérette El Amen',
-      slug: 'superette-el-amen',
-      city: 'Tunis',
-      isActive: true,
-      address: null,
-      phone: null,
-    });
+    vi.mocked(getShopBySlug).mockResolvedValue(SHOP);
     vi.mocked(recordStoreVisit).mockReturnValue(new Promise(() => {}));
 
     render(<ByQrPage params={{ qrToken: 'demo-superette-el-amen' }} />);
@@ -50,5 +52,31 @@ describe('ByQrPage', () => {
       name: 'Supérette El Amen',
       logoLetter: undefined,
     });
+    expect(recordStoreVisit).toHaveBeenCalledWith('store-1', 'qr_code');
+  });
+
+  it("affiche l'erreur si getShopBySlug résout null (QR inconnu)", async () => {
+    vi.mocked(getShopBySlug).mockResolvedValue(null);
+    vi.mocked(recordStoreVisit).mockResolvedValue(undefined);
+
+    render(<ByQrPage params={{ qrToken: 'token-inconnu' }} />);
+
+    await waitFor(() =>
+      expect(screen.getByText('QR code non reconnu ou supérette indisponible.')).toBeTruthy(),
+    );
+    expect(replace).not.toHaveBeenCalled();
+    expect(selectStore).not.toHaveBeenCalled();
+  });
+
+  it("affiche l'erreur si getShopBySlug rejette (erreur réseau)", async () => {
+    vi.mocked(getShopBySlug).mockRejectedValue(new Error('network error'));
+    vi.mocked(recordStoreVisit).mockResolvedValue(undefined);
+
+    render(<ByQrPage params={{ qrToken: 'token-erreur' }} />);
+
+    await waitFor(() =>
+      expect(screen.getByText('QR code non reconnu ou supérette indisponible.')).toBeTruthy(),
+    );
+    expect(replace).not.toHaveBeenCalled();
   });
 });

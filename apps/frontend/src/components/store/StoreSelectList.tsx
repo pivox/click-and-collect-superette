@@ -47,7 +47,7 @@ export function StoreSelectList({ shops }: { shops: Shop[] }) {
               role="button"
               tabIndex={0}
               onClick={() => handleSelect(s)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSelect(s)}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSelect(s)}
             >
               <StoreCard shop={s} selected={selectedStore?.id === s.id} />
             </div>

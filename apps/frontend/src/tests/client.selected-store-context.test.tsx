@@ -51,4 +51,17 @@ describe('SelectedStoreContext', () => {
     expect(() => render(<Consumer />)).toThrow();
     console.error = err;
   });
+
+  it('ignore le JSON corrompu en localStorage et laisse selectedStore à null', async () => {
+    localStorage.setItem('selected_store', '{invalid-json');
+    render(<SelectedStoreProvider><Consumer /></SelectedStoreProvider>);
+    await waitFor(() => expect(screen.getByTestId('name').textContent).toBe('none'));
+  });
+
+  it('ignore une entrée avec shape invalide et la supprime', async () => {
+    localStorage.setItem('selected_store', JSON.stringify({ foo: 'bar' }));
+    render(<SelectedStoreProvider><Consumer /></SelectedStoreProvider>);
+    await waitFor(() => expect(screen.getByTestId('name').textContent).toBe('none'));
+    expect(localStorage.getItem('selected_store')).toBeNull();
+  });
 });

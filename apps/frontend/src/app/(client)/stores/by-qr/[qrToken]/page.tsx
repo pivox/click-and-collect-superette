@@ -32,7 +32,10 @@ export default function ByQrPage({
         selectStore({ id: shop.id, name: shop.name, logoLetter: shop.logoLetter });
         router.replace(`/stores/${shop.id}/catalog`);
       })
-      .catch(() => setError(true));
+      .catch((err) => {
+        console.error('[store-qr] getShopBySlug failed', { qrToken: params.qrToken, err });
+        setError(true);
+      });
   }, [params.qrToken, router, selectStore]);
 
   if (error) {
