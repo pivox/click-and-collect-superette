@@ -73,6 +73,12 @@ export default function MerchantCatalogPage() {
         limit: DEFAULT_LIMIT,
       });
       if (requestId.current === nextRequestId) {
+        // If the current page is beyond the last valid page after a mutation,
+        // clamp back to the last page — useEffect will re-fetch automatically.
+        if (result.items.length === 0 && result.total > 0 && page > 1) {
+          setPage(result.pages > 0 ? result.pages : 1);
+          return;
+        }
         setItems(result.items);
         setTotal(result.total);
         setPages(result.pages);
@@ -226,6 +232,8 @@ export default function MerchantCatalogPage() {
 
   const handlePageChange = (nextPage: number) => {
     setPage(nextPage);
+    setSelectedProductIds([]);
+    setSelectionError(null);
   };
 
   return (
