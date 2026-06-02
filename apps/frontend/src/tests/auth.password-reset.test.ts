@@ -31,12 +31,12 @@ describe('requestPasswordReset', () => {
 describe('confirmPasswordReset', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('POSTs to /api/auth/reset-password with token and password', async () => {
+  it('POSTs to /api/auth/reset-password with token and new_password', async () => {
     vi.mocked(apiClient.post).mockResolvedValue({ data: {} });
     await confirmPasswordReset('MY_TOKEN', 'newPassword123');
     expect(apiClient.post).toHaveBeenCalledWith('/api/auth/reset-password', {
       token: 'MY_TOKEN',
-      password: 'newPassword123',
+      new_password: 'newPassword123',
     });
   });
 
