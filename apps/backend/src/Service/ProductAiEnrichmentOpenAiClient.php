@@ -32,8 +32,8 @@ final readonly class ProductAiEnrichmentOpenAiClient
         $payload = $response->toArray(false);
         if (($payload['error'] ?? null) || !\is_string($payload['id'] ?? null)) {
             $errorDetail = \is_array($payload['error'] ?? null)
-                ? ($payload['error']['message'] ?? \json_encode($payload['error']))
-                : \json_encode($payload);
+                ? ($payload['error']['message'] ?? json_encode($payload['error']))
+                : json_encode($payload);
             throw new \RuntimeException('OPENAI_BATCH_CREATE_FAILED: '.$errorDetail);
         }
 
@@ -102,8 +102,8 @@ final readonly class ProductAiEnrichmentOpenAiClient
         $payload = $response->toArray(false);
         if (($payload['error'] ?? null) || !\is_string($payload['id'] ?? null)) {
             $errorDetail = \is_array($payload['error'] ?? null)
-                ? ($payload['error']['message'] ?? \json_encode($payload['error']))
-                : \json_encode($payload);
+                ? ($payload['error']['message'] ?? json_encode($payload['error']))
+                : json_encode($payload);
             throw new \RuntimeException('OPENAI_FILE_UPLOAD_FAILED: '.$errorDetail);
         }
 
