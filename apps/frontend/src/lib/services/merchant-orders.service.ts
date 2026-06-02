@@ -141,7 +141,7 @@ export async function exportOrdersCsv(
     return mockDelay(new Blob([bom + csv], { type: 'text/csv;charset=utf-8' }));
   }
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
-  const url = `${apiUrl}/api/merchant/stores/${storeId}/orders/history?format=csv&date_from=${params.dateFrom}&date_to=${params.dateTo}`;
+  const url = `${apiUrl}/api/merchant/stores/${storeId}/orders/export.csv?date_from=${params.dateFrom}&date_to=${params.dateTo}`;
   const token = typeof window !== 'undefined' ? localStorage.getItem('merchant_token') ?? '' : '';
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!response.ok) throw new Error('Export CSV failed');

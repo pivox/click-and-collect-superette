@@ -7,6 +7,8 @@ import {
   type ClientUser,
 } from '@/lib/services/auth.service';
 
+const PROFILE_NAME_KEY = 'profile_name_override';
+
 interface ClientAuthContextValue {
   user: ClientUser | null;
   isLoading: boolean;
@@ -27,18 +29,20 @@ export function ClientAuthProvider({ children }: { children: React.ReactNode }) 
       try {
         const payload = decodeJwtPayload(token);
         const exp = typeof payload.exp === 'number' ? payload.exp : 0;
-        // exp <= 0 means missing or zero (epoch) — treat as expired
         if (exp <= 0 || Date.now() / 1000 >= exp) {
           localStorage.removeItem('jwt_token');
+          localStorage.removeItem(PROFILE_NAME_KEY);
         } else {
+          const nameOverride = localStorage.getItem(PROFILE_NAME_KEY);
           setUser({
             token,
             email: typeof payload.email === 'string' ? payload.email : '',
-            name: typeof payload.name === 'string' ? payload.name : '',
+            name: nameOverride ?? (typeof payload.name === 'string' ? payload.name : ''),
           });
         }
       } catch {
         localStorage.removeItem('jwt_token');
+        localStorage.removeItem(PROFILE_NAME_KEY);
       }
     }
     setIsLoading(false);
@@ -47,16 +51,18 @@ export function ClientAuthProvider({ children }: { children: React.ReactNode }) 
   const login = async (email: string, password: string) => {
     const clientUser = await apiClientLogin(email, password);
     localStorage.setItem('jwt_token', clientUser.token);
+    localStorage.removeItem(PROFILE_NAME_KEY);
     setUser(clientUser);
   };
 
-  // Routing after logout is the caller's responsibility — no router coupling here.
   const logout = () => {
     localStorage.removeItem('jwt_token');
+    localStorage.removeItem(PROFILE_NAME_KEY);
     setUser(null);
   };
 
   const updateUser = (name: string) => {
+    localStorage.setItem(PROFILE_NAME_KEY, name);
     setUser((prev) => (prev ? { ...prev, name } : prev));
   };
 
