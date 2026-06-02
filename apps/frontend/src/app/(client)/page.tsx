@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { Hero } from '@/components/layout/Hero';
 import { getButtonClassName } from '@/components/ui/Button';
-import { StoreCard } from '@/components/store/StoreCard';
+import { StoreSelectList } from '@/components/store/StoreSelectList';
+import type { Shop } from '@/types';
 import { ActiveKadhiaBanner } from '@/components/store/ActiveKadhiaBanner';
 import { listShops } from '@/lib/services';
-import type { Shop } from '@/types';
-
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
@@ -48,17 +47,7 @@ export default async function HomePage() {
             Voir tout
           </Link>
         </header>
-        <div className="grid gap-2.5 md:grid-cols-3">
-          {recent.length === 0 ? (
-            <p className="col-span-3 py-4 text-center text-sm text-muted">
-              Aucune supérette disponible. Scanne un QR code à l&apos;entrée.
-            </p>
-          ) : (
-            recent.map((s) => (
-              <StoreCard key={s.id} shop={s} href={`/stores/${s.id}/catalog`} />
-            ))
-          )}
-        </div>
+        <StoreSelectList shops={recent} />
       </section>
     </>
   );
