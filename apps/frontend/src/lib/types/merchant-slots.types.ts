@@ -75,6 +75,22 @@ export interface PatchClosurePayload {
   is_active?: boolean;
 }
 
+export interface OpeningHoursDay {
+  open: string | null;
+  close: string | null;
+  closed: boolean;
+}
+
+export interface OpeningHours {
+  monday: OpeningHoursDay;
+  tuesday: OpeningHoursDay;
+  wednesday: OpeningHoursDay;
+  thursday: OpeningHoursDay;
+  friday: OpeningHoursDay;
+  saturday: OpeningHoursDay;
+  sunday: OpeningHoursDay;
+}
+
 export interface GenerateSlotsResult {
   store_id: string;
   generated_count: number;

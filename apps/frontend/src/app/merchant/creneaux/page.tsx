@@ -8,6 +8,7 @@ import { SlotCard } from '@/components/merchant/creneaux/SlotCard';
 import { SlotCreateModal } from '@/components/merchant/creneaux/SlotCreateModal';
 import { RuleAccordion } from '@/components/merchant/creneaux/RuleAccordion';
 import { ClosureAccordion } from '@/components/merchant/creneaux/ClosureAccordion';
+import { OpeningHoursSection } from '@/components/merchant/creneaux/OpeningHoursSection';
 import {
   listMerchantSlotRules,
   createMerchantSlotRule,
@@ -200,6 +201,8 @@ export default function MerchantCreneauxPage() {
         onCreateClosure={handleCreateClosure}
         onDeleteClosure={handleDeleteClosure}
       />
+
+      <OpeningHoursSection storeId={storeId} />
 
       {showCreateModal && (
         <SlotCreateModal
