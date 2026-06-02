@@ -14,22 +14,37 @@ export default function StoresPage() {
   const { user, isLoading: authLoading } = useClientAuth();
   const [shops, setShops] = useState<Shop[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // In mock mode, always use the personal list (mutable mock state).
-  // In real mode, use the personal list when logged in, public list otherwise.
-  const showActions = USE_MOCKS || !!user;
+  // True only when we are displaying the customer's personal list (enables remove/favorite actions).
+  const [isPersonalList, setIsPersonalList] = useState(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = showActions ? await listMyStores() : await listShops();
-      setShops(data);
+      if (USE_MOCKS) {
+        // Mock mode: always show the mutable personal list with actions.
+        setShops(await listMyStores());
+        setIsPersonalList(true);
+      } else if (user) {
+        // Real mode, logged in: prefer personal list; fall back to public discovery if empty.
+        const personal = await listMyStores();
+        if (personal.length > 0) {
+          setShops(personal);
+          setIsPersonalList(true);
+        } else {
+          setShops(await listShops());
+          setIsPersonalList(false);
+        }
+      } else {
+        setShops(await listShops());
+        setIsPersonalList(false);
+      }
     } catch {
       setShops([]);
+      setIsPersonalList(false);
     } finally {
       setIsLoading(false);
     }
-  }, [showActions]);
+  }, [user]);
 
   useEffect(() => {
     if (!authLoading) void load();
@@ -84,8 +99,8 @@ export default function StoresPage() {
       ) : (
         <StoreSelectList
           shops={shops}
-          onRemove={showActions ? handleRemove : undefined}
-          onToggleFavorite={showActions ? handleToggleFavorite : undefined}
+          onRemove={isPersonalList ? handleRemove : undefined}
+          onToggleFavorite={isPersonalList ? handleToggleFavorite : undefined}
         />
       )}
 
