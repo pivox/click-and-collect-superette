@@ -16,6 +16,7 @@ export const MOCK_SHOPS: Shop[] = [
     closesAt: "22:00",
     nextPickupAt: "18:30",
     logoLetter: "S",
+    isFavorite: true,
   },
   {
     id: "shop-bardo",
@@ -31,6 +32,7 @@ export const MOCK_SHOPS: Shop[] = [
     closesAt: "23:00",
     nextPickupAt: "19:00",
     logoLetter: "B",
+    isFavorite: false,
   },
   {
     id: "shop-marsa",
@@ -46,5 +48,26 @@ export const MOCK_SHOPS: Shop[] = [
     closesAt: "21:00",
     nextPickupAt: "20:00",
     logoLetter: "M",
+    isFavorite: false,
   },
 ];
+
+// Mutable state for mock mutations (remove / toggle favorite)
+let mockMyShops: Shop[] = MOCK_SHOPS.map((s) => ({ ...s }));
+
+export function getMockMyShops(): Shop[] {
+  return mockMyShops;
+}
+
+export function resetMockMyShops(): void {
+  mockMyShops = MOCK_SHOPS.map((s) => ({ ...s }));
+}
+
+export function removeMockShop(shopId: string): void {
+  mockMyShops = mockMyShops.filter((s) => s.id !== shopId);
+}
+
+export function toggleMockFavorite(shopId: string, isFavorite: boolean): Shop | undefined {
+  mockMyShops = mockMyShops.map((s) => (s.id === shopId ? { ...s, isFavorite } : s));
+  return mockMyShops.find((s) => s.id === shopId);
+}
