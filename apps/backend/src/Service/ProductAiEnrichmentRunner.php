@@ -102,17 +102,19 @@ final readonly class ProductAiEnrichmentRunner
      */
     private function applyOutputLines(string $apiKey, string $fileId, array $jobs): void
     {
-        $jobsById = [];
+        $pendingJobs = [];
         foreach ($jobs as $job) {
-            $jobsById[$job->getId()->toRfc4122()] = $job;
+            $pendingJobs[$job->getId()->toRfc4122()] = $job;
         }
 
         foreach ($this->openAiClient->downloadOutputLines($apiKey, $fileId) as $line) {
             $customId = (string) ($line['custom_id'] ?? '');
-            $job = $jobsById[$customId] ?? null;
+            $job = $pendingJobs[$customId] ?? null;
             if (!$job instanceof ProductAiEnrichmentJob) {
                 continue;
             }
+
+            unset($pendingJobs[$customId]);
 
             try {
                 $resultPayload = $this->extractResultPayload($line);
@@ -120,6 +122,12 @@ final readonly class ProductAiEnrichmentRunner
             } catch (\Throwable $exception) {
                 $job->markFailed($exception->getMessage());
             }
+        }
+
+        // Jobs absent from the output file had per-request failures; mark them so they
+        // don't stay submitted and block countActiveBatches() indefinitely.
+        foreach ($pendingJobs as $job) {
+            $job->markFailed('OPENAI_BATCH_OUTPUT_MISSING');
         }
     }
 
