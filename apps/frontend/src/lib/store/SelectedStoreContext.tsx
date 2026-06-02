@@ -22,9 +22,9 @@ export function SelectedStoreProvider({ children }: { children: React.ReactNode 
   const [selectedStore, setSelectedStore] = useState<SelectedStore | null>(null);
 
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
     try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
       const parsed = JSON.parse(raw) as unknown;
       if (
         parsed &&
@@ -37,7 +37,7 @@ export function SelectedStoreProvider({ children }: { children: React.ReactNode 
         localStorage.removeItem(STORAGE_KEY);
       }
     } catch {
-      localStorage.removeItem(STORAGE_KEY);
+      // SecurityError (privacy mode), QuotaExceeded, or malformed JSON — degrade to null
     }
   }, []);
 
