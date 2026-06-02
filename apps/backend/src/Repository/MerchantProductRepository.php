@@ -31,6 +31,75 @@ class MerchantProductRepository extends ServiceEntityRepository
         return $this->findBy(['shop' => $shop]);
     }
 
+    /**
+     * Returns all matching products for the merchant catalog, filtered and sorted.
+     * Suitable for pagination via array_slice in the provider.
+     *
+     * @return list<MerchantProduct>
+     */
+    public function filterCatalogForShop(
+        Shop $shop,
+        ?string $q = null,
+        ?string $availability = null,
+        ?string $visibility = null,
+        ?string $category = null,
+    ): array {
+        $criteria = ['shop' => $shop];
+
+        if ('available' === $availability) {
+            $criteria['isAvailable'] = true;
+        } elseif ('unavailable' === $availability) {
+            $criteria['isAvailable'] = false;
+        }
+
+        if ('visible' === $visibility) {
+            $criteria['isVisible'] = true;
+        } elseif ('hidden' === $visibility) {
+            $criteria['isVisible'] = false;
+        }
+
+        $products = $this->findBy($criteria);
+
+        $normalizedQ = $this->normalizeSearchValue($q);
+        $normalizedCategory = $this->normalizeSearchValue($category);
+
+        if (null !== $normalizedQ || null !== $normalizedCategory) {
+            $products = array_values(array_filter(
+                $products,
+                function (MerchantProduct $product) use ($normalizedQ, $normalizedCategory): bool {
+                    if (null !== $normalizedCategory) {
+                        $merchantCategory = $product->getActiveMerchantCategory();
+                        $categoryName = null !== $merchantCategory
+                            ? $merchantCategory->getNameFr()
+                            : $product->getDisplayCategoryName();
+                        if (trim($this->normalizeSearchText($categoryName)) !== $normalizedCategory) {
+                            return false;
+                        }
+                    }
+
+                    if (null !== $normalizedQ) {
+                        return $this->matchesMerchantCatalogQuery($product, $normalizedQ);
+                    }
+
+                    return true;
+                },
+            ));
+        }
+
+        usort(
+            $products,
+            static fn (MerchantProduct $a, MerchantProduct $b): int => [
+                $a->getDisplayNameFr(),
+                $a->getDisplayBrandName() ?? '',
+            ] <=> [
+                $b->getDisplayNameFr(),
+                $b->getDisplayBrandName() ?? '',
+            ],
+        );
+
+        return $products;
+    }
+
     public function findOneForShopAndProductReference(Shop $shop, ProductReference $productReference): ?MerchantProduct
     {
         return $this->findOneBy([
@@ -108,6 +177,30 @@ class MerchantProductRepository extends ServiceEntityRepository
         );
 
         return $merchantProducts;
+    }
+
+    private function matchesMerchantCatalogQuery(MerchantProduct $product, string $normalizedQuery): bool
+    {
+        $merchantCategory = $product->getActiveMerchantCategory();
+        /* @var list<string> $candidates */
+        $candidates = array_values(array_filter(
+            [
+                $product->getDisplayNameFr(),
+                $product->getDisplayBrandName(),
+                $product->getDisplayCategoryName(),
+                $product->getMerchantNote(),
+                $merchantCategory?->getNameFr(),
+            ],
+            static fn (?string $term): bool => null !== $term && '' !== trim($term),
+        ));
+
+        foreach ($candidates as $term) {
+            if (str_contains($this->normalizeSearchText($term), $normalizedQuery)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function normalizeSearchValue(?string $value): ?string

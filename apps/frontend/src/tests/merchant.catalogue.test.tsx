@@ -13,6 +13,7 @@ import {
   updateMerchantCatalogProduct,
 } from '@/lib/services/merchant-catalog.service';
 import type {
+  MerchantCatalogListResult,
   MerchantCatalogProduct,
   MerchantCategory,
 } from '@/lib/types/merchant-catalog.types';
@@ -44,6 +45,10 @@ vi.mock('@/lib/services/merchant-catalog.service', async () => {
     updateMerchantCatalogProduct: vi.fn(),
   };
 });
+
+function catalogResult(items: MerchantCatalogProduct[]): MerchantCatalogListResult {
+  return { items, total: items.length, page: 1, limit: 50, pages: 1 };
+}
 
 const products: MerchantCatalogProduct[] = [
   {
@@ -165,7 +170,7 @@ describe('MerchantCatalogPage', () => {
       merchant_note: null,
       pack_quantity: 1,
     });
-    vi.mocked(listMerchantCatalog).mockResolvedValue(products);
+    vi.mocked(listMerchantCatalog).mockResolvedValue(catalogResult(products));
     vi.mocked(listMerchantCategories).mockResolvedValue(merchantCategories);
     vi.mocked(searchMerchantProductReferences).mockResolvedValue({
       items: [],
@@ -191,7 +196,7 @@ describe('MerchantCatalogPage', () => {
     render(React.createElement(MerchantCatalogPage));
 
     expect(await screen.findByRole('heading', { name: 'Catalogue' })).toBeInTheDocument();
-    expect(listMerchantCatalog).toHaveBeenCalledWith('store-1');
+    expect(listMerchantCatalog).toHaveBeenCalledWith('store-1', expect.objectContaining({ page: 1 }));
     expect(listMerchantCategories).toHaveBeenCalledWith('store-1');
     expect(screen.getByText('Lait demi-écrémé')).toBeInTheDocument();
     expect(screen.getByText('Vitalait')).toBeInTheDocument();
@@ -276,7 +281,7 @@ describe('MerchantCatalogPage', () => {
       merchant_category_id: 'merchant-cat-1',
       merchant_category_name: 'Produits frais',
     };
-    vi.mocked(listMerchantCatalog).mockResolvedValue([productWithMerchantCategory]);
+    vi.mocked(listMerchantCatalog).mockResolvedValue(catalogResult([productWithMerchantCategory]));
 
     render(React.createElement(MerchantCatalogPage));
 
@@ -808,7 +813,7 @@ describe('MerchantCatalogPage', () => {
       product_reference_id: `ref-${index + 1}`,
       name_fr: `Produit ${index + 1}`,
     }));
-    vi.mocked(listMerchantCatalog).mockResolvedValue(manyProducts);
+    vi.mocked(listMerchantCatalog).mockResolvedValue(catalogResult(manyProducts));
 
     render(React.createElement(MerchantCatalogPage));
 
@@ -893,7 +898,11 @@ describe('MerchantCatalogPage', () => {
     expect(screen.getByText('1 produit mis à jour.')).toBeInTheDocument();
   });
 
-  it('filters merchant catalogue products locally after submit', async () => {
+  it('filters merchant catalogue products via server-side API call after submit', async () => {
+    vi.mocked(listMerchantCatalog)
+      .mockResolvedValueOnce(catalogResult(products))
+      .mockResolvedValueOnce(catalogResult([products[0]]));
+
     render(React.createElement(MerchantCatalogPage));
 
     expect(await screen.findByText('Lait demi-écrémé')).toBeInTheDocument();
@@ -904,13 +913,20 @@ describe('MerchantCatalogPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Rechercher' }));
 
-    expect(screen.getByText('Lait demi-écrémé')).toBeInTheDocument();
-    expect(screen.queryByText('Couscous fin')).not.toBeInTheDocument();
-    expect(listMerchantCatalog).toHaveBeenCalledTimes(1);
-    expect(listMerchantCatalog).toHaveBeenCalledWith('store-1');
+    expect(await screen.findByText('Lait demi-écrémé')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Couscous fin')).not.toBeInTheDocument());
+    expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+    expect(listMerchantCatalog).toHaveBeenLastCalledWith(
+      'store-1',
+      expect.objectContaining({ q: 'lait', page: 1 }),
+    );
   });
 
-  it('renders a dedicated empty state when filters hide all products', async () => {
+  it('renders a dedicated empty state when filters produce no results from the API', async () => {
+    vi.mocked(listMerchantCatalog)
+      .mockResolvedValueOnce(catalogResult(products))
+      .mockResolvedValueOnce({ items: [], total: 0, page: 1, limit: 50, pages: 1 });
+
     render(React.createElement(MerchantCatalogPage));
 
     expect(await screen.findByText('Lait demi-écrémé')).toBeInTheDocument();
@@ -920,14 +936,14 @@ describe('MerchantCatalogPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Rechercher' }));
 
-    expect(screen.getByText('Aucun produit ne correspond aux filtres.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucun produit ne correspond aux filtres.')).toBeInTheDocument();
     expect(screen.queryByText('Aucun produit dans ce catalogue.')).not.toBeInTheDocument();
   });
 
   it('can retry after an error and render an empty catalogue', async () => {
     vi.mocked(listMerchantCatalog)
       .mockRejectedValueOnce(new Error('Network error'))
-      .mockResolvedValueOnce([]);
+      .mockResolvedValueOnce({ items: [], total: 0, page: 1, limit: 50, pages: 1 });
 
     render(React.createElement(MerchantCatalogPage));
 
@@ -940,14 +956,14 @@ describe('MerchantCatalogPage', () => {
   });
 
   it('disables retry while the catalogue is loading', async () => {
-    const pendingCatalog = deferred<MerchantCatalogProduct[]>();
+    const pendingCatalog = deferred<MerchantCatalogListResult>();
     vi.mocked(listMerchantCatalog).mockReturnValue(pendingCatalog.promise);
 
     render(React.createElement(MerchantCatalogPage));
 
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeDisabled();
 
-    pendingCatalog.resolve(products);
+    pendingCatalog.resolve(catalogResult(products));
 
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Réessayer' })).not.toBeDisabled(),

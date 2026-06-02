@@ -297,10 +297,10 @@ final class MerchantProductBulkAvailabilityApiTest extends FunctionalApiTestCase
         $publicPayload = $this->decodeJson($publicResponse);
         $merchantPayload = $this->decodeJson($merchantCatalogResponse);
         self::assertSame([], $publicPayload['items']);
-        self::assertCount(1, $merchantPayload);
-        self::assertSame($product->getId()->toRfc4122(), $merchantPayload[0]['id']);
-        self::assertFalse($merchantPayload[0]['is_available']);
-        self::assertTrue($merchantPayload[0]['is_visible']);
+        self::assertSame(1, $merchantPayload['total']);
+        self::assertSame($product->getId()->toRfc4122(), $merchantPayload['items'][0]['id']);
+        self::assertFalse($merchantPayload['items'][0]['is_available']);
+        self::assertTrue($merchantPayload['items'][0]['is_visible']);
     }
 
     private function createProductReference(string $nameFr): ProductReference

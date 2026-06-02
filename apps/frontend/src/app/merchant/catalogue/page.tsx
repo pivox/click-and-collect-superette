@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MerchantCatalogBulkActions } from '@/components/merchant/catalogue/MerchantCatalogBulkActions';
 import { MerchantCatalogEditDrawer } from '@/components/merchant/catalogue/MerchantCatalogEditDrawer';
 import { MerchantCatalogFilters } from '@/components/merchant/catalogue/MerchantCatalogFilters';
@@ -14,7 +14,6 @@ import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import {
   bulkUpdateMerchantProductAvailability,
   createMerchantCategory,
-  filterMerchantCatalogProducts,
   listMerchantCategories,
   listMerchantCatalog,
 } from '@/lib/services/merchant-catalog.service';
@@ -24,6 +23,8 @@ import type {
   MerchantCatalogProduct,
 } from '@/lib/types/merchant-catalog.types';
 
+const DEFAULT_LIMIT = 50;
+
 const defaultFilters: MerchantCatalogListOptions = {
   q: '',
   availability: 'all',
@@ -32,7 +33,10 @@ const defaultFilters: MerchantCatalogListOptions = {
 
 export default function MerchantCatalogPage() {
   const { merchant } = useMerchantAuth();
-  const [products, setProducts] = useState<MerchantCatalogProduct[]>([]);
+  const [items, setItems] = useState<MerchantCatalogProduct[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [categories, setCategories] = useState<MerchantCategory[]>([]);
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [draftFilters, setDraftFilters] = useState<MerchantCatalogListOptions>(defaultFilters);
@@ -60,14 +64,30 @@ export default function MerchantCatalogPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const nextProducts = await listMerchantCatalog(merchant.store.id);
+      const result = await listMerchantCatalog(merchant.store.id, {
+        q: appliedFilters.q,
+        availability: appliedFilters.availability,
+        visibility: appliedFilters.visibility,
+        category: appliedFilters.category,
+        page,
+        limit: DEFAULT_LIMIT,
+      });
       if (requestId.current === nextRequestId) {
-        setProducts(nextProducts);
-        setSelectedProductIds([]);
+        // If the current page is beyond the last valid page after a mutation,
+        // clamp back to the last page — useEffect will re-fetch automatically.
+        if (result.items.length === 0 && result.total > 0 && page > 1) {
+          setPage(result.pages > 0 ? result.pages : 1);
+          return;
+        }
+        setItems(result.items);
+        setTotal(result.total);
+        setPages(result.pages);
       }
     } catch {
       if (requestId.current === nextRequestId) {
-        setProducts([]);
+        setItems([]);
+        setTotal(0);
+        setPages(1);
         setError('Impossible de charger le catalogue.');
       }
     } finally {
@@ -75,7 +95,7 @@ export default function MerchantCatalogPage() {
         setIsLoading(false);
       }
     }
-  }, [merchant]);
+  }, [merchant, appliedFilters, page]);
 
   useEffect(() => {
     void loadCatalog();
@@ -104,10 +124,11 @@ export default function MerchantCatalogPage() {
     void loadCategories();
   }, [loadCategories]);
 
-  const filteredProducts = useMemo(
-    () => filterMerchantCatalogProducts(products, appliedFilters),
-    [appliedFilters, products],
-  );
+  const hasActiveFilters =
+    !!(appliedFilters.q) ||
+    (appliedFilters.availability !== 'all' && !!appliedFilters.availability) ||
+    (appliedFilters.visibility !== 'all' && !!appliedFilters.visibility) ||
+    !!appliedFilters.category;
 
   const handleToggleSelectionMode = () => {
     setIsSelectionMode(true);
@@ -143,12 +164,7 @@ export default function MerchantCatalogPage() {
   };
 
   const handleBulkAvailability = async (isAvailable: boolean) => {
-    const visibleProductIds = new Set(filteredProducts.map((product) => product.id));
-    const visibleSelectedProductIds = selectedProductIds.filter((productId) =>
-      visibleProductIds.has(productId),
-    );
-
-    if (!merchant || visibleSelectedProductIds.length === 0) return;
+    if (!merchant || selectedProductIds.length === 0) return;
 
     setIsBulkSubmitting(true);
     setBulkError(null);
@@ -156,7 +172,7 @@ export default function MerchantCatalogPage() {
 
     try {
       const result = await bulkUpdateMerchantProductAvailability(merchant.store.id, {
-        merchant_product_ids: visibleSelectedProductIds,
+        merchant_product_ids: selectedProductIds,
         is_available: isAvailable,
         merchant_note: isAvailable ? null : 'Rupture temporaire',
       });
@@ -207,10 +223,17 @@ export default function MerchantCatalogPage() {
 
   const handleApplyFilters = () => {
     setAppliedFilters(draftFilters);
+    setPage(1);
     setSelectedProductIds([]);
     setSelectionError(null);
     setBulkError(null);
     setBulkSuccessMessage(null);
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    setPage(nextPage);
+    setSelectedProductIds([]);
+    setSelectionError(null);
   };
 
   return (
@@ -302,9 +325,9 @@ export default function MerchantCatalogPage() {
           <p className="p-5 text-sm text-muted">Chargement du catalogue…</p>
         ) : (
           <MerchantCatalogTable
-            products={filteredProducts}
+            products={items}
             emptyMessage={
-              products.length === 0
+              total === 0 && !hasActiveFilters
                 ? 'Aucun produit dans ce catalogue.'
                 : 'Aucun produit ne correspond aux filtres.'
             }
@@ -315,6 +338,33 @@ export default function MerchantCatalogPage() {
             onProposeProduct={setProposingProduct}
             onToggleProductSelection={handleToggleProductSelection}
           />
+        )}
+
+        {!isLoading && pages > 1 && (
+          <div className="flex items-center justify-between border-t border-line px-4 py-3">
+            <Button
+              variant="ghost"
+              size="md"
+              disabled={page <= 1}
+              onClick={() => handlePageChange(page - 1)}
+            >
+              ← Précédent
+            </Button>
+            <span className="text-sm text-muted">
+              Page {page} sur {pages}
+              {total > 0 && (
+                <span className="ml-2">({total} produit{total > 1 ? 's' : ''})</span>
+              )}
+            </span>
+            <Button
+              variant="ghost"
+              size="md"
+              disabled={page >= pages}
+              onClick={() => handlePageChange(page + 1)}
+            >
+              Suivant →
+            </Button>
+          </div>
         )}
       </section>
 

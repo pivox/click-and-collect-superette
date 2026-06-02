@@ -57,8 +57,8 @@ final class MerchantLocalProductApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $catalogResponse->getStatusCode());
         $catalog = $this->decodeJson($catalogResponse);
-        self::assertCount(2, $catalog);
-        $localCatalogItem = $this->findCatalogItem($catalog, $payload['merchant_product_id']);
+        self::assertSame(2, $catalog['total']);
+        $localCatalogItem = $this->findCatalogItem($catalog['items'], $payload['merchant_product_id']);
         self::assertNull($localCatalogItem['product_reference_id']);
         self::assertSame($payload['local_product_id'], $localCatalogItem['local_product_id']);
         self::assertSame('Harissa maison', $localCatalogItem['name_fr']);
@@ -71,7 +71,7 @@ final class MerchantLocalProductApiTest extends FunctionalApiTestCase
         self::assertTrue($localCatalogItem['is_visible']);
         self::assertNull($localCatalogItem['merchant_note']);
 
-        $referenceCatalogItem = $this->findCatalogItem($catalog, $this->entityManager->getRepository(MerchantProduct::class)->findOneForShopAndProductReference($shop, $referenceProduct)?->getId()->toRfc4122());
+        $referenceCatalogItem = $this->findCatalogItem($catalog['items'], $this->entityManager->getRepository(MerchantProduct::class)->findOneForShopAndProductReference($shop, $referenceProduct)?->getId()->toRfc4122());
         self::assertSame($referenceProduct->getId()->toRfc4122(), $referenceCatalogItem['product_reference_id']);
         self::assertNull($referenceCatalogItem['local_product_id']);
 
