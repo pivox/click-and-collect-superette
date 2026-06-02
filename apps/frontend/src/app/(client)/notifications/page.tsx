@@ -16,6 +16,8 @@ import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import { useClientNotifications } from "@/lib/notifications/ClientNotificationsContext";
 import { cn } from "@/lib/cn";
 
+const PAGE_SIZE = 20;
+
 function formatRelativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diff / 60_000);
@@ -35,6 +37,7 @@ export default function ClientNotificationsPage() {
 
   const [items, setItems] = useState<ClientNotificationItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mutating, setMutating] = useState(false);
@@ -52,7 +55,7 @@ export default function ClientNotificationsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await listClientNotifications();
+      const data = await listClientNotifications({ page });
       if (requestId !== latestRequestId.current) return;
       setItems(data.items);
       setTotal(data.total);
@@ -62,7 +65,7 @@ export default function ClientNotificationsPage() {
     } finally {
       if (requestId === latestRequestId.current) setIsLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -102,6 +105,8 @@ export default function ClientNotificationsPage() {
   if (authLoading || !user) return null;
 
   const hasUnread = items.some((n) => !n.is_read);
+  const hasNextPage = page * PAGE_SIZE < total;
+  const hasPrevPage = page > 1;
 
   return (
     <>
@@ -188,6 +193,28 @@ export default function ClientNotificationsPage() {
               )}
             </button>
           ))}
+        </div>
+      )}
+
+      {!isLoading && !error && total > PAGE_SIZE && (
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            size="md"
+            disabled={!hasPrevPage || isLoading}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Page précédente
+          </Button>
+          <span className="text-sm font-bold text-muted">Page {page}</span>
+          <Button
+            variant="ghost"
+            size="md"
+            disabled={!hasNextPage || isLoading}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Page suivante
+          </Button>
         </div>
       )}
     </>

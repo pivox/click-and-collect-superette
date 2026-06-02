@@ -30,7 +30,10 @@ export function ClientNotificationsProvider({ children }: { children: React.Reac
   const isMounted = useRef(false);
 
   const refreshUnread = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
     const requestId = latestRequestId.current + 1;
     latestRequestId.current = requestId;
     try {
