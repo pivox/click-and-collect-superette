@@ -28,13 +28,17 @@ final readonly class ProductAiEnrichmentRunner
         }
 
         $activeBatchesChecked = $this->processSubmittedBatches($apiKey);
+
+        // Flush completed-batch status changes before counting active batches so that
+        // jobs just marked applied/failed are no longer counted as submitted in the DB.
+        $this->entityManager->flush();
+
         $jobsSubmitted = 0;
 
         if ($this->countActiveBatches() < max(1, $maxActiveBatches)) {
             $jobsSubmitted = $this->submitPendingBatch($apiKey, $model, $batchSize);
+            $this->entityManager->flush();
         }
-
-        $this->entityManager->flush();
 
         return new ProductAiEnrichmentRunResult(
             jobsCreated: $plan->createdJobs,
