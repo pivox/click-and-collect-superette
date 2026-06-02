@@ -397,6 +397,7 @@ export async function fetchKadhia(kadhiaId: string): Promise<Kadhia> {
         totalTnd: MOCK_ORDER_PARTIALLY_ACCEPTED.totalAmountTnd,
         orderId: MOCK_ORDER_PARTIALLY_ACCEPTED.id,
       };
+      writeMock(kadhia);
       writeContext({ shopId: kadhia.shopId, kadhiaId: kadhia.id });
       return mockDelay(kadhia);
     }
