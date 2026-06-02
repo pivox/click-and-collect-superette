@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api';
+import { USE_MOCKS, mockDelay } from './index';
 import type {
   MerchantOrderDetail,
   MerchantOrderHistoryList,
@@ -124,4 +125,36 @@ export async function markMerchantOrderReady(
     `/api/merchant/stores/${storeId}/orders/${orderId}/mark-ready`,
   );
   return data;
+}
+
+export async function exportOrdersCsv(
+  storeId: string,
+  params: { dateFrom: string; dateTo: string },
+): Promise<Blob> {
+  if (USE_MOCKS) {
+    const bom = '﻿';
+    const csv = [
+      'Code;Statut;Client;Total TND;Créneau;Créé le',
+      `CMD-4821;ready;client@test.com;10.550;${params.dateFrom} 18:00;${params.dateFrom}`,
+      `CMD-SUBM-1;cancelled;client@test.com;7.700;${params.dateTo} 09:00;${params.dateTo}`,
+    ].join('\n');
+    return mockDelay(new Blob([bom + csv], { type: 'text/csv;charset=utf-8' }));
+  }
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+  const url = `${apiUrl}/api/merchant/stores/${storeId}/orders/history?format=csv&date_from=${params.dateFrom}&date_to=${params.dateTo}`;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('merchant_token') ?? '' : '';
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new Error('Export CSV failed');
+  return response.blob();
+}
+
+export function triggerCsvDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

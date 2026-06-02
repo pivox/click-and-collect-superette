@@ -11,6 +11,8 @@ import { displayOrderCode } from '@/lib/order-number';
 import {
   listMerchantOrderHistory,
   listMerchantOrders,
+  exportOrdersCsv,
+  triggerCsvDownload,
 } from '@/lib/services/merchant-orders.service';
 import type {
   MerchantOrderHistoryItem,
@@ -125,6 +127,16 @@ export default function MerchantOrdersPage() {
   const activeOrdersVisibleRequestId = useRef(0);
   const historyRequestId = useRef(0);
 
+  const currentMonthFrom = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    .toISOString().slice(0, 10);
+  const currentMonthTo = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+    .toISOString().slice(0, 10);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportDateFrom, setExportDateFrom] = useState(currentMonthFrom);
+  const [exportDateTo, setExportDateTo] = useState(currentMonthTo);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
   const loadOrders = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!merchant) return;
     if (silent && activeOrdersVisibleRequestId.current > 0) return;
@@ -186,6 +198,25 @@ export default function MerchantOrdersPage() {
   const switchTab = (tab: OrdersTab) => {
     setSelectedTab(tab);
     setHistoryPage(1);
+  };
+
+  const handleExport = async () => {
+    if (!merchant) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      const blob = await exportOrdersCsv(merchant.store.id, {
+        dateFrom: exportDateFrom,
+        dateTo: exportDateTo,
+      });
+      const storeName = merchant.store.name.toLowerCase().replace(/\s+/g, '-');
+      triggerCsvDownload(blob, `commandes-${storeName}-${exportDateFrom}-${exportDateTo}.csv`);
+      setShowExportModal(false);
+    } catch {
+      setExportError("Impossible de générer l'export. Réessaie.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   useEffect(() => {
@@ -334,6 +365,7 @@ export default function MerchantOrdersPage() {
         <section id="panel-history-orders" role="tabpanel" className="mt-5 rounded-md bg-card shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
             <div role="tablist" aria-label="Filtres historique commandes" className="flex gap-2">
+
               <button
                 type="button"
                 role="tab"
@@ -365,6 +397,13 @@ export default function MerchantOrdersPage() {
                 Clôturées
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowExportModal(true)}
+              className="rounded-md bg-soft px-3 py-2 text-sm font-bold text-ink hover:bg-primary/10"
+            >
+              Exporter CSV
+            </button>
           </div>
 
           {historyError && (
@@ -425,6 +464,56 @@ export default function MerchantOrdersPage() {
             <p className="p-5 text-sm text-muted">Aucune commande dans cet historique.</p>
           )}
         </section>
+      )}
+
+      {showExportModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Exporter les commandes en CSV"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+        >
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+            <h2 className="text-base font-extrabold">Exporter les commandes CSV</h2>
+            <div className="mt-4 grid gap-3">
+              <div className="grid gap-1.5">
+                <label htmlFor="export-date-from" className="text-xs font-extrabold text-muted uppercase tracking-wide">
+                  Date début
+                </label>
+                <input
+                  id="export-date-from"
+                  type="date"
+                  value={exportDateFrom}
+                  onChange={(e) => setExportDateFrom(e.target.value)}
+                  className="rounded-md border border-line px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <label htmlFor="export-date-to" className="text-xs font-extrabold text-muted uppercase tracking-wide">
+                  Date fin
+                </label>
+                <input
+                  id="export-date-to"
+                  type="date"
+                  value={exportDateTo}
+                  onChange={(e) => setExportDateTo(e.target.value)}
+                  className="rounded-md border border-line px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+            {exportError && (
+              <p className="mt-3 text-sm text-red-600">{exportError}</p>
+            )}
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="ghost" size="md" disabled={exporting} onClick={() => setShowExportModal(false)}>
+                Annuler
+              </Button>
+              <Button size="md" disabled={exporting || !exportDateFrom || !exportDateTo} onClick={() => void handleExport()}>
+                {exporting ? 'Préparation…' : 'Télécharger'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
