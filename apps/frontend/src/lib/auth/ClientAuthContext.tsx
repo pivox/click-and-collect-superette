@@ -12,6 +12,7 @@ interface ClientAuthContextValue {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser: (name: string) => void;
 }
 
 const ClientAuthContext = createContext<ClientAuthContextValue | null>(null);
@@ -55,8 +56,12 @@ export function ClientAuthProvider({ children }: { children: React.ReactNode }) 
     setUser(null);
   };
 
+  const updateUser = (name: string) => {
+    setUser((prev) => (prev ? { ...prev, name } : prev));
+  };
+
   return (
-    <ClientAuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <ClientAuthContext.Provider value={{ user, isLoading, login, logout, updateUser }}>
       {children}
     </ClientAuthContext.Provider>
   );

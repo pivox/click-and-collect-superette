@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api';
+import { USE_MOCKS, mockDelay } from './index';
 
 export interface AdminUser {
   token: string;
@@ -72,4 +73,16 @@ export async function requestPasswordReset(email: string): Promise<void> {
 
 export async function confirmPasswordReset(token: string, password: string): Promise<void> {
   await apiClient.post('/api/auth/reset-password', { token, new_password: password });
+}
+
+export async function updateProfile(
+  firstName: string,
+  lastName: string,
+): Promise<{ name: string }> {
+  const name = `${firstName} ${lastName}`.trim();
+  if (USE_MOCKS) {
+    return mockDelay({ name });
+  }
+  await apiClient.patch('/api/me/profile', { first_name: firstName, last_name: lastName });
+  return { name };
 }
