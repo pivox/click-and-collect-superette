@@ -71,6 +71,14 @@ export default function OrdersListPage() {
                       {formatTnd(o.totalAmountTnd)}
                     </span>
                   </div>
+                  {o.status === "partially_accepted" && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--status-wait)" }} />
+                      <span className="text-xs font-bold" style={{ color: "var(--status-wait)" }}>
+                        Action requise
+                      </span>
+                    </div>
+                  )}
                 </Card>
               </Link>
             );

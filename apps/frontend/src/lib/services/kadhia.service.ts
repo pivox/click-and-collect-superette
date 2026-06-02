@@ -1,6 +1,6 @@
 import type { Kadhia, KadhiaLine, ProductOffer } from "@/types";
 import { apiClient } from "@/lib/api";
-import { MOCK_ORDER } from "@/lib/mock/orders.mock";
+import { MOCK_ORDER, MOCK_ORDER_PARTIALLY_ACCEPTED } from "@/lib/mock/orders.mock";
 import { displayOrderCode } from "@/lib/order-number";
 import { USE_MOCKS, mockDelay } from "./index";
 
@@ -388,6 +388,19 @@ export async function listMyKadhias(status?: string, page = 1): Promise<KadhiaLi
 /** Fetches a single Kadhia by ID and sets it as the active context for the slot page. */
 export async function fetchKadhia(kadhiaId: string): Promise<Kadhia> {
   if (USE_MOCKS) {
+    if (kadhiaId === MOCK_ORDER_PARTIALLY_ACCEPTED.kadhiaId) {
+      const kadhia: Kadhia = {
+        id: kadhiaId,
+        shopId: MOCK_ORDER_PARTIALLY_ACCEPTED.shopId,
+        status: "draft",
+        lines: MOCK_ORDER_PARTIALLY_ACCEPTED.lines,
+        totalTnd: MOCK_ORDER_PARTIALLY_ACCEPTED.totalAmountTnd,
+        orderId: MOCK_ORDER_PARTIALLY_ACCEPTED.id,
+      };
+      writeMock(kadhia);
+      writeContext({ shopId: kadhia.shopId, kadhiaId: kadhia.id });
+      return mockDelay(kadhia);
+    }
     const mock = readMock();
     if (mock) {
       writeContext({ shopId: mock.shopId, kadhiaId: mock.id });

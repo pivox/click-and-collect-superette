@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Button, getButtonClassName } from "@/components/ui/Button";
@@ -143,6 +143,8 @@ export default function KadhiaDetailPage({
 }) {
   const { kadhiaId } = params;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPartialContext = searchParams.get("context") === "partially_accepted";
   const { user, isLoading } = useClientAuth();
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -233,6 +235,17 @@ export default function KadhiaDetailPage({
         }
         backHref="/kadhia"
       />
+
+      {isPartialContext && (
+        <div className="mb-4 rounded-lg border px-4 py-3" style={{ background: "var(--status-wait-bg)", borderColor: "var(--status-wait)" }}>
+          <p className="text-sm font-bold" style={{ color: "var(--status-wait)" }}>
+            Ta Kadhia a été modifiée par le marchand.
+          </p>
+          <p className="mt-1 text-sm" style={{ color: "var(--status-wait)" }}>
+            Vérifie les articles ci-dessous puis re-soumets ta commande.
+          </p>
+        </div>
+      )}
 
       {kadhia.lines.length === 0 ? (
         <>

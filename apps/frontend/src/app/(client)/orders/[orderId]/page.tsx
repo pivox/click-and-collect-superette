@@ -16,6 +16,8 @@ import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import type { Order } from "@/types";
 
 function renderPickupAction(order: Order) {
+  if (order.status === "partially_accepted") return null;
+
   if (order.status === "ready" || order.status === "pickup_pending") {
     return (
       <Link
@@ -104,6 +106,9 @@ export default function OrderTrackingPage({
   const pickupSlotLabel = order.pickupSlot
     ? formatSlotRange(order.pickupSlot.startsAt, order.pickupSlot.endsAt)
     : "—";
+  const kadhiaHref = order.kadhiaId
+    ? `/kadhia/${order.kadhiaId}?context=partially_accepted`
+    : "/kadhia";
 
   return (
     <>
@@ -112,6 +117,17 @@ export default function OrderTrackingPage({
         subtitle={storeName}
         backHref="/orders"
       />
+
+      {order.status === "partially_accepted" && (
+        <div className="mb-4 rounded-lg border px-4 py-3" style={{ background: "var(--status-wait-bg)", borderColor: "var(--status-wait)" }}>
+          <p className="text-sm font-bold" style={{ color: "var(--status-wait)" }}>
+            Le marchand a modifié ta commande — certains produits ne sont plus disponibles.
+          </p>
+          <p className="mt-1 text-sm" style={{ color: "var(--status-wait)" }}>
+            Consulte ta Kadhia pour voir les changements et re-soumettre.
+          </p>
+        </div>
+      )}
 
       <div className="md:grid md:grid-cols-2 md:gap-5 md:items-start">
         {/* Colonne gauche : timeline */}
@@ -191,14 +207,26 @@ export default function OrderTrackingPage({
 
           {/* CTA inline sur desktop */}
           <div className="hidden md:block mt-4">
-            {renderPickupAction(order)}
+            {order.status === "partially_accepted" ? (
+              <Link href={kadhiaHref} className={getButtonClassName({ full: true })}>
+                Voir ma Kadhia
+              </Link>
+            ) : (
+              renderPickupAction(order)
+            )}
           </div>
         </div>
       </div>
 
       {/* CTA sticky sur mobile */}
       <StickyBottom className="md:hidden">
-        {renderPickupAction(order)}
+        {order.status === "partially_accepted" ? (
+          <Link href={kadhiaHref} className={getButtonClassName({ full: true })}>
+            Voir ma Kadhia
+          </Link>
+        ) : (
+          renderPickupAction(order)
+        )}
       </StickyBottom>
     </>
   );
