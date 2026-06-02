@@ -43,6 +43,7 @@ export interface Shop {
   closesAt?: string;
   nextPickupAt?: string | null;
   logoLetter?: string;
+  isFavorite?: boolean;
 }
 
 export type ProductCategory = string;

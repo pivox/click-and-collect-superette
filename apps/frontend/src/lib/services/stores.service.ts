@@ -1,5 +1,10 @@
 import type { Shop, StoreSearchResult } from "@/types";
-import { MOCK_SHOPS } from "@/lib/mock/shops.mock";
+import {
+  MOCK_SHOPS,
+  getMockMyShops,
+  removeMockShop,
+  toggleMockFavorite,
+} from "@/lib/mock/shops.mock";
 import { apiClient } from "@/lib/api";
 import { USE_MOCKS, mockDelay } from "./index";
 
@@ -66,6 +71,46 @@ export async function recordStoreVisit(
     { source },
     { skipAuthRedirect: true },
   );
+}
+
+export async function listMyStores(): Promise<Shop[]> {
+  if (USE_MOCKS) return mockDelay(getMockMyShops());
+  const { data } = await apiClient.get<
+    {
+      store_id: string;
+      name: string;
+      slug: string;
+      city: string | null;
+      is_active: boolean;
+      is_favorite: boolean;
+    }[]
+  >("/api/me/stores");
+  return data.map((item) => ({
+    id: item.store_id,
+    name: item.name,
+    slug: item.slug,
+    city: item.city,
+    isActive: item.is_active,
+    address: null,
+    phone: null,
+    isFavorite: item.is_favorite,
+  }));
+}
+
+export async function removeStore(shopId: string): Promise<void> {
+  if (USE_MOCKS) {
+    removeMockShop(shopId);
+    return mockDelay(undefined);
+  }
+  await apiClient.delete(`/api/me/stores/${shopId}`);
+}
+
+export async function toggleFavorite(shopId: string, isFavorite: boolean): Promise<void> {
+  if (USE_MOCKS) {
+    toggleMockFavorite(shopId, isFavorite);
+    return mockDelay(undefined);
+  }
+  await apiClient.patch(`/api/me/stores/${shopId}/favorite`, { is_favorite: isFavorite });
 }
 
 /** For the "shop reconnu après scan" flow — qrToken is the store's qrCodeToken. */
