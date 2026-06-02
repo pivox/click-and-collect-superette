@@ -27,6 +27,13 @@ final class ProductAiEnrichmentResultApplier
         $this->validate($result);
 
         $productReference = $job->getProductReference();
+
+        // Validate all preconditions before any mutation so a duplicate barcode cannot
+        // leave a partial state (e.g. a newly created Brand) in the Unit of Work.
+        if (null !== $result->barcode) {
+            $this->assertBarcodeNotUsedByAnotherProduct($productReference, $result->barcode);
+        }
+
         $previousValues = [
             'brand' => $productReference->getBrand()->getCanonicalName(),
             'barcode' => $productReference->getBarcode(),
@@ -40,7 +47,6 @@ final class ProductAiEnrichmentResultApplier
         }
 
         if (null !== $result->barcode) {
-            $this->assertBarcodeNotUsedByAnotherProduct($productReference, $result->barcode);
             $productReference->setBarcode($result->barcode);
         }
 

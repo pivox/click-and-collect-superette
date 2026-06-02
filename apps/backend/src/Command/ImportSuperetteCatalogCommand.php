@@ -285,10 +285,14 @@ final class ImportSuperetteCatalogCommand extends Command
         $merchantProduct = $created ? new MerchantProduct() : $existing;
         $merchantProduct
             ->setShop($shop)
-            ->setProductReference($productReference)
-            ->setPriceTnd($this->resolvePriceTnd($rawProduct, $productReference))
-            ->setAvailable(true)
-            ->setVisible(true);
+            ->setProductReference($productReference);
+
+        if ($created) {
+            $merchantProduct
+                ->setPriceTnd($this->resolvePriceTnd($rawProduct, $productReference))
+                ->setAvailable(true)
+                ->setVisible(true);
+        }
 
         $this->entityManager->persist($merchantProduct);
 
