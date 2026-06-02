@@ -5,7 +5,7 @@ import type {
   PickupSession,
   TimelineStep,
 } from "@/types";
-import { MOCK_ORDER } from "@/lib/mock/orders.mock";
+import { MOCK_ORDER, MOCK_ORDER_PARTIALLY_ACCEPTED } from "@/lib/mock/orders.mock";
 import { apiClient } from "@/lib/api";
 import { displayOrderCode } from "@/lib/order-number";
 import { USE_MOCKS, mockDelay } from "./index";
@@ -107,6 +107,7 @@ function mapRawOrder(raw: RawOrder): Order {
     customerNote: raw.notes ?? null,
     lines: [],
     pickupCode: raw.pickup_code ?? null,
+    kadhiaId: raw.kadhia_id ?? null,
   };
 }
 
@@ -158,7 +159,7 @@ function mapRawCustomerOrderStatusSnapshot(
 
 export async function listOrders(): Promise<Order[]> {
   if (USE_MOCKS) {
-    return mockDelay([MOCK_ORDER]);
+    return mockDelay([MOCK_ORDER, MOCK_ORDER_PARTIALLY_ACCEPTED]);
   }
   const { data } = await apiClient.get<RawOrderList>("/api/me/orders");
   return (data.items ?? data["hydra:member"] ?? []).map(mapRawOrder);
@@ -168,6 +169,9 @@ export async function getOrder(orderId: string): Promise<Order | null> {
   if (USE_MOCKS) {
     if (orderId === MOCK_ORDER.id || orderId === MOCK_ORDER.code) {
       return mockDelay(MOCK_ORDER);
+    }
+    if (orderId === MOCK_ORDER_PARTIALLY_ACCEPTED.id || orderId === MOCK_ORDER_PARTIALLY_ACCEPTED.code) {
+      return mockDelay(MOCK_ORDER_PARTIALLY_ACCEPTED);
     }
     return mockDelay(null);
   }

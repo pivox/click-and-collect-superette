@@ -117,6 +117,8 @@ export interface Order {
   customerNote?: string | null;
   /** 4-digit pickup code, visible only when status === 'ready'. */
   pickupCode?: string | null;
+  /** ID of the associated Kadhia, populated when status === 'partially_accepted'. */
+  kadhiaId?: string | null;
 }
 
 export interface PickupSession {
