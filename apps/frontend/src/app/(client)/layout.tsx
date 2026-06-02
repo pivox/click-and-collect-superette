@@ -6,6 +6,7 @@ import { ClientAuthProvider } from '@/lib/auth/ClientAuthContext';
 import { ReactQueryProvider } from '@/lib/providers/ReactQueryProvider';
 import { SelectedStoreProvider } from '@/lib/store/SelectedStoreContext';
 import { StoreContextPill } from '@/components/store/StoreContextPill';
+import { ClientNotificationsProvider } from '@/lib/notifications/ClientNotificationsContext';
 
 export const metadata: Metadata = {
   title: 'Kadhia · Click & Collect',
@@ -15,6 +16,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <ReactQueryProvider>
       <ClientAuthProvider>
+        <ClientNotificationsProvider>
         <SelectedStoreProvider>
           {/* Responsive grid: sidebar (md+) + main. Children rendered once. */}
           <div className="min-h-screen md:grid md:grid-cols-[280px_1fr]">
@@ -36,6 +38,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           {/* Bottom navigation — hidden on desktop via BottomNav's own md:hidden */}
           <BottomNav />
         </SelectedStoreProvider>
+        </ClientNotificationsProvider>
       </ClientAuthProvider>
     </ReactQueryProvider>
   );

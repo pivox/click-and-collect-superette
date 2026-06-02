@@ -7,6 +7,7 @@ import {
   Search,
   ShoppingBasket,
   ClipboardList,
+  Bell,
   LogIn,
   LogOut,
 } from 'lucide-react';
@@ -14,12 +15,14 @@ import { cn } from '@/lib/cn';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 import { useSelectedStore } from '@/lib/store/SelectedStoreContext';
 import { useHydrated } from '@/lib/hooks/useHydrated';
+import { useClientNotifications } from '@/lib/notifications/ClientNotificationsContext';
 
 const NAV = [
-  { href: '/',        label: 'Accueil',    icon: Home },
-  { href: '/stores',  label: 'Supérettes', icon: Search },
-  { href: '/kadhia',  label: 'Kadhia',     icon: ShoppingBasket },
-  { href: '/orders',  label: 'Commandes',  icon: ClipboardList },
+  { href: '/',               label: 'Accueil',        icon: Home },
+  { href: '/stores',         label: 'Supérettes',     icon: Search },
+  { href: '/kadhia',         label: 'Kadhia',         icon: ShoppingBasket },
+  { href: '/orders',         label: 'Commandes',      icon: ClipboardList },
+  { href: '/notifications',  label: 'Notifications',  icon: Bell },
 ] as const;
 
 /**
@@ -32,6 +35,7 @@ export function DesktopNav() {
   const { selectedStore } = useSelectedStore();
   const isHydrated = useHydrated();
   const router = useRouter();
+  const { unreadCount } = useClientNotifications();
 
   function handleLogout() {
     logout();
@@ -64,7 +68,9 @@ export function DesktopNav() {
         </div>
         <nav className="grid gap-2">
           {NAV.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href;
+            const active = pathname === href || (href !== '/' && pathname.startsWith(href));
+            const isNotifications = href === '/notifications';
+            const badge = isNotifications && unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null;
             return (
               <Link
                 key={href}
@@ -78,6 +84,11 @@ export function DesktopNav() {
               >
                 <Icon size={18} />
                 {label}
+                {badge && (
+                  <span className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-black text-white">
+                    {badge}
+                  </span>
+                )}
               </Link>
             );
           })}
