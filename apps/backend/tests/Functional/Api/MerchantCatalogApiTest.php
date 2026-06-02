@@ -29,19 +29,146 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(1, $payload);
-        self::assertSame($merchantProduct->getId()->toRfc4122(), $payload[0]['id']);
-        self::assertSame($productReference->getId()->toRfc4122(), $payload[0]['product_reference_id']);
-        self::assertNull($payload[0]['local_product_id']);
-        self::assertSame('Lait demi-écrémé', $payload[0]['name_fr']);
-        self::assertSame('Vitalait', $payload[0]['brand']);
-        self::assertSame('Lait & produits laitiers', $payload[0]['category']);
-        self::assertSame('1.000', $payload[0]['volume']);
-        self::assertSame('litre', $payload[0]['unit']);
-        self::assertSame('1.500', $payload[0]['price_tnd']);
-        self::assertTrue($payload[0]['is_available']);
-        self::assertTrue($payload[0]['is_visible']);
-        self::assertNull($payload[0]['merchant_note']);
+        self::assertArrayHasKey('items', $payload);
+        self::assertArrayHasKey('total', $payload);
+        self::assertArrayHasKey('page', $payload);
+        self::assertArrayHasKey('limit', $payload);
+        self::assertArrayHasKey('pages', $payload);
+        self::assertSame(1, $payload['total']);
+        self::assertSame(1, $payload['page']);
+        self::assertSame(50, $payload['limit']);
+        self::assertSame(1, $payload['pages']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($merchantProduct->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertSame($productReference->getId()->toRfc4122(), $payload['items'][0]['product_reference_id']);
+        self::assertNull($payload['items'][0]['local_product_id']);
+        self::assertSame('Lait demi-écrémé', $payload['items'][0]['name_fr']);
+        self::assertSame('Vitalait', $payload['items'][0]['brand']);
+        self::assertSame('Lait & produits laitiers', $payload['items'][0]['category']);
+        self::assertSame('1.000', $payload['items'][0]['volume']);
+        self::assertSame('litre', $payload['items'][0]['unit']);
+        self::assertSame('1.500', $payload['items'][0]['price_tnd']);
+        self::assertTrue($payload['items'][0]['is_available']);
+        self::assertTrue($payload['items'][0]['is_visible']);
+        self::assertNull($payload['items'][0]['merchant_note']);
+    }
+
+    public function testCatalogPaginationAndFilters(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-filters@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $refLait = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait demi-écrémé');
+        $refCouscous = $this->createProductReference('Rose Blanche', 'Epicerie', 'Couscous fin');
+        $refThon = $this->createProductReference('Sidi Daoud', 'Conserves', 'Thon entier');
+
+        $mpLait = $this->createMerchantProduct($shop, $refLait, ['isAvailable' => true, 'isVisible' => true]);
+        $mpCouscous = $this->createMerchantProduct($shop, $refCouscous, ['isAvailable' => false, 'isVisible' => true]);
+        $this->createMerchantProduct($shop, $refThon, ['isAvailable' => true, 'isVisible' => false]);
+
+        // pagination : page 1, limit 2 → 2 items, 2 pages
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?page=1&limit=2', $shop->getId()),
+            user: $merchant,
+        );
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(3, $payload['total']);
+        self::assertSame(1, $payload['page']);
+        self::assertSame(2, $payload['limit']);
+        self::assertSame(2, $payload['pages']);
+        self::assertCount(2, $payload['items']);
+
+        // page 2 : 1 item restant
+        $response2 = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?page=2&limit=2', $shop->getId()),
+            user: $merchant,
+        );
+        self::assertSame(200, $response2->getStatusCode());
+        $payload2 = $this->decodeJson($response2);
+        self::assertSame(3, $payload2['total']);
+        self::assertSame(2, $payload2['page']);
+        self::assertCount(1, $payload2['items']);
+
+        // filtre availability=unavailable → seul Couscous fin
+        $responseUnavail = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?availability=unavailable', $shop->getId()),
+            user: $merchant,
+        );
+        self::assertSame(200, $responseUnavail->getStatusCode());
+        $payloadUnavail = $this->decodeJson($responseUnavail);
+        self::assertSame(1, $payloadUnavail['total']);
+        self::assertSame($mpCouscous->getId()->toRfc4122(), $payloadUnavail['items'][0]['id']);
+
+        // filtre visibility=hidden → seul Thon entier
+        $responseHidden = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?visibility=hidden', $shop->getId()),
+            user: $merchant,
+        );
+        self::assertSame(200, $responseHidden->getStatusCode());
+        $payloadHidden = $this->decodeJson($responseHidden);
+        self::assertSame(1, $payloadHidden['total']);
+        self::assertSame('Thon entier', $payloadHidden['items'][0]['name_fr']);
+
+        // filtre q=lait → seul Lait demi-écrémé
+        $responseQ = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?q=lait', $shop->getId()),
+            user: $merchant,
+        );
+        self::assertSame(200, $responseQ->getStatusCode());
+        $payloadQ = $this->decodeJson($responseQ);
+        self::assertSame(1, $payloadQ['total']);
+        self::assertSame($mpLait->getId()->toRfc4122(), $payloadQ['items'][0]['id']);
+
+        // filtre category=epicerie → seul Couscous fin
+        $responseCat = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?category=epicerie', $shop->getId()),
+            user: $merchant,
+        );
+        self::assertSame(200, $responseCat->getStatusCode());
+        $payloadCat = $this->decodeJson($responseCat);
+        self::assertSame(1, $payloadCat['total']);
+        self::assertSame($mpCouscous->getId()->toRfc4122(), $payloadCat['items'][0]['id']);
+    }
+
+    public function testCatalogLimitIsCapAt100(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-limit@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?limit=999', $shop->getId()),
+            user: $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(100, $payload['limit']);
+    }
+
+    public function testCatalogEmptyPageBeyondLastReturnsEmptyItems(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-oob@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait U.H.T.');
+        $this->createMerchantProduct($shop, $productReference);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?page=99&limit=50', $shop->getId()),
+            user: $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(1, $payload['total']);
+        self::assertCount(0, $payload['items']);
     }
 
     public function testOwnerMerchantCanManageCatalog(): void
@@ -434,12 +561,22 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         return $productReference;
     }
 
-    private function createMerchantProduct(Shop $shop, ProductReference $productReference): MerchantProduct
+    /**
+     * @param array{isAvailable?: bool, isVisible?: bool} $options
+     */
+    private function createMerchantProduct(Shop $shop, ProductReference $productReference, array $options = []): MerchantProduct
     {
         $merchantProduct = (new MerchantProduct())
             ->setShop($shop)
             ->setProductReference($productReference)
             ->setPriceTnd('1.500');
+
+        if (isset($options['isAvailable'])) {
+            $merchantProduct->setAvailable($options['isAvailable']);
+        }
+        if (isset($options['isVisible'])) {
+            $merchantProduct->setVisible($options['isVisible']);
+        }
 
         $this->entityManager->persist($merchantProduct);
         $this->entityManager->flush();

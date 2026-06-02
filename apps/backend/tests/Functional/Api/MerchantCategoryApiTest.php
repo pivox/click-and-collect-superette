@@ -128,9 +128,9 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
         self::assertSame(200, $assignResponse->getStatusCode());
 
         $catalogAfterAssign = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant));
-        self::assertSame($categoryId, $catalogAfterAssign[0]['merchant_category_id']);
-        self::assertSame('Promotions Ramadan', $catalogAfterAssign[0]['merchant_category_name']);
-        self::assertSame('Promotions Ramadan', $catalogAfterAssign[0]['category']);
+        self::assertSame($categoryId, $catalogAfterAssign['items'][0]['merchant_category_id']);
+        self::assertSame('Promotions Ramadan', $catalogAfterAssign['items'][0]['merchant_category_name']);
+        self::assertSame('Promotions Ramadan', $catalogAfterAssign['items'][0]['category']);
 
         $publicAfterAssign = $this->decodeJson($this->requestJson('GET', \sprintf('/api/stores/%s/catalog', $shop->getId())));
         self::assertSame('Promotions Ramadan', $publicAfterAssign['items'][0]['category']);
@@ -145,9 +145,9 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
         self::assertSame(200, $clearResponse->getStatusCode());
 
         $catalogAfterClear = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant));
-        self::assertNull($catalogAfterClear[0]['merchant_category_id']);
-        self::assertNull($catalogAfterClear[0]['merchant_category_name']);
-        self::assertSame('Lait & produits laitiers', $catalogAfterClear[0]['category']);
+        self::assertNull($catalogAfterClear['items'][0]['merchant_category_id']);
+        self::assertNull($catalogAfterClear['items'][0]['merchant_category_name']);
+        self::assertSame('Lait & produits laitiers', $catalogAfterClear['items'][0]['category']);
     }
 
     public function testMerchantCanAssignCategoryWhenAddingReferenceProduct(): void
@@ -173,9 +173,9 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
 
         self::assertSame(201, $response->getStatusCode());
         $catalog = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant));
-        self::assertSame($categoryId, $catalog[0]['merchant_category_id']);
-        self::assertSame('Rayon boissons', $catalog[0]['merchant_category_name']);
-        self::assertSame('Rayon boissons', $catalog[0]['category']);
+        self::assertSame($categoryId, $catalog['items'][0]['merchant_category_id']);
+        self::assertSame('Rayon boissons', $catalog['items'][0]['merchant_category_name']);
+        self::assertSame('Rayon boissons', $catalog['items'][0]['category']);
     }
 
     public function testMerchantCanAssignCategoryWhenCreatingLocalProduct(): void
@@ -207,10 +207,10 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
         self::assertSame(201, $response->getStatusCode());
         $payload = $this->decodeJson($response);
         $catalog = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant));
-        self::assertSame($payload['merchant_product_id'], $catalog[0]['id']);
-        self::assertSame($categoryId, $catalog[0]['merchant_category_id']);
-        self::assertSame('Produits maison', $catalog[0]['merchant_category_name']);
-        self::assertSame('Produits maison', $catalog[0]['category']);
+        self::assertSame($payload['merchant_product_id'], $catalog['items'][0]['id']);
+        self::assertSame($categoryId, $catalog['items'][0]['merchant_category_id']);
+        self::assertSame('Produits maison', $catalog['items'][0]['merchant_category_name']);
+        self::assertSame('Produits maison', $catalog['items'][0]['category']);
     }
 
     public function testMerchantCannotAssignCategoryFromAnotherShop(): void
@@ -232,8 +232,8 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
 
         self::assertSame(422, $response->getStatusCode());
         $catalog = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $owner));
-        self::assertNull($catalog[0]['merchant_category_id']);
-        self::assertSame('Eaux', $catalog[0]['category']);
+        self::assertNull($catalog['items'][0]['merchant_category_id']);
+        self::assertSame('Eaux', $catalog['items'][0]['category']);
     }
 
     public function testDeletingAttachedCategoryClearsOverrideAndRestoresFallback(): void
@@ -251,7 +251,7 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
         );
         self::assertSame(200, $assignResponse->getStatusCode());
         $catalogBeforeDelete = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant));
-        self::assertSame($categoryId, $catalogBeforeDelete[0]['merchant_category_id']);
+        self::assertSame($categoryId, $catalogBeforeDelete['items'][0]['merchant_category_id']);
 
         $deleteResponse = $this->requestJson('DELETE', \sprintf('/api/merchant/categories/%s', $categoryId), user: $merchant);
         self::assertSame(204, $deleteResponse->getStatusCode());
@@ -260,9 +260,9 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
         self::assertSame([], $categories);
 
         $catalog = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant));
-        self::assertNull($catalog[0]['merchant_category_id']);
-        self::assertNull($catalog[0]['merchant_category_name']);
-        self::assertSame('Conserves', $catalog[0]['category']);
+        self::assertNull($catalog['items'][0]['merchant_category_id']);
+        self::assertNull($catalog['items'][0]['merchant_category_name']);
+        self::assertSame('Conserves', $catalog['items'][0]['category']);
 
         $recreateResponse = $this->requestJson(
             'POST',
@@ -297,9 +297,9 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
         self::assertSame(200, $clearResponse->getStatusCode());
 
         $catalog = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant));
-        self::assertNull($catalog[0]['merchant_category_id']);
-        self::assertNull($catalog[0]['merchant_category_name']);
-        self::assertSame('Epicerie locale', $catalog[0]['category']);
+        self::assertNull($catalog['items'][0]['merchant_category_id']);
+        self::assertNull($catalog['items'][0]['merchant_category_name']);
+        self::assertSame('Epicerie locale', $catalog['items'][0]['category']);
     }
 
     public function testCreatingCategoryRejectsBlankFrenchNameAfterTrim(): void
@@ -344,9 +344,9 @@ final class MerchantCategoryApiTest extends FunctionalApiTestCase
         self::assertFalse($categories[0]['active']);
 
         $catalog = $this->decodeJson($this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant));
-        self::assertNull($catalog[0]['merchant_category_id']);
-        self::assertNull($catalog[0]['merchant_category_name']);
-        self::assertSame('Lait & produits laitiers', $catalog[0]['category']);
+        self::assertNull($catalog['items'][0]['merchant_category_id']);
+        self::assertNull($catalog['items'][0]['merchant_category_name']);
+        self::assertSame('Lait & produits laitiers', $catalog['items'][0]['category']);
     }
 
     public function testMerchantCannotAssignInactiveCategoryToProduct(): void

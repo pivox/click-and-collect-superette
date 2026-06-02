@@ -29,35 +29,56 @@ describe('merchant catalogue service', () => {
     vi.clearAllMocks();
   });
 
-  it('lists merchant catalogue products without unsupported backend filters', async () => {
+  it('lists merchant catalogue products with server-side filter params', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
-      data: [
-        {
-          id: 'mp-1',
-          product_reference_id: 'ref-1',
-          name_fr: 'Lait Vitalait 1L',
-          brand: 'Vitalait',
-          category: 'lait',
-          volume: '1',
-          unit: 'litre',
-          price_tnd: '1.700',
-          is_available: true,
-          is_visible: true,
-          merchant_note: null,
-        },
-      ],
+      data: {
+        items: [
+          {
+            id: 'mp-1',
+            product_reference_id: 'ref-1',
+            name_fr: 'Lait Vitalait 1L',
+            brand: 'Vitalait',
+            category: 'lait',
+            volume: '1',
+            unit: 'litre',
+            price_tnd: '1.700',
+            is_available: true,
+            is_visible: true,
+            merchant_note: null,
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 50,
+        pages: 1,
+      },
     });
 
-    const products = await listMerchantCatalog('store-1');
+    const result = await listMerchantCatalog('store-1', { q: 'vitalait', page: 1, limit: 50 });
 
-    expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog');
-    expect(products).toEqual([
+    expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog', {
+      params: { q: 'vitalait', page: 1, limit: 50 },
+    });
+    expect(result.total).toBe(1);
+    expect(result.items).toEqual([
       expect.objectContaining({
         id: 'mp-1',
         product_reference_id: 'ref-1',
         brand: 'Vitalait',
       }),
     ]);
+  });
+
+  it('strips all/empty filter values from catalog query params', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { items: [], total: 0, page: 1, limit: 50, pages: 1 },
+    });
+
+    await listMerchantCatalog('store-1', { q: '', availability: 'all', visibility: 'all', page: 1 });
+
+    expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog', {
+      params: { page: 1 },
+    });
   });
 
   it('filters merchant catalogue products locally', () => {

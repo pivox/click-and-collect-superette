@@ -46,6 +46,14 @@ export interface MerchantCatalogListOptions {
   category?: string;
 }
 
+export interface MerchantCatalogListResult {
+  items: MerchantCatalogProduct[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
 export interface UpdateMerchantCatalogProductPayload {
   price_tnd?: string;
   is_available?: boolean;

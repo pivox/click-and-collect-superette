@@ -12,6 +12,7 @@ import type {
   MerchantBulkAvailabilityResult,
   MerchantCategory,
   MerchantCatalogListOptions,
+  MerchantCatalogListResult,
   MerchantCatalogProduct,
   MerchantLocalProductOutput,
   MerchantProductReferenceSearchOptions,
@@ -33,9 +34,20 @@ function normalizeFilterValue(value: string | null | undefined): string {
 
 export async function listMerchantCatalog(
   storeId: string,
-): Promise<MerchantCatalogProduct[]> {
-  const { data } = await apiClient.get<MerchantCatalogProduct[]>(
+  options: MerchantCatalogListOptions & { page?: number; limit?: number } = {},
+): Promise<MerchantCatalogListResult> {
+  const { data } = await apiClient.get<MerchantCatalogListResult>(
     `/api/merchant/stores/${storeId}/catalog`,
+    {
+      params: cleanFilterParams({
+        q: options.q,
+        availability: options.availability,
+        visibility: options.visibility,
+        category: options.category,
+        page: options.page,
+        limit: options.limit,
+      }),
+    },
   );
 
   return data;
