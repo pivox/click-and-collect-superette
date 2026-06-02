@@ -3,6 +3,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const replace = vi.fn();
+const selectStore = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace }),
@@ -13,16 +14,21 @@ vi.mock('@/lib/services', () => ({
   recordStoreVisit: vi.fn(),
 }));
 
+vi.mock('@/lib/store/SelectedStoreContext', () => ({
+  useSelectedStore: () => ({ selectStore, selectedStore: null, clearStore: vi.fn() }),
+}));
+
 import ByQrPage from '@/app/(client)/stores/by-qr/[qrToken]/page';
 import { getShopBySlug, recordStoreVisit } from '@/lib/services';
 
 describe('ByQrPage', () => {
   beforeEach(() => {
     replace.mockClear();
+    selectStore.mockClear();
     vi.clearAllMocks();
   });
 
-  it("redirige vers le catalogue sans attendre l'enregistrement de visite", async () => {
+  it('redirige vers le catalogue et auto-sélectionne le store', async () => {
     vi.mocked(getShopBySlug).mockResolvedValue({
       id: 'store-1',
       name: 'Supérette El Amen',
@@ -39,6 +45,10 @@ describe('ByQrPage', () => {
     await waitFor(() => {
       expect(replace).toHaveBeenCalledWith('/stores/store-1/catalog');
     });
-    expect(recordStoreVisit).toHaveBeenCalledWith('store-1', 'qr_code');
+    expect(selectStore).toHaveBeenCalledWith({
+      id: 'store-1',
+      name: 'Supérette El Amen',
+      logoLetter: undefined,
+    });
   });
 });
