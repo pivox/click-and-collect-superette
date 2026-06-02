@@ -69,7 +69,7 @@ export function StoreSelectList({ shops, onRemove, onToggleFavorite }: StoreSele
               role="button"
               tabIndex={0}
               onClick={() => handleSelect(s)}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSelect(s)}
+              onKeyDown={(e) => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && handleSelect(s)}
             >
               <StoreCard
                 shop={s}
