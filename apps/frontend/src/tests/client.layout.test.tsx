@@ -12,6 +12,13 @@ vi.mock('@/components/layout/DesktopNav', () => ({
 vi.mock('@/components/layout/BottomNav', () => ({
   BottomNav: () => <nav data-testid="bottom-nav" />,
 }));
+vi.mock('@/lib/store/SelectedStoreContext', () => ({
+  SelectedStoreProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useSelectedStore: () => ({ selectedStore: null, selectStore: vi.fn(), clearStore: vi.fn() }),
+}));
+vi.mock('@/components/store/StoreContextPill', () => ({
+  StoreContextPill: () => <div data-testid="store-context-pill" />,
+}));
 
 import ClientLayout from '@/app/(client)/layout';
 
@@ -37,8 +44,12 @@ describe('ClientLayout', () => {
     const { container } = render(<ClientLayout>page</ClientLayout>);
     const contentColumn = container.querySelector('[data-testid="client-content-column"]');
     const main = container.querySelector('main');
-
     expect(contentColumn?.className).toContain('min-w-0');
     expect(main?.className).toContain('min-w-0');
+  });
+
+  it('rend la StoreContextPill dans le main', () => {
+    render(<ClientLayout>page</ClientLayout>);
+    expect(screen.getByTestId('store-context-pill')).toBeTruthy();
   });
 });
