@@ -6,6 +6,7 @@ import {
   Bell,
   CalendarClock,
   Package,
+  Printer,
   QrCode,
   Settings,
   ShoppingBasket,
@@ -25,6 +26,7 @@ const ACTIVE_NAV = [
   { href: '/merchant/commandes', label: 'Commandes', icon: ShoppingBasket },
   { href: '/merchant/catalogue', label: 'Catalogue', icon: Package },
   { href: '/merchant/retrait', label: 'Retrait', icon: QrCode },
+  { href: '/merchant/qr-code', label: 'Mon QR code', icon: Printer },
   { href: '/merchant/creneaux', label: 'Créneaux', icon: CalendarClock },
   { href: '/merchant/notifications', label: 'Notifications', icon: Bell, badge: 'notifications' },
 ];
