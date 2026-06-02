@@ -43,6 +43,39 @@ export const MOCK_ORDER: Order = {
   pickupCode: "4281",
 };
 
+export const MOCK_ORDER_SUBMITTED: Order = {
+  id: "ord-submitted-1",
+  code: "CMD-SUBM-1",
+  shopId: "shop-el-amel",
+  shopName: "Superette El Amel",
+  status: "submitted",
+  totalAmountTnd: "7.700",
+  pickupSlot: MOCK_SLOTS_TODAY[2] ?? MOCK_SLOTS_TODAY[0],
+  submittedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+  acceptedAt: null,
+  readyAt: null,
+  completedAt: null,
+  rejectionReason: null,
+  customerNote: null,
+  lines: [
+    {
+      id: "line-s1",
+      productOffer: MOCK_PRODUCTS[0],
+      quantity: 2,
+      unitPriceTnd: "3.000",
+      lineTotalTnd: "6.000",
+    },
+    {
+      id: "line-s2",
+      productOffer: MOCK_PRODUCTS[2],
+      quantity: 1,
+      unitPriceTnd: "1.700",
+      lineTotalTnd: "1.700",
+    },
+  ],
+  pickupCode: null,
+};
+
 export const MOCK_ORDER_PARTIALLY_ACCEPTED: Order = {
   id: "ord-partial-1",
   code: "CMD-PART-1",
