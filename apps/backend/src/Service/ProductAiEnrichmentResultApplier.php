@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Brand;
-use App\Entity\MerchantProduct;
 use App\Entity\ProductAiEnrichmentJob;
 use App\Entity\ProductReference;
 use Doctrine\ORM\EntityManagerInterface;
@@ -53,12 +52,6 @@ final class ProductAiEnrichmentResultApplier
             $aliases = $productReference->getAliases();
             $aliases[] = $result->nameTnLatin;
             $productReference->setAliases(array_values(array_unique($aliases)));
-        }
-
-        if (null !== $result->estimatedPriceTnd) {
-            foreach ($this->findMerchantProducts($productReference) as $merchantProduct) {
-                $merchantProduct->setPriceTnd($this->formatPrice($result->estimatedPriceTnd));
-            }
         }
 
         $productReference
@@ -124,19 +117,5 @@ final class ProductAiEnrichmentResultApplier
         if ($existing instanceof ProductReference && !$existing->getId()->equals($productReference->getId())) {
             throw new \InvalidArgumentException('AI_RESULT_BARCODE_ALREADY_USED');
         }
-    }
-
-    /** @return list<MerchantProduct> */
-    private function findMerchantProducts(ProductReference $productReference): array
-    {
-        /** @var list<MerchantProduct> $merchantProducts */
-        $merchantProducts = $this->entityManager->getRepository(MerchantProduct::class)->findBy(['productReference' => $productReference]);
-
-        return $merchantProducts;
-    }
-
-    private function formatPrice(string $price): string
-    {
-        return number_format((float) $price, 3, '.', '');
     }
 }

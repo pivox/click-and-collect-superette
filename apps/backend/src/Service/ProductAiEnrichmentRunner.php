@@ -82,8 +82,15 @@ final readonly class ProductAiEnrichmentRunner
             $batch = $this->openAiClient->retrieveBatch($apiKey, $batchId);
             $status = (string) ($batch['status'] ?? '');
 
-            if ('completed' === $status && \is_string($batch['output_file_id'] ?? null)) {
-                $this->applyOutputLines($apiKey, $batch['output_file_id'], $jobs);
+            if ('completed' === $status) {
+                if (\is_string($batch['output_file_id'] ?? null)) {
+                    $this->applyOutputLines($apiKey, $batch['output_file_id'], $jobs);
+                } else {
+                    // Batch completed but no output file — all requests failed at the per-request level.
+                    foreach ($jobs as $job) {
+                        $job->markFailed('OPENAI_BATCH_NO_OUTPUT_FILE');
+                    }
+                }
                 continue;
             }
 
