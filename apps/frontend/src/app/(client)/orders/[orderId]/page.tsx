@@ -10,7 +10,7 @@ import { Summary, SummaryRow } from "@/components/ui/Summary";
 import { Timeline } from "@/components/ui/Timeline";
 import { Button, getButtonClassName } from "@/components/ui/Button";
 import { StickyBottom } from "@/components/layout/StickyBottom";
-import { getOrder, projectTimeline } from "@/lib/services";
+import { getOrder, projectTimeline, cancelOrder } from "@/lib/services";
 import { formatTnd, formatSlotRange } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import type { Order } from "@/types";
@@ -55,6 +55,8 @@ export default function OrderTrackingPage({
   const [fetchDone, setFetchDone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -62,6 +64,26 @@ export default function OrderTrackingPage({
       .then((data) => { setOrder(data); setFetchDone(true); })
       .catch(() => setFetchDone(true));
   }, [orderId, user, authLoading]);
+
+  const handleCancel = async () => {
+    if (!order) return;
+    if (!window.confirm("Es-tu sûr de vouloir annuler cette commande ? Cette action est irréversible.")) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const updated = await cancelOrder(order.id);
+      setOrder(updated);
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === 409) {
+        setCancelError("Cette commande ne peut plus être annulée car le marchand l'a déjà traitée.");
+      } else {
+        setCancelError("Impossible d'annuler la commande. Réessaie.");
+      }
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -148,6 +170,24 @@ export default function OrderTrackingPage({
               </Summary>
             </div>
           </Card>
+
+          {order.status === "submitted" && (
+            <section className="mt-4">
+              {cancelError && (
+                <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                  {cancelError}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => void handleCancel()}
+                disabled={cancelling}
+                className="text-sm text-red-500 underline disabled:opacity-50"
+              >
+                {cancelling ? "Annulation…" : "Annuler la commande"}
+              </button>
+            </section>
+          )}
 
           <section className="mt-4">
             <div className="mb-2.5 flex items-center justify-between">
