@@ -2,7 +2,8 @@
         migrate migrate-diff db-reset test-backend test-frontend lint-backend lint-frontend \
         jwt-keys cc phpunit \
         scraper scraper-build scraper-check test-scraper \
-        import-products seed-prices seed-demo-store seed-demo-store-all products-stats setup-dev-data
+        import-products seed-prices seed-demo-store seed-demo-store-all products-stats setup-dev-data \
+        product-ai-enrichment
 
 DOCKER_COMPOSE = docker compose
 BACKEND  = $(DOCKER_COMPOSE) exec backend
@@ -11,6 +12,9 @@ SCRAPER  = $(DOCKER_COMPOSE) run --rm scraper
 
 # Paramètre optionnel pour phpunit (ex: make phpunit ARGS="--filter monTest")
 ARGS ?=
+AI_LIMIT ?= 100
+AI_BATCH_SIZE ?= $(AI_LIMIT)
+AI_MAX_ACTIVE_BATCHES ?= 1
 
 # ─── Help ────────────────────────────────────────────────────────────────────
 
@@ -145,6 +149,9 @@ seed-demo-store-all: ## Crée une supérette demo avec tout le référentiel app
 
 products-stats: ## Affiche les statistiques des produits importés
 	$(BACKEND) php bin/console app:products:stats
+
+product-ai-enrichment: ## Lance l'enrichissement IA produits (AI_LIMIT=100 AI_BATCH_SIZE=100)
+	$(BACKEND) php bin/console app:products:ai-enrichment:run --limit=$(AI_LIMIT) --batch-size=$(AI_BATCH_SIZE) --max-active-batches=$(AI_MAX_ACTIVE_BATCHES)
 
 setup-dev-data: import-products seed-prices products-stats ## Prépare le jeu de données dev complet
 	@echo "✅ Jeu de données dev prêt"

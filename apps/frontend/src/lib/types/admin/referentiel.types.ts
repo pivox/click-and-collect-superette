@@ -135,6 +135,19 @@ export interface UpdateProductReferencePayload {
   status?: string;
 }
 
+export interface ProductAiEnrichmentRunPayload {
+  limit: number;
+}
+
+export interface ProductAiEnrichmentRunResult {
+  jobs_created: number;
+  jobs_submitted: number;
+  jobs_applied_total: number;
+  jobs_failed_total: number;
+  active_batches_checked: number;
+  openai_skipped: boolean;
+}
+
 export interface Proposal {
   id: string;
   name_fr: string;
