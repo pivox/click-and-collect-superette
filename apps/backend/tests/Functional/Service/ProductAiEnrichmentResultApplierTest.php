@@ -77,7 +77,8 @@ final class ProductAiEnrichmentResultApplierTest extends FunctionalApiTestCase
 
         $updatedMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->find($merchantProduct->getId());
         self::assertInstanceOf(MerchantProduct::class, $updatedMerchantProduct);
-        self::assertSame('0.900', $updatedMerchantProduct->getPriceTnd());
+        // AI enrichment must not overwrite merchant-entered prices; original price preserved.
+        self::assertSame('0.500', $updatedMerchantProduct->getPriceTnd());
 
         $updatedJob = $this->entityManager->getRepository(ProductAiEnrichmentJob::class)->find($job->getId());
         self::assertInstanceOf(ProductAiEnrichmentJob::class, $updatedJob);
