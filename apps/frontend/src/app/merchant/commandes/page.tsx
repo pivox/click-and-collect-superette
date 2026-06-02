@@ -127,10 +127,11 @@ export default function MerchantOrdersPage() {
   const activeOrdersVisibleRequestId = useRef(0);
   const historyRequestId = useRef(0);
 
-  const currentMonthFrom = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-    .toISOString().slice(0, 10);
-  const currentMonthTo = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
-    .toISOString().slice(0, 10);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const now = new Date();
+  const currentMonthFrom = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const currentMonthTo = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(lastDay)}`;
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportDateFrom, setExportDateFrom] = useState(currentMonthFrom);
   const [exportDateTo, setExportDateTo] = useState(currentMonthTo);
