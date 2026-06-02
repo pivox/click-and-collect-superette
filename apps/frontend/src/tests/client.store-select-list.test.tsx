@@ -47,7 +47,7 @@ describe('StoreSelectList', () => {
 
   it('sélectionne le store et navigue au clic sans Kadhia active', async () => {
     render(<StoreSelectList shops={[SHOP_A]} />);
-    act(() => screen.getByText('Aziza').closest('[role="button"]')!.click());
+    act(() => (screen.getByText('Aziza').closest('[role="button"]') as HTMLElement).click());
     await waitFor(() => expect(selectStore).toHaveBeenCalledWith({ id: 'a', name: 'Aziza', logoLetter: undefined }));
     expect(push).toHaveBeenCalledWith('/stores/a');
   });
@@ -58,7 +58,7 @@ describe('StoreSelectList', () => {
     });
     vi.mocked(hasActiveKadhia).mockReturnValue(true);
     render(<StoreSelectList shops={[SHOP_A, SHOP_B]} />);
-    act(() => screen.getByText('Monoprix').closest('[role="button"]')!.click());
+    act(() => (screen.getByText('Monoprix').closest('[role="button"]') as HTMLElement).click());
     await waitFor(() => expect(screen.getByText('Changer de supérette ?')).toBeTruthy());
     expect(selectStore).not.toHaveBeenCalled();
   });
@@ -69,7 +69,7 @@ describe('StoreSelectList', () => {
     });
     vi.mocked(hasActiveKadhia).mockReturnValue(true);
     render(<StoreSelectList shops={[SHOP_A, SHOP_B]} />);
-    act(() => screen.getByText('Monoprix').closest('[role="button"]')!.click());
+    act(() => (screen.getByText('Monoprix').closest('[role="button"]') as HTMLElement).click());
     await waitFor(() => screen.getByRole('button', { name: 'Changer quand même' }));
     act(() => screen.getByRole('button', { name: 'Changer quand même' }).click());
     await waitFor(() => expect(selectStore).toHaveBeenCalledWith({ id: 'b', name: 'Monoprix', logoLetter: undefined }));
