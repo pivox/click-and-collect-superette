@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { getMerchantDashboardToday } from '@/lib/services/merchant-dashboard.service';
+import { getMerchantOnboarding, type OnboardingStatus } from '@/lib/services/merchant-onboarding.service';
 import type { MerchantDashboardToday } from '@/lib/types/merchant.types';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { formatTime } from '@/lib/format';
@@ -18,6 +19,7 @@ const COUNTERS = [
 export default function MerchantDashboardPage() {
   const { merchant } = useMerchantAuth();
   const [dashboard, setDashboard] = useState<MerchantDashboardToday | null>(null);
+  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +28,12 @@ export default function MerchantDashboardPage() {
     setIsLoading(true);
     setError(null);
     try {
-      setDashboard(await getMerchantDashboardToday(merchant.store.id));
+      const [dash, onb] = await Promise.all([
+        getMerchantDashboardToday(merchant.store.id),
+        getMerchantOnboarding().catch(() => null),
+      ]);
+      setDashboard(dash);
+      setOnboarding(onb);
     } catch {
       setError('Impossible de charger le dashboard marchand.');
     } finally {
@@ -55,6 +62,31 @@ export default function MerchantDashboardPage() {
       {error && (
         <div className="mt-4 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
           {error}
+        </div>
+      )}
+
+      {onboarding && !onboarding.is_complete && (
+        <div className="mt-4 rounded-lg border border-[var(--status-wait)] bg-[var(--status-wait-bg)] px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-extrabold" style={{ color: 'var(--status-wait)' }}>
+                Guide de démarrage — {onboarding.completion_percentage}% complété
+              </p>
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/50">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${onboarding.completion_percentage}%`, background: 'var(--status-wait)' }}
+                />
+              </div>
+            </div>
+            <Link
+              href="/merchant/onboarding"
+              className="shrink-0 text-xs font-extrabold underline"
+              style={{ color: 'var(--status-wait)' }}
+            >
+              Voir le guide →
+            </Link>
+          </div>
         </div>
       )}
 

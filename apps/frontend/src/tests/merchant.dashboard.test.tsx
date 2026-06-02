@@ -18,6 +18,10 @@ vi.mock('@/lib/services/merchant-dashboard.service', () => ({
   getMerchantDashboardToday: vi.fn(),
 }));
 
+vi.mock('@/lib/services/merchant-onboarding.service', () => ({
+  getMerchantOnboarding: vi.fn().mockResolvedValue({ is_complete: true, completion_percentage: 100, steps: [] }),
+}));
+
 const dashboardToday = {
   store_id: 'store-1',
   date: '2026-05-23',
