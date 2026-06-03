@@ -1,8 +1,16 @@
 import { useEffect } from 'react';
 import { getStoreTheme } from '@/lib/services';
 
-// --primary-dark is derived from --primary via color-mix() in globals.css,
-// so only --primary and --secondary need to be injected / cleaned up.
+const THEME_PROPERTIES = [
+  '--primary',
+  '--secondary',
+  '--accent',
+  '--ink',
+  '--bg',
+  '--font-family',
+  '--font-size-base',
+] as const;
+
 export function useStoreTheme(shopId: string | null): void {
   useEffect(() => {
     if (!shopId) return;
@@ -13,15 +21,17 @@ export function useStoreTheme(shopId: string | null): void {
       const root = document.documentElement;
       root.style.setProperty('--primary', theme.primaryColor);
       root.style.setProperty('--secondary', theme.secondaryColor);
+      root.style.setProperty('--accent', theme.accentColor);
+      root.style.setProperty('--ink', theme.textColor);
+      root.style.setProperty('--bg', theme.backgroundColor);
       root.style.setProperty('--font-family', theme.fontFamily);
+      root.style.setProperty('--font-size-base', theme.baseFontSize);
     });
 
     return () => {
       cancelled = true;
       const root = document.documentElement;
-      root.style.removeProperty('--primary');
-      root.style.removeProperty('--secondary');
-      root.style.removeProperty('--font-family');
+      THEME_PROPERTIES.forEach((property) => root.style.removeProperty(property));
     };
   }, [shopId]);
 }

@@ -32,13 +32,23 @@ describe('StoreThemeSync', () => {
     mocks.getStoreTheme.mockResolvedValue({
       primaryColor: '#AA1122',
       secondaryColor: '#BB2233',
+      accentColor: '#CC3344',
+      textColor: '#FFFFFF',
+      backgroundColor: '#000000',
       fontFamily: 'Cairo',
+      baseFontSize: '19px',
     });
     mocks.pathname = '/';
     mocks.selectedStore = null;
-    document.documentElement.style.removeProperty('--primary');
-    document.documentElement.style.removeProperty('--secondary');
-    document.documentElement.style.removeProperty('--font-family');
+    [
+      '--primary',
+      '--secondary',
+      '--accent',
+      '--ink',
+      '--bg',
+      '--font-family',
+      '--font-size-base',
+    ].forEach((property) => document.documentElement.style.removeProperty(property));
   });
 
   it('applique le thème de la supérette sélectionnée hors route de supérette différente', async () => {
@@ -48,6 +58,12 @@ describe('StoreThemeSync', () => {
 
     await waitFor(() => expect(mocks.getStoreTheme).toHaveBeenCalledWith('store-a'));
     expect(document.documentElement.style.getPropertyValue('--primary')).toBe('#AA1122');
+    expect(document.documentElement.style.getPropertyValue('--secondary')).toBe('#BB2233');
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#CC3344');
+    expect(document.documentElement.style.getPropertyValue('--ink')).toBe('#FFFFFF');
+    expect(document.documentElement.style.getPropertyValue('--bg')).toBe('#000000');
+    expect(document.documentElement.style.getPropertyValue('--font-family')).toBe('Cairo');
+    expect(document.documentElement.style.getPropertyValue('--font-size-base')).toBe('19px');
   });
 
   it("n'applique pas le thème sélectionné si une autre supérette est ouverte par URL", async () => {
@@ -58,5 +74,6 @@ describe('StoreThemeSync', () => {
 
     await waitFor(() => expect(mocks.getStoreTheme).not.toHaveBeenCalled());
     expect(document.documentElement.style.getPropertyValue('--primary')).toBe('');
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('');
   });
 });

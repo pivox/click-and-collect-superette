@@ -22,7 +22,11 @@ describe('getStoreTheme', () => {
       data: {
         '--color-primary': '#600e77',
         '--color-secondary': '#336da3',
+        '--color-accent': '#86e637',
+        '--color-text': '#ffffff',
+        '--color-background': '#000000',
         '--font-family': 'Roboto',
+        '--font-size-base': '19px',
       },
     });
 
@@ -35,7 +39,11 @@ describe('getStoreTheme', () => {
     expect(theme).toEqual({
       primaryColor: '#600e77',
       secondaryColor: '#336da3',
+      accentColor: '#86e637',
+      textColor: '#ffffff',
+      backgroundColor: '#000000',
       fontFamily: 'Roboto',
+      baseFontSize: '19px',
     });
   });
 });
