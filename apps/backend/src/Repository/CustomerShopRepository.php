@@ -64,6 +64,7 @@ class CustomerShopRepository extends ServiceEntityRepository
             ->setParameter('isActive', true)
             ->orderBy('cs.isFavorite', 'DESC')
             ->addOrderBy('cs.lastSeenAt', 'DESC')
+            ->addOrderBy('cs.id', 'ASC')
             ->setMaxResults($limit)
             ->setFirstResult($offset)
             ->getQuery()
