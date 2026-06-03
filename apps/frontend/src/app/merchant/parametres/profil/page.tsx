@@ -41,7 +41,7 @@ function trimToNull(value: string): string | null {
 }
 
 export default function MerchantStoreProfilePage() {
-  const { merchant } = useMerchantAuth();
+  const { merchant, refresh } = useMerchantAuth();
   const storeId = merchant?.store.id ?? '';
 
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -90,6 +90,13 @@ export default function MerchantStoreProfilePage() {
       });
       setDraft(toDraft(updated));
       setSaved(true);
+      // Reflect the (possibly renamed) store in the merchant shell sidebar/header
+      // right away. Best-effort: a refresh failure must not undo the save success.
+      try {
+        await refresh();
+      } catch {
+        // ignored — the shell will pick up the new name on the next reload.
+      }
     } catch {
       setSaveError("Impossible d'enregistrer. Vérifiez les valeurs saisies (URL en https/http).");
     } finally {

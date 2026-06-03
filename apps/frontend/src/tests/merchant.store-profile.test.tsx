@@ -7,10 +7,13 @@ import {
   updateMerchantStoreProfile,
 } from '@/lib/services/merchant-store-profile.service';
 
+const refresh = vi.fn().mockResolvedValue(undefined);
+
 const merchantContext = {
   merchant: {
     store: { id: 'store-1', name: 'Supérette Ezzahra', active: true },
   },
+  refresh,
 };
 
 vi.mock('@/lib/auth/MerchantAuthContext', () => ({
@@ -72,6 +75,8 @@ describe('MerchantStoreProfilePage (MS-002)', () => {
       );
     });
     expect(await screen.findByText(/Profil enregistré/i)).toBeInTheDocument();
+    // Refresh the merchant context so the shell reflects the new name immediately.
+    expect(refresh).toHaveBeenCalled();
   });
 
   it('blocks submission when the name is empty', async () => {
