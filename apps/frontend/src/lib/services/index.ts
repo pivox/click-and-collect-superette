@@ -25,3 +25,4 @@ export * from "./slots.service";
 export * from "./orders.service";
 export * from "./auth.service";
 export * from "./store-search.service";
+export * from "./store-theme.service";
