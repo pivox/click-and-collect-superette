@@ -1,11 +1,11 @@
 import { apiClient } from '@/lib/api';
-import type { Proposal, ApproveProposalPayload } from '@/lib/types/admin/referentiel.types';
+import type { ProposalListResponse, ApproveProposalPayload } from '@/lib/types/admin/referentiel.types';
 
-export async function listProposals(status?: string, page = 1): Promise<Proposal[]> {
-  const { data } = await apiClient.get<Proposal[]>('/api/admin/product-proposals', {
+export async function listProposals(status?: string, page = 1, limit = 20): Promise<ProposalListResponse> {
+  const { data } = await apiClient.get<ProposalListResponse>('/api/admin/product-proposals', {
     params: {
       page,
-      limit: 20,
+      limit,
       ...(status ? { status } : {}),
     },
   });
