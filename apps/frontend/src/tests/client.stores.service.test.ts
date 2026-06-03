@@ -48,19 +48,26 @@ describe('client stores service', () => {
     expect(apiClient.post).not.toHaveBeenCalled();
   });
 
-  it('listMyStores retourne la liste personnelle depuis l\'API', async () => {
+  it('listMyStores retourne la liste paginée depuis l\'API', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
-      data: [
-        { store_id: 'abc', name: 'Aziza', slug: 'aziza', city: 'Tunis', is_active: true, is_favorite: true },
-      ],
+      data: {
+        id: 'current',
+        items: [
+          { store_id: 'abc', name: 'Aziza', slug: 'aziza', city: 'Tunis', is_active: true, is_favorite: true },
+        ],
+        total: 1,
+        page: 1,
+        limit: 20,
+      },
     });
 
     const result = await listMyStores();
 
-    expect(apiClient.get).toHaveBeenCalledWith('/api/me/stores');
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('abc');
-    expect(result[0].isFavorite).toBe(true);
+    expect(apiClient.get).toHaveBeenCalledWith('/api/me/stores?page=1&limit=20');
+    expect(result.items).toHaveLength(1);
+    expect(result.total).toBe(1);
+    expect(result.items[0].id).toBe('abc');
+    expect(result.items[0].isFavorite).toBe(true);
   });
 
   it('removeStore appelle DELETE /api/me/stores/{shopId}', async () => {

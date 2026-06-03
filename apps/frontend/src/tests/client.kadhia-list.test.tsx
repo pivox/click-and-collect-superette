@@ -124,11 +124,11 @@ describe('MesKadhiasPage (list)', () => {
     });
   });
 
-  it('appelle listMyKadhias avec "draft" au chargement initial', async () => {
+  it('appelle listMyKadhias avec "draft" et page 1 au chargement initial', async () => {
     vi.mocked(listMyKadhias).mockResolvedValue(emptyResult);
     render(<MesKadhiasPage />);
     await waitFor(() => {
-      expect(vi.mocked(listMyKadhias)).toHaveBeenCalledWith('draft');
+      expect(vi.mocked(listMyKadhias)).toHaveBeenCalledWith('draft', 1);
     });
   });
 
@@ -157,6 +157,44 @@ describe('MesKadhiasPage (list)', () => {
       // Seul le store name s'affiche comme titre — pas de duplicate
       const titleEl = screen.getAllByText('Épicerie Centrale');
       expect(titleEl.length).toBe(1);
+    });
+  });
+
+  it('affiche la pagination quand pages > 1', async () => {
+    vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeDraftItem()], total: 25, page: 1, pages: 3 });
+    render(<MesKadhiasPage />);
+    await waitFor(() => {
+      expect(screen.getByText(/Page 1 \/ 3/i)).toBeTruthy();
+      expect(screen.getByText(/Suivant/i)).toBeTruthy();
+    });
+  });
+
+  it('ne affiche pas la pagination quand pages = 1', async () => {
+    vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeDraftItem()], total: 1, page: 1, pages: 1 });
+    render(<MesKadhiasPage />);
+    await waitFor(() => {
+      expect(screen.queryByText(/Page 1 \/ 1/i)).toBeNull();
+    });
+  });
+
+  it('réinitialise la page à 1 lors d\'un changement d\'onglet', async () => {
+    vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeDraftItem()], total: 25, page: 1, pages: 3 });
+    render(<MesKadhiasPage />);
+    await waitFor(() => screen.getByText(/Page 1 \/ 3/i));
+
+    // Simulate page 2
+    const suivant = screen.getByText(/Suivant/i);
+    fireEvent.click(suivant);
+    await waitFor(() => {
+      expect(vi.mocked(listMyKadhias)).toHaveBeenCalledWith('draft', 2);
+    });
+
+    // Switch tab — page should reset to 1
+    vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeSubmittedItem()], total: 5, page: 1, pages: 1 });
+    const envoyeesTab = screen.getByText('Envoyées');
+    fireEvent.click(envoyeesTab);
+    await waitFor(() => {
+      expect(vi.mocked(listMyKadhias)).toHaveBeenCalledWith('submitted', 1);
     });
   });
 });

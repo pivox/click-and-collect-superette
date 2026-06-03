@@ -95,21 +95,36 @@ describe('listOrders', () => {
         items: [RAW_ORDER],
         total: 1,
         page: 1,
-        limit: 20,
+        limit: 10,
       },
     });
 
-    const orders = await listOrders();
+    const result = await listOrders();
 
-    expect(orders).toHaveLength(1);
-    expect(orders[0]).toMatchObject({
+    expect(result.items).toHaveLength(1);
+    expect(result.total).toBe(1);
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.items[0]).toMatchObject({
       id: 'order-uuid-1',
       shopName: 'Supérette El Amen',
       status: 'ready',
       totalAmountTnd: '12.500',
       code: '#0042',
     });
-    expect(apiClient.get).toHaveBeenCalledWith('/api/me/orders');
+    expect(apiClient.get).toHaveBeenCalledWith('/api/me/orders?page=1&limit=10');
+  });
+
+  it('transmet les paramètres page et limit à l\'API', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { items: [], total: 25, page: 3, limit: 10 },
+    });
+
+    const result = await listOrders(3, 10);
+
+    expect(result.page).toBe(3);
+    expect(result.total).toBe(25);
+    expect(apiClient.get).toHaveBeenCalledWith('/api/me/orders?page=3&limit=10');
   });
 });
 
