@@ -86,3 +86,10 @@ export async function updateProfile(
   await apiClient.patch('/api/me/profile', { first_name: firstName, last_name: lastName });
   return { name };
 }
+
+export async function deleteAccount(): Promise<void> {
+  if (USE_MOCKS) {
+    return mockDelay(undefined);
+  }
+  await apiClient.delete('/api/me/account');
+}
