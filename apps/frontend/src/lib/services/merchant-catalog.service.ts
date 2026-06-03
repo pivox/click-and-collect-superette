@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api';
+import { USE_MOCKS, mockDelay } from './index';
 import type {
   AddMerchantCatalogProductPayload,
   BulkLocalProductCreatedOutput,
@@ -15,10 +16,44 @@ import type {
   MerchantCatalogListResult,
   MerchantCatalogProduct,
   MerchantLocalProductOutput,
+  MerchantProductPriceHistoryResult,
   MerchantProductReferenceSearchOptions,
   MerchantProductReferenceSearchResult,
   UpdateMerchantCatalogProductPayload,
 } from '@/lib/types/merchant-catalog.types';
+
+const MOCK_PRICE_HISTORY_ITEMS: MerchantProductPriceHistoryResult['priceHistory'] = [
+  {
+    oldPrice: '2.200',
+    newPrice: '2.500',
+    currency: 'TND',
+    changeType: 'manual_update',
+    source: 'merchant_dashboard',
+    reason: 'Ajustement prix fournisseur',
+    changedByUserId: null,
+    changedAt: '2026-05-15T10:30:00Z',
+  },
+  {
+    oldPrice: '2.000',
+    newPrice: '2.200',
+    currency: 'TND',
+    changeType: 'manual_update',
+    source: 'merchant_dashboard',
+    reason: null,
+    changedByUserId: null,
+    changedAt: '2026-04-01T09:00:00Z',
+  },
+  {
+    oldPrice: null,
+    newPrice: '2.000',
+    currency: 'TND',
+    changeType: 'initial',
+    source: 'merchant_dashboard',
+    reason: null,
+    changedByUserId: null,
+    changedAt: '2026-02-10T08:00:00Z',
+  },
+];
 
 function cleanFilterParams<T extends Record<string, unknown>>(params: T): Partial<T> {
   return Object.fromEntries(
@@ -212,6 +247,25 @@ export async function fetchGlobalCategories(): Promise<GlobalCategory[]> {
 
 export async function fetchGlobalBrands(): Promise<GlobalBrand[]> {
   const { data } = await apiClient.get<GlobalBrand[]>('/api/brands');
+
+  return data;
+}
+
+export async function getMerchantProductPriceHistory(
+  merchantProductId: string,
+): Promise<MerchantProductPriceHistoryResult> {
+  if (USE_MOCKS) {
+    return mockDelay({
+      merchantProductId,
+      currentPrice: '2.500',
+      currency: 'TND',
+      priceHistory: MOCK_PRICE_HISTORY_ITEMS,
+    });
+  }
+
+  const { data } = await apiClient.get<MerchantProductPriceHistoryResult>(
+    `/api/merchant/products/${merchantProductId}/price-history`,
+  );
 
   return data;
 }
