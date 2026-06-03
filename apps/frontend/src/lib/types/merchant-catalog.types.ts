@@ -214,3 +214,21 @@ export interface GlobalBrand {
   name: string;
   slug: string;
 }
+
+export interface MerchantProductPriceHistoryItem {
+  oldPrice: string | null;
+  newPrice: string;
+  currency: string;
+  changeType: string;
+  source: string;
+  reason: string | null;
+  changedByUserId: string | null;
+  changedAt: string;
+}
+
+export interface MerchantProductPriceHistoryResult {
+  merchantProductId: string;
+  currentPrice: string;
+  currency: string;
+  priceHistory: MerchantProductPriceHistoryItem[];
+}

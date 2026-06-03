@@ -3,11 +3,36 @@
 import { useEffect, useRef, useState } from 'react';
 import { MerchantCategorySelector } from '@/components/merchant/catalogue/MerchantCategorySelector';
 import { Button } from '@/components/ui/Button';
-import { updateMerchantCatalogProduct } from '@/lib/services/merchant-catalog.service';
+import {
+  getMerchantProductPriceHistory,
+  updateMerchantCatalogProduct,
+} from '@/lib/services/merchant-catalog.service';
 import type {
   MerchantCatalogProduct,
   MerchantCategory,
+  MerchantProductPriceHistoryItem,
 } from '@/lib/types/merchant-catalog.types';
+
+function formatPriceTnd(price: string): string {
+  return (
+    Number(price).toLocaleString('fr-FR', {
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
+    }) + ' TND'
+  );
+}
+
+function formatHistoryDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const datePart = date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${datePart} ${h}h${m}`;
+}
 
 interface MerchantCatalogEditDrawerProps {
   product: MerchantCatalogProduct | null;
@@ -54,6 +79,10 @@ export function MerchantCatalogEditDrawer({
   const [error, setError] = useState<string | null>(null);
   const [hasPriceError, setHasPriceError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPriceHistory, setShowPriceHistory] = useState(false);
+  const [priceHistory, setPriceHistory] = useState<MerchantProductPriceHistoryItem[] | null>(null);
+  const [isPriceHistoryLoading, setIsPriceHistoryLoading] = useState(false);
+  const [priceHistoryError, setPriceHistoryError] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const priceInputRef = useRef<HTMLInputElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -69,6 +98,10 @@ export function MerchantCatalogEditDrawer({
     setError(null);
     setHasPriceError(false);
     setIsSubmitting(false);
+    setShowPriceHistory(false);
+    setPriceHistory(null);
+    setIsPriceHistoryLoading(false);
+    setPriceHistoryError(false);
   }, [product]);
 
   useEffect(() => {
@@ -137,6 +170,26 @@ export function MerchantCatalogEditDrawer({
   }, [onClose, product]);
 
   if (!product) return null;
+
+  const handleTogglePriceHistory = async () => {
+    if (showPriceHistory) {
+      setShowPriceHistory(false);
+      return;
+    }
+    setShowPriceHistory(true);
+    if (priceHistory !== null) return;
+
+    setIsPriceHistoryLoading(true);
+    setPriceHistoryError(false);
+    try {
+      const result = await getMerchantProductPriceHistory(product.id);
+      setPriceHistory(result.priceHistory);
+    } catch {
+      setPriceHistoryError(true);
+    } finally {
+      setIsPriceHistoryLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     const normalizedPrice = validatePrice(priceTnd);
@@ -260,6 +313,45 @@ export function MerchantCatalogEditDrawer({
               rows={4}
               className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
+          </div>
+
+          <div className="border-t border-line pt-4">
+            <button
+              type="button"
+              onClick={() => void handleTogglePriceHistory()}
+              className="text-sm font-bold text-primary hover:underline"
+            >
+              {showPriceHistory ? "Masquer l'historique" : "Voir l'historique des prix"}
+            </button>
+
+            {showPriceHistory && (
+              <div className="mt-3">
+                {isPriceHistoryLoading && (
+                  <p className="text-sm text-muted">Chargement…</p>
+                )}
+                {priceHistoryError && (
+                  <p className="text-sm text-status-cancel">
+                    Impossible de charger l&apos;historique.
+                  </p>
+                )}
+                {!isPriceHistoryLoading && !priceHistoryError && priceHistory !== null && (
+                  <>
+                    {priceHistory.length <= 1 ? (
+                      <p className="text-sm text-muted">Aucun changement de prix enregistré.</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {priceHistory.map((item, index) => (
+                          <li key={index} className="flex items-baseline justify-between text-sm">
+                            <span className="font-bold">{formatPriceTnd(item.newPrice)}</span>
+                            <span className="text-muted">{formatHistoryDate(item.changedAt)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
