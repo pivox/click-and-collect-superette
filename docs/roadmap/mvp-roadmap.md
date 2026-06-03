@@ -426,6 +426,152 @@ Rapport de clôture complet : `docs/Sprint7/completion-report.md`.
 
 ---
 
+> **Sprints 8 et 9 — livrés sur `main`** (voir `CLAUDE.md`) : catalogue marchand (produits locaux, bulk multi-format, `ProductFamily`, `pack_quantity`) et Kadhia multi + UX. Le cœur MVP (Sprints 0–9) est en place. Les sprints suivants couvrent la **mise sur le marché** : bêta terrain, monétisation, support, catalogue scalable, mobile, croissance, natif.
+
+---
+
+## Sprint 10 — Durcissement bêta + observabilité
+
+### Objectif
+
+Rendre l'application fiable pour une bêta avec 3 à 5 supérettes réelles.
+
+### Fonctionnalités
+
+- **[#352](https://github.com/pivox/click-and-collect-superette/issues/352)** — Valider en production le worker async **déjà livré** : la config Supervisor existe (`docker/supervisor/messenger-worker.conf` + `supervisord.conf`, S7-009) ; ce lot cadre le déploiement, la supervision, le rejeu des échecs et un runbook.
+- **[#353](https://github.com/pivox/click-and-collect-superette/issues/353)** — Monitoring des jobs asynchrones (santé worker + file Messenger).
+- **[#354](https://github.com/pivox/click-and-collect-superette/issues/354)** — Métriques bêta : instrumentation des KPI terrain (commandes, taux d'acceptation, activation supérette).
+- **[#355](https://github.com/pivox/click-and-collect-superette/issues/355)** — QR magasin imprimable (PNG / PDF) côté marchand.
+- **[#356](https://github.com/pivox/click-and-collect-superette/issues/356)** — Checklist d'activation supérette (gate de mise en bêta).
+- **[#357](https://github.com/pivox/click-and-collect-superette/issues/357)** — Journal opérationnel marchand (vue minimale).
+- **[#358](https://github.com/pivox/click-and-collect-superette/issues/358)** — Décision produit : bêta FR-only vs FR+AR.
+
+### Critère de sortie
+
+On peut lancer une bêta terrain fiable : worker async supervisé et monitoré, KPI mesurés, QR imprimable, supérettes validées par checklist avant activation.
+
+---
+
+## Sprint 11 — Activation commerciale + abonnement
+
+### Objectif
+
+Transformer l'application en produit monétisable. Modèle : 3 mois gratuits → 3 mois à 10 DT/mois → 50 DT/mois (saut ×5 à valider produit). La règle « pas de paiement en ligne » du MVP concerne le paiement **client de la commande**, pas l'abonnement **plateforme marchand**.
+
+### Fonctionnalités
+
+- **[#359](https://github.com/pivox/click-and-collect-superette/issues/359)** — Module abonnement marchand (entité `Subscription`).
+- **[#360](https://github.com/pivox/click-and-collect-superette/issues/360)** — Statuts : séparer **lifecycle** (`active`/`payment_due`/`grace_period`/`suspended`/`cancelled`) et **phase tarifaire** (`trial`/`promo`/`standard`).
+- **[#361](https://github.com/pivox/click-and-collect-superette/issues/361)** — Reçu / facture mensuelle — **à cadrer fiscalement** (matricule, TVA, timbre) avant le modèle de données.
+- **[#362](https://github.com/pivox/click-and-collect-superette/issues/362)** — Paiement manuel (espèces / virement) + validation admin.
+- **[#363](https://github.com/pivox/click-and-collect-superette/issues/363)** — Relances paiement (email + WhatsApp manuel) — **inclut l'infra email** (`symfony/mailer` à installer ; l'envoi actuel est `@mail()` natif).
+- **[#364](https://github.com/pivox/click-and-collect-superette/issues/364)** — Suspension douce et réactivation (conserve catalogue/historique/images, bloque les nouvelles commandes).
+- **[#365](https://github.com/pivox/click-and-collect-superette/issues/365)** — Import CSV + scan code-barres (onboarding catalogue minimum) — **remonté du Sprint 13** car levier de conversion essai → payant.
+
+### Critère de sortie
+
+Un marchand passe automatiquement de gratuit → promo → payant, est relancé par un canal qu'il consulte, suspendu en douceur puis réactivé après paiement.
+
+---
+
+## Sprint 12 — Support & exploitation terrain
+
+### Objectif
+
+Donner à l'admin les outils pour gérer les problèmes réels sans toucher à la base.
+
+### Fonctionnalités
+
+- **[#366](https://github.com/pivox/click-and-collect-superette/issues/366)** — Incidents commande (module structuré, entité `Incident`).
+- **[#367](https://github.com/pivox/click-and-collect-superette/issues/367)** — Backoffice support (consultation, filtres, note interne, clôture).
+- **[#368](https://github.com/pivox/click-and-collect-superette/issues/368)** — Journal opérationnel marchand complet + vue santé.
+- **[#369](https://github.com/pivox/click-and-collect-superette/issues/369)** — Process manuel d'exploitation terrain (runbook support).
+
+### Critère de sortie
+
+L'équipe gère les problèmes terrain (incidents, retards, suspensions) avec des outils dédiés et des procédures écrites.
+
+---
+
+## Sprint 13 — Catalogue intelligent & qualité
+
+### Objectif
+
+Accélérer l'onboarding produit au-delà du CSV/scan (livré en Sprint 11). Socle déjà présent : bulk multi-format (Sprint 8), infra IA `ProductAiEnrichment*`, merge proposition→référence (PR #203).
+
+### Fonctionnalités
+
+- **[#370](https://github.com/pivox/click-and-collect-superette/issues/370)** — Import catalogue par photo assisté IA (réutilise l'infra `ProductAiEnrichment*`).
+- **[#371](https://github.com/pivox/click-and-collect-superette/issues/371)** — Déduplication du référentiel (workflow admin, priorité code-barres).
+- **[#372](https://github.com/pivox/click-and-collect-superette/issues/372)** — Score de qualité des références produit.
+- **[#373](https://github.com/pivox/click-and-collect-superette/issues/373)** — Gouvernance du référentiel (rôles, workflow, droits).
+
+### Critère de sortie
+
+Un marchand crée un catalogue exploitable sans saisir produit par produit ; le référentiel reste propre et gouverné.
+
+---
+
+## Sprint 14 — PWA + arabe/RTL + notifications
+
+### Objectif
+
+Transformer le web responsive en vraie expérience mobile installable. PWA (US-059), WCAG (US-060) et i18n AR (US-008) étaient reportés post-Sprint 7.
+
+### Fonctionnalités
+
+- **[#374](https://github.com/pivox/click-and-collect-superette/issues/374)** — PWA client (installable, mobile-first).
+- **[#375](https://github.com/pivox/click-and-collect-superette/issues/375)** — PWA marchand (installable, terrain).
+- **[#376](https://github.com/pivox/click-and-collect-superette/issues/376)** — Push notifications (client + marchand). *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée → peut justifier l'iOS natif plus tôt.*
+- **[#377](https://github.com/pivox/click-and-collect-superette/issues/377)** — **Arabe / RTL câblé** dans l'application (dette MVP US-008).
+- **[#378](https://github.com/pivox/click-and-collect-superette/issues/378)** — WhatsApp semi-manuel (client + marchand).
+- **[#379](https://github.com/pivox/click-and-collect-superette/issues/379)** — Accessibilité minimum (WCAG de base).
+
+### Critère de sortie
+
+Le client et le marchand utilisent l'application confortablement sur mobile, en français comme en arabe (RTL), avec notifications push.
+
+---
+
+## Sprint 15 — Croissance commerciale
+
+### Objectif
+
+Augmenter usage, rétention et valeur pour les marchands.
+
+### Fonctionnalités
+
+- **[#380](https://github.com/pivox/click-and-collect-superette/issues/380)** — Statistiques marchand avancées.
+- **[#382](https://github.com/pivox/click-and-collect-superette/issues/382)** — Packs produits.
+- **[#383](https://github.com/pivox/click-and-collect-superette/issues/383)** — Suggestions de Kadhia (souvent achetés / récents / favoris / remplacement).
+- **[#384](https://github.com/pivox/click-and-collect-superette/issues/384)** — Promotions simples (prix barré, échéance).
+- **[#385](https://github.com/pivox/click-and-collect-superette/issues/385)** — Suivi commercial (CRM léger des marchands).
+
+### Critère de sortie
+
+La plateforme aide les marchands à vendre plus et l'équipe à les retenir.
+
+---
+
+## Sprint 16 — Apps natives
+
+### Objectif
+
+Industrialiser **après preuve terrain** (clients commandent, marchands utilisent, catalogue gérable, facturation OK, limites PWA constatées). Ordre : Android marchand → Android client → iOS client → iOS marchand (conditionnel).
+
+### Fonctionnalités
+
+- **[#386](https://github.com/pivox/click-and-collect-superette/issues/386)** — App native Android marchand.
+- **[#387](https://github.com/pivox/click-and-collect-superette/issues/387)** — App native Android client.
+- **[#388](https://github.com/pivox/click-and-collect-superette/issues/388)** — App native iOS client.
+- **[#389](https://github.com/pivox/click-and-collect-superette/issues/389)** — App native iOS marchand (si besoin confirmé).
+
+### Critère de sortie
+
+Les apps natives reprennent les parcours validés par la PWA, sans réinventer le produit, une fois la traction terrain prouvée.
+
+---
+
 ## Qualité — Catalogue des scénarios à tester
 
 > **TODO owner :** Détailler et implémenter tous les scénarios ci-dessous dans `tests/Functional/Scenario/` avant de considérer le backend comme stabilisé.
@@ -536,3 +682,10 @@ Rapport de clôture complet : `docs/Sprint7/completion-report.md`.
 | Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | ✅ Backend terminé |
 | Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
 | Sprint 7 | US-008, US-058, US-059, US-060, US-061, US-062, US-063 | P2 | 🟡 À implémenter |
+| Sprint 10 | #352–#358 | — | 🔵 Planifié (go-to-market) |
+| Sprint 11 | #359–#365 | — | 🔵 Planifié (monétisation) |
+| Sprint 12 | #366–#369 | — | 🔵 Planifié (support) |
+| Sprint 13 | #370–#373 | — | 🔵 Planifié (catalogue scalable) |
+| Sprint 14 | #374–#379 | — | 🔵 Planifié (mobile PWA + AR) |
+| Sprint 15 | #380, #382–#385 | — | 🔵 Planifié (croissance) |
+| Sprint 16 | #386–#389 | — | 🔵 Planifié (natif) |
