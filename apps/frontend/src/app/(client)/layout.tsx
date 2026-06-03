@@ -6,6 +6,7 @@ import { ClientAuthProvider } from '@/lib/auth/ClientAuthContext';
 import { ReactQueryProvider } from '@/lib/providers/ReactQueryProvider';
 import { SelectedStoreProvider } from '@/lib/store/SelectedStoreContext';
 import { StoreContextPill } from '@/components/store/StoreContextPill';
+import { StoreThemeSync } from '@/components/store/StoreThemeSync';
 import { ClientNotificationsProvider } from '@/lib/notifications/ClientNotificationsContext';
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <ClientAuthProvider>
         <ClientNotificationsProvider>
         <SelectedStoreProvider>
+          <StoreThemeSync />
           {/* Responsive grid: sidebar (md+) + main. Children rendered once. */}
           <div className="min-h-screen md:grid md:grid-cols-[280px_1fr]">
             <DesktopNav />

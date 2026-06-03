@@ -3,8 +3,9 @@ import { getStoreTheme } from '@/lib/services';
 
 // --primary-dark is derived from --primary via color-mix() in globals.css,
 // so only --primary and --secondary need to be injected / cleaned up.
-export function useStoreTheme(shopId: string): void {
+export function useStoreTheme(shopId: string | null): void {
   useEffect(() => {
+    if (!shopId) return;
     let cancelled = false;
 
     void getStoreTheme(shopId).then((theme) => {
