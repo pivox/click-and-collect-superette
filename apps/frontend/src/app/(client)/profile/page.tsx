@@ -8,7 +8,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Button, getButtonClassName } from "@/components/ui/Button";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
-import { updateProfile } from "@/lib/services/auth.service";
+import { updateProfile, deleteAccount } from "@/lib/services/auth.service";
 
 const MAX_NAME_LENGTH = 100;
 
@@ -103,15 +103,117 @@ function ProfileEditForm({
   );
 }
 
+const CONFIRM_WORD = "SUPPRIMER";
+
+function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canConfirm = confirmText === CONFIRM_WORD;
+
+  const handleConfirm = async () => {
+    if (!canConfirm) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteAccount();
+      onDeleted();
+    } catch {
+      setError("Impossible de supprimer le compte. Réessaie.");
+      setDeleting(false);
+    }
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setConfirmText("");
+    setError(null);
+  };
+
+  return (
+    <>
+      <Card className="mt-4 border border-red-200">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full text-left text-sm font-extrabold text-red-600 hover:text-red-700"
+        >
+          Supprimer mon compte
+        </button>
+      </Card>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+            className="relative w-full max-w-sm rounded-xl bg-card p-6 shadow-floating"
+          >
+            <h3 id="delete-account-title" className="mb-2 font-black text-ink">
+              Supprimer mon compte
+            </h3>
+            <p className="mb-4 text-sm text-muted">
+              Es-tu sûr de vouloir supprimer ton compte ? Toutes tes données seront effacées de manière
+              irréversible. Cette action est définitive.
+            </p>
+            <div className="mb-5 grid gap-1.5">
+              <label htmlFor="confirm-delete" className="text-xs font-extrabold text-muted uppercase tracking-wide">
+                Saisis <span className="text-red-600">{CONFIRM_WORD}</span> pour confirmer
+              </label>
+              <input
+                id="confirm-delete"
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder={CONFIRM_WORD}
+                autoComplete="off"
+                className="rounded-md border border-line bg-soft px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400"
+              />
+            </div>
+            {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+            <div className="flex gap-3">
+              <Button
+                variant="danger"
+                size="md"
+                onClick={() => void handleConfirm()}
+                disabled={!canConfirm || deleting}
+                className="flex-1"
+              >
+                {deleting ? "Suppression…" : "Confirmer la suppression"}
+              </Button>
+              <Button variant="ghost" size="md" onClick={handleClose} disabled={deleting} className="flex-1">
+                Annuler
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function ProfilePage() {
   const { user, logout, isLoading, updateUser } = useClientAuth();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [savedMessage, setSavedMessage] = useState(false);
+  const [deletedMessage, setDeletedMessage] = useState(false);
 
   function handleLogout() {
     logout();
     router.push("/");
+  }
+
+  function handleDeleted() {
+    logout();
+    setDeletedMessage(true);
+    setTimeout(() => {
+      router.push("/");
+    }, 1500);
   }
 
   const handleSaved = (name: string) => {
@@ -242,6 +344,14 @@ export default function ProfilePage() {
           Se déconnecter
         </button>
       </Card>
+
+      {deletedMessage ? (
+        <Card className="mt-4 border border-red-200 bg-red-50">
+          <p className="text-sm font-bold text-red-700">Ton compte a été supprimé. Redirection…</p>
+        </Card>
+      ) : (
+        <DeleteAccountSection onDeleted={handleDeleted} />
+      )}
     </>
   );
 }
