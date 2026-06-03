@@ -6,6 +6,7 @@ import {
   Bell,
   CalendarClock,
   Package,
+  Palette,
   Printer,
   QrCode,
   Settings,
@@ -29,6 +30,7 @@ const ACTIVE_NAV = [
   { href: '/merchant/qr-code', label: 'Mon QR code', icon: Printer },
   { href: '/merchant/creneaux', label: 'Créneaux', icon: CalendarClock },
   { href: '/merchant/notifications', label: 'Notifications', icon: Bell, badge: 'notifications' },
+  { href: '/merchant/apparence', label: 'Apparence', icon: Palette },
 ];
 
 const DISABLED_NAV = [
