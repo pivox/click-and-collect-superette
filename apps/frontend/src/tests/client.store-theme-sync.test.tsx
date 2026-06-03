@@ -67,13 +67,26 @@ describe('StoreThemeSync', () => {
   });
 
   it("n'applique pas le thème sélectionné si une autre supérette est ouverte par URL", async () => {
-    mocks.selectedStore = { id: 'store-a', name: 'Supérette A' };
-    mocks.pathname = '/stores/store-b/catalog';
+    mocks.selectedStore = {
+      id: '11111111-1111-4111-8111-111111111111',
+      name: 'Supérette A',
+    };
+    mocks.pathname = '/stores/22222222-2222-4222-8222-222222222222/catalog';
 
     render(<StoreThemeSync />);
 
     await waitFor(() => expect(mocks.getStoreTheme).not.toHaveBeenCalled());
     expect(document.documentElement.style.getPropertyValue('--primary')).toBe('');
     expect(document.documentElement.style.getPropertyValue('--accent')).toBe('');
+  });
+
+  it('conserve le thème sélectionné sur les routes QR statiques', async () => {
+    mocks.selectedStore = { id: 'store-a', name: 'Supérette A' };
+    mocks.pathname = '/stores/by-qr-scan';
+
+    render(<StoreThemeSync />);
+
+    await waitFor(() => expect(mocks.getStoreTheme).toHaveBeenCalledWith('store-a'));
+    expect(document.documentElement.style.getPropertyValue('--primary')).toBe('#AA1122');
   });
 });
