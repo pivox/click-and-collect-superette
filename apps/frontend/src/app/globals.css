@@ -18,7 +18,7 @@
 
   /* Brand */
   --primary: #1f7a4d;
-  --primary-dark: #155b38;
+  --primary-dark: color-mix(in oklch, var(--primary) 80%, black);
   --secondary: #ffcf5a;
   --danger: #c43d3d;
 
