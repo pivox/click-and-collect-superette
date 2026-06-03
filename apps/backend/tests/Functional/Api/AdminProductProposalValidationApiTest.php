@@ -33,12 +33,14 @@ final class AdminProductProposalValidationApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(2, $payload);
-        self::assertArrayHasKey('id', $payload[0]);
-        self::assertArrayHasKey('name_fr', $payload[0]);
-        self::assertArrayHasKey('status', $payload[0]);
-        self::assertArrayHasKey('proposed_by', $payload[0]);
-        self::assertArrayHasKey('created_at', $payload[0]);
+        self::assertArrayHasKey('items', $payload);
+        self::assertArrayHasKey('total', $payload);
+        self::assertCount(2, $payload['items']);
+        self::assertArrayHasKey('id', $payload['items'][0]);
+        self::assertArrayHasKey('name_fr', $payload['items'][0]);
+        self::assertArrayHasKey('status', $payload['items'][0]);
+        self::assertArrayHasKey('proposed_by', $payload['items'][0]);
+        self::assertArrayHasKey('created_at', $payload['items'][0]);
     }
 
     public function testAdminFiltersByStatusPending(): void
@@ -57,8 +59,9 @@ final class AdminProductProposalValidationApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(1, $payload);
-        self::assertSame('pending', $payload[0]['status']);
+        self::assertSame(1, $payload['total']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame('pending', $payload['items'][0]['status']);
     }
 
     public function testInvalidStatusFilterReturns400(): void
