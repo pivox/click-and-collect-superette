@@ -83,6 +83,7 @@ export function MerchantCatalogEditDrawer({
   const [priceHistory, setPriceHistory] = useState<MerchantProductPriceHistoryItem[] | null>(null);
   const [isPriceHistoryLoading, setIsPriceHistoryLoading] = useState(false);
   const [priceHistoryError, setPriceHistoryError] = useState(false);
+  const currentProductIdRef = useRef<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const priceInputRef = useRef<HTMLInputElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -102,6 +103,7 @@ export function MerchantCatalogEditDrawer({
     setPriceHistory(null);
     setIsPriceHistoryLoading(false);
     setPriceHistoryError(false);
+    currentProductIdRef.current = product.id;
   }, [product]);
 
   useEffect(() => {
@@ -181,13 +183,20 @@ export function MerchantCatalogEditDrawer({
 
     setIsPriceHistoryLoading(true);
     setPriceHistoryError(false);
+    const requestedProductId = product.id;
     try {
-      const result = await getMerchantProductPriceHistory(product.id);
-      setPriceHistory(result.priceHistory);
+      const result = await getMerchantProductPriceHistory(requestedProductId);
+      if (currentProductIdRef.current === requestedProductId) {
+        setPriceHistory(result.priceHistory);
+      }
     } catch {
-      setPriceHistoryError(true);
+      if (currentProductIdRef.current === requestedProductId) {
+        setPriceHistoryError(true);
+      }
     } finally {
-      setIsPriceHistoryLoading(false);
+      if (currentProductIdRef.current === requestedProductId) {
+        setIsPriceHistoryLoading(false);
+      }
     }
   };
 
