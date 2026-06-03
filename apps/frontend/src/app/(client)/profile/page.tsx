@@ -158,7 +158,7 @@ function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
             </h3>
             <p className="mb-4 text-sm text-muted">
               Es-tu sûr de vouloir supprimer ton compte ? Toutes tes données seront effacées de manière
-              irréversible. Tes commandes en cours seront annulées.
+              irréversible. Cette action est définitive.
             </p>
             <div className="mb-5 grid gap-1.5">
               <label htmlFor="confirm-delete" className="text-xs font-extrabold text-muted uppercase tracking-wide">
@@ -209,9 +209,9 @@ export default function ProfilePage() {
   }
 
   function handleDeleted() {
+    logout();
     setDeletedMessage(true);
     setTimeout(() => {
-      logout();
       router.push("/");
     }, 1500);
   }
