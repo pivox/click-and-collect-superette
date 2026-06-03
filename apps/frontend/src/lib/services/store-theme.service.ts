@@ -5,6 +5,7 @@ import type { StoreTheme } from '@/types';
 interface StoreThemeApiResponse {
   '--color-primary'?: string;
   '--color-secondary'?: string;
+  '--font-family'?: string;
   [key: string]: string | undefined;
 }
 
@@ -21,6 +22,7 @@ export async function getStoreTheme(shopId: string): Promise<StoreTheme | null> 
     return {
       primaryColor: primary ?? '#1f7a4d',
       secondaryColor: secondary ?? '#ffcf5a',
+      fontFamily: data['--font-family'] ?? 'Inter',
     };
   } catch {
     return null;

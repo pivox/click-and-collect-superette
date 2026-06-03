@@ -12,6 +12,7 @@ export function useStoreTheme(shopId: string): void {
       const root = document.documentElement;
       root.style.setProperty('--primary', theme.primaryColor);
       root.style.setProperty('--secondary', theme.secondaryColor);
+      root.style.setProperty('--font-family', theme.fontFamily);
     });
 
     return () => {
@@ -19,6 +20,7 @@ export function useStoreTheme(shopId: string): void {
       const root = document.documentElement;
       root.style.removeProperty('--primary');
       root.style.removeProperty('--secondary');
+      root.style.removeProperty('--font-family');
     };
   }, [shopId]);
 }

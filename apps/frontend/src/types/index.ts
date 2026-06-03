@@ -186,4 +186,5 @@ export interface StoreSearchResult {
 export interface StoreTheme {
   primaryColor: string;
   secondaryColor: string;
+  fontFamily: string;
 }
