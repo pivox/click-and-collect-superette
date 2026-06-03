@@ -438,13 +438,13 @@ Rendre l'application fiable pour une bêta avec 3 à 5 supérettes réelles.
 
 ### Fonctionnalités
 
-- **[#352](https://github.com/pivox/click-and-collect-superette/issues/352)** — Valider en production le worker async **déjà livré** : la config Supervisor existe (`docker/supervisor/messenger-worker.conf` + `supervisord.conf`, S7-009) ; ce lot cadre le déploiement, la supervision, le rejeu des échecs et un runbook.
-- **[#353](https://github.com/pivox/click-and-collect-superette/issues/353)** — Monitoring des jobs asynchrones (santé worker + file Messenger).
-- **[#354](https://github.com/pivox/click-and-collect-superette/issues/354)** — Métriques bêta : instrumentation des KPI terrain (commandes, taux d'acceptation, activation supérette).
-- **[#355](https://github.com/pivox/click-and-collect-superette/issues/355)** — QR magasin imprimable (PNG / PDF) côté marchand.
-- **[#356](https://github.com/pivox/click-and-collect-superette/issues/356)** — Checklist d'activation supérette (gate de mise en bêta).
-- **[#357](https://github.com/pivox/click-and-collect-superette/issues/357)** — Journal opérationnel marchand (vue minimale).
-- **[#358](https://github.com/pivox/click-and-collect-superette/issues/358)** — Décision produit : bêta FR-only vs FR+AR.
+- **US-067** ([#352](https://github.com/pivox/click-and-collect-superette/issues/352)) · EPIC-015 · *Must* — Valider en production le worker async **déjà livré** : la config Supervisor existe (`docker/supervisor/messenger-worker.conf` + `supervisord.conf`, S7-009) ; ce lot cadre le déploiement, la supervision, le rejeu des échecs et un runbook.
+- **US-068** ([#353](https://github.com/pivox/click-and-collect-superette/issues/353)) · EPIC-015 · *Should* — Monitoring des jobs asynchrones (santé worker + file Messenger).
+- **US-069** ([#354](https://github.com/pivox/click-and-collect-superette/issues/354)) · EPIC-015 · *Must* — Métriques bêta : instrumentation des KPI terrain (commandes, taux d'acceptation, activation supérette).
+- **US-070** ([#355](https://github.com/pivox/click-and-collect-superette/issues/355)) · EPIC-016 · *Must* — QR magasin imprimable (PNG / PDF) côté marchand.
+- **US-071** ([#356](https://github.com/pivox/click-and-collect-superette/issues/356)) · EPIC-016 · *Must* — Checklist d'activation supérette (gate de mise en bêta).
+- **US-072** ([#357](https://github.com/pivox/click-and-collect-superette/issues/357)) · EPIC-016 · *Could* — Journal opérationnel marchand (vue minimale).
+- **US-073** ([#358](https://github.com/pivox/click-and-collect-superette/issues/358)) · EPIC-016 · *Must* — Décision produit : bêta FR-only vs FR+AR *(spike)*.
 
 ### Critère de sortie
 
@@ -460,13 +460,13 @@ Transformer l'application en produit monétisable. Modèle : 3 mois gratuits →
 
 ### Fonctionnalités
 
-- **[#359](https://github.com/pivox/click-and-collect-superette/issues/359)** — Module abonnement marchand (entité `Subscription`).
-- **[#360](https://github.com/pivox/click-and-collect-superette/issues/360)** — Statuts : séparer **lifecycle** (`active`/`payment_due`/`grace_period`/`suspended`/`cancelled`) et **phase tarifaire** (`trial`/`promo`/`standard`).
-- **[#361](https://github.com/pivox/click-and-collect-superette/issues/361)** — Reçu / facture mensuelle — **à cadrer fiscalement** (matricule, TVA, timbre) avant le modèle de données.
-- **[#362](https://github.com/pivox/click-and-collect-superette/issues/362)** — Paiement manuel (espèces / virement) + validation admin.
-- **[#363](https://github.com/pivox/click-and-collect-superette/issues/363)** — Relances paiement (email + WhatsApp manuel) — **inclut l'infra email** (`symfony/mailer` à installer ; l'envoi actuel est `@mail()` natif).
-- **[#364](https://github.com/pivox/click-and-collect-superette/issues/364)** — Suspension douce et réactivation (conserve catalogue/historique/images, bloque les nouvelles commandes).
-- **[#365](https://github.com/pivox/click-and-collect-superette/issues/365)** — Import CSV + scan code-barres (onboarding catalogue minimum) — **remonté du Sprint 13** car levier de conversion essai → payant.
+- **US-074** ([#359](https://github.com/pivox/click-and-collect-superette/issues/359)) · EPIC-017 · *Must* — Module abonnement marchand (entité `Subscription`).
+- **US-075** ([#360](https://github.com/pivox/click-and-collect-superette/issues/360)) · EPIC-017 · *Must* — Statuts : séparer **lifecycle** (`active`/`payment_due`/`grace_period`/`suspended`/`cancelled`) et **phase tarifaire** (`trial`/`promo`/`standard`).
+- **US-076** ([#361](https://github.com/pivox/click-and-collect-superette/issues/361)) · EPIC-017 · *Must* — Reçu / facture mensuelle — **à cadrer fiscalement** (matricule, TVA, timbre) avant le modèle de données.
+- **US-077** ([#362](https://github.com/pivox/click-and-collect-superette/issues/362)) · EPIC-017 · *Must* — Paiement manuel (espèces / virement) + validation admin.
+- **US-078** ([#363](https://github.com/pivox/click-and-collect-superette/issues/363)) · EPIC-018 · *Must* — Relances paiement (email + WhatsApp manuel) — **inclut l'infra email** (`symfony/mailer` à installer ; l'envoi actuel est `@mail()` natif).
+- **US-079** ([#364](https://github.com/pivox/click-and-collect-superette/issues/364)) · EPIC-018 · *Should* — Suspension douce et réactivation (conserve catalogue/historique/images, bloque les nouvelles commandes).
+- **US-080** ([#365](https://github.com/pivox/click-and-collect-superette/issues/365)) · EPIC-019 · *Must* — Import CSV + scan code-barres (onboarding catalogue minimum) — **remonté du Sprint 13** car levier de conversion essai → payant.
 
 ### Critère de sortie
 
@@ -482,10 +482,10 @@ Donner à l'admin les outils pour gérer les problèmes réels sans toucher à l
 
 ### Fonctionnalités
 
-- **[#366](https://github.com/pivox/click-and-collect-superette/issues/366)** — Incidents commande (module structuré, entité `Incident`).
-- **[#367](https://github.com/pivox/click-and-collect-superette/issues/367)** — Backoffice support (consultation, filtres, note interne, clôture).
-- **[#368](https://github.com/pivox/click-and-collect-superette/issues/368)** — Journal opérationnel marchand complet + vue santé.
-- **[#369](https://github.com/pivox/click-and-collect-superette/issues/369)** — Process manuel d'exploitation terrain (runbook support).
+- **US-085** ([#366](https://github.com/pivox/click-and-collect-superette/issues/366)) · EPIC-021 · *Should* — Incidents commande (module structuré, entité `Incident`).
+- **US-086** ([#367](https://github.com/pivox/click-and-collect-superette/issues/367)) · EPIC-021 · *Should* — Backoffice support (consultation, filtres, note interne, clôture).
+- **US-087** ([#368](https://github.com/pivox/click-and-collect-superette/issues/368)) · EPIC-021 · *Could* — Journal opérationnel marchand complet + vue santé.
+- **US-088** ([#369](https://github.com/pivox/click-and-collect-superette/issues/369)) · EPIC-021 · *Could* — Process manuel d'exploitation terrain (runbook support).
 
 ### Critère de sortie
 
@@ -501,10 +501,10 @@ Accélérer l'onboarding produit au-delà du CSV/scan (livré en Sprint 11). Soc
 
 ### Fonctionnalités
 
-- **[#370](https://github.com/pivox/click-and-collect-superette/issues/370)** — Import catalogue par photo assisté IA (réutilise l'infra `ProductAiEnrichment*`).
-- **[#371](https://github.com/pivox/click-and-collect-superette/issues/371)** — Déduplication du référentiel (workflow admin, priorité code-barres).
-- **[#372](https://github.com/pivox/click-and-collect-superette/issues/372)** — Score de qualité des références produit.
-- **[#373](https://github.com/pivox/click-and-collect-superette/issues/373)** — Gouvernance du référentiel (rôles, workflow, droits).
+- **US-081** ([#370](https://github.com/pivox/click-and-collect-superette/issues/370)) · EPIC-019 · *Could* — Import catalogue par photo assisté IA (réutilise l'infra `ProductAiEnrichment*`).
+- **US-082** ([#371](https://github.com/pivox/click-and-collect-superette/issues/371)) · EPIC-020 · *Should* — Déduplication du référentiel (workflow admin, priorité code-barres).
+- **US-083** ([#372](https://github.com/pivox/click-and-collect-superette/issues/372)) · EPIC-020 · *Could* — Score de qualité des références produit.
+- **US-084** ([#373](https://github.com/pivox/click-and-collect-superette/issues/373)) · EPIC-020 · *Should* — Gouvernance du référentiel (rôles, workflow, droits).
 
 ### Critère de sortie
 
@@ -520,12 +520,12 @@ Transformer le web responsive en vraie expérience mobile installable. PWA (US-0
 
 ### Fonctionnalités
 
-- **[#374](https://github.com/pivox/click-and-collect-superette/issues/374)** — PWA client (installable, mobile-first).
-- **[#375](https://github.com/pivox/click-and-collect-superette/issues/375)** — PWA marchand (installable, terrain).
-- **[#376](https://github.com/pivox/click-and-collect-superette/issues/376)** — Push notifications (client + marchand). *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée → peut justifier l'iOS natif plus tôt.*
-- **[#377](https://github.com/pivox/click-and-collect-superette/issues/377)** — **Arabe / RTL câblé** dans l'application (dette MVP US-008).
-- **[#378](https://github.com/pivox/click-and-collect-superette/issues/378)** — WhatsApp semi-manuel (client + marchand).
-- **[#379](https://github.com/pivox/click-and-collect-superette/issues/379)** — Accessibilité minimum (WCAG de base).
+- **US-089** ([#374](https://github.com/pivox/click-and-collect-superette/issues/374)) · EPIC-022 · *Must* — PWA client (installable, mobile-first).
+- **US-090** ([#375](https://github.com/pivox/click-and-collect-superette/issues/375)) · EPIC-022 · *Must* — PWA marchand (installable, terrain).
+- **US-091** ([#376](https://github.com/pivox/click-and-collect-superette/issues/376)) · EPIC-022 · *Should* — Push notifications (client + marchand). *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée → peut justifier l'iOS natif plus tôt.*
+- **US-093** ([#377](https://github.com/pivox/click-and-collect-superette/issues/377)) · EPIC-008 · *Must* — **Arabe / RTL câblé** dans l'application (dette MVP, étend US-008).
+- **US-094** ([#378](https://github.com/pivox/click-and-collect-superette/issues/378)) · EPIC-018 · *Could* — WhatsApp semi-manuel (client + marchand).
+- **US-092** ([#379](https://github.com/pivox/click-and-collect-superette/issues/379)) · EPIC-022 · *Should* — Accessibilité minimum (WCAG de base).
 
 ### Critère de sortie
 
@@ -541,11 +541,11 @@ Augmenter usage, rétention et valeur pour les marchands.
 
 ### Fonctionnalités
 
-- **[#380](https://github.com/pivox/click-and-collect-superette/issues/380)** — Statistiques marchand avancées.
-- **[#382](https://github.com/pivox/click-and-collect-superette/issues/382)** — Packs produits.
-- **[#383](https://github.com/pivox/click-and-collect-superette/issues/383)** — Suggestions de Kadhia (souvent achetés / récents / favoris / remplacement).
-- **[#384](https://github.com/pivox/click-and-collect-superette/issues/384)** — Promotions simples (prix barré, échéance).
-- **[#385](https://github.com/pivox/click-and-collect-superette/issues/385)** — Suivi commercial (CRM léger des marchands).
+- **US-095** ([#380](https://github.com/pivox/click-and-collect-superette/issues/380)) · EPIC-023 · *Should* — Statistiques marchand avancées.
+- **US-096** ([#382](https://github.com/pivox/click-and-collect-superette/issues/382)) · EPIC-023 · *Could* — Packs produits.
+- **US-097** ([#383](https://github.com/pivox/click-and-collect-superette/issues/383)) · EPIC-023 · *Could* — Suggestions de Kadhia (souvent achetés / récents / favoris / remplacement).
+- **US-098** ([#384](https://github.com/pivox/click-and-collect-superette/issues/384)) · EPIC-023 · *Should* — Promotions simples (prix barré, échéance).
+- **US-099** ([#385](https://github.com/pivox/click-and-collect-superette/issues/385)) · EPIC-023 · *Should* — Suivi commercial (CRM léger des marchands).
 
 ### Critère de sortie
 
@@ -561,10 +561,10 @@ Industrialiser **après preuve terrain** (clients commandent, marchands utilisen
 
 ### Fonctionnalités
 
-- **[#386](https://github.com/pivox/click-and-collect-superette/issues/386)** — App native Android marchand.
-- **[#387](https://github.com/pivox/click-and-collect-superette/issues/387)** — App native Android client.
-- **[#388](https://github.com/pivox/click-and-collect-superette/issues/388)** — App native iOS client.
-- **[#389](https://github.com/pivox/click-and-collect-superette/issues/389)** — App native iOS marchand (si besoin confirmé).
+- **US-100** ([#386](https://github.com/pivox/click-and-collect-superette/issues/386)) · EPIC-024 · *Should* — App native Android marchand.
+- **US-101** ([#387](https://github.com/pivox/click-and-collect-superette/issues/387)) · EPIC-024 · *Should* — App native Android client.
+- **US-102** ([#388](https://github.com/pivox/click-and-collect-superette/issues/388)) · EPIC-024 · *Could* — App native iOS client.
+- **US-103** ([#389](https://github.com/pivox/click-and-collect-superette/issues/389)) · EPIC-024 · *Could* — App native iOS marchand (si besoin confirmé).
 
 ### Critère de sortie
 
@@ -682,10 +682,10 @@ Les apps natives reprennent les parcours validés par la PWA, sans réinventer l
 | Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | ✅ Backend terminé |
 | Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
 | Sprint 7 | US-008, US-058, US-059, US-060, US-061, US-062, US-063 | P2 | 🟡 À implémenter |
-| Sprint 10 | #352–#358 | — | 🔵 Planifié (go-to-market) |
-| Sprint 11 | #359–#365 | — | 🔵 Planifié (monétisation) |
-| Sprint 12 | #366–#369 | — | 🔵 Planifié (support) |
-| Sprint 13 | #370–#373 | — | 🔵 Planifié (catalogue scalable) |
-| Sprint 14 | #374–#379 | — | 🔵 Planifié (mobile PWA + AR) |
-| Sprint 15 | #380, #382–#385 | — | 🔵 Planifié (croissance) |
-| Sprint 16 | #386–#389 | — | 🔵 Planifié (natif) |
+| Sprint 10 | US-067 à US-073 (EPIC-015, EPIC-016) | P0 | 🔵 Planifié (go-to-market) |
+| Sprint 11 | US-074 à US-080 (EPIC-017, EPIC-018, EPIC-019) | P0 | 🔵 Planifié (monétisation) |
+| Sprint 12 | US-085 à US-088 (EPIC-021) | P1 | 🔵 Planifié (support) |
+| Sprint 13 | US-081 à US-084 (EPIC-019, EPIC-020) | P1 | 🔵 Planifié (catalogue scalable) |
+| Sprint 14 | US-089 à US-094 + US-093 (EPIC-022, EPIC-008, EPIC-018) | P1 | 🔵 Planifié (mobile PWA + AR) |
+| Sprint 15 | US-095 à US-099 (EPIC-023) | P2 | 🔵 Planifié (croissance) |
+| Sprint 16 | US-100 à US-103 (EPIC-024) | P2 | 🔵 Planifié (natif) |

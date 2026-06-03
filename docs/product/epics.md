@@ -125,12 +125,13 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Valeur produit** : L'application est accessible à tous les usagers tunisiens.
 
-**Sprint** : Sprint 2 (intégré), Sprint 7 (affinage)
+**Sprint** : Sprint 2 (intégré), Sprint 7 (affinage), Sprint 14 (câblage AR complet)
 
 **User stories** :
 - US-008 — Basculer la langue de l'interface
+- US-093 — Arabe / RTL câblé dans l'application *(dette MVP — Sprint 14)*
 
-**Critère de sortie** : L'interface bascule entre français et arabe. Les montants sont affichés en TND. Le mode RTL fonctionne sur les vues principales.
+**Critère de sortie** : L'interface bascule entre français et arabe. Les montants sont affichés en TND. Le mode RTL fonctionne sur les vues principales. Le parcours client est entièrement traduit en arabe (US-093).
 
 ---
 
@@ -235,3 +236,184 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 - US-064 — Rappel de retrait avant expiration du créneau
 
 **Critère de sortie** : Une notification est créée à chaque transition de statut clé. Le client et le marchand peuvent lister leurs notifications et les marquer comme lues. Le client reçoit un rappel automatique 1 heure avant son créneau de retrait si sa commande est `ready`.
+
+---
+
+# Epics post-MVP — Mise sur le marché (Sprints 10-16)
+
+> Ces epics couvrent la phase go-to-market au-delà du cœur MVP (Sprints 0-9 livrés sur `main`).
+> Mapping détaillé dans `docs/roadmap/mvp-roadmap.md`. Chaque US est suivie sur GitHub (issues #352-#389).
+
+## EPIC-015 — Fiabilité & observabilité production
+
+**Objectif** : Garantir que les automatisations différées et l'application tiennent en production, et mesurer l'usage réel dès la bêta.
+
+**Valeur produit** : Une bêta terrain fiable et pilotée par les données, pas au doigt mouillé.
+
+**Sprint** : Sprint 10 — Durcissement bêta
+
+**User stories** :
+- US-067 — Valider en production le worker async (Supervisor déjà livré S7-009)
+- US-068 — Monitoring des jobs asynchrones (santé worker + file)
+- US-069 — Métriques bêta (KPI terrain)
+
+**Critère de sortie** : Worker async supervisé et monitoré, KPI terrain mesurés (commandes, taux d'acceptation, activation supérette).
+
+---
+
+## EPIC-016 — Activation terrain des supérettes
+
+**Objectif** : Outiller l'activation d'une supérette pilote : QR physique, vérification de complétude, suivi opérationnel.
+
+**Valeur produit** : On n'active en bêta que des supérettes réellement opérationnelles.
+
+**Sprint** : Sprint 10 — Durcissement bêta
+
+**User stories** :
+- US-070 — QR magasin imprimable (PNG / PDF)
+- US-071 — Checklist d'activation supérette (gate de mise en bêta)
+- US-072 — Journal opérationnel marchand (vue minimale)
+- US-073 — Décision produit : bêta FR-only vs FR+AR *(spike)*
+
+**Critère de sortie** : L'admin active des supérettes validées par checklist ; le marchand affiche un QR imprimé en magasin.
+
+---
+
+## EPIC-017 — Abonnement & monétisation
+
+**Objectif** : Transformer l'application en produit monétisable par abonnement marchand (gratuit → promo → standard).
+
+**Valeur produit** : La plateforme génère du revenu récurrent. La règle « pas de paiement en ligne » du MVP concerne le paiement *client de la commande*, pas l'abonnement *plateforme marchand*.
+
+**Sprint** : Sprint 11 — Activation commerciale
+
+**User stories** :
+- US-074 — Module abonnement marchand (`Subscription`)
+- US-075 — Statuts : séparer lifecycle et phase tarifaire
+- US-076 — Reçu / facture mensuelle *(à cadrer fiscalement)*
+- US-077 — Paiement manuel (espèces / virement) + validation admin
+
+**Critère de sortie** : Un marchand a un abonnement avec cycle de vie clair, des factures et un encaissement manuel tracé.
+
+---
+
+## EPIC-018 — Recouvrement & communication sortante
+
+**Objectif** : Relancer les marchands en retard via un canal qu'ils consultent, suspendre en douceur, et offrir un contact WhatsApp contextualisé.
+
+**Valeur produit** : Réduire le churn de paiement sans casser la relation ; un canal sortant fiable (l'email n'existe pas encore au-delà de `@mail()` natif).
+
+**Sprint** : Sprint 11 (recouvrement) · Sprint 14 (WhatsApp)
+
+**User stories** :
+- US-078 — Infra email + relances de paiement (échéancier J-7 → J+21)
+- US-079 — Suspension douce et réactivation
+- US-094 — WhatsApp semi-manuel (client + marchand) *(Sprint 14)*
+
+**Critère de sortie** : Un marchand est relancé par email, suspendu en douceur (catalogue conservé) puis réactivé après paiement ; le contact WhatsApp est contextualisé et tracé.
+
+---
+
+## EPIC-019 — Onboarding catalogue rapide
+
+**Objectif** : Permettre au marchand de constituer son catalogue vite, sans saisie produit par produit.
+
+**Valeur produit** : Levier de conversion essai → payant : un catalogue rapide à monter retient le marchand.
+
+**Sprint** : Sprint 11 (CSV / scan) · Sprint 13 (photo IA)
+
+**User stories** :
+- US-080 — Import CSV + scan code-barres (onboarding minimum) *(Sprint 11)*
+- US-081 — Import catalogue par photo assisté IA *(Sprint 13)*
+
+**Critère de sortie** : Un marchand crée un catalogue exploitable par fichier, scan ou photo, en réutilisant le bulk multi-format et l'infra IA existants.
+
+---
+
+## EPIC-020 — Qualité & gouvernance du référentiel
+
+**Objectif** : Garder un référentiel produit propre et gouverné à mesure que les imports massifs l'alimentent.
+
+**Valeur produit** : Un référentiel fiable est la base partagée par tous les marchands.
+
+**Sprint** : Sprint 13 — Catalogue intelligent
+
+**User stories** :
+- US-082 — Déduplication du référentiel (workflow admin)
+- US-083 — Score de qualité des références produit
+- US-084 — Gouvernance du référentiel (rôles, workflow, droits)
+
+**Critère de sortie** : Les doublons sont fusionnés (priorité code-barres), chaque référence porte un score qualité, et la gouvernance est documentée.
+
+---
+
+## EPIC-021 — Support & exploitation terrain
+
+**Objectif** : Donner à l'admin les outils pour gérer les problèmes réels sans toucher à la base.
+
+**Valeur produit** : L'équipe traite incidents et cas limites de façon homogène et traçable.
+
+**Sprint** : Sprint 12 — Support & exploitation
+
+**User stories** :
+- US-085 — Incidents commande (module structuré)
+- US-086 — Backoffice support (consultation / traitement)
+- US-087 — Journal opérationnel marchand complet + vue santé
+- US-088 — Process manuel d'exploitation terrain (runbook)
+
+**Critère de sortie** : L'admin consulte, filtre, annote et clôture des incidents ; la santé de chaque marchand est visible ; les procédures sont écrites.
+
+---
+
+## EPIC-022 — Expérience mobile PWA
+
+**Objectif** : Transformer le web responsive en PWA installable, mobile-first, avec notifications push et accessibilité de base.
+
+**Valeur produit** : Une vraie expérience mobile terrain pour client et marchand (PWA/WCAG reportés post-Sprint 7).
+
+**Sprint** : Sprint 14 — PWA & notifications
+
+**User stories** :
+- US-089 — PWA client (installable, mobile-first)
+- US-090 — PWA marchand (installable, terrain)
+- US-091 — Push notifications (client + marchand)
+- US-092 — Accessibilité minimum (WCAG de base)
+
+**Critère de sortie** : Client et marchand installent l'app sur mobile et reçoivent des notifications push. *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée.*
+
+---
+
+## EPIC-023 — Croissance commerciale
+
+**Objectif** : Augmenter usage, panier moyen, rétention et valeur perçue de l'abonnement.
+
+**Valeur produit** : Aider les marchands à vendre plus et l'équipe à les retenir.
+
+**Sprint** : Sprint 15 — Croissance
+
+**User stories** :
+- US-095 — Statistiques marchand avancées
+- US-096 — Packs produits
+- US-097 — Suggestions de Kadhia (souvent achetés / récents / favoris)
+- US-098 — Promotions simples (prix barré, échéance)
+- US-099 — Suivi commercial (CRM léger des marchands)
+
+**Critère de sortie** : Le marchand pilote ses ventes, propose packs et promotions ; l'équipe suit la relation commerciale.
+
+---
+
+## EPIC-024 — Applications natives
+
+**Objectif** : Industrialiser les parcours validés par la PWA en apps natives, après preuve terrain.
+
+**Valeur produit** : Performance et notifications fiables une fois la traction prouvée, sans réinventer le produit.
+
+**Sprint** : Sprint 16 — Apps natives
+
+**User stories** :
+- US-100 — App native Android marchand
+- US-101 — App native Android client
+- US-102 — App native iOS client
+- US-103 — App native iOS marchand *(si besoin confirmé)*
+
+**Critère de sortie** : Les apps natives reprennent les parcours validés par la PWA, dans l'ordre Android marchand → Android client → iOS client → iOS marchand.
