@@ -8,6 +8,13 @@ import {
 import { apiClient } from "@/lib/api";
 import { USE_MOCKS, mockDelay } from "./index";
 
+export interface StoreListResult {
+  items: Shop[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export async function listShops(): Promise<Shop[]> {
   if (USE_MOCKS) return mockDelay(MOCK_SHOPS);
   const { data } = await apiClient.get<StoreSearchResult>("/api/stores/search");
@@ -73,28 +80,47 @@ export async function recordStoreVisit(
   );
 }
 
-export async function listMyStores(): Promise<Shop[]> {
-  if (USE_MOCKS) return mockDelay(getMockMyShops());
-  const { data } = await apiClient.get<
-    {
+export async function listMyStores(page = 1, limit = 20): Promise<StoreListResult> {
+  if (USE_MOCKS) {
+    const all = getMockMyShops();
+    const start = (page - 1) * limit;
+    return mockDelay({
+      items: all.slice(start, start + limit),
+      total: all.length,
+      page,
+      limit,
+    });
+  }
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  const { data } = await apiClient.get<{
+    id: string;
+    items: {
       store_id: string;
       name: string;
       slug: string;
       city: string | null;
       is_active: boolean;
       is_favorite: boolean;
-    }[]
-  >("/api/me/stores");
-  return data.map((item) => ({
-    id: item.store_id,
-    name: item.name,
-    slug: item.slug,
-    city: item.city,
-    isActive: item.is_active,
-    address: null,
-    phone: null,
-    isFavorite: item.is_favorite,
-  }));
+    }[];
+    total: number;
+    page: number;
+    limit: number;
+  }>(`/api/me/stores?${params.toString()}`);
+  return {
+    items: data.items.map((item) => ({
+      id: item.store_id,
+      name: item.name,
+      slug: item.slug,
+      city: item.city,
+      isActive: item.is_active,
+      address: null,
+      phone: null,
+      isFavorite: item.is_favorite,
+    })),
+    total: data.total,
+    page: data.page,
+    limit: data.limit,
+  };
 }
 
 export async function removeStore(shopId: string): Promise<void> {

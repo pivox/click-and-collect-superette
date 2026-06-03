@@ -15,6 +15,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\UniqueConstraint(name: 'UNIQ_CUSTOMER_SHOPS_CUSTOMER_SHOP', columns: ['customer_id', 'shop_id'])]
 #[ORM\Index(name: 'IDX_CUSTOMER_SHOPS_CUSTOMER', columns: ['customer_id'])]
 #[ORM\Index(name: 'IDX_CUSTOMER_SHOPS_SHOP', columns: ['shop_id'])]
+#[ORM\Index(name: 'IDX_CUSTOMER_SHOPS_PAGINATED', columns: ['customer_id', 'status', 'is_favorite', 'last_seen_at'])]
 #[ORM\HasLifecycleCallbacks]
 class CustomerShop
 {

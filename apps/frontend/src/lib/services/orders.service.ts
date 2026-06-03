@@ -5,7 +5,7 @@ import type {
   PickupSession,
   TimelineStep,
 } from "@/types";
-import { MOCK_ORDER, MOCK_ORDER_PARTIALLY_ACCEPTED, MOCK_ORDER_SUBMITTED } from "@/lib/mock/orders.mock";
+import { MOCK_ORDER, MOCK_ORDER_PARTIALLY_ACCEPTED, MOCK_ORDER_SUBMITTED, MOCK_ORDERS_ALL } from "@/lib/mock/orders.mock";
 import { apiClient } from "@/lib/api";
 import { displayOrderCode } from "@/lib/order-number";
 import { USE_MOCKS, mockDelay } from "./index";
@@ -76,6 +76,16 @@ interface RawCustomerOrderStatusSnapshot {
 interface RawOrderList {
   items?: RawOrder[];
   "hydra:member"?: RawOrder[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface OrderListResult {
+  items: Order[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 const MOCK_PICKUP_SESSION_TOKEN = "11111111-1111-4111-8111-111111111111";
@@ -157,12 +167,25 @@ function mapRawCustomerOrderStatusSnapshot(
   };
 }
 
-export async function listOrders(): Promise<Order[]> {
+export async function listOrders(page = 1, limit = 10): Promise<OrderListResult> {
   if (USE_MOCKS) {
-    return mockDelay([MOCK_ORDER, MOCK_ORDER_SUBMITTED, MOCK_ORDER_PARTIALLY_ACCEPTED]);
+    const all = MOCK_ORDERS_ALL;
+    const start = (page - 1) * limit;
+    return mockDelay({
+      items: all.slice(start, start + limit),
+      total: all.length,
+      page,
+      limit,
+    });
   }
-  const { data } = await apiClient.get<RawOrderList>("/api/me/orders");
-  return (data.items ?? data["hydra:member"] ?? []).map(mapRawOrder);
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  const { data } = await apiClient.get<RawOrderList>(`/api/me/orders?${params.toString()}`);
+  return {
+    items: (data.items ?? data["hydra:member"] ?? []).map(mapRawOrder),
+    total: data.total ?? 0,
+    page: data.page ?? page,
+    limit: data.limit ?? limit,
+  };
 }
 
 export async function getOrder(orderId: string): Promise<Order | null> {

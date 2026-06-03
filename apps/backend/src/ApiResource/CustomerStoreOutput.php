@@ -7,7 +7,6 @@ namespace App\ApiResource;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
@@ -17,19 +16,11 @@ use App\Entity\Shop;
 use App\Processor\HideCustomerStoreProcessor;
 use App\Processor\RecordStoreVisitProcessor;
 use App\Processor\UpdateStoreFavoriteProcessor;
-use App\Provider\CustomerStoreCollectionProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 
 #[ApiResource(
     operations: [
-        new GetCollection(
-            uriTemplate: '/me/stores',
-            formats: ['json' => ['application/json']],
-            provider: CustomerStoreCollectionProvider::class,
-            normalizationContext: ['groups' => ['customer_store:read']],
-            security: "is_granted('ROLE_CUSTOMER')",
-        ),
         new Post(
             uriTemplate: '/me/stores/{storeId}/visit',
             uriVariables: [

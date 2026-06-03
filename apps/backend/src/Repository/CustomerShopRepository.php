@@ -44,4 +44,44 @@ class CustomerShopRepository extends ServiceEntityRepository
             array_filter($relations, static fn (CustomerShop $cs): bool => $cs->getShop()->isActive()),
         );
     }
+
+    /**
+     * Returns a paginated slice of active customer-shop relations for active shops,
+     * ordered by favorites first then by last seen.
+     *
+     * @return list<CustomerShop>
+     */
+    public function findActiveByCustomerPaginated(User $customer, int $limit, int $offset): array
+    {
+        /* @var list<CustomerShop> */
+        return $this->createQueryBuilder('cs')
+            ->join('cs.shop', 's')
+            ->where('cs.customer = :customer')
+            ->andWhere('cs.status = :status')
+            ->andWhere('s.active = :isActive')
+            ->setParameter('customer', $customer->getId(), 'uuid')
+            ->setParameter('status', CustomerShopStatus::Active->value)
+            ->setParameter('isActive', true)
+            ->orderBy('cs.isFavorite', 'DESC')
+            ->addOrderBy('cs.lastSeenAt', 'DESC')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function countActiveByCustomer(User $customer): int
+    {
+        return (int) $this->createQueryBuilder('cs')
+            ->select('COUNT(cs.id)')
+            ->join('cs.shop', 's')
+            ->where('cs.customer = :customer')
+            ->andWhere('cs.status = :status')
+            ->andWhere('s.active = :isActive')
+            ->setParameter('customer', $customer->getId(), 'uuid')
+            ->setParameter('status', CustomerShopStatus::Active->value)
+            ->setParameter('isActive', true)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

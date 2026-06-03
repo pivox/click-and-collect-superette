@@ -2,6 +2,32 @@ import type { Order } from "@/types";
 import { MOCK_PRODUCTS } from "./products.mock";
 import { MOCK_SLOTS_TODAY } from "./slots.mock";
 
+function makeSimpleOrder(
+  id: string,
+  code: string,
+  status: Order["status"],
+  totalAmountTnd: string,
+): Order {
+  return {
+    id,
+    code,
+    shopId: "shop-el-amel",
+    shopName: "Superette El Amel",
+    status,
+    totalAmountTnd,
+    pickupSlot: MOCK_SLOTS_TODAY[0] ?? null,
+    submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    acceptedAt: null,
+    readyAt: null,
+    completedAt: null,
+    rejectionReason: null,
+    customerNote: null,
+    lines: [],
+    pickupCode: null,
+    kadhiaId: null,
+  };
+}
+
 /** Mock order — shape matches future GET /orders/{id} response. */
 export const MOCK_ORDER: Order = {
   id: "ord-4821",
@@ -109,3 +135,18 @@ export const MOCK_ORDER_PARTIALLY_ACCEPTED: Order = {
   ],
   pickupCode: null,
 };
+
+export const MOCK_ORDERS_ALL: Order[] = [
+  MOCK_ORDER,
+  MOCK_ORDER_SUBMITTED,
+  MOCK_ORDER_PARTIALLY_ACCEPTED,
+  makeSimpleOrder("ord-acc-1", "CMD-ACC-1", "accepted", "6.200"),
+  makeSimpleOrder("ord-acc-2", "CMD-ACC-2", "accepted", "3.450"),
+  makeSimpleOrder("ord-prep-1", "CMD-PREP-1", "preparing", "9.100"),
+  makeSimpleOrder("ord-prep-2", "CMD-PREP-2", "preparing", "5.750"),
+  makeSimpleOrder("ord-comp-1", "CMD-COMP-1", "completed", "12.000"),
+  makeSimpleOrder("ord-comp-2", "CMD-COMP-2", "completed", "8.300"),
+  makeSimpleOrder("ord-rej-1", "CMD-REJ-1", "rejected", "4.000"),
+  makeSimpleOrder("ord-can-1", "CMD-CAN-1", "cancelled", "7.600"),
+  makeSimpleOrder("ord-sub-2", "CMD-SUBM-2", "submitted", "2.900"),
+];

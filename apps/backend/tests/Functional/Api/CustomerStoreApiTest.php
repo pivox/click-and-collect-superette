@@ -86,8 +86,8 @@ final class CustomerStoreApiTest extends FunctionalApiTestCase
 
         $listResponse = $this->requestJson('GET', '/api/me/stores', user: $customer);
         $payload = $this->decodeJson($listResponse);
-        self::assertCount(1, $payload);
-        self::assertSame($shop->getId()->toRfc4122(), $payload[0]['store_id']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($shop->getId()->toRfc4122(), $payload['items'][0]['store_id']);
     }
 
     public function testVisitShopNotFoundReturns404(): void
@@ -166,8 +166,10 @@ final class CustomerStoreApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(2, $payload);
-        self::assertTrue($payload[0]['is_favorite']);
+        self::assertCount(2, $payload['items']);
+        self::assertSame(2, $payload['total']);
+        self::assertSame(1, $payload['page']);
+        self::assertTrue($payload['items'][0]['is_favorite']);
     }
 
     public function testGetStoresReturnsEmptyListForNewCustomer(): void
@@ -178,7 +180,8 @@ final class CustomerStoreApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertSame([], $payload);
+        self::assertSame([], $payload['items']);
+        self::assertSame(0, $payload['total']);
     }
 
     public function testGetStoresExcludesHiddenRelations(): void
@@ -198,7 +201,53 @@ final class CustomerStoreApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(1, $payload);
+        self::assertCount(1, $payload['items']);
+        self::assertSame(1, $payload['total']);
+    }
+
+    public function testGetStoresPaginationReturnsCorrectSlice(): void
+    {
+        $customer = $this->createUser('customer-paginated@example.test', ['ROLE_CUSTOMER']);
+        $shop1 = $this->createShop();
+        $shop2 = $this->createShop();
+        $shop3 = $this->createShop();
+
+        foreach ([$shop1, $shop2, $shop3] as $shop) {
+            $rel = (new CustomerShop())->setCustomer($customer)->setShop($shop)->setSource(CustomerShopSource::QrCode);
+            $this->entityManager->persist($rel);
+        }
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', '/api/me/stores?page=1&limit=2', user: $customer);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(3, $payload['total']);
+        self::assertSame(1, $payload['page']);
+        self::assertSame(2, $payload['limit']);
+        self::assertCount(2, $payload['items']);
+    }
+
+    public function testGetStoresPage2ReturnsRemainingItems(): void
+    {
+        $customer = $this->createUser('customer-page2@example.test', ['ROLE_CUSTOMER']);
+        $shop1 = $this->createShop();
+        $shop2 = $this->createShop();
+        $shop3 = $this->createShop();
+
+        foreach ([$shop1, $shop2, $shop3] as $shop) {
+            $rel = (new CustomerShop())->setCustomer($customer)->setShop($shop)->setSource(CustomerShopSource::QrCode);
+            $this->entityManager->persist($rel);
+        }
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', '/api/me/stores?page=2&limit=2', user: $customer);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(3, $payload['total']);
+        self::assertSame(2, $payload['page']);
+        self::assertCount(1, $payload['items']);
     }
 
     public function testGetStoresUnauthenticatedReturns401(): void

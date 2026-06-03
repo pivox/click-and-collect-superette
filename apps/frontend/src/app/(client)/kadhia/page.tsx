@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { Pill, PillRow } from "@/components/ui/Pill";
 import { Card } from "@/components/ui/Card";
 import { Badge, orderStatusBadge } from "@/components/ui/Badge";
+import { Pagination } from "@/components/ui/Pagination";
 import { getButtonClassName } from "@/components/ui/Button";
 import { listMyKadhias } from "@/lib/services";
 import type { KadhiaListItem } from "@/lib/services/kadhia.service";
@@ -84,7 +85,9 @@ export default function MesKadhiasPage() {
   const router = useRouter();
   const { user, isLoading } = useClientAuth();
   const [tab, setTab] = useState<TabKey>("draft");
+  const [page, setPage] = useState(1);
   const [kadhias, setKadhias] = useState<KadhiaListItem[]>([]);
+  const [pages, setPages] = useState(1);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,20 +97,27 @@ export default function MesKadhiasPage() {
     }
   }, [isLoading, user, router]);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (isLoading || !user) return;
     setFetching(true);
     setError(null);
-    void listMyKadhias(tab)
-      .then((r) => {
-        setKadhias(r.items);
-        setFetching(false);
-      })
-      .catch(() => {
-        setError("Impossible de charger les Kadhia. Réessaie.");
-        setFetching(false);
-      });
-  }, [tab, isLoading, user]);
+    try {
+      const r = await listMyKadhias(tab, page);
+      setKadhias(r.items);
+      setPages(r.pages);
+      setFetching(false);
+    } catch {
+      setError("Impossible de charger les Kadhia. Réessaie.");
+      setFetching(false);
+    }
+  }, [tab, page, isLoading, user]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const handleTabChange = (newTab: TabKey) => {
+    setTab(newTab);
+    setPage(1);
+  };
 
   if (isLoading || !user) return null;
 
@@ -116,10 +126,10 @@ export default function MesKadhiasPage() {
       <TopBar title="Mes Kadhia" subtitle="Brouillons et commandes envoyées" />
 
       <PillRow className="mb-4">
-        <Pill active={tab === "draft"} onClick={() => setTab("draft")}>
+        <Pill active={tab === "draft"} onClick={() => handleTabChange("draft")}>
           En cours
         </Pill>
-        <Pill active={tab === "submitted"} onClick={() => setTab("submitted")}>
+        <Pill active={tab === "submitted"} onClick={() => handleTabChange("submitted")}>
           Envoyées
         </Pill>
       </PillRow>
@@ -142,11 +152,14 @@ export default function MesKadhiasPage() {
       ) : kadhias.length === 0 ? (
         <EmptyState tab={tab} />
       ) : (
-        <section className="grid gap-3">
-          {kadhias.map((k) => (
-            <KadhiaCard key={k.id} item={k} />
-          ))}
-        </section>
+        <>
+          <section className="grid gap-3">
+            {kadhias.map((k) => (
+              <KadhiaCard key={k.id} item={k} />
+            ))}
+          </section>
+          <Pagination page={page} pages={pages} onPageChange={setPage} />
+        </>
       )}
     </>
   );
