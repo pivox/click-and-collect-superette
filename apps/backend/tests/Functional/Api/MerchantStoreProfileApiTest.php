@@ -144,4 +144,27 @@ final class MerchantStoreProfileApiTest extends FunctionalApiTestCase
 
         self::assertSame(404, $response->getStatusCode());
     }
+
+    public function testSuspendedOwnerIsDenied(): void
+    {
+        $merchant = $this->createUser('merchant-owner@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $merchant->setActive(false);
+        $this->entityManager->flush();
+
+        $patch = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/stores/%s/profile', $shop->getId()),
+            ['name' => 'Tentative suspendue'],
+            $merchant,
+        );
+        self::assertSame(403, $patch->getStatusCode());
+
+        $get = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/profile', $shop->getId()),
+            user: $merchant,
+        );
+        self::assertSame(403, $get->getStatusCode());
+    }
 }
