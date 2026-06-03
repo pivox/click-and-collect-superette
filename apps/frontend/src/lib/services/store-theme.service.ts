@@ -14,7 +14,10 @@ export async function getStoreTheme(shopId: string): Promise<StoreTheme | null> 
   try {
     const { data } = await apiClient.get<StoreThemeApiResponse>(
       `/api/stores/${shopId}/theme`,
-      { skipAuthRedirect: true },
+      {
+        skipAuthRedirect: true,
+        params: { _theme_ts: Date.now() },
+      },
     );
     const primary = data['--color-primary'];
     const secondary = data['--color-secondary'];
