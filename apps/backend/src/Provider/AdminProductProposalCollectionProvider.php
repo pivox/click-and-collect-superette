@@ -6,14 +6,14 @@ namespace App\Provider;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
-use App\ApiResource\AdminProductProposalOutput;
+use App\ApiResource\AdminProductProposalListOutput;
 use App\Enum\ProductReferenceProposalStatus;
 use App\Repository\ProductReferenceProposalRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
- * @implements ProviderInterface<AdminProductProposalOutput>
+ * @implements ProviderInterface<AdminProductProposalListOutput>
  */
 final readonly class AdminProductProposalCollectionProvider implements ProviderInterface
 {
@@ -30,33 +30,53 @@ final readonly class AdminProductProposalCollectionProvider implements ProviderI
     /**
      * @param array<string, mixed> $uriVariables
      * @param array<string, mixed> $context
-     *
-     * @return list<AdminProductProposalOutput>
      */
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): AdminProductProposalListOutput
     {
         $request = $this->requestStack->getCurrentRequest();
+
+        $page = $this->parsePositiveInt($request?->query->get('page'), self::DEFAULT_PAGE, 'ADMIN_PRODUCT_PROPOSAL_INVALID_PAGE');
+        $limit = $this->parsePositiveInt($request?->query->get('limit'), self::DEFAULT_LIMIT, 'ADMIN_PRODUCT_PROPOSAL_INVALID_LIMIT');
+        $limit = \min(self::MAX_LIMIT, $limit);
+        $offset = ($page - 1) * $limit;
 
         $statusFilter = $request?->query->getString('status') ?: null;
         if (null !== $statusFilter && null === ProductReferenceProposalStatus::tryFrom($statusFilter)) {
             throw new BadRequestHttpException('ADMIN_PRODUCT_PROPOSAL_INVALID_STATUS_FILTER');
         }
 
-        $page = max(self::DEFAULT_PAGE, (int) ($request?->query->get('page') ?? self::DEFAULT_PAGE));
-        $limit = min(self::MAX_LIMIT, max(1, (int) ($request?->query->get('limit') ?? self::DEFAULT_LIMIT)));
-        $offset = ($page - 1) * $limit;
+        $status = null !== $statusFilter ? ProductReferenceProposalStatus::from($statusFilter) : null;
 
-        $criteria = null !== $statusFilter
-            ? ['status' => ProductReferenceProposalStatus::from($statusFilter)]
-            : [];
-
-        $proposals = $this->proposalRepository->findBy($criteria, ['createdAt' => 'DESC'], $limit, $offset);
-
-        // TODO: retourner un objet ListOutput avec total/page/limit (cf. AdminProductReferenceCollectionProvider)
-
-        return array_map(
+        $proposals = $this->proposalRepository->findPaginated($limit, $offset, $status);
+        $items = \array_map(
             static fn ($p) => AdminProductProposalItemProvider::toOutput($p),
             $proposals,
         );
+
+        return new AdminProductProposalListOutput(
+            id: 'admin-product-proposals',
+            items: $items,
+            page: $page,
+            limit: $limit,
+            total: $this->proposalRepository->countFiltered($status),
+        );
+    }
+
+    private function parsePositiveInt(mixed $raw, int $default, string $errorCode): int
+    {
+        if (null === $raw || '' === $raw) {
+            return $default;
+        }
+
+        if (false === \filter_var($raw, \FILTER_VALIDATE_INT)) {
+            throw new BadRequestHttpException($errorCode);
+        }
+
+        $value = (int) $raw;
+        if ($value < 1) {
+            throw new BadRequestHttpException($errorCode);
+        }
+
+        return $value;
     }
 }

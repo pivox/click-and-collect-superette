@@ -29,12 +29,18 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(2, $payload);
-        self::assertArrayHasKey('id', $payload[0]);
-        self::assertArrayHasKey('name_fr', $payload[0]);
-        self::assertArrayHasKey('status', $payload[0]);
-        self::assertArrayHasKey('proposed_by', $payload[0]);
-        self::assertArrayHasKey('created_at', $payload[0]);
+        self::assertArrayHasKey('items', $payload);
+        self::assertArrayHasKey('total', $payload);
+        self::assertArrayHasKey('page', $payload);
+        self::assertArrayHasKey('limit', $payload);
+        self::assertSame(2, $payload['total']);
+        self::assertSame(1, $payload['page']);
+        self::assertCount(2, $payload['items']);
+        self::assertArrayHasKey('id', $payload['items'][0]);
+        self::assertArrayHasKey('name_fr', $payload['items'][0]);
+        self::assertArrayHasKey('status', $payload['items'][0]);
+        self::assertArrayHasKey('proposed_by', $payload['items'][0]);
+        self::assertArrayHasKey('created_at', $payload['items'][0]);
     }
 
     public function testAdminCanFilterProposalsByStatus(): void
@@ -53,8 +59,51 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
 
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
-        self::assertCount(1, $payload);
-        self::assertSame('pending', $payload[0]['status']);
+        self::assertSame(1, $payload['total']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame('pending', $payload['items'][0]['status']);
+    }
+
+    public function testListProposalsPagination(): void
+    {
+        $admin = $this->createUser('admin-pag@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-pag@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $category = $this->createCategory('Pag');
+        for ($i = 1; $i <= 5; ++$i) {
+            $this->createProposal($shop, $merchant, $category, \sprintf('Produit %d', $i));
+        }
+
+        $response = $this->requestJson('GET', '/api/admin/product-proposals?page=2&limit=2', user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(5, $payload['total']);
+        self::assertSame(2, $payload['page']);
+        self::assertSame(2, $payload['limit']);
+        self::assertCount(2, $payload['items']);
+    }
+
+    public function testListProposalsInvalidPageReturns400(): void
+    {
+        $admin = $this->createUser('admin-page-inv@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('GET', '/api/admin/product-proposals?page=abc', user: $admin);
+        self::assertSame(400, $response->getStatusCode());
+
+        $response = $this->requestJson('GET', '/api/admin/product-proposals?page=0', user: $admin);
+        self::assertSame(400, $response->getStatusCode());
+    }
+
+    public function testListProposalsInvalidLimitReturns400(): void
+    {
+        $admin = $this->createUser('admin-limit-inv@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('GET', '/api/admin/product-proposals?limit=abc', user: $admin);
+        self::assertSame(400, $response->getStatusCode());
+
+        $response = $this->requestJson('GET', '/api/admin/product-proposals?limit=-5', user: $admin);
+        self::assertSame(400, $response->getStatusCode());
     }
 
     public function testAdminCanApproveProposalAndProductReferenceIsCreated(): void
@@ -157,7 +206,7 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         $suffix = (string) $this->entityManager->getRepository(Category::class)->count([]);
         $category = (new Category())
             ->setNameFr($name)
-            ->setSlug(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name) ?? '').'-'.$suffix);
+            ->setSlug(\strtolower(\preg_replace('/[^a-z0-9]+/i', '-', $name) ?? '').'-'.$suffix);
 
         $this->entityManager->persist($category);
         $this->entityManager->flush();
@@ -170,7 +219,7 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         $suffix = (string) $this->entityManager->getRepository(Brand::class)->count([]);
         $brand = (new Brand())
             ->setCanonicalName($name)
-            ->setSlug(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name) ?? '').'-'.$suffix);
+            ->setSlug(\strtolower(\preg_replace('/[^a-z0-9]+/i', '-', $name) ?? '').'-'.$suffix);
 
         $this->entityManager->persist($brand);
         $this->entityManager->flush();
@@ -208,7 +257,7 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         $suffix = (string) $this->entityManager->getRepository(ProductReference::class)->count([]);
         $brand = (new Brand())
             ->setCanonicalName($brandName)
-            ->setSlug(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $brandName) ?? '').'-'.$suffix);
+            ->setSlug(\strtolower(\preg_replace('/[^a-z0-9]+/i', '-', $brandName) ?? '').'-'.$suffix);
         $productReference = (new ProductReference())
             ->setBrand($brand)
             ->setCategory($category)

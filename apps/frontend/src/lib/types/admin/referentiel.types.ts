@@ -161,6 +161,14 @@ export interface Proposal {
   created_product_reference_id: string | null;
 }
 
+export interface ProposalListResponse {
+  id: string;
+  items: Proposal[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
 export interface ApproveProposalPayload {
   productReferenceId?: string;
   canonicalData?: {

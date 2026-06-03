@@ -3,8 +3,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { ProposalRow } from '@/components/admin/referentiel/propositions/ProposalRow';
 import { useSort } from '@/lib/hooks/useSort';
 import { listProposals } from '@/lib/services/admin/proposals.service';
+import { Button } from '@/components/ui/Button';
 import type { Proposal } from '@/lib/types/admin/referentiel.types';
 import { cn } from '@/lib/cn';
+
+const PAGE_SIZE = 20;
 
 type StatusFilter = 'pending' | 'approved' | 'rejected';
 type ExpansionMode = 'approve' | 'reject';
@@ -41,6 +44,8 @@ export default function PropositionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedMode, setExpandedMode] = useState<ExpansionMode | null>(null);
 
@@ -53,14 +58,16 @@ export default function PropositionsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      setProposals(await listProposals(statusFilter));
+      const data = await listProposals(statusFilter, page, PAGE_SIZE);
+      setProposals(data.items);
+      setTotal(data.total);
     } catch (err) {
       console.error('[propositions] listProposals failed', err);
       setError('Impossible de charger les propositions.');
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   useEffect(() => {
     setExpandedId(null);
@@ -68,11 +75,15 @@ export default function PropositionsPage() {
     void load();
   }, [load]);
 
+  useEffect(() => { setPage(1); }, [statusFilter]);
+
   const handleToggle = (id: string, mode: ExpansionMode | null) => {
     if (mode === null) { setExpandedId(null); setExpandedMode(null); return; }
     setExpandedId(id);
     setExpandedMode(mode);
   };
+
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div>
@@ -165,6 +176,34 @@ export default function PropositionsPage() {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-col gap-3 border-t border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs text-muted">
+            {total} résultat{total !== 1 ? 's' : ''}
+          </span>
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto">
+            <Button
+              variant="ghost"
+              size="md"
+              className="shrink-0"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              ← Précédent
+            </Button>
+            <span className="text-xs text-muted">
+              {page} / {pageCount}
+            </span>
+            <Button
+              variant="ghost"
+              size="md"
+              className="shrink-0"
+              disabled={page >= pageCount}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Suivant →
+            </Button>
+          </div>
         </div>
       </div>
     </div>
