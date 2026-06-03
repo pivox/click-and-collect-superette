@@ -14,9 +14,8 @@ import {
 import { Card } from '@/components/ui/Card';
 
 // MS-001 (MVP-1): unified merchant settings entry point.
-// Shortcuts route to existing pages. "Profil supérette" (MS-002), "Compte"
-// (MS-003) and "Langue" (MS-004) are shown as disabled placeholders until
-// their dedicated lots land.
+// MS-002 (MVP-2): the "Profil de la supérette" shortcut is now live.
+// "Compte" (MS-003) and "Langue" (MS-004) remain placeholders until their lots land.
 
 type Shortcut = {
   href: string;
@@ -52,6 +51,15 @@ const SHORTCUTS: Shortcut[] = [
   },
 ];
 
+const ACCOUNT_SHORTCUTS: Shortcut[] = [
+  {
+    href: '/merchant/parametres/profil',
+    title: 'Profil de la supérette',
+    description: 'Nom, adresse, téléphone, logo et image de couverture vus par le client.',
+    icon: Store,
+  },
+];
+
 type Upcoming = {
   title: string;
   description: string;
@@ -59,11 +67,6 @@ type Upcoming = {
 };
 
 const UPCOMING: Upcoming[] = [
-  {
-    title: 'Profil de la supérette',
-    description: 'Nom, adresse, téléphone, logo et image de couverture vus par le client.',
-    icon: Store,
-  },
   {
     title: 'Compte',
     description: 'Email, nom affiché et changement de mot de passe.',
@@ -75,6 +78,29 @@ const UPCOMING: Upcoming[] = [
     icon: Languages,
   },
 ];
+
+function ShortcutCard({ item }: { item: Shortcut }) {
+  const Icon = item.icon;
+  return (
+    <Link href={item.href} className="group block">
+      <Card className="flex items-start gap-3 transition-colors group-hover:border-primary">
+        <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-soft text-primary">
+          <Icon className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1 font-bold text-ink">
+            {item.title}
+            <ChevronRight
+              className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
+          </span>
+          <span className="mt-0.5 block text-sm text-muted">{item.description}</span>
+        </span>
+      </Card>
+    </Link>
+  );
+}
 
 export default function MerchantSettingsPage() {
   return (
@@ -91,28 +117,9 @@ export default function MerchantSettingsPage() {
           Configuration de la supérette
         </h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          {SHORTCUTS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link key={item.href} href={item.href} className="group block">
-                <Card className="flex items-start gap-3 transition-colors group-hover:border-primary">
-                  <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-soft text-primary">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1 font-bold text-ink">
-                      {item.title}
-                      <ChevronRight
-                        className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5"
-                        aria-hidden="true"
-                      />
-                    </span>
-                    <span className="mt-0.5 block text-sm text-muted">{item.description}</span>
-                  </span>
-                </Card>
-              </Link>
-            );
-          })}
+          {SHORTCUTS.map((item) => (
+            <ShortcutCard key={item.href} item={item} />
+          ))}
         </div>
       </section>
 
@@ -121,13 +128,13 @@ export default function MerchantSettingsPage() {
           Compte & profil
         </h2>
         <div className="grid gap-3 sm:grid-cols-2">
+          {ACCOUNT_SHORTCUTS.map((item) => (
+            <ShortcutCard key={item.href} item={item} />
+          ))}
           {UPCOMING.map((item) => {
             const Icon = item.icon;
             return (
-              <Card
-                key={item.title}
-                className="flex items-start gap-3 opacity-60"
-              >
+              <Card key={item.title} className="flex items-start gap-3 opacity-60">
                 <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-soft text-muted">
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
