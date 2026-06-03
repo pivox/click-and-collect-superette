@@ -51,7 +51,7 @@ describe('MerchantShell', () => {
     vi.mocked(listMerchantSlots).mockResolvedValue([]);
   });
 
-  it('renders active merchant navigation and disabled future sections', async () => {
+  it('renders active merchant navigation including the settings link', async () => {
     render(
       React.createElement(
         MerchantShell,
@@ -82,7 +82,10 @@ describe('MerchantShell', () => {
       'href',
       '/merchant/catalogue',
     );
-    expect(screen.getByRole('button', { name: /Paramètres/i })).toBeDisabled();
+    expect(screen.getAllByRole('link', { name: /Paramètres/i })[0]).toHaveAttribute(
+      'href',
+      '/merchant/parametres',
+    );
     expect(screen.getByText('Contenu marchand')).toBeInTheDocument();
 
     expect(await screen.findByText('Contenu marchand')).toBeInTheDocument();

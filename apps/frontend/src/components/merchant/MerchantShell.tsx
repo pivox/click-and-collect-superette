@@ -31,10 +31,7 @@ const ACTIVE_NAV = [
   { href: '/merchant/creneaux', label: 'Créneaux', icon: CalendarClock },
   { href: '/merchant/notifications', label: 'Notifications', icon: Bell, badge: 'notifications' },
   { href: '/merchant/apparence', label: 'Apparence', icon: Palette },
-];
-
-const DISABLED_NAV = [
-  { label: 'Paramètres', icon: Settings },
+  { href: '/merchant/parametres', label: 'Paramètres', icon: Settings },
 ];
 
 export function MerchantShell({ children }: { children: React.ReactNode }) {
@@ -133,23 +130,6 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
-          <div className="pt-3">
-            {DISABLED_NAV.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.label}
-                  type="button"
-                  disabled
-                  title="Prévu dans une prochaine PR"
-                  className="flex w-full cursor-not-allowed items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm text-white/35"
-                >
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
         </nav>
       </aside>
 
