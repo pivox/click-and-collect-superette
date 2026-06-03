@@ -182,3 +182,9 @@ export interface StoreSearchResult {
   items: StoreSearchItem[];
   total: number;
 }
+
+export interface StoreTheme {
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: string;
+}

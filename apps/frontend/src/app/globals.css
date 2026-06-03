@@ -18,9 +18,12 @@
 
   /* Brand */
   --primary: #1f7a4d;
-  --primary-dark: #155b38;
+  --primary-dark: color-mix(in oklch, var(--primary) 80%, black);
   --secondary: #ffcf5a;
   --danger: #c43d3d;
+
+  /* Typography — overridable per store */
+  --font-family: Inter;
 
   /* Status colors for order badges */
   --status-wait: #b45309;
@@ -44,7 +47,7 @@
       radial-gradient(circle at top left, rgba(31, 122, 77, 0.14), transparent 35%),
       linear-gradient(135deg, #fbfbf7, var(--bg));
     font-family:
-      Inter,
+      var(--font-family),
       ui-sans-serif,
       system-ui,
       -apple-system,
