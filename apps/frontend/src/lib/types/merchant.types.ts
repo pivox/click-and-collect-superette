@@ -17,6 +17,7 @@ export interface MerchantStoreContext {
 export interface MerchantMe {
   user_id: string;
   email: string;
+  name: string;
   roles: string[];
   store: MerchantStoreContext;
   onboarding_completed: boolean;

@@ -58,6 +58,12 @@ const ACCOUNT_SHORTCUTS: Shortcut[] = [
     description: 'Nom, adresse, téléphone, logo et image de couverture vus par le client.',
     icon: Store,
   },
+  {
+    href: '/merchant/parametres/compte',
+    title: 'Compte',
+    description: 'Email, nom affiché et changement de mot de passe.',
+    icon: Lock,
+  },
 ];
 
 type Upcoming = {
@@ -67,11 +73,6 @@ type Upcoming = {
 };
 
 const UPCOMING: Upcoming[] = [
-  {
-    title: 'Compte',
-    description: 'Email, nom affiché et changement de mot de passe.',
-    icon: Lock,
-  },
   {
     title: 'Langue de l’interface',
     description: 'Basculer entre français et arabe (RTL).',

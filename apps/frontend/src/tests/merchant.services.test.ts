@@ -71,6 +71,7 @@ describe('merchant services', () => {
       data: {
         user_id: 'user-1',
         email: 'marchand@kadhia.tn',
+        name: 'Marchand Test',
         roles: ['ROLE_MERCHANT'],
         store: { id: 'store-1', name: 'Supérette Ezzahra', active: true },
         onboarding_completed: false,
