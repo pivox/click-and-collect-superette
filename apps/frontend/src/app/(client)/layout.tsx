@@ -6,6 +6,7 @@ import { ClientAuthProvider } from '@/lib/auth/ClientAuthContext';
 import { ReactQueryProvider } from '@/lib/providers/ReactQueryProvider';
 import { SelectedStoreProvider } from '@/lib/store/SelectedStoreContext';
 import { StoreContextPill } from '@/components/store/StoreContextPill';
+import { StoreThemeSync } from '@/components/store/StoreThemeSync';
 import { ClientNotificationsProvider } from '@/lib/notifications/ClientNotificationsContext';
 
 export const metadata: Metadata = {
@@ -18,12 +19,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <ClientAuthProvider>
         <ClientNotificationsProvider>
         <SelectedStoreProvider>
+          <StoreThemeSync />
           {/* Responsive grid: sidebar (md+) + main. Children rendered once. */}
           <div className="min-h-screen md:grid md:grid-cols-[280px_1fr]">
             <DesktopNav />
             <div data-testid="client-content-column" className="flex min-w-0 flex-col">
               {/* Desktop-only topbar with global search */}
-              <header className="hidden md:flex items-center gap-4 border-b border-line bg-white/80 backdrop-blur-md px-7 py-3 sticky top-0 z-10">
+              <header className="client-theme-topbar hidden md:flex items-center gap-4 border-b border-line backdrop-blur-md px-7 py-3 sticky top-0 z-10">
                 <GlobalSearchBar />
                 <span className="shrink-0 rounded-full bg-soft px-3 py-1.5 text-xs font-extrabold text-primary-dark">
                   🇹🇳 TND

@@ -23,6 +23,7 @@ const config: Config = {
           dark: "var(--primary-dark)",
         },
         secondary: "var(--secondary)",
+        accent: "var(--accent)",
         danger: "var(--danger)",
 
         // Status (order statuses — foreground + background)

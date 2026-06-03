@@ -53,7 +53,7 @@ export function DesktopNav() {
     : '';
 
   return (
-    <aside className="sticky top-0 hidden h-screen overflow-y-auto border-r border-line bg-white p-6 md:flex md:flex-col md:justify-between">
+    <aside className="client-theme-sidebar sticky top-0 hidden h-screen overflow-y-auto border-r border-line p-6 md:flex md:flex-col md:justify-between">
       <div>
         <div className="mb-7 flex items-center gap-3">
           <div className="grid h-12 w-12 place-items-center rounded-md bg-primary text-white text-lg font-black">
