@@ -37,7 +37,7 @@ final readonly class AdminProductProposalCollectionProvider implements ProviderI
 
         $page = $this->parsePositiveInt($request?->query->get('page'), self::DEFAULT_PAGE, 'ADMIN_PRODUCT_PROPOSAL_INVALID_PAGE');
         $limit = $this->parsePositiveInt($request?->query->get('limit'), self::DEFAULT_LIMIT, 'ADMIN_PRODUCT_PROPOSAL_INVALID_LIMIT');
-        $limit = \min(self::MAX_LIMIT, $limit);
+        $limit = min(self::MAX_LIMIT, $limit);
         $offset = ($page - 1) * $limit;
 
         $statusFilter = $request?->query->getString('status') ?: null;
@@ -48,7 +48,7 @@ final readonly class AdminProductProposalCollectionProvider implements ProviderI
         $status = null !== $statusFilter ? ProductReferenceProposalStatus::from($statusFilter) : null;
 
         $proposals = $this->proposalRepository->findPaginated($limit, $offset, $status);
-        $items = \array_map(
+        $items = array_map(
             static fn ($p) => AdminProductProposalItemProvider::toOutput($p),
             $proposals,
         );
@@ -68,7 +68,7 @@ final readonly class AdminProductProposalCollectionProvider implements ProviderI
             return $default;
         }
 
-        if (false === \filter_var($raw, \FILTER_VALIDATE_INT)) {
+        if (false === filter_var($raw, \FILTER_VALIDATE_INT)) {
             throw new BadRequestHttpException($errorCode);
         }
 

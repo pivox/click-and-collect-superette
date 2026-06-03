@@ -206,7 +206,7 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         $suffix = (string) $this->entityManager->getRepository(Category::class)->count([]);
         $category = (new Category())
             ->setNameFr($name)
-            ->setSlug(\strtolower(\preg_replace('/[^a-z0-9]+/i', '-', $name) ?? '').'-'.$suffix);
+            ->setSlug(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name) ?? '').'-'.$suffix);
 
         $this->entityManager->persist($category);
         $this->entityManager->flush();
@@ -219,7 +219,7 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         $suffix = (string) $this->entityManager->getRepository(Brand::class)->count([]);
         $brand = (new Brand())
             ->setCanonicalName($name)
-            ->setSlug(\strtolower(\preg_replace('/[^a-z0-9]+/i', '-', $name) ?? '').'-'.$suffix);
+            ->setSlug(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name) ?? '').'-'.$suffix);
 
         $this->entityManager->persist($brand);
         $this->entityManager->flush();
@@ -257,7 +257,7 @@ final class AdminProductProposalApiTest extends FunctionalApiTestCase
         $suffix = (string) $this->entityManager->getRepository(ProductReference::class)->count([]);
         $brand = (new Brand())
             ->setCanonicalName($brandName)
-            ->setSlug(\strtolower(\preg_replace('/[^a-z0-9]+/i', '-', $brandName) ?? '').'-'.$suffix);
+            ->setSlug(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $brandName) ?? '').'-'.$suffix);
         $productReference = (new ProductReference())
             ->setBrand($brand)
             ->setCategory($category)
