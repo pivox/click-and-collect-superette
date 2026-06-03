@@ -72,6 +72,24 @@
 }
 
 @layer utilities {
+  .client-theme-sidebar {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--primary) 7%, white),
+        color-mix(in srgb, var(--bg) 90%, white)
+      );
+  }
+
+  .client-theme-topbar {
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--primary) 8%, white),
+        color-mix(in srgb, var(--secondary) 7%, white)
+      );
+  }
+
   .text-balance {
     text-wrap: balance;
   }

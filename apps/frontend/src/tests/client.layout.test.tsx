@@ -52,4 +52,10 @@ describe('ClientLayout', () => {
     render(<ClientLayout>page</ClientLayout>);
     expect(screen.getByTestId('store-context-pill')).toBeTruthy();
   });
+
+  it('teinte légèrement la barre haute avec le thème actif', () => {
+    const { container } = render(<ClientLayout>page</ClientLayout>);
+    const header = container.querySelector('header');
+    expect(header?.className).toContain('client-theme-topbar');
+  });
 });
