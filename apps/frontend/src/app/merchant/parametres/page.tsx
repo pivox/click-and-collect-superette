@@ -127,7 +127,6 @@ export default function MerchantSettingsPage() {
               <Card
                 key={item.title}
                 className="flex items-start gap-3 opacity-60"
-                aria-disabled="true"
               >
                 <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-soft text-muted">
                   <Icon className="h-5 w-5" aria-hidden="true" />
