@@ -245,7 +245,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 > Ces epics couvrent la phase go-to-market au-delà du cœur MVP (Sprints 0-9 livrés sur `main`).
 > Mapping détaillé dans `docs/roadmap/mvp-roadmap.md`. Chaque US est suivie sur GitHub (tickets #352-#380 et #382-#389).
 >
-> État au 4 juin 2026 : **EPIC-015 — Fiabilité & observabilité production** est livré. Dans EPIC-016, le QR magasin imprimable est livré ; le dernier reliquat Must du Sprint 10 est la checklist d'activation supérette (#356).
+> État au 4 juin 2026 : **EPIC-015 — Fiabilité & observabilité production** est livré. Dans EPIC-016, le QR magasin imprimable et la checklist d'activation supérette (#356 via PR #412) sont livrés. Sprint 10 est clôturable ; #357 est à reporter et #358 à fermer comme non nécessaire.
 
 ## EPIC-015 — Fiabilité & observabilité production
 
@@ -276,11 +276,11 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **User stories** :
 - US-070 — Livré : QR magasin imprimable (PNG / PDF)
-- US-071 — À faire : checklist d'activation supérette (gate de mise en bêta)
-- US-072 — Non bloquant Sprint 10 : journal opérationnel marchand (vue minimale)
-- US-073 — À trier : décision produit bêta FR-only vs FR+AR, absorbée par les livraisons FR/AR récentes
+- US-071 — Livré : checklist d'activation supérette (gate de mise en bêta)
+- US-072 — À reporter : journal opérationnel marchand (vue minimale), non bloquant Sprint 10 et plus cohérent avec le sprint support/exploitation terrain
+- US-073 — À fermer comme non nécessaire : décision bêta FR-only vs FR+AR absorbée par les livraisons FR/AR client (#401) et préférence langue marchand (#395)
 
-**Critère de sortie** : partiel — le marchand affiche un QR imprimé en magasin ; il reste à livrer la checklist admin d'activation (#356).
+**Critère de sortie** : atteint pour Sprint 10 — le marchand affiche un QR imprimé en magasin et l'admin dispose d'une checklist d'activation avant bêta. Le journal opérationnel marchand complet relève du support terrain ultérieur.
 
 ---
 
@@ -363,7 +363,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 **User stories** :
 - US-085 — Incidents commande (module structuré)
 - US-086 — Backoffice support (consultation / traitement)
-- US-087 — Journal opérationnel marchand complet + vue santé
+- US-087 — Journal opérationnel marchand complet + vue santé *(absorbe le report de #357)*
 - US-088 — Process manuel d'exploitation terrain (runbook)
 
 **Critère de sortie** : L'admin consulte, filtre, annote et clôture des incidents ; la santé de chaque marchand est visible ; les procédures sont écrites.

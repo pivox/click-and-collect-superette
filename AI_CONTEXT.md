@@ -67,7 +67,7 @@ Exclus du MVP :
 
 ## Avancement global
 
-- État au 4 juin 2026 : cœur MVP Sprints 0-9 livré sur `main`; Sprint 10 presque terminé côté go-to-market.
+- État au 4 juin 2026 : cœur MVP Sprints 0-9 livré sur `main`; Sprint 10 est clôturable côté go-to-market après livraison de la checklist d'activation supérette via PR #412.
 - Backend MVP : 100 % (Sprint 7 audité et clôturé — S7-008 livré ; S7-009 transport Messenger persistant livré).
 - Produit terrain testable : environ 95 % — parcours client complet validé par simulation Playwright (rapport `docs/qa/client-journey-simulation-report-v2.md`) et frontend marchand avancé livré.
 - Sprint 6 (personnalisation visuelle) : implémenté côté backend (`PlatformTheme`, `ShopTheme`, thème public par supérette).
@@ -76,10 +76,10 @@ Exclus du MVP :
 - Frontend client livré : parcours inscription → catalogue → Kadhia → suivi commande fonctionnel, notifications client, QR de retrait, confirmation client, thèmes supérette, liste/sélection supérettes, i18n FR/AR avec RTL client (S14-004 / #401).
 - Frontend marchand livré : login, dashboard, commandes actives, détail et actions jusqu'à `ready`, retrait sécurisé, historique, notifications, catalogue, créneaux/règles/fermetures/horaires, onboarding, QR magasin, thème/apparence, paramètres profil/compte/langue et export CSV.
 - Images produits web/mobile livrées : S13-005 / #391 (upload admin, original conservé, variantes WebP responsive, fallback JPEG, placeholder catégorie, exposition API).
-- Sprint 10 livré hors reliquat #356 : #352 validation worker async en production (runbook + checklist), #353 monitoring jobs (`GET /api/admin/ops/messenger`), #354 KPI terrain (`GET /api/admin/beta-metrics`), #355 QR magasin PNG/PDF côté marchand.
-- Non livré ou ouvert : US-059 / #374 PWA client, #375 PWA marchand, #376 push notifications, #379 accessibilité minimum WCAG, #356 checklist d'activation supérette.
+- Sprint 10 livré : #352 validation worker async en production (runbook + checklist), #353 monitoring jobs (`GET /api/admin/ops/messenger`), #354 KPI terrain (`GET /api/admin/beta-metrics`), #355 QR magasin PNG/PDF côté marchand, #356 checklist d'activation supérette (`GET /api/admin/stores/{storeId}/activation-checklist` + badge admin).
+- Non livré ou ouvert hors Sprint 10 bloquant : US-059 / #374 PWA client, #375 PWA marchand, #376 push notifications, #379 accessibilité minimum WCAG. #357 journal opérationnel marchand minimal doit être reporté vers le sprint support/exploitation terrain ; #358 décision bêta FR-only vs FR+AR est devenue non nécessaire depuis les livraisons FR/AR client (#401) et préférence langue marchand (#395).
 - S7-009 livré : transport Messenger persistant (`doctrine://default`), `failure_transport`, `retry_strategy`, migration `messenger_messages`, config Supervisor — R1 et R2 résolus.
-- Prochaine priorité recommandée : terminer le reliquat Sprint 10 **#356 — checklist d'activation supérette**. EPIC-015 est livré ; EPIC-016 est livré pour le QR imprimable (#355) mais reste incomplet tant que la checklist d'activation n'existe pas.
+- Prochaine priorité recommandée : clôturer administrativement Sprint 10, fermer #358 comme décision absorbée par les livraisons FR/AR, et reporter #357 vers le sprint support/exploitation terrain plutôt que l'implémenter maintenant.
 - Documentation API OpenAPI exposée publiquement : `docs_formats` configuré dans `api_platform.yaml` (`json`, `html`, `jsonopenapi`, `yamlopenapi`) — endpoints accessibles sans auth sur `/api/docs.json`, `/api/docs.html`, `/api/docs.jsonopenapi`, `/api/docs.yamlopenapi`.
 - PHPStan niveau 8 : 0 erreur. CS Fixer : 0 diff. `lint:container` : OK.
 

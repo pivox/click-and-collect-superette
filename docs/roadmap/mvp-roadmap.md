@@ -428,7 +428,7 @@ Rapport de clôture complet : `docs/Sprint7/completion-report.md`.
 
 > **Sprints 8 et 9 — livrés sur `main`** (voir `CLAUDE.md`) : catalogue marchand (produits locaux, bulk multi-format, `ProductFamily`, `pack_quantity`) et Kadhia multi + UX. Le cœur MVP (Sprints 0–9) est en place. Les sprints suivants couvrent la **mise sur le marché** : bêta terrain, monétisation, support, catalogue scalable, mobile, croissance, natif.
 >
-> **État produit au 4 juin 2026** : **EPIC-015 — Fiabilité & observabilité production** est livré (#352, #353, #354). Dans EPIC-016, le QR magasin imprimable (#355) est livré ; le dernier reliquat Must du Sprint 10 est **#356 — checklist d'activation supérette**.
+> **État produit au 4 juin 2026** : **EPIC-015 — Fiabilité & observabilité production** est livré (#352, #353, #354). Dans EPIC-016, le QR magasin imprimable (#355) et la checklist d'activation supérette (#356 via PR #412) sont livrés. Sprint 10 est clôturable ; #357 est à reporter et #358 à fermer comme non nécessaire.
 >
 > **Note suivi GitHub** : `#381` est la PR de consolidation de cette roadmap, pas une user story. La séquence des tickets US passe donc de `#380` à `#382`.
 
@@ -446,13 +446,13 @@ Rendre l'application fiable pour une bêta avec 3 à 5 supérettes réelles.
 - **US-068** ([#353](https://github.com/pivox/click-and-collect-superette/issues/353)) · EPIC-015 · *Should* · Livré — Monitoring des jobs asynchrones livré via `GET /api/admin/ops/messenger` : santé worker, file Messenger, échecs, ancienneté du plus vieux message et dernier traitement.
 - **US-069** ([#354](https://github.com/pivox/click-and-collect-superette/issues/354)) · EPIC-015 · *Must* · Livré — Métriques bêta livrées via `GET /api/admin/beta-metrics` : commandes, taux d'acceptation, complétion, annulation et activation par supérette.
 - **US-070** ([#355](https://github.com/pivox/click-and-collect-superette/issues/355)) · EPIC-016 · *Must* · Livré — QR magasin imprimable livré côté marchand : aperçu, téléchargement PNG et PDF.
-- **US-071** ([#356](https://github.com/pivox/click-and-collect-superette/issues/356)) · EPIC-016 · *Must* · À faire — Checklist d'activation supérette (gate de mise en bêta), dernier reliquat Sprint 10.
-- **US-072** ([#357](https://github.com/pivox/click-and-collect-superette/issues/357)) · EPIC-016 · *Could* · Non bloquant — Journal opérationnel marchand (vue minimale), hors reliquat Sprint 10.
-- **US-073** ([#358](https://github.com/pivox/click-and-collect-superette/issues/358)) · EPIC-016 · *Must initial* · À trier — Décision produit bêta FR-only vs FR+AR : décision absorbée par les livraisons i18n FR/AR client (#401) et préférence langue marchand (#395) ; ticket à trier/fermer côté GitHub.
+- **US-071** ([#356](https://github.com/pivox/click-and-collect-superette/issues/356)) · EPIC-016 · *Must* · Livré — Checklist d'activation supérette livrée via PR #412 : endpoint admin `GET /api/admin/stores/{storeId}/activation-checklist` et badge admin `Prête` / `Incomplète`.
+- **US-072** ([#357](https://github.com/pivox/click-and-collect-superette/issues/357)) · EPIC-016 · *Could* · À reporter — Journal opérationnel marchand (vue minimale), non bloquant pour Sprint 10 ; à rattacher au sprint support/exploitation terrain où il complète incidents, notes internes et vue santé.
+- **US-073** ([#358](https://github.com/pivox/click-and-collect-superette/issues/358)) · EPIC-016 · *Must initial* · À fermer comme non nécessaire — La décision bêta est tranchée par les livraisons FR/AR : i18n client + RTL (#401) et préférence langue marchand FR/AR (#395). La bêta peut partir en FR+AR sur les parcours livrés ; aucun développement Sprint 10 supplémentaire n'est requis.
 
 ### Critère de sortie
 
-Sprint 10 est clôturable après #356 : worker async supervisé et monitoré, KPI mesurés, QR imprimable livré, puis supérettes validées par checklist avant activation.
+Sprint 10 est clôturable : worker async supervisé et monitoré, KPI mesurés, QR imprimable livré, supérettes validées par checklist avant activation. Les tickets encore ouverts ne bloquent pas la clôture : #357 relève du support terrain ultérieur ; #358 doit être fermé comme décision devenue obsolète.
 
 ---
 
@@ -488,7 +488,7 @@ Donner à l'admin les outils pour gérer les problèmes réels sans toucher à l
 
 - **US-085** ([#366](https://github.com/pivox/click-and-collect-superette/issues/366)) · EPIC-021 · *Should* — Incidents commande (module structuré, entité `Incident`).
 - **US-086** ([#367](https://github.com/pivox/click-and-collect-superette/issues/367)) · EPIC-021 · *Should* — Backoffice support (consultation, filtres, note interne, clôture).
-- **US-087** ([#368](https://github.com/pivox/click-and-collect-superette/issues/368)) · EPIC-021 · *Could* — Journal opérationnel marchand complet + vue santé.
+- **US-087** ([#368](https://github.com/pivox/click-and-collect-superette/issues/368)) · EPIC-021 · *Could* — Journal opérationnel marchand complet + vue santé ; cible naturelle du report de #357.
 - **US-088** ([#369](https://github.com/pivox/click-and-collect-superette/issues/369)) · EPIC-021 · *Could* — Process manuel d'exploitation terrain (runbook support).
 
 ### Critère de sortie
@@ -687,7 +687,7 @@ Les apps natives reprennent les parcours validés par la PWA, sans réinventer l
 | Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | ✅ Backend terminé |
 | Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
 | Sprint 7 | US-008, US-058, US-059, US-060, US-061, US-062, US-063 | P2 | ✅ Backend livré ; PWA/WCAG reportées Sprint 14 ; i18n client livrée S14-004 |
-| Sprint 10 | US-067 à US-073 (EPIC-015, EPIC-016) | P0 | 🟡 Quasi livré : #352-#355 fermées, reste #356 Must |
+| Sprint 10 | US-067 à US-073 (EPIC-015, EPIC-016) | P0 | ✅ Clôturable : #352-#356 livrées ; #357 à reporter, #358 à fermer comme non nécessaire |
 | Sprint 11 | US-074 à US-080 (EPIC-017, EPIC-018, EPIC-019) | P0 | 🔵 Planifié (monétisation) |
 | Sprint 12 | US-085 à US-088 (EPIC-021) | P1 | 🔵 Planifié (support) |
 | Sprint 13 | US-041 (#391 / S13-005), US-081 à US-084 (EPIC-011, EPIC-019, EPIC-020) | P1 | 🟢 Partiel : US-041 livrée, reste catalogue scalable planifié |
