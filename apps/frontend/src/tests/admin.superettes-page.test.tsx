@@ -53,27 +53,26 @@ describe('SuperettesPage', () => {
     vi.clearAllMocks();
     vi.mocked(listStores).mockResolvedValue({
       id: 'admin-stores',
-      items: [STORE],
+      items: [{ ...STORE, activation_checklist: READY_CHECKLIST }],
       page: 1,
       limit: 20,
       total: 1,
     });
     vi.mocked(deactivateStore).mockResolvedValue(undefined);
-    vi.mocked(getStoreActivationChecklist)
-      .mockResolvedValueOnce(READY_CHECKLIST)
-      .mockResolvedValueOnce(INCOMPLETE_CHECKLIST);
+    vi.mocked(getStoreActivationChecklist).mockResolvedValue(INCOMPLETE_CHECKLIST);
   });
 
   it('rafraîchit le badge activation après désactivation optimiste', async () => {
     render(<SuperettesPage />);
 
     expect(await screen.findByText('Prête')).toBeInTheDocument();
+    expect(getStoreActivationChecklist).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Désactiver la supérette' }));
 
     await waitFor(() => {
       expect(deactivateStore).toHaveBeenCalledWith(STORE.id);
-      expect(getStoreActivationChecklist).toHaveBeenCalledTimes(2);
+      expect(getStoreActivationChecklist).toHaveBeenCalledTimes(1);
     });
     expect(await screen.findByText('Incomplète 7/8')).toBeInTheDocument();
   });

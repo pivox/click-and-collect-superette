@@ -33,24 +33,24 @@ final readonly class AdminStoreActivationChecklistOutput
      */
     public function __construct(
         #[ApiProperty(identifier: true)]
-        #[Groups(['admin_store_activation_checklist:read'])]
+        #[Groups(['admin_store_activation_checklist:read', 'admin_store_list:read'])]
         #[SerializedName('store_id')]
         public string $storeId,
-        #[Groups(['admin_store_activation_checklist:read'])]
+        #[Groups(['admin_store_activation_checklist:read', 'admin_store_list:read'])]
         #[SerializedName('store_name')]
         public string $storeName,
-        #[Groups(['admin_store_activation_checklist:read'])]
+        #[Groups(['admin_store_activation_checklist:read', 'admin_store_list:read'])]
         public bool $ready,
-        #[Groups(['admin_store_activation_checklist:read'])]
+        #[Groups(['admin_store_activation_checklist:read', 'admin_store_list:read'])]
         #[SerializedName('minimum_catalog_products')]
         public int $minimumCatalogProducts,
-        #[Groups(['admin_store_activation_checklist:read'])]
+        #[Groups(['admin_store_activation_checklist:read', 'admin_store_list:read'])]
         #[SerializedName('required_completed_count')]
         public int $requiredCompletedCount,
-        #[Groups(['admin_store_activation_checklist:read'])]
+        #[Groups(['admin_store_activation_checklist:read', 'admin_store_list:read'])]
         #[SerializedName('required_total_count')]
         public int $requiredTotalCount,
-        #[Groups(['admin_store_activation_checklist:read'])]
+        #[Groups(['admin_store_activation_checklist:read', 'admin_store_list:read'])]
         public array $steps,
     ) {
     }

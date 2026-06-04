@@ -53,12 +53,8 @@ export default function SuperettesPage() {
       });
       setStores(data.items);
       setTotal(data.total);
-      const activationEntries = await Promise.all(
-        data.items.map(async (store) => {
-          const checklist = await loadActivationChecklist(store.id);
-
-          return [store.id, checklist] as const;
-        }),
+      const activationEntries = data.items.map(
+        (store) => [store.id, store.activation_checklist ?? null] as const,
       );
       setActivationByStoreId(Object.fromEntries(activationEntries));
     } catch (err) {
@@ -67,7 +63,7 @@ export default function SuperettesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, isActiveFilter, loadActivationChecklist]);
+  }, [page, isActiveFilter]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { setPage(1); }, [isActiveFilter]);

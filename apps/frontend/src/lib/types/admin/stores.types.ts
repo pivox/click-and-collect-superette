@@ -17,6 +17,7 @@ export interface Store {
   owner: StoreOwner | null;
   products_count: number;
   archived_at: string | null;
+  activation_checklist?: StoreActivationChecklist | null;
   // item-only fields (present on single GET / POST / PATCH responses)
   address?: string | null;
   phone?: string | null;

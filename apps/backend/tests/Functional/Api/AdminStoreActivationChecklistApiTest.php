@@ -9,11 +9,13 @@ use App\Entity\Category;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
+use App\Entity\OrderStatusLog;
 use App\Entity\PickupSession;
 use App\Entity\PickupSlotRule;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
+use App\Enum\OrderStatus;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 use Symfony\Component\HttpFoundation\Response;
@@ -90,6 +92,40 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         self::assertFalse($steps['test_pickup']['completed']);
     }
 
+    public function testPickupCodeCompletionDoesNotSatisfyValidatedTestPickup(): void
+    {
+        $admin = $this->createUser('admin-activation-code-pickup@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-activation-code-pickup@example.test', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('customer-activation-code-pickup@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createCompleteStore($merchant, $customer, pickupCodeCompletion: true);
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/stores/%s/activation-checklist', $shop->getId()), user: $admin);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        $steps = $this->indexStepsByKey($payload['steps']);
+        self::assertFalse($payload['ready']);
+        self::assertTrue($steps['test_order']['completed']);
+        self::assertFalse($steps['test_pickup']['completed']);
+    }
+
+    public function testSubmittedOnlyOrderDoesNotSatisfyTestOrder(): void
+    {
+        $admin = $this->createUser('admin-activation-submitted-order@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-activation-submitted-order@example.test', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('customer-activation-submitted-order@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createCompleteStore($merchant, $customer, submittedOnlyOrder: true);
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/stores/%s/activation-checklist', $shop->getId()), user: $admin);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        $steps = $this->indexStepsByKey($payload['steps']);
+        self::assertFalse($payload['ready']);
+        self::assertFalse($steps['test_order']['completed']);
+        self::assertFalse($steps['test_pickup']['completed']);
+    }
+
     public function testInactiveStoreDoesNotSatisfyQrCodeAccess(): void
     {
         $admin = $this->createUser('admin-activation-inactive-qr@example.test', ['ROLE_ADMIN']);
@@ -124,8 +160,13 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         );
     }
 
-    private function createCompleteStore(User $merchant, User $customer, bool $forceCompletedPickup = false): Shop
-    {
+    private function createCompleteStore(
+        User $merchant,
+        User $customer,
+        bool $forceCompletedPickup = false,
+        bool $pickupCodeCompletion = false,
+        bool $submittedOnlyOrder = false,
+    ): Shop {
         $shop = $this->createShop($merchant);
         $shop
             ->setName('Supérette Activation Ready')
@@ -142,7 +183,16 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
             $this->createMerchantProduct($shop, 'Produit activation '.$i);
         }
         $this->createPickupSlotRule($shop);
-        $this->createCompletedPickupOrder($shop, $customer, forceCompleted: $forceCompletedPickup);
+        if ($submittedOnlyOrder) {
+            $this->createSubmittedOrder($shop, $customer);
+        } else {
+            $this->createCompletedPickupOrder(
+                $shop,
+                $customer,
+                forceCompleted: $forceCompletedPickup,
+                pickupCodeCompletion: $pickupCodeCompletion,
+            );
+        }
 
         return $shop;
     }
@@ -205,7 +255,59 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         return $rule;
     }
 
-    private function createCompletedPickupOrder(Shop $shop, User $customer, bool $forceCompleted = false): Order
+    private function createSubmittedOrder(Shop $shop, User $customer): Order
+    {
+        $order = $this->createDraftOrderWithLine($shop, $customer);
+        $order->submit();
+
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
+    private function createCompletedPickupOrder(
+        Shop $shop,
+        User $customer,
+        bool $forceCompleted = false,
+        bool $pickupCodeCompletion = false,
+    ): Order {
+        $order = $this->createDraftOrderWithLine($shop, $customer);
+        $order->submit();
+        $order->accept();
+        $order->startPreparing();
+        $order->markReady();
+
+        if ($pickupCodeCompletion) {
+            $pickupSession = new PickupSession($order);
+            $pickupSession->completeByCode(new \DateTimeImmutable('2026-06-04T10:00:00+01:00'));
+            $this->setPrivateProperty($order, 'status', OrderStatus::Completed);
+            $completedLog = new OrderStatusLog($order, OrderStatus::Completed, 'withdrawal_validated_by_code');
+            $this->entityManager->persist($pickupSession);
+            $this->entityManager->persist($completedLog);
+            $this->entityManager->flush();
+
+            return $order;
+        }
+
+        $order->startPickup();
+        $order->complete();
+
+        $pickupSession = new PickupSession($order);
+        $pickupSession->scan(new \DateTimeImmutable('2026-06-04T10:00:00+01:00'));
+        if ($forceCompleted) {
+            $pickupSession->forceCompleteByMerchant('Client indisponible pour validation test.', new \DateTimeImmutable('2026-06-04T10:03:00+01:00'));
+        } else {
+            $pickupSession->confirmByMerchant(new \DateTimeImmutable('2026-06-04T10:02:00+01:00'));
+            $pickupSession->confirmByCustomer(new \DateTimeImmutable('2026-06-04T10:03:00+01:00'));
+        }
+
+        $this->entityManager->persist($pickupSession);
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
+    private function createDraftOrderWithLine(Shop $shop, User $customer): Order
     {
         $merchantProduct = $this->createMerchantProduct($shop, 'Produit commande test');
         $order = (new Order())
@@ -219,26 +321,9 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
             ->markPrepared(true);
         $order->addLine($line);
         $order->recomputeTotal();
-        $order->submit();
-        $order->accept();
-        $order->startPreparing();
-        $order->markReady();
-        $order->startPickup();
-        $order->complete();
-
-        $pickupSession = new PickupSession($order);
-        $pickupSession->scan();
-        if ($forceCompleted) {
-            $pickupSession->forceCompleteByMerchant('Client indisponible pour validation test.');
-        } else {
-            $pickupSession->confirmByMerchant();
-            $pickupSession->confirmByCustomer();
-        }
 
         $this->entityManager->persist($order);
         $this->entityManager->persist($line);
-        $this->entityManager->persist($pickupSession);
-        $this->entityManager->flush();
 
         return $order;
     }

@@ -6,17 +6,15 @@ namespace App\Service;
 
 use App\ApiResource\AdminStoreActivationChecklistOutput;
 use App\ApiResource\AdminStoreActivationChecklistStepOutput;
-use App\Entity\MerchantProduct;
-use App\Entity\Order;
-use App\Entity\PickupSession;
-use App\Entity\PickupSlot;
-use App\Entity\PickupSlotRule;
 use App\Entity\Shop;
 use App\Enum\OrderStatus;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 
 final readonly class StoreActivationChecklistCalculator
 {
+    private const string PICKUP_CODE_COMPLETION_NOTE = 'withdrawal_validated_by_code';
+
     public function __construct(
         private EntityManagerInterface $entityManager,
         private int $minimumCatalogProducts = 5,
@@ -25,7 +23,47 @@ final readonly class StoreActivationChecklistCalculator
 
     public function calculate(Shop $shop): AdminStoreActivationChecklistOutput
     {
-        $catalogProducts = $this->countCatalogProducts($shop);
+        return $this->calculateMany([$shop])[$shop->getId()->toRfc4122()];
+    }
+
+    /**
+     * @param list<Shop> $shops
+     *
+     * @return array<string, AdminStoreActivationChecklistOutput>
+     */
+    public function calculateMany(array $shops): array
+    {
+        if ([] === $shops) {
+            return [];
+        }
+
+        $catalogProductsByShopId = $this->countCatalogProductsGrouped($shops);
+        $shopsWithPickupSlots = $this->findShopsWithPickupSlots($shops);
+        $shopsWithTestOrders = $this->findShopsWithTestOrders($shops);
+        $shopsWithValidatedPickup = $this->findShopsWithValidatedPickup($shops);
+        $outputs = [];
+
+        foreach ($shops as $shop) {
+            $shopId = $shop->getId()->toRfc4122();
+            $outputs[$shopId] = $this->buildOutput(
+                shop: $shop,
+                catalogProducts: $catalogProductsByShopId[$shopId] ?? 0,
+                hasPickupSlots: $shopsWithPickupSlots[$shopId] ?? false,
+                hasTestOrder: $shopsWithTestOrders[$shopId] ?? false,
+                hasValidatedPickup: $shopsWithValidatedPickup[$shopId] ?? false,
+            );
+        }
+
+        return $outputs;
+    }
+
+    private function buildOutput(
+        Shop $shop,
+        int $catalogProducts,
+        bool $hasPickupSlots,
+        bool $hasTestOrder,
+        bool $hasValidatedPickup,
+    ): AdminStoreActivationChecklistOutput {
         $steps = [
             new AdminStoreActivationChecklistStepOutput(
                 key: 'merchant_active',
@@ -48,7 +86,7 @@ final readonly class StoreActivationChecklistCalculator
             new AdminStoreActivationChecklistStepOutput(
                 key: 'pickup_slots',
                 label: 'Créneaux créés',
-                completed: $this->hasPickupSlots($shop),
+                completed: $hasPickupSlots,
                 required: true,
             ),
             new AdminStoreActivationChecklistStepOutput(
@@ -68,13 +106,13 @@ final readonly class StoreActivationChecklistCalculator
             new AdminStoreActivationChecklistStepOutput(
                 key: 'test_order',
                 label: 'Commande test passée',
-                completed: $this->hasTestOrder($shop),
+                completed: $hasTestOrder,
                 required: true,
             ),
             new AdminStoreActivationChecklistStepOutput(
                 key: 'test_pickup',
                 label: 'Retrait test validé',
-                completed: $this->hasValidatedPickup($shop),
+                completed: $hasValidatedPickup,
                 required: true,
             ),
         ];
@@ -132,90 +170,172 @@ final readonly class StoreActivationChecklistCalculator
         return false;
     }
 
-    private function hasPickupSlots(Shop $shop): bool
+    /**
+     * @param list<Shop> $shops
+     *
+     * @return array<string, bool>
+     */
+    private function findShopsWithPickupSlots(array $shops): array
     {
-        $activeRuleCount = (int) $this->entityManager->createQueryBuilder()
-            ->select('COUNT(rule.id)')
-            ->from(PickupSlotRule::class, 'rule')
-            ->andWhere('IDENTITY(rule.shop) = :shopId')
-            ->andWhere('rule.isActive = true')
-            ->setParameter('shopId', $shop->getId(), 'uuid')
-            ->getQuery()
-            ->getSingleScalarResult();
+        [$placeholders, $shopParams, $shopTypes] = $this->shopSqlParameters($shops);
+        $rows = $this->entityManager->getConnection()->executeQuery(
+            \sprintf(
+                'SELECT shop_id FROM pickup_slot_rules WHERE shop_id IN (%s) AND is_active = 1 GROUP BY shop_id',
+                $placeholders,
+            ),
+            $shopParams,
+            $shopTypes,
+        )->fetchAllAssociative();
 
-        if ($activeRuleCount > 0) {
-            return true;
+        $withPickupSlots = $this->boolMapFromRows($rows);
+        $slotRows = $this->entityManager->getConnection()->executeQuery(
+            \sprintf(
+                'SELECT shop_id FROM pickup_slots WHERE shop_id IN (%s) AND is_active = 1 AND starts_at > ? GROUP BY shop_id',
+                $placeholders,
+            ),
+            [...$shopParams, new \DateTimeImmutable()],
+            [...$shopTypes, 'datetime_immutable'],
+        )->fetchAllAssociative();
+
+        foreach ($this->boolMapFromRows($slotRows) as $shopId => $hasSlots) {
+            $withPickupSlots[$shopId] = $hasSlots;
         }
 
-        $futureSlotCount = (int) $this->entityManager->createQueryBuilder()
-            ->select('COUNT(slot.id)')
-            ->from(PickupSlot::class, 'slot')
-            ->andWhere('IDENTITY(slot.shop) = :shopId')
-            ->andWhere('slot.isActive = true')
-            ->andWhere('slot.startsAt > :now')
-            ->setParameter('shopId', $shop->getId(), 'uuid')
-            ->setParameter('now', new \DateTimeImmutable())
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return $futureSlotCount > 0;
+        return $withPickupSlots;
     }
 
-    private function countCatalogProducts(Shop $shop): int
+    /**
+     * @param list<Shop> $shops
+     *
+     * @return array<string, int>
+     */
+    private function countCatalogProductsGrouped(array $shops): array
     {
-        return (int) $this->entityManager->createQueryBuilder()
-            ->select('COUNT(product.id)')
-            ->from(MerchantProduct::class, 'product')
-            ->andWhere('IDENTITY(product.shop) = :shopId')
-            ->andWhere('product.isVisible = true')
-            ->andWhere('product.isAvailable = true')
-            ->setParameter('shopId', $shop->getId(), 'uuid')
-            ->getQuery()
-            ->getSingleScalarResult();
+        [$placeholders, $shopParams, $shopTypes] = $this->shopSqlParameters($shops);
+        $rows = $this->entityManager->getConnection()->executeQuery(
+            \sprintf(
+                'SELECT shop_id, COUNT(id) AS products_count FROM merchant_products WHERE shop_id IN (%s) AND is_visible = 1 AND is_available = 1 GROUP BY shop_id',
+                $placeholders,
+            ),
+            $shopParams,
+            $shopTypes,
+        )->fetchAllAssociative();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$this->normalizeUuid($row['shop_id'])] = (int) $row['products_count'];
+        }
+
+        return $counts;
     }
 
-    private function hasTestOrder(Shop $shop): bool
+    /**
+     * @param list<Shop> $shops
+     *
+     * @return array<string, bool>
+     */
+    private function findShopsWithTestOrders(array $shops): array
     {
-        $count = (int) $this->entityManager->createQueryBuilder()
-            ->select('COUNT(orderEntity.id)')
-            ->from(Order::class, 'orderEntity')
-            ->andWhere('IDENTITY(orderEntity.shop) = :shopId')
-            ->andWhere('orderEntity.status IN (:statuses)')
-            ->setParameter('shopId', $shop->getId(), 'uuid')
-            ->setParameter('statuses', [
-                OrderStatus::Submitted,
-                OrderStatus::Accepted,
-                OrderStatus::PartiallyAccepted,
-                OrderStatus::Rejected,
-                OrderStatus::Preparing,
-                OrderStatus::Ready,
-                OrderStatus::PickupPending,
-                OrderStatus::Completed,
-                OrderStatus::Cancelled,
-            ])
-            ->getQuery()
-            ->getSingleScalarResult();
+        [$placeholders, $shopParams, $shopTypes] = $this->shopSqlParameters($shops);
+        $rows = $this->entityManager->getConnection()->executeQuery(
+            \sprintf(
+                'SELECT shop_id FROM orders WHERE shop_id IN (%s) AND status IN (?, ?, ?) GROUP BY shop_id',
+                $placeholders,
+            ),
+            [
+                ...$shopParams,
+                OrderStatus::Ready->value,
+                OrderStatus::PickupPending->value,
+                OrderStatus::Completed->value,
+            ],
+            [...$shopTypes, 'string', 'string', 'string'],
+        )->fetchAllAssociative();
 
-        return $count > 0;
+        return $this->boolMapFromRows($rows);
     }
 
-    private function hasValidatedPickup(Shop $shop): bool
+    /**
+     * @param list<Shop> $shops
+     *
+     * @return array<string, bool>
+     */
+    private function findShopsWithValidatedPickup(array $shops): array
     {
-        $count = (int) $this->entityManager->createQueryBuilder()
-            ->select('COUNT(pickupSession.id)')
-            ->from(PickupSession::class, 'pickupSession')
-            ->join('pickupSession.order', 'orderEntity')
-            ->andWhere('IDENTITY(orderEntity.shop) = :shopId')
-            ->andWhere('orderEntity.status = :completed')
-            ->andWhere('pickupSession.used = true')
-            ->andWhere('pickupSession.merchantConfirmedAt IS NOT NULL')
-            ->andWhere('pickupSession.customerConfirmedAt IS NOT NULL')
-            ->andWhere('pickupSession.forceCompletedByMerchant = false')
-            ->setParameter('shopId', $shop->getId(), 'uuid')
-            ->setParameter('completed', OrderStatus::Completed)
-            ->getQuery()
-            ->getSingleScalarResult();
+        [$placeholders, $shopParams, $shopTypes] = $this->shopSqlParameters($shops);
+        $rows = $this->entityManager->getConnection()->executeQuery(
+            \sprintf(
+                <<<'SQL'
+SELECT orders.shop_id
+FROM pickup_sessions
+INNER JOIN orders ON pickup_sessions.order_id = orders.id
+LEFT JOIN order_status_logs AS pickup_code_log
+    ON pickup_code_log.order_id = orders.id
+    AND pickup_code_log.status = ?
+    AND pickup_code_log.note = ?
+WHERE orders.shop_id IN (%s)
+    AND orders.status = ?
+    AND pickup_sessions.used = 1
+    AND pickup_sessions.scanned_at < pickup_sessions.merchant_confirmed_at
+    AND pickup_sessions.scanned_at < pickup_sessions.customer_confirmed_at
+    AND pickup_sessions.merchant_confirmed_at IS NOT NULL
+    AND pickup_sessions.customer_confirmed_at IS NOT NULL
+    AND pickup_sessions.force_completed_by_merchant = 0
+    AND pickup_code_log.id IS NULL
+GROUP BY orders.shop_id
+SQL,
+                $placeholders,
+            ),
+            [
+                OrderStatus::Completed->value,
+                self::PICKUP_CODE_COMPLETION_NOTE,
+                ...$shopParams,
+                OrderStatus::Completed->value,
+            ],
+            ['string', 'string', ...$shopTypes, 'string'],
+        )->fetchAllAssociative();
 
-        return $count > 0;
+        return $this->boolMapFromRows($rows);
+    }
+
+    /**
+     * @param list<Shop> $shops
+     *
+     * @return array{0: string, 1: list<string>, 2: list<string>}
+     */
+    private function shopSqlParameters(array $shops): array
+    {
+        return [
+            implode(', ', array_fill(0, \count($shops), '?')),
+            array_map(static fn (Shop $shop): string => $shop->getId()->toRfc4122(), $shops),
+            array_fill(0, \count($shops), 'uuid'),
+        ];
+    }
+
+    /**
+     * @param list<array{shop_id: mixed}> $rows
+     *
+     * @return array<string, bool>
+     */
+    private function boolMapFromRows(array $rows): array
+    {
+        $map = [];
+        foreach ($rows as $row) {
+            $map[$this->normalizeUuid($row['shop_id'])] = true;
+        }
+
+        return $map;
+    }
+
+    private function normalizeUuid(mixed $value): string
+    {
+        if ($value instanceof Uuid) {
+            return $value->toRfc4122();
+        }
+
+        if (\is_string($value) && 16 === \strlen($value)) {
+            return Uuid::fromBinary($value)->toRfc4122();
+        }
+
+        return (string) $value;
     }
 }
