@@ -60,10 +60,14 @@ final readonly class MerchantAccountOutput
         public string $name,
         #[Groups(['merchant_account:read'])]
         public array $roles,
+        // Re-issued JWT, present only when the email (the JWT identity claim)
+        // changed — lets the client swap its token without re-logging in.
+        #[Groups(['merchant_account:read'])]
+        public ?string $token = null,
     ) {
     }
 
-    public static function fromUser(User $merchant): self
+    public static function fromUser(User $merchant, ?string $token = null): self
     {
         return new self(
             userId: $merchant->getId()->toRfc4122(),
@@ -73,6 +77,7 @@ final readonly class MerchantAccountOutput
                 $merchant->getRoles(),
                 static fn (string $role): bool => 'ROLE_USER' !== $role,
             )),
+            token: $token,
         );
     }
 }

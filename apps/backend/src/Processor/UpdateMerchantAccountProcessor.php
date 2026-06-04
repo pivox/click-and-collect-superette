@@ -12,6 +12,7 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -28,6 +29,7 @@ final readonly class UpdateMerchantAccountProcessor implements ProcessorInterfac
         private UserRepository $userRepository,
         private EntityManagerInterface $entityManager,
         private RequestStack $requestStack,
+        private JWTTokenManagerInterface $jwtTokenManager,
     ) {
     }
 
@@ -52,6 +54,7 @@ final readonly class UpdateMerchantAccountProcessor implements ProcessorInterfac
             $merchant->setName($name);
         }
 
+        $emailChanged = false;
         if (\array_key_exists('email', $payload) && null !== $data->email) {
             $email = strtolower(trim($data->email));
             if ('' === $email) {
@@ -62,6 +65,7 @@ final readonly class UpdateMerchantAccountProcessor implements ProcessorInterfac
                     throw new ConflictHttpException('MERCHANT_EMAIL_ALREADY_EXISTS');
                 }
                 $merchant->setEmail($email);
+                $emailChanged = true;
             }
         }
 
@@ -71,7 +75,12 @@ final readonly class UpdateMerchantAccountProcessor implements ProcessorInterfac
             throw new ConflictHttpException('MERCHANT_EMAIL_ALREADY_EXISTS');
         }
 
-        return MerchantAccountOutput::fromUser($merchant);
+        // The JWT identity claim is the email (see lexik config + security.yaml
+        // provider). After an email change the current token can no longer
+        // resolve the user, so re-issue one and return it for the client to swap.
+        $token = $emailChanged ? $this->jwtTokenManager->create($merchant) : null;
+
+        return MerchantAccountOutput::fromUser($merchant, $token);
     }
 
     private function currentMerchant(): User

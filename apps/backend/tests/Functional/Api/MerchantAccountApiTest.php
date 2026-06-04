@@ -32,10 +32,26 @@ final class MerchantAccountApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertSame('new.email@example.test', $payload['email']);
 
+        // Email is the JWT identity claim → a fresh token must be returned so the
+        // client can swap it instead of being logged out.
+        self::assertArrayHasKey('token', $payload);
+        self::assertNotSame('', $payload['token']);
+
         $this->entityManager->clear();
         $stored = $this->entityManager->getRepository(User::class)->find($merchant->getId());
         self::assertInstanceOf(User::class, $stored);
         self::assertSame('new.email@example.test', $stored->getEmail());
+    }
+
+    public function testNameOnlyUpdateDoesNotReturnToken(): void
+    {
+        $merchant = $this->createMerchantWithPassword('merchant-acc@example.test', 'secret123');
+
+        $response = $this->requestJson('PATCH', '/api/merchant/me', ['name' => 'Sans Email'], $merchant);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertArrayNotHasKey('token', $payload);
     }
 
     public function testEmailAlreadyTakenReturns409(): void

@@ -23,6 +23,8 @@ interface ApiMerchantAccount {
   email: string;
   name: string;
   roles: string[];
+  // Re-issued JWT, returned only when the email changed (the JWT identity claim).
+  token?: string;
 }
 
 function mapApi(data: ApiMerchantAccount): MerchantAccount {
@@ -52,6 +54,13 @@ export async function updateMerchantAccount(
     name: input.name,
     email: input.email,
   });
+  // When the email changed the backend re-issues a JWT (identity claim = email).
+  // Swap the stored token before the caller refreshes the context, otherwise the
+  // next request would 401 with the now-stale token.
+  if (data.token && typeof window !== 'undefined') {
+    localStorage.setItem('merchant_token', data.token);
+    document.cookie = `merchant_token=${data.token}; path=/merchant; SameSite=Lax; Max-Age=${60 * 60 * 8}`;
+  }
   return mapApi(data);
 }
 
