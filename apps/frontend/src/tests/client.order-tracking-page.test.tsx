@@ -24,7 +24,16 @@ vi.mock('@/lib/auth/ClientAuthContext', () => ({
 import OrderTrackingPage from '@/app/(client)/orders/[orderId]/page';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 import { getOrder } from '@/lib/services';
+import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 import type { Order } from '@/types';
+
+function renderPage(orderId: string) {
+  return render(
+    <ClientLocaleProvider>
+      <OrderTrackingPage params={{ orderId }} />
+    </ClientLocaleProvider>,
+  );
+}
 
 const MOCK_USER = { token: 'tok', email: 'client@test.com', name: 'Client Test' };
 
@@ -69,7 +78,7 @@ describe('OrderTrackingPage', () => {
   it('affiche un état final au lieu du CTA QR en attente pour une commande récupérée', async () => {
     vi.mocked(getOrder).mockResolvedValue(makeOrder('completed'));
 
-    render(<OrderTrackingPage params={{ orderId: 'order-uuid-1' }} />);
+    renderPage('order-uuid-1');
 
     expect(await screen.findAllByText('Retrait finalisé')).toHaveLength(2);
     expect(screen.queryByText(/disponible quand prête/i)).toBeNull();

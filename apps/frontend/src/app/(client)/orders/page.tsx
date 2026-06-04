@@ -9,27 +9,29 @@ import { Pagination } from "@/components/ui/Pagination";
 import { formatTnd } from "@/lib/format";
 import { listOrders } from "@/lib/services";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
+import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import type { Order } from "@/types";
 
 const LIMIT = 10;
 
 export default function OrdersListPage() {
   const { user, isLoading } = useClientAuth();
+  const { t } = useClientLocale();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [ordersError, setOrdersError] = useState(false);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [retryKey, setRetryKey] = useState(0);
 
   const load = useCallback(async () => {
     if (isLoading || !user) return;
-    setOrdersError(null);
+    setOrdersError(false);
     try {
       const result = await listOrders(page, LIMIT);
       setOrders(result.items);
       setPages(Math.ceil(result.total / LIMIT) || 1);
     } catch {
-      setOrdersError("Impossible de charger les commandes. Vérifie ta connexion.");
+      setOrdersError(true);
     }
   }, [page, isLoading, user, retryKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -39,30 +41,30 @@ export default function OrdersListPage() {
 
   return (
     <>
-      <TopBar title="Mes commandes" subtitle="Historique et en cours" backHref="/" />
+      <TopBar title={t("client.orders.listTitle")} subtitle={t("client.orders.listSubtitle")} backHref="/" />
       {!user ? (
         <Card className="text-center">
           <p className="py-4 text-sm text-muted">
             <Link href="/login?redirect=/orders" className="font-extrabold text-primary">
-              Connecte-toi
+              {t("client.orders.loginPrompt")}
             </Link>{" "}
-            pour voir tes commandes.
+            {t("client.orders.loginToView")}
           </p>
         </Card>
       ) : ordersError ? (
         <div className="py-8 text-center">
-          <p className="text-sm text-muted">{ordersError}</p>
+          <p className="text-sm text-muted">{t("client.orders.ordersError")}</p>
           <button
             type="button"
             onClick={() => setRetryKey((k) => k + 1)}
             className="mt-3 text-sm font-extrabold text-primary underline"
           >
-            Réessayer
+            {t("client.orders.retry")}
           </button>
         </div>
       ) : orders.length === 0 && page === 1 ? (
         <Card className="text-center">
-          <p className="py-4 text-sm text-muted">Aucune commande pour le moment.</p>
+          <p className="py-4 text-sm text-muted">{t("client.orders.empty")}</p>
         </Card>
       ) : (
         <>
@@ -74,10 +76,10 @@ export default function OrdersListPage() {
                   <Card compact className="hover:bg-soft transition-colors">
                     <div className="flex items-baseline justify-between">
                       <strong className="text-sm">{o.code}</strong>
-                      <Badge tone={badge.tone}>{badge.label}</Badge>
+                      <Badge tone={badge.tone}>{t(badge.labelKey)}</Badge>
                     </div>
                     <div className="mt-2 flex items-baseline justify-between text-xs text-muted">
-                      <span>{o.shopName ?? "Supérette"}</span>
+                      <span>{o.shopName ?? t("client.orders.defaultShop")}</span>
                       <span className="font-black text-ink">
                         {formatTnd(o.totalAmountTnd)}
                       </span>
@@ -86,7 +88,7 @@ export default function OrdersListPage() {
                       <div className="mt-2 flex items-center gap-1.5">
                         <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--status-wait)" }} />
                         <span className="text-xs font-bold" style={{ color: "var(--status-wait)" }}>
-                          Action requise
+                          {t("client.orders.actionRequired")}
                         </span>
                       </div>
                     )}

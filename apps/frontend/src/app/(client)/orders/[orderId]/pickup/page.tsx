@@ -18,6 +18,7 @@ import {
 } from "@/lib/services";
 import { formatSlotRange } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
+import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import type {
   CustomerOrderPickupSessionStatus,
   CustomerPickupSessionConfirmation,
@@ -27,15 +28,11 @@ import type {
 
 const PICKUP_STATUS_POLL_MS = 4000;
 
-function confirmErrorMessage(err: unknown): string {
+function confirmErrorKey(err: unknown): string {
   const status = (err as { response?: { status?: number } }).response?.status;
-  if (status === 409) {
-    return "La validation n'est pas encore possible. Vérifie que le marchand a bien scanné le QR code.";
-  }
-  if (status === 404) {
-    return "Cette session de retrait est introuvable. Recharge la page.";
-  }
-  return "La validation a échoué. Réessaie dans un instant.";
+  if (status === 409) return "client.pickup.confirm409";
+  if (status === 404) return "client.pickup.confirm404";
+  return "client.pickup.confirmGeneric";
 }
 
 async function getPersistedPickupSessionStatus(
@@ -56,6 +53,7 @@ export default function PickupQrPage({
   const { orderId } = params;
   const router = useRouter();
   const { user, isLoading: authLoading } = useClientAuth();
+  const { t } = useClientLocale();
   const [order, setOrder] = useState<Order | null>(null);
   const [pickupSession, setPickupSession] = useState<PickupSession | null>(null);
   const [pickupSessionStatus, setPickupSessionStatus] =
@@ -176,7 +174,7 @@ export default function PickupQrPage({
       const result = await confirmCustomerPickupSession(pickupSession.id);
       setConfirmationResult(result);
     } catch (err) {
-      setConfirmError(confirmErrorMessage(err));
+      setConfirmError(t(confirmErrorKey(err)));
     } finally {
       setIsConfirming(false);
     }
@@ -198,16 +196,16 @@ export default function PickupQrPage({
   if (!user) {
     return (
       <>
-        <TopBar title="QR code retrait" backHref="/orders" />
+        <TopBar title={t("client.pickup.title")} backHref="/orders" />
         <Card className="text-center">
           <p className="py-4 text-sm text-muted">
             <Link
               href={`/login?redirect=/orders/${orderId}/pickup`}
               className="font-extrabold text-primary"
             >
-              Connecte-toi
+              {t("client.orders.loginPrompt")}
             </Link>{" "}
-            pour accéder à ce QR code.
+            {t("client.pickup.loginToAccess")}
           </p>
         </Card>
       </>
@@ -219,15 +217,15 @@ export default function PickupQrPage({
   if (fetchError) {
     return (
       <>
-        <TopBar title="QR code retrait" backHref="/orders" />
+        <TopBar title={t("client.pickup.title")} backHref="/orders" />
         <Card className="text-center">
           <p className="py-4 text-sm text-muted">
-            Le chargement a échoué. Vérifie ta connexion et réessaie.
+            {t("client.pickup.loadFailed")}
           </p>
           <Button
             onClick={retryLoad}
           >
-            Réessayer
+            {t("client.pickup.retry")}
           </Button>
         </Card>
       </>
@@ -240,7 +238,7 @@ export default function PickupQrPage({
   }
 
   const badge = orderStatusBadge(order.status);
-  const storeName = order.shopName ?? "Supérette";
+  const storeName = order.shopName ?? t("client.orders.defaultShop");
   const storeAddress = [order.shopAddress, order.shopCity].filter(Boolean).join(", ") || "—";
   const pickupSlotLabel = order.pickupSlot
     ? formatSlotRange(order.pickupSlot.startsAt, order.pickupSlot.endsAt)
@@ -251,17 +249,17 @@ export default function PickupQrPage({
   if (!pickupSession) {
     return (
       <>
-        <TopBar title="QR code retrait" backHref={`/orders/${order.id}`} />
+        <TopBar title={t("client.pickup.title")} backHref={`/orders/${order.id}`} />
         <Card className="text-center">
-          <Badge tone={badge.tone}>{badge.label}</Badge>
+          <Badge tone={badge.tone}>{t(badge.labelKey)}</Badge>
           <h2 className="mt-4 text-h2 font-black">
-            QR code de retrait indisponible
+            {t("client.pickup.qrUnavailableTitle")}
           </h2>
           <p className="mx-auto mt-2 max-w-xs text-xs text-muted leading-relaxed">
-            La session de retrait n&apos;a pas pu être chargée.
+            {t("client.pickup.qrUnavailableBody")}
           </p>
           <Button className="mt-4" onClick={retryLoad}>
-            Réessayer
+            {t("client.pickup.retry")}
           </Button>
         </Card>
       </>
@@ -278,29 +276,29 @@ export default function PickupQrPage({
   return (
     <>
       <TopBar
-        title="QR code retrait"
-        subtitle="À présenter au marchand"
+        title={t("client.pickup.title")}
+        subtitle={t("client.pickup.subtitle")}
         backHref={`/orders/${order.id}`}
       />
 
       <Card className="text-center">
-        <Badge tone={displayedBadge.tone}>{displayedBadge.label}</Badge>
+        <Badge tone={displayedBadge.tone}>{t(displayedBadge.labelKey)}</Badge>
         {confirmationResult?.isCompleted ? (
           <>
             <h2 className="mt-5 text-h2 font-black">
-              Retrait finalisé
+              {t("client.pickup.completedTitle")}
             </h2>
             <p className="mx-auto mt-2 max-w-xs text-xs text-muted leading-relaxed">
-              La remise de ta Kadhia est confirmée côté client et marchand.
+              {t("client.pickup.completedBody")}
             </p>
           </>
         ) : order.status === "pickup_pending" ? (
           <>
             <h2 className="mt-5 text-h2 font-black">
-              Retrait scanné par le marchand
+              {t("client.pickup.scannedTitle")}
             </h2>
             <p className="mx-auto mt-2 max-w-xs text-xs text-muted leading-relaxed">
-              Confirme la réception une fois la Kadhia remise au comptoir.
+              {t("client.pickup.scannedBody")}
             </p>
             <Button
               className="mt-5"
@@ -309,14 +307,14 @@ export default function PickupQrPage({
               disabled={isConfirming || customerConfirmed}
             >
               {customerConfirmed
-                ? "Réception confirmée"
+                ? t("client.pickup.confirmed")
                 : isConfirming
-                  ? "Validation..."
-                  : "J'ai récupéré ma Kadhia"}
+                  ? t("client.pickup.validating")
+                  : t("client.pickup.confirmReceived")}
             </Button>
             {waitingForMerchantConfirmation && (
               <p className="mx-auto mt-3 max-w-xs text-xs font-bold text-primary leading-relaxed">
-                Confirmation client enregistrée. En attente de la validation marchand.
+                {t("client.pickup.waitingMerchant")}
               </p>
             )}
             {confirmError && (
@@ -328,24 +326,24 @@ export default function PickupQrPage({
         ) : pickupSession.isExpired ? (
           <>
             <h2 className="mt-5 text-h2 font-black">
-              QR code expiré
+              {t("client.pickup.expiredTitle")}
             </h2>
             <p className="mx-auto mt-2 max-w-xs text-xs text-muted leading-relaxed">
-              Ce QR code a expiré. Contacte la supérette.
+              {t("client.pickup.expiredBody")}
             </p>
           </>
         ) : (
           <>
             <QrPlaceholder code={pickupSession.qrPayload} className="my-5" />
             <h2 className="m-0 text-h2 font-black">
-              Présente ce QR code au comptoir
+              {t("client.pickup.presentTitle")}
             </h2>
             <p className="mx-auto mt-2 max-w-xs text-xs text-muted leading-relaxed">
-              Le marchand scanne ce QR code pour démarrer la validation du retrait.
+              {t("client.pickup.presentBody")}
             </p>
             <div className="mx-auto mt-4 max-w-full rounded-md bg-[#f4f4f0] px-3 py-2 text-left">
               <p className="m-0 text-[11px] font-bold uppercase text-muted">
-                Token QR
+                {t("client.pickup.qrToken")}
               </p>
               <p className="m-0 mt-1 break-all font-mono text-xs font-black">
                 {pickupSession.token}
@@ -357,10 +355,10 @@ export default function PickupQrPage({
 
       <Card className="mt-4">
         <Summary>
-          <SummaryRow label="Commande" value={order.code} />
-          <SummaryRow label="Supérette" value={storeName} />
-          <SummaryRow label="Adresse" value={storeAddress} />
-          <SummaryRow label="Créneau" value={pickupSlotLabel} />
+          <SummaryRow label={t("client.pickup.rowOrder")} value={order.code} />
+          <SummaryRow label={t("client.pickup.rowShop")} value={storeName} />
+          <SummaryRow label={t("client.pickup.rowAddress")} value={storeAddress} />
+          <SummaryRow label={t("client.pickup.rowSlot")} value={pickupSlotLabel} />
         </Summary>
       </Card>
     </>
