@@ -10,6 +10,14 @@ parameters:
     app.partial_acceptance_reminder_lead_seconds: 14400
     app.partial_acceptance_expiration_lead_seconds: 7200
     app.diagnostics.allow_non_count_aware_messenger_transport: false
+    app.messenger_async_queue_name_default: default
+    app.messenger_async_queue_name: '%env(default:app.messenger_async_queue_name_default:string:MESSENGER_ASYNC_QUEUE_NAME)%'
+    app.messenger_monitor.pending_threshold_default: 100
+    app.messenger_monitor.oldest_age_threshold_seconds_default: 900
+    app.messenger_monitor.redeliver_timeout_seconds_default: 3600
+    app.messenger_monitor.pending_threshold: '%env(default:app.messenger_monitor.pending_threshold_default:int:MESSENGER_MONITOR_PENDING_THRESHOLD)%'
+    app.messenger_monitor.oldest_age_threshold_seconds: '%env(default:app.messenger_monitor.oldest_age_threshold_seconds_default:int:MESSENGER_MONITOR_OLDEST_AGE_THRESHOLD_SECONDS)%'
+    app.messenger_monitor.redeliver_timeout_seconds: '%env(default:app.messenger_monitor.redeliver_timeout_seconds_default:int:MESSENGER_MONITOR_REDELIVER_TIMEOUT_SECONDS)%'
     # Product image pipeline (S13-005 / US-041)
     app.product_image.upload_dir: '%kernel.project_dir%/public/uploads/products'
     app.product_image.public_path_prefix: '/uploads/products'
@@ -31,6 +39,10 @@ services:
             int $merchantResponseTimeoutLeadSeconds: '%app.merchant_response_timeout_lead_seconds%'
             int $partialAcceptanceReminderLeadSeconds: '%app.partial_acceptance_reminder_lead_seconds%'
             int $partialAcceptanceExpirationLeadSeconds: '%app.partial_acceptance_expiration_lead_seconds%'
+            string $asyncQueueName: '%app.messenger_async_queue_name%'
+            int $pendingThreshold: '%app.messenger_monitor.pending_threshold%'
+            int $oldestAgeSecondsThreshold: '%app.messenger_monitor.oldest_age_threshold_seconds%'
+            int $redeliverTimeoutSeconds: '%app.messenger_monitor.redeliver_timeout_seconds%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
