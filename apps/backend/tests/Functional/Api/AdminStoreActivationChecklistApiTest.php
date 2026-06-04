@@ -11,6 +11,7 @@ use App\Entity\Order;
 use App\Entity\OrderLine;
 use App\Entity\OrderStatusLog;
 use App\Entity\PickupSession;
+use App\Entity\PickupSlot;
 use App\Entity\PickupSlotRule;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
@@ -73,6 +74,35 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         self::assertTrue($steps['qr_code']['completed']);
         self::assertFalse($steps['test_order']['completed']);
         self::assertFalse($steps['test_pickup']['completed']);
+    }
+
+    public function testFullOneOffPickupSlotDoesNotSatisfyPickupSlots(): void
+    {
+        $admin = $this->createUser('admin-activation-full-slot@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-activation-full-slot@example.test', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('customer-activation-full-slot@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop($merchant);
+        $shop->setOpeningHours([
+            'timezone' => 'Africa/Tunis',
+            'weekly' => [
+                '1' => [['start' => '08:00', 'end' => '12:00']],
+            ],
+        ]);
+        $this->entityManager->flush();
+
+        for ($i = 1; $i <= 5; ++$i) {
+            $this->createMerchantProduct($shop, 'Produit activation créneau plein '.$i);
+        }
+        $this->createFullFuturePickupSlot($shop);
+        $this->createCompletedPickupOrder($shop, $customer);
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/stores/%s/activation-checklist', $shop->getId()), user: $admin);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        $steps = $this->indexStepsByKey($payload['steps']);
+        self::assertFalse($payload['ready']);
+        self::assertFalse($steps['pickup_slots']['completed']);
     }
 
     public function testForceCompletedPickupDoesNotSatisfyValidatedTestPickup(): void
@@ -271,6 +301,22 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $rule;
+    }
+
+    private function createFullFuturePickupSlot(Shop $shop): PickupSlot
+    {
+        $slot = (new PickupSlot())
+            ->setShop($shop)
+            ->setStartsAt(new \DateTimeImmutable('+1 day 09:00:00'))
+            ->setEndsAt(new \DateTimeImmutable('+1 day 10:00:00'))
+            ->setCapacity(1)
+            ->setActive(true);
+        $slot->book();
+
+        $this->entityManager->persist($slot);
+        $this->entityManager->flush();
+
+        return $slot;
     }
 
     private function createSubmittedOrder(Shop $shop, User $customer): Order

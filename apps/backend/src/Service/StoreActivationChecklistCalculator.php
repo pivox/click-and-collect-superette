@@ -190,7 +190,7 @@ final readonly class StoreActivationChecklistCalculator
         $withPickupSlots = $this->boolMapFromRows($rows);
         $slotRows = $this->entityManager->getConnection()->executeQuery(
             \sprintf(
-                'SELECT shop_id FROM pickup_slots WHERE shop_id IN (%s) AND is_active = true AND starts_at > ? GROUP BY shop_id',
+                'SELECT shop_id FROM pickup_slots WHERE shop_id IN (%s) AND is_active = true AND starts_at > ? AND booked_count < capacity GROUP BY shop_id',
                 $placeholders,
             ),
             [...$shopParams, new \DateTimeImmutable()],
