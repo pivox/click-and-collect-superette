@@ -28,9 +28,18 @@ vi.mock('@/lib/auth/ClientAuthContext', () => ({
 import KadhiaDetailPage from '@/app/(client)/kadhia/[kadhiaId]/page';
 import { fetchKadhia, patchKadhiaNotes, discardKadhia } from '@/lib/services';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
+import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 import type { Kadhia } from '@/types';
 
 const MOCK_USER = { token: 'tok', email: 'client@test.com', name: 'Client' };
+
+function renderDetail(kadhiaId = 'k-1') {
+  return render(
+    <ClientLocaleProvider>
+      <KadhiaDetailPage params={{ kadhiaId }} />
+    </ClientLocaleProvider>,
+  );
+}
 
 function mockAuth() {
   vi.mocked(useClientAuth).mockReturnValue({
@@ -61,7 +70,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
 
   it('affiche le bouton Ajouter quand la Kadhia n\'a pas de note', async () => {
     vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia());
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => {
       expect(screen.getByText('Ajouter')).toBeTruthy();
     });
@@ -69,7 +78,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
 
   it('affiche la note existante et le bouton Modifier', async () => {
     vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia({ notes: 'courses maison' }));
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => {
       // La note s'affiche dans le TopBar (titre) et dans la section Note personnelle
       expect(screen.getAllByText('courses maison').length).toBeGreaterThan(0);
@@ -79,7 +88,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
 
   it('affiche la note dans le TopBar quand elle est renseignée', async () => {
     vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia({ notes: 'courses bureau' }));
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => {
       expect(screen.getAllByText('courses bureau').length).toBeGreaterThan(0);
     });
@@ -87,7 +96,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
 
   it('ouvre le formulaire d\'édition au clic sur Ajouter', async () => {
     vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia());
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => screen.getByText('Ajouter'));
 
     fireEvent.click(screen.getByText('Ajouter'));
@@ -102,7 +111,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
     vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia());
     vi.mocked(patchKadhiaNotes).mockResolvedValue(updated);
 
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => screen.getByText('Ajouter'));
 
     fireEvent.click(screen.getByText('Ajouter'));
@@ -119,7 +128,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
 
   it('annule l\'édition sans appeler l\'API', async () => {
     vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia({ notes: 'note initiale' }));
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => screen.getByText('Modifier'));
 
     fireEvent.click(screen.getByText('Modifier'));
@@ -135,7 +144,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
     vi.mocked(fetchKadhia).mockResolvedValue(
       makeDraftKadhia({ status: 'submitted', notes: 'ma note' }),
     );
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => {
       expect(screen.getAllByText('ma note').length).toBeGreaterThan(0);
       expect(screen.queryByText('Modifier')).toBeNull();
@@ -147,7 +156,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
     vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia());
     vi.mocked(patchKadhiaNotes).mockRejectedValue(new Error('Network error'));
 
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => screen.getByText('Ajouter'));
 
     fireEvent.click(screen.getByText('Ajouter'));
@@ -165,7 +174,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
     vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia());
     vi.mocked(patchKadhiaNotes).mockResolvedValue(makeDraftKadhia({ notes: null }));
 
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => screen.getByText('Ajouter'));
 
     fireEvent.click(screen.getByText('Ajouter'));
@@ -186,7 +195,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
     vi.mocked(discardKadhia).mockRejectedValue(new Error('Network error'));
     vi.stubGlobal('confirm', () => true);
 
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => screen.getByText('Supprimer cette Kadhia'));
 
     fireEvent.click(screen.getByText('Supprimer cette Kadhia'));
@@ -202,7 +211,7 @@ describe('KadhiaDetailPage — note personnelle', () => {
     vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia());
     vi.mocked(patchKadhiaNotes).mockRejectedValue(new Error('Network error'));
 
-    render(<KadhiaDetailPage params={{ kadhiaId: 'k-1' }} />);
+    renderDetail();
     await waitFor(() => screen.getByText('Ajouter'));
 
     fireEvent.click(screen.getByText('Ajouter'));

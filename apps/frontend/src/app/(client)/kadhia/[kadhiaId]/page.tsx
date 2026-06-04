@@ -12,6 +12,7 @@ import { KadhiaLineRow } from "@/components/product/KadhiaLineRow";
 import { fetchKadhia, updateLineQuantity, discardKadhia, patchKadhiaNotes } from "@/lib/services";
 import { formatTnd } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
+import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import type { Kadhia } from "@/types";
 
 const MAX_NOTE_LENGTH = 500;
@@ -23,6 +24,7 @@ function KadhiaNote({
   kadhia: Kadhia;
   onSaved: (updated: Kadhia) => void;
 }) {
+  const { t } = useClientLocale();
   const isDraft = kadhia.status === "draft";
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(kadhia.notes ?? "");
@@ -40,10 +42,10 @@ function KadhiaNote({
       console.error("[kadhia-note] patchKadhiaNotes failed", { kadhiaId: kadhia.id, err });
       const status = (err as { response?: { status?: number } }).response?.status;
       if (status === 422) {
-        setError("Cette Kadhia a été envoyée et n'est plus modifiable.");
+        setError(t("client.kadhia.noteSentError"));
         setEditing(false);
       } else {
-        setError("Impossible d'enregistrer la note. Réessaie.");
+        setError(t("client.kadhia.noteSaveError"));
       }
     } finally {
       setSaving(false);
@@ -60,7 +62,7 @@ function KadhiaNote({
     if (!kadhia.notes) return null;
     return (
       <Card className="mt-4">
-        <p className="text-xs font-bold text-muted uppercase tracking-wide mb-1">Note personnelle</p>
+        <p className="text-xs font-bold text-muted uppercase tracking-wide mb-1">{t("client.kadhia.noteTitle")}</p>
         <p className="text-sm">{kadhia.notes}</p>
       </Card>
     );
@@ -72,26 +74,26 @@ function KadhiaNote({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-xs font-bold text-muted uppercase tracking-wide mb-1">
-              Note personnelle
+              {t("client.kadhia.noteTitle")}
             </p>
             {kadhia.notes ? (
               <p className="text-sm">{kadhia.notes}</p>
             ) : (
               <p className="text-sm text-muted italic">
-                Ajouter une note pour te rappeler l&apos;utilité de cette liste.
+                {t("client.kadhia.notePlaceholder")}
               </p>
             )}
           </div>
           <button
             type="button"
-            aria-label={kadhia.notes ? "Modifier la note personnelle" : "Ajouter une note personnelle"}
+            aria-label={kadhia.notes ? t("client.kadhia.noteEditAria") : t("client.kadhia.noteAddAria")}
             onClick={() => {
               setDraft(kadhia.notes ?? "");
               setEditing(true);
             }}
             className="shrink-0 text-xs font-bold text-primary underline"
           >
-            {kadhia.notes ? "Modifier" : "Ajouter"}
+            {kadhia.notes ? t("client.kadhia.noteEdit") : t("client.kadhia.noteAdd")}
           </button>
         </div>
       </Card>
@@ -104,7 +106,7 @@ function KadhiaNote({
         htmlFor="kadhia-note"
         className="text-xs font-bold text-muted uppercase tracking-wide mb-2 block"
       >
-        Note personnelle
+        {t("client.kadhia.noteTitle")}
       </label>
       <textarea
         id="kadhia-note"
@@ -113,7 +115,7 @@ function KadhiaNote({
         onChange={(e) => setDraft(e.target.value)}
         maxLength={MAX_NOTE_LENGTH}
         rows={3}
-        placeholder="Ex : courses maison, samedi matin, bureau…"
+        placeholder={t("client.kadhia.noteTextareaPlaceholder")}
         className="w-full resize-none rounded-md border border-line bg-soft px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       />
       <div className="mt-1 flex items-center justify-between gap-2">
@@ -122,10 +124,10 @@ function KadhiaNote({
         </span>
         <div className="flex gap-2">
           <Button variant="ghost" size="md" onClick={handleCancel} disabled={saving}>
-            Annuler
+            {t("client.kadhia.cancel")}
           </Button>
           <Button size="md" onClick={() => void handleSave()} disabled={saving}>
-            {saving ? "Enregistrement…" : "Enregistrer"}
+            {saving ? t("client.kadhia.saving") : t("client.kadhia.save")}
           </Button>
         </div>
       </div>
@@ -146,11 +148,12 @@ export default function KadhiaDetailPage({
   const searchParams = useSearchParams();
   const isPartialContext = searchParams.get("context") === "partially_accepted";
   const { user, isLoading } = useClientAuth();
+  const { t } = useClientLocale();
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [quantityError, setQuantityError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [quantityError, setQuantityError] = useState(false);
   const [discarding, setDiscarding] = useState(false);
-  const [discardError, setDiscardError] = useState<string | null>(null);
+  const [discardError, setDiscardError] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -162,32 +165,32 @@ export default function KadhiaDetailPage({
     if (isLoading || !user) return;
     void fetchKadhia(kadhiaId)
       .then(setKadhia)
-      .catch(() => setLoadError("Kadhia introuvable."));
+      .catch(() => setLoadError(true));
   }, [kadhiaId, isLoading, user]);
 
   const onDiscard = async () => {
     if (!kadhia?.shopId) return;
-    if (!window.confirm("Supprimer cette Kadhia ? Tu pourras recommencer depuis le catalogue.")) return;
+    if (!window.confirm(t("client.kadhia.deleteConfirm"))) return;
     setDiscarding(true);
-    setDiscardError(null);
+    setDiscardError(false);
     try {
       await discardKadhia(kadhia.shopId);
       router.push("/kadhia");
     } catch (err) {
       console.error("[kadhia-detail] discardKadhia failed", { shopId: kadhia.shopId, err });
       setDiscarding(false);
-      setDiscardError("Impossible de supprimer la Kadhia. Elle a peut-être déjà été envoyée.");
+      setDiscardError(true);
     }
   };
 
   const onQuantity = async (lineId: string, q: number) => {
     if (!kadhia?.shopId || !kadhia.id) return;
-    setQuantityError(null);
+    setQuantityError(false);
     try {
       const next = await updateLineQuantity(kadhia.shopId, kadhia.id, lineId, q);
       setKadhia(next);
     } catch {
-      setQuantityError("Impossible de mettre à jour la quantité. Réessaie.");
+      setQuantityError(true);
     }
   };
 
@@ -198,9 +201,9 @@ export default function KadhiaDetailPage({
       <>
         <TopBar title="Kadhia" backHref="/kadhia" />
         <Card className="text-center">
-          <p className="text-sm text-muted">{loadError}</p>
+          <p className="text-sm text-muted">{t("client.kadhia.notFound")}</p>
           <Link href="/kadhia" className={getButtonClassName({ className: "mt-4" })}>
-            Mes Kadhia
+            {t("client.kadhia.backToList")}
           </Link>
         </Card>
       </>
@@ -227,11 +230,11 @@ export default function KadhiaDetailPage({
   return (
     <>
       <TopBar
-        title={kadhia.notes ?? "Ma Kadhia"}
+        title={kadhia.notes ?? t("client.kadhia.defaultTitle")}
         subtitle={
           kadhia.lines.length === 0
-            ? "Aucun article"
-            : `${articleCount} article${articleCount > 1 ? "s" : ""}`
+            ? t("client.kadhia.noItems")
+            : `${articleCount} ${articleCount > 1 ? t("client.itemsPlural") : t("client.itemsSingular")}`
         }
         backHref="/kadhia"
       />
@@ -239,10 +242,10 @@ export default function KadhiaDetailPage({
       {isPartialContext && (
         <div className="mb-4 rounded-lg border px-4 py-3" style={{ background: "var(--status-wait-bg)", borderColor: "var(--status-wait)" }}>
           <p className="text-sm font-bold" style={{ color: "var(--status-wait)" }}>
-            Ta Kadhia a été modifiée par le marchand.
+            {t("client.kadhia.partialTitle")}
           </p>
           <p className="mt-1 text-sm" style={{ color: "var(--status-wait)" }}>
-            Vérifie les articles ci-dessous puis re-soumets ta commande.
+            {t("client.kadhia.partialBody")}
           </p>
         </div>
       )}
@@ -251,12 +254,12 @@ export default function KadhiaDetailPage({
         <>
           <KadhiaNote kadhia={kadhia} onSaved={setKadhia} />
           <Card className="text-center mt-4">
-            <h3 className="mt-2 text-h3 font-extrabold">Ta Kadhia est vide</h3>
+            <h3 className="mt-2 text-h3 font-extrabold">{t("client.kadhia.emptyTitle")}</h3>
             <p className="mt-2 text-sm text-muted">
-              Ajoute des produits depuis le catalogue de ta supérette.
+              {t("client.kadhia.emptyBody")}
             </p>
             <Link href={catalogHref} className={getButtonClassName({ className: "mt-4" })}>
-              Aller au catalogue
+              {t("client.kadhia.goToCatalog")}
             </Link>
           </Card>
         </>
@@ -276,20 +279,20 @@ export default function KadhiaDetailPage({
 
           {quantityError && (
             <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
-              {quantityError}
+              {t("client.kadhia.quantityError")}
             </p>
           )}
 
           <Card className="mt-4">
             <Summary>
-              <SummaryRow label="Sous-total" value={formatTnd(kadhia.totalTnd)} />
-              <SummaryRow label="Service" value={formatTnd("0.000")} />
-              <SummaryRow total label="Total estimé" value={formatTnd(kadhia.totalTnd)} />
+              <SummaryRow label={t("client.kadhia.subtotal")} value={formatTnd(kadhia.totalTnd)} />
+              <SummaryRow label={t("client.kadhia.service")} value={formatTnd("0.000")} />
+              <SummaryRow total label={t("client.kadhia.totalEstimated")} value={formatTnd(kadhia.totalTnd)} />
             </Summary>
           </Card>
 
           <p className="mt-3 text-xs text-muted leading-relaxed">
-            Le prix sera figé au moment de la soumission de commande.
+            {t("client.kadhia.priceNote")}
           </p>
 
           {isDraft && (
@@ -299,10 +302,10 @@ export default function KadhiaDetailPage({
                 disabled={discarding}
                 className="text-sm text-red-500 underline disabled:opacity-50"
               >
-                {discarding ? "Suppression…" : "Supprimer cette Kadhia"}
+                {discarding ? t("client.kadhia.deleting") : t("client.kadhia.delete")}
               </button>
               {discardError && (
-                <p className="mt-2 text-sm text-red-600">{discardError}</p>
+                <p className="mt-2 text-sm text-red-600">{t("client.kadhia.deleteError")}</p>
               )}
             </div>
           )}
@@ -310,14 +313,14 @@ export default function KadhiaDetailPage({
           <StickyBottom>
             {isDraft ? (
               <Link href="/kadhia/slot" className={getButtonClassName({ full: true })}>
-                Choisir un créneau
+                {t("client.kadhia.chooseSlot")}
               </Link>
             ) : kadhia.orderId ? (
               <Link
                 href={`/orders/${kadhia.orderId}`}
                 className={getButtonClassName({ full: true })}
               >
-                Suivre la commande
+                {t("client.kadhia.trackOrder")}
               </Link>
             ) : null}
           </StickyBottom>

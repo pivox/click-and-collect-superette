@@ -23,8 +23,17 @@ vi.mock('@/lib/auth/ClientAuthContext', () => ({
 import MesKadhiasPage from '@/app/(client)/kadhia/page';
 import { listMyKadhias } from '@/lib/services';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
+import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 
 const MOCK_USER = { token: 'tok', email: 'client@test.com', name: 'Client' };
+
+function renderPage() {
+  return render(
+    <ClientLocaleProvider>
+      <MesKadhiasPage />
+    </ClientLocaleProvider>,
+  );
+}
 
 function mockAuth(user: typeof MOCK_USER | null, isLoading = false) {
   vi.mocked(useClientAuth).mockReturnValue({
@@ -64,12 +73,13 @@ function makeSubmittedItem() {
 describe('MesKadhiasPage (list)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     mockAuth(MOCK_USER);
   });
 
   it('affiche un squelette puis l\'état vide quand aucune Kadhia en cours', async () => {
     vi.mocked(listMyKadhias).mockResolvedValue(emptyResult);
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText(/Aucune Kadhia en cours/i)).toBeTruthy();
     });
@@ -77,7 +87,7 @@ describe('MesKadhiasPage (list)', () => {
 
   it('affiche une carte de Kadhia brouillon avec bouton Continuer', async () => {
     vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeDraftItem()], total: 1, page: 1, pages: 1 });
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('Épicerie Centrale')).toBeTruthy();
       expect(screen.getByText(/Continuer/i)).toBeTruthy();
@@ -88,7 +98,7 @@ describe('MesKadhiasPage (list)', () => {
 
   it('affiche le badge Brouillon pour les Kadhia draft', async () => {
     vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeDraftItem()], total: 1, page: 1, pages: 1 });
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('Brouillon')).toBeTruthy();
     });
@@ -96,7 +106,7 @@ describe('MesKadhiasPage (list)', () => {
 
   it('affiche une carte de Kadhia soumise avec bouton Voir', async () => {
     vi.mocked(listMyKadhias).mockResolvedValueOnce(emptyResult); // draft tab initial
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => screen.getByText(/Aucune Kadhia en cours/i));
 
     vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeSubmittedItem()], total: 1, page: 1, pages: 1 });
@@ -113,7 +123,7 @@ describe('MesKadhiasPage (list)', () => {
 
   it('affiche l\'état vide Envoyées quand aucune Kadhia soumise', async () => {
     vi.mocked(listMyKadhias).mockResolvedValue(emptyResult);
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => screen.getByText(/Aucune Kadhia en cours/i));
 
     const envoyeesTab = screen.getByText('Envoyées');
@@ -126,7 +136,7 @@ describe('MesKadhiasPage (list)', () => {
 
   it('appelle listMyKadhias avec "draft" et page 1 au chargement initial', async () => {
     vi.mocked(listMyKadhias).mockResolvedValue(emptyResult);
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => {
       expect(vi.mocked(listMyKadhias)).toHaveBeenCalledWith('draft', 1);
     });
@@ -135,14 +145,15 @@ describe('MesKadhiasPage (list)', () => {
   it('retourne null pendant le chargement de l\'auth', () => {
     mockAuth(null, true);
     vi.mocked(listMyKadhias).mockResolvedValue(emptyResult);
-    const { container } = render(<MesKadhiasPage />);
-    expect(container.firstChild).toBeNull();
+    const { container } = renderPage();
+    // The page renders nothing while auth is loading (the locale provider wrapper stays empty).
+    expect(container.textContent).toBe('');
   });
 
   it('affiche la note personnelle comme titre si elle est renseignée', async () => {
     const itemWithNote = { ...makeDraftItem(), notes: 'courses maison' };
     vi.mocked(listMyKadhias).mockResolvedValue({ items: [itemWithNote], total: 1, page: 1, pages: 1 });
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('courses maison')).toBeTruthy();
       expect(screen.getByText('Épicerie Centrale')).toBeTruthy();
@@ -151,7 +162,7 @@ describe('MesKadhiasPage (list)', () => {
 
   it('affiche le nom de la supérette comme titre quand aucune note n\'est présente', async () => {
     vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeDraftItem()], total: 1, page: 1, pages: 1 });
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('Épicerie Centrale')).toBeTruthy();
       // Seul le store name s'affiche comme titre — pas de duplicate
@@ -162,7 +173,7 @@ describe('MesKadhiasPage (list)', () => {
 
   it('affiche la pagination quand pages > 1', async () => {
     vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeDraftItem()], total: 25, page: 1, pages: 3 });
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText(/Page 1 \/ 3/i)).toBeTruthy();
       expect(screen.getByText(/Suivant/i)).toBeTruthy();
@@ -171,15 +182,26 @@ describe('MesKadhiasPage (list)', () => {
 
   it('ne affiche pas la pagination quand pages = 1', async () => {
     vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeDraftItem()], total: 1, page: 1, pages: 1 });
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.queryByText(/Page 1 \/ 1/i)).toBeNull();
     });
   });
 
+  it('affiche les libellés de la liste en arabe quand la langue est AR', async () => {
+    localStorage.setItem('client:lang', 'ar');
+    vi.mocked(listMyKadhias).mockResolvedValue(emptyResult);
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText('قيد التحضير')).toBeTruthy(); // tab "En cours"
+      expect(screen.getByText('المُرسلة')).toBeTruthy(); // tab "Envoyées"
+    });
+    localStorage.clear();
+  });
+
   it('réinitialise la page à 1 lors d\'un changement d\'onglet', async () => {
     vi.mocked(listMyKadhias).mockResolvedValue({ items: [makeDraftItem()], total: 25, page: 1, pages: 3 });
-    render(<MesKadhiasPage />);
+    renderPage();
     await waitFor(() => screen.getByText(/Page 1 \/ 3/i));
 
     // Simulate page 2
