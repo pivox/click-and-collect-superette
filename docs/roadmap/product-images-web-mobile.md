@@ -141,3 +141,10 @@ permet de préfixer une origine CDN/stockage objet sans changer le code.
 - Stockage local (`public/uploads/products/`) ; migration vers stockage objet à prévoir avant
   forte charge (le `ProductImageStorage` isole déjà cette responsabilité).
 - Contribution marchand et `ProductCandidate` : structure prête (statuts/source), flux UI non livrés.
+- **Unicité de l'image officielle non garantie en base** (limite acceptée, admin-only / faible
+  risque — même posture que la race condition slug documentée dans `AI_CONTEXT.md`). Deux uploads
+  admin simultanés sur le **même** `ProductReference` peuvent lire l'ancienne/absence d'image
+  officielle avant le flush de l'autre, laissant brièvement deux lignes `verified` (la lecture
+  retient la plus récente par `updatedAt`). Durcissement recommandé avant forte charge : index
+  unique partiel `product_reference_id WHERE status = 'verified'` + remplacement transactionnel
+  (suppression de l'ancienne avant insertion) avec gestion du conflit (409). Hors périmètre de ce lot.

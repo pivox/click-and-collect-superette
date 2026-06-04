@@ -59,7 +59,17 @@ final readonly class ProductImageApplicationService
         $image->setVariants($stored->variants);
 
         // When a verified image is attached to a product reference it becomes the
+        // When a verified image is attached to a product reference it becomes the
         // single official picture: clean up the previous one (DB row + files).
+        //
+        // Known limit (accepted, admin-only / low risk — same stance as the slug
+        // race documented in AI_CONTEXT.md): two admins uploading for the SAME
+        // reference at the exact same time can both read no/old official image
+        // before either flush, briefly leaving two `verified` rows; catalog/admin
+        // reads then pick the most recent by updatedAt. A DB-level guard (partial
+        // unique index on product_reference_id WHERE status = 'verified') plus a
+        // transactional delete-before-insert is the recommended hardening before
+        // high concurrency — see docs/roadmap/product-images-web-mobile.md.
         $replaced = null;
         if (ProductImageStatus::Verified === $status && null !== $command->productReference) {
             $replaced = $this->repository->findOfficialForProductReference($command->productReference);
