@@ -9,7 +9,9 @@ import { useSort } from '@/lib/hooks/useSort';
 import {
   listProductReferences,
   archiveProductReference,
+  toResponsiveProductImage,
 } from '@/lib/services/admin/product-references.service';
+import { ProductThumbnail } from '@/components/product/ProductThumbnail';
 import { runProductAiEnrichment } from '@/lib/services/admin/product-ai-enrichment.service';
 import { listBrands } from '@/lib/services/admin/brands.service';
 import { listCategories } from '@/lib/services/admin/categories.service';
@@ -133,6 +135,18 @@ export default function ProduitsPage() {
   };
 
   const columns: Column<ProductReference>[] = [
+    {
+      key: 'image',
+      label: '',
+      render: (row) => (
+        <ProductThumbnail
+          image={toResponsiveProductImage(row.image)}
+          nameFr={row.name_fr}
+          sizes="40px"
+          className="h-10 w-10 rounded-md text-base"
+        />
+      ),
+    },
     {
       key: 'name_fr',
       label: 'Produit',
@@ -315,6 +329,7 @@ export default function ProduitsPage() {
           onClose={() => { setDrawerOpen(false); setEditTarget(null); }}
           product={editTarget}
           onSaved={() => { setDrawerOpen(false); setEditTarget(null); void load(); }}
+          onChanged={() => { void load(); }}
         />
       )}
       <AdminConfirmDialog
