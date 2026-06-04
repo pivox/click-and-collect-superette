@@ -6,10 +6,20 @@ namespace App\Mapper;
 
 use App\ApiResource\StoreCatalogProductOutput;
 use App\Entity\MerchantProduct;
+use App\Entity\ProductImage;
+use App\Service\ProductImage\ProductImageUrlBuilder;
 
 final readonly class StoreCatalogProductMapper
 {
-    public function toOutput(MerchantProduct $merchantProduct): StoreCatalogProductOutput
+    public function __construct(
+        private ProductImageUrlBuilder $productImageUrlBuilder,
+    ) {
+    }
+
+    /**
+     * @param ?ProductImage $officialImage official image of the backing product reference, if any
+     */
+    public function toOutput(MerchantProduct $merchantProduct, ?ProductImage $officialImage = null): StoreCatalogProductOutput
     {
         $productReference = $merchantProduct->getProductReference();
         $localProduct = $merchantProduct->getLocalProduct();
@@ -28,6 +38,7 @@ final readonly class StoreCatalogProductMapper
             unit: $merchantProduct->getDisplayUnit()->value,
             priceTnd: $merchantProduct->getPriceTnd(),
             isAvailable: $merchantProduct->isAvailable(),
+            image: $this->productImageUrlBuilder->build($officialImage),
         );
     }
 }

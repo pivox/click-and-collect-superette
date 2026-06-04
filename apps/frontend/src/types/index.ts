@@ -48,6 +48,23 @@ export interface Shop {
 
 export type ProductCategory = string;
 
+export type ProductImageStatus = "verified" | "candidate" | "needs_review";
+
+/**
+ * Responsive product image exposed by the backend (S13-005 / US-041).
+ * URLs may be relative (resolve against the API origin via mediaUrl()).
+ */
+export interface ProductImage {
+  originalUrl: string | null;
+  thumbnailUrl: string | null; // 200px
+  cardUrl: string | null; // 400px
+  detailUrl: string | null; // 800px
+  zoomUrl: string | null; // 1200px
+  fallbackJpegUrl: string | null;
+  alt: string | null;
+  status: ProductImageStatus | null;
+}
+
 export interface ProductOffer {
   id: string;
   productReferenceId: string;
@@ -59,6 +76,8 @@ export interface ProductOffer {
   priceTnd: string;
   isAvailable: boolean;
   photoUrl: string | null;
+  /** Responsive official image, or null → category placeholder is shown. */
+  image?: ProductImage | null;
   category: ProductCategory;
   categoryNameFr?: string | null;
   categoryNameAr?: string | null;

@@ -7,8 +7,11 @@ namespace App\Provider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\AdminProductReferenceOutput;
+use App\ApiResource\ProductImageOutput;
 use App\Entity\ProductReference;
 use App\Repository\AdminProductReferenceRepository;
+use App\Repository\ProductImageRepository;
+use App\Service\ProductImage\ProductImageUrlBuilder;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -19,6 +22,8 @@ final readonly class AdminProductReferenceItemProvider implements ProviderInterf
 {
     public function __construct(
         private AdminProductReferenceRepository $adminProductReferenceRepository,
+        private ProductImageRepository $productImageRepository,
+        private ProductImageUrlBuilder $productImageUrlBuilder,
     ) {
     }
 
@@ -38,10 +43,14 @@ final readonly class AdminProductReferenceItemProvider implements ProviderInterf
             throw new NotFoundHttpException('ADMIN_PRODUCT_REFERENCE_NOT_FOUND');
         }
 
-        return self::toOutput($productReference);
+        $image = $this->productImageUrlBuilder->build(
+            $this->productImageRepository->findOfficialForProductReference($productReference),
+        );
+
+        return self::toOutput($productReference, $image);
     }
 
-    public static function toOutput(ProductReference $productReference): AdminProductReferenceOutput
+    public static function toOutput(ProductReference $productReference, ?ProductImageOutput $image = null): AdminProductReferenceOutput
     {
         return new AdminProductReferenceOutput(
             id: $productReference->getId()->toRfc4122(),
@@ -62,6 +71,7 @@ final readonly class AdminProductReferenceItemProvider implements ProviderInterf
             status: $productReference->getStatus()->value,
             createdAt: $productReference->getCreatedAt()->format(\DateTimeInterface::ATOM),
             updatedAt: $productReference->getUpdatedAt()->format(\DateTimeInterface::ATOM),
+            image: $image,
         );
     }
 }

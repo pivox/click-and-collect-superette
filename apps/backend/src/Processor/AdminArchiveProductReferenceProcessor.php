@@ -10,7 +10,9 @@ use App\ApiResource\AdminProductReferenceOutput;
 use App\Enum\ProductReferenceStatus;
 use App\Provider\AdminProductReferenceItemProvider;
 use App\Repository\AdminProductReferenceRepository;
+use App\Repository\ProductImageRepository;
 use App\Service\AdminAuditLogger;
+use App\Service\ProductImage\ProductImageUrlBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -23,6 +25,8 @@ final readonly class AdminArchiveProductReferenceProcessor implements ProcessorI
 {
     public function __construct(
         private AdminProductReferenceRepository $adminProductReferenceRepository,
+        private ProductImageRepository $productImageRepository,
+        private ProductImageUrlBuilder $productImageUrlBuilder,
         private AdminAuditLogger $auditLogger,
         #[Autowire(service: 'monolog.logger.admin')]
         private LoggerInterface $logger,
@@ -70,6 +74,10 @@ final readonly class AdminArchiveProductReferenceProcessor implements ProcessorI
             throw $e;
         }
 
-        return AdminProductReferenceItemProvider::toOutput($productReference);
+        $image = $this->productImageUrlBuilder->build(
+            $this->productImageRepository->findOfficialForProductReference($productReference),
+        );
+
+        return AdminProductReferenceItemProvider::toOutput($productReference, $image);
     }
 }

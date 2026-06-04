@@ -67,6 +67,17 @@ export interface UpdateBrandPayload {
   isActive?: boolean;
 }
 
+export interface ProductReferenceImage {
+  original_url: string | null;
+  thumbnail_url: string | null;
+  card_url: string | null;
+  detail_url: string | null;
+  zoom_url: string | null;
+  fallback_jpeg_url: string | null;
+  alt: string | null;
+  status: string | null;
+}
+
 export interface ProductReference {
   id: string;
   name_fr: string;
@@ -86,6 +97,8 @@ export interface ProductReference {
   status: string;
   created_at: string;
   updated_at: string;
+  /** Official image (responsive URLs), absent when none has been uploaded. */
+  image?: ProductReferenceImage | null;
 }
 
 export interface ProductReferenceListResponse {

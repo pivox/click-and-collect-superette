@@ -4,6 +4,7 @@ import type { KadhiaLine } from "@/types";
 import { Card } from "@/components/ui/Card";
 import { QtyControl } from "@/components/ui/QtyControl";
 import { formatTnd } from "@/lib/format";
+import { ProductThumbnail } from "./ProductThumbnail";
 
 export interface KadhiaLineRowProps {
   line: KadhiaLine;
@@ -18,9 +19,13 @@ export function KadhiaLineRow({ line, onQuantity }: KadhiaLineRowProps) {
   const p = line.productOffer;
   return (
     <Card compact className="flex items-center gap-3">
-      <div className="grid h-[54px] w-[54px] flex-shrink-0 place-items-center rounded-md bg-product-tile text-2xl">
-        {p.emoji ?? p.nameFr.charAt(0)}
-      </div>
+      <ProductThumbnail
+        image={p.image}
+        nameFr={p.nameFr}
+        emoji={p.emoji}
+        sizes="54px"
+        className="h-[54px] w-[54px] flex-shrink-0 rounded-md text-2xl"
+      />
       <div className="flex-1 min-w-0">
         <strong className="block text-sm truncate">
           {p.nameFr}

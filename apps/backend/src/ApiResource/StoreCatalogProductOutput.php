@@ -44,6 +44,10 @@ final readonly class StoreCatalogProductOutput
         #[Groups(['store_catalog:read'])]
         #[SerializedName('is_available')]
         public bool $isAvailable,
+        // Official product image (responsive URLs), or null → frontend shows the
+        // category placeholder. A missing image never blocks the product.
+        #[Groups(['store_catalog:read'])]
+        public ?ProductImageOutput $image = null,
     ) {
     }
 }

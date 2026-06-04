@@ -528,7 +528,7 @@ Rapport de clôture complet : `docs/Sprint7/completion-report.md`.
 |---|---|---|---|
 | Sprint 0 | Documentation | — | ✅ Complet |
 | Sprint Auth | US-034, US-035, US-046 | P0 | ✅ Backend terminé |
-| Sprint 1 | US-013 à US-016, US-041 | P0 | ✅ Partiel (US-041 manquante) |
+| Sprint 1 | US-013 à US-016, US-041 | P0 | ✅ Complet (US-041 livrée S13-005) |
 | Sprint 2 | US-001 à US-004, US-017 à US-021, US-031 à US-033, US-042, US-044, US-048 | P0 | ✅ Partiel (3 US manquantes) |
 | Sprint 3 | US-005, US-006, US-022, US-023, US-024, US-036, US-037, US-040, US-045, US-051 | P0 | ✅ Backend terminé |
 | Sprint 3b | US-043, US-047, US-049, US-052, US-053, US-056, US-057 | P1 | ✅ Backend terminé |
@@ -536,3 +536,14 @@ Rapport de clôture complet : `docs/Sprint7/completion-report.md`.
 | Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | ✅ Backend terminé |
 | Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
 | Sprint 7 | US-008, US-058, US-059, US-060, US-061, US-062, US-063 | P2 | 🟡 À implémenter |
+| Sprint 13 | US-041 (#391 / S13-005) | P0 | ✅ Livré (images produits web/mobile) |
+
+### Sprint 13 — Catalogue intelligent & qualité
+
+- **#391 / S13-005 — Gestion optimisée des images produits web/mobile** : réactivation
+  d'US-041. Upload admin (`POST /api/admin/product-references/{id}/image`), original
+  conservé, variantes WebP 200/400/800/1200, fallback JPEG, placeholder catégorie,
+  exposition API responsive (catalogue public + détail admin). Pipeline image commun
+  réutilisable (`ProductImageApplicationService`) appelable par l'enrichissement IA
+  comme image `candidate` / `needs_review` sans jamais devenir officielle automatiquement.
+  Détails : `docs/roadmap/product-images-web-mobile.md`.
