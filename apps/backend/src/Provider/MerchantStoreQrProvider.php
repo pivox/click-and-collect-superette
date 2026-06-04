@@ -9,6 +9,7 @@ use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\MerchantStoreQrOutput;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\MerchantStoreQrTargetUrlFactory;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -20,6 +21,7 @@ final readonly class MerchantStoreQrProvider implements ProviderInterface
     public function __construct(
         private ShopRepository $shopRepository,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
+        private MerchantStoreQrTargetUrlFactory $targetUrlFactory,
     ) {
     }
 
@@ -46,7 +48,7 @@ final readonly class MerchantStoreQrProvider implements ProviderInterface
             storeName: $shop->getName(),
             slug: $shop->getSlug(),
             qrCodeToken: $shop->getQrCodeToken(),
-            targetUrl: \sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()),
+            targetUrl: $this->targetUrlFactory->create($shop),
         );
     }
 }
