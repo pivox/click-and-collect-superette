@@ -427,6 +427,8 @@ Rapport de clôture complet : `docs/Sprint7/completion-report.md`.
 ---
 
 > **Sprints 8 et 9 — livrés sur `main`** (voir `CLAUDE.md`) : catalogue marchand (produits locaux, bulk multi-format, `ProductFamily`, `pack_quantity`) et Kadhia multi + UX. Le cœur MVP (Sprints 0–9) est en place. Les sprints suivants couvrent la **mise sur le marché** : bêta terrain, monétisation, support, catalogue scalable, mobile, croissance, natif.
+>
+> **Note suivi GitHub** : `#381` est la PR de consolidation de cette roadmap, pas une user story. La séquence des tickets US passe donc de `#380` à `#382`.
 
 ---
 
@@ -464,7 +466,7 @@ Transformer l'application en produit monétisable. Modèle : 3 mois gratuits →
 - **US-075** ([#360](https://github.com/pivox/click-and-collect-superette/issues/360)) · EPIC-017 · *Must* — Statuts : séparer **lifecycle** (`active`/`payment_due`/`grace_period`/`suspended`/`cancelled`) et **phase tarifaire** (`trial`/`promo`/`standard`).
 - **US-076** ([#361](https://github.com/pivox/click-and-collect-superette/issues/361)) · EPIC-017 · *Must* — Reçu / facture mensuelle — **à cadrer fiscalement** (matricule, TVA, timbre) avant le modèle de données.
 - **US-077** ([#362](https://github.com/pivox/click-and-collect-superette/issues/362)) · EPIC-017 · *Must* — Paiement manuel (espèces / virement) + validation admin.
-- **US-078** ([#363](https://github.com/pivox/click-and-collect-superette/issues/363)) · EPIC-018 · *Must* — Relances paiement (email + WhatsApp manuel) — **inclut l'infra email** (`symfony/mailer` à installer ; l'envoi actuel est `@mail()` natif).
+- **US-078** ([#363](https://github.com/pivox/click-and-collect-superette/issues/363)) · EPIC-018 · *Must* — Relances paiement par email — **inclut l'infra email** (`symfony/mailer` à installer ; l'envoi actuel est `@mail()` natif).
 - **US-079** ([#364](https://github.com/pivox/click-and-collect-superette/issues/364)) · EPIC-018 · *Should* — Suspension douce et réactivation (conserve catalogue/historique/images, bloque les nouvelles commandes).
 - **US-080** ([#365](https://github.com/pivox/click-and-collect-superette/issues/365)) · EPIC-019 · *Must* — Import CSV + scan code-barres (onboarding catalogue minimum) — **remonté du Sprint 13** car levier de conversion essai → payant.
 
