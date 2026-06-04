@@ -8,6 +8,8 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Button, getButtonClassName } from "@/components/ui/Button";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
+import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
+import { LanguageToggle } from "@/components/layout/LanguageToggle";
 import { updateProfile, deleteAccount } from "@/lib/services/auth.service";
 
 const MAX_NAME_LENGTH = 100;
@@ -38,6 +40,7 @@ function ProfileEditForm({
   onSaved: (name: string) => void;
   onCancel: () => void;
 }) {
+  const { t } = useClientLocale();
   const { firstName: initFirst, lastName: initLast } = splitName(currentName);
   const [firstName, setFirstName] = useState(initFirst);
   const [lastName, setLastName] = useState(initLast);
@@ -54,7 +57,7 @@ function ProfileEditForm({
       const result = await updateProfile(firstName.trim(), lastName.trim());
       onSaved(result.name);
     } catch {
-      setError("Impossible de mettre à jour le profil. Réessaie.");
+      setError(t("client.profile.updateError"));
     } finally {
       setSaving(false);
     }
@@ -64,7 +67,7 @@ function ProfileEditForm({
     <div className="grid gap-3">
       <div className="grid gap-1.5">
         <label htmlFor="firstName" className="text-xs font-extrabold text-muted uppercase tracking-wide">
-          Prénom
+          {t("client.profile.firstName")}
         </label>
         <input
           id="firstName"
@@ -72,13 +75,13 @@ function ProfileEditForm({
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           maxLength={MAX_NAME_LENGTH}
-          placeholder="Prénom"
+          placeholder={t("client.profile.firstName")}
           className="rounded-md border border-line bg-soft px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
       <div className="grid gap-1.5">
         <label htmlFor="lastName" className="text-xs font-extrabold text-muted uppercase tracking-wide">
-          Nom
+          {t("client.profile.lastName")}
         </label>
         <input
           id="lastName"
@@ -86,17 +89,17 @@ function ProfileEditForm({
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
           maxLength={MAX_NAME_LENGTH}
-          placeholder="Nom"
+          placeholder={t("client.profile.lastName")}
           className="rounded-md border border-line bg-soft px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
         <Button variant="ghost" size="md" onClick={onCancel} disabled={saving}>
-          Annuler
+          {t("client.profile.cancel")}
         </Button>
         <Button size="md" onClick={() => void handleSave()} disabled={saving || !valid}>
-          {saving ? "Enregistrement…" : "Enregistrer"}
+          {saving ? t("client.profile.saving") : t("client.profile.save")}
         </Button>
       </div>
     </div>
@@ -106,6 +109,7 @@ function ProfileEditForm({
 const CONFIRM_WORD = "SUPPRIMER";
 
 function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
+  const { t } = useClientLocale();
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -121,7 +125,7 @@ function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
       await deleteAccount();
       onDeleted();
     } catch {
-      setError("Impossible de supprimer le compte. Réessaie.");
+      setError(t("client.profile.deleteError"));
       setDeleting(false);
     }
   };
@@ -140,7 +144,7 @@ function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
           onClick={() => setOpen(true)}
           className="w-full text-left text-sm font-extrabold text-red-600 hover:text-red-700"
         >
-          Supprimer mon compte
+          {t("client.profile.deleteAccount")}
         </button>
       </Card>
 
@@ -154,15 +158,16 @@ function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
             className="relative w-full max-w-sm rounded-xl bg-card p-6 shadow-floating"
           >
             <h3 id="delete-account-title" className="mb-2 font-black text-ink">
-              Supprimer mon compte
+              {t("client.profile.deleteAccount")}
             </h3>
             <p className="mb-4 text-sm text-muted">
-              Es-tu sûr de vouloir supprimer ton compte ? Toutes tes données seront effacées de manière
-              irréversible. Cette action est définitive.
+              {t("client.profile.deleteConfirmMessage")}
             </p>
             <div className="mb-5 grid gap-1.5">
               <label htmlFor="confirm-delete" className="text-xs font-extrabold text-muted uppercase tracking-wide">
-                Saisis <span className="text-red-600">{CONFIRM_WORD}</span> pour confirmer
+                {t("client.profile.deleteConfirmPrefix")}{" "}
+                <span className="text-red-600">{CONFIRM_WORD}</span>{" "}
+                {t("client.profile.deleteConfirmSuffix")}
               </label>
               <input
                 id="confirm-delete"
@@ -183,10 +188,10 @@ function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
                 disabled={!canConfirm || deleting}
                 className="flex-1"
               >
-                {deleting ? "Suppression…" : "Confirmer la suppression"}
+                {deleting ? t("client.profile.deleting") : t("client.profile.deleteConfirm")}
               </Button>
               <Button variant="ghost" size="md" onClick={handleClose} disabled={deleting} className="flex-1">
-                Annuler
+                {t("client.profile.cancel")}
               </Button>
             </div>
           </div>
@@ -198,6 +203,7 @@ function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
 
 export default function ProfilePage() {
   const { user, logout, isLoading, updateUser } = useClientAuth();
+  const { t } = useClientLocale();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [savedMessage, setSavedMessage] = useState(false);
@@ -228,24 +234,24 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <>
-        <TopBar title="Mon compte" />
+        <TopBar title={t("client.profile.title")} />
         <Card className="text-center">
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-soft">
             <User size={28} className="text-primary" />
           </div>
-          <h2 className="m-0 text-h2 font-black">Bienvenue</h2>
+          <h2 className="m-0 text-h2 font-black">{t("client.profile.welcome")}</h2>
           <p className="mt-2 text-sm text-muted">
-            Connecte-toi pour accéder à ta Kadhia et suivre tes commandes.
+            {t("client.profile.notLoggedMessage")}
           </p>
           <div className="mt-6 grid gap-3">
             <Link href="/login" className={getButtonClassName({ full: true })}>
-              Se connecter
+              {t("client.nav.signIn")}
             </Link>
             <Link
               href="/register"
               className={getButtonClassName({ full: true, variant: "ghost" })}
             >
-              Créer un compte
+              {t("client.nav.register")}
             </Link>
           </div>
         </Card>
@@ -257,7 +263,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <TopBar title="Mon compte" backHref="/" />
+      <TopBar title={t("client.profile.title")} backHref="/" />
 
       <Card>
         <div className="flex items-center gap-4">
@@ -266,7 +272,7 @@ export default function ProfilePage() {
           </div>
           <div className="min-w-0">
             <strong className="block truncate text-base">
-              Bienvenue{user.name ? `, ${user.name}` : ""} 👋
+              {t("client.profile.welcome")}{user.name ? `, ${user.name}` : ""} 👋
             </strong>
             <span className="block truncate text-sm text-muted">{user.email}</span>
           </div>
@@ -275,21 +281,21 @@ export default function ProfilePage() {
 
       <section className="mt-4">
         <div className="mb-2.5 flex items-center justify-between">
-          <h3 className="text-h3 font-extrabold">Mes informations</h3>
+          <h3 className="text-h3 font-extrabold">{t("client.profile.myInfo")}</h3>
           {!editing && (
             <button
               type="button"
               onClick={() => setEditing(true)}
               className="text-xs font-extrabold text-primary underline"
             >
-              Modifier
+              {t("client.profile.edit")}
             </button>
           )}
         </div>
         <Card>
           {savedMessage && (
             <p className="mb-3 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700">
-              Profil mis à jour.
+              {t("client.profile.saved")}
             </p>
           )}
           {editing ? (
@@ -301,15 +307,15 @@ export default function ProfilePage() {
           ) : (
             <div className="grid gap-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-muted">Prénom</span>
+                <span className="text-muted">{t("client.profile.firstName")}</span>
                 <span className="font-extrabold">{splitName(user.name).firstName || "—"}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted">Nom</span>
+                <span className="text-muted">{t("client.profile.lastName")}</span>
                 <span className="font-extrabold">{splitName(user.name).lastName || "—"}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted">Email</span>
+                <span className="text-muted">{t("client.profile.email")}</span>
                 <span className="font-extrabold text-muted">{user.email}</span>
               </div>
             </div>
@@ -323,15 +329,25 @@ export default function ProfilePage() {
             href="/orders"
             className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-extrabold hover:bg-soft"
           >
-            Mes commandes
+            {t("client.profile.myOrders")}
           </Link>
           <Link
             href="/kadhia"
             className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-extrabold hover:bg-soft"
           >
-            Ma Kadhia
+            {t("client.profile.myKadhia")}
           </Link>
         </nav>
+      </Card>
+
+      <Card className="mt-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <strong className="block text-sm font-extrabold">{t("client.language.label")}</strong>
+            <span className="block text-xs text-muted">{t("client.language.description")}</span>
+          </div>
+          <LanguageToggle />
+        </div>
       </Card>
 
       <Card className="mt-4">
@@ -341,13 +357,13 @@ export default function ProfilePage() {
           className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-extrabold text-red-600 hover:bg-red-50"
         >
           <LogOut size={16} />
-          Se déconnecter
+          {t("client.profile.logout")}
         </button>
       </Card>
 
       {deletedMessage ? (
         <Card className="mt-4 border border-red-200 bg-red-50">
-          <p className="text-sm font-bold text-red-700">Ton compte a été supprimé. Redirection…</p>
+          <p className="text-sm font-bold text-red-700">{t("client.profile.deleted")}</p>
         </Card>
       ) : (
         <DeleteAccountSection onDeleted={handleDeleted} />
