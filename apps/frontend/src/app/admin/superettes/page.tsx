@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { AlertTriangle, CheckCircle, CircleHelp } from 'lucide-react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
 import { StoreDrawer } from '@/components/admin/superettes/StoreDrawer';
@@ -10,8 +11,9 @@ import {
   archiveStore,
   activateStore,
   deactivateStore,
+  getStoreActivationChecklist,
 } from '@/lib/services/admin/stores.service';
-import type { Store } from '@/lib/types/admin/stores.types';
+import type { Store, StoreActivationChecklist } from '@/lib/types/admin/stores.types';
 
 const PAGE_SIZE = 20;
 
@@ -26,8 +28,19 @@ export default function SuperettesPage() {
   const [editTarget, setEditTarget] = useState<Store | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<Store | null>(null);
   const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
+  const [activationByStoreId, setActivationByStoreId] = useState<Record<string, StoreActivationChecklist | null>>({});
 
   const { sorted, sortKey, sortDir, toggleSort } = useSort(stores);
+
+  const loadActivationChecklist = useCallback(async (storeId: string) => {
+    try {
+      return await getStoreActivationChecklist(storeId);
+    } catch (err) {
+      console.error('[superettes] getStoreActivationChecklist failed', err);
+
+      return null;
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -40,6 +53,10 @@ export default function SuperettesPage() {
       });
       setStores(data.items);
       setTotal(data.total);
+      const activationEntries = data.items.map(
+        (store) => [store.id, store.activation_checklist ?? null] as const,
+      );
+      setActivationByStoreId(Object.fromEntries(activationEntries));
     } catch (err) {
       console.error('[superettes] listStores failed', err);
       setError('Impossible de charger les supérettes.');
@@ -81,6 +98,12 @@ export default function SuperettesPage() {
       // When a status filter is active, the toggled row may no longer belong — reload.
       if (isActiveFilter !== '') {
         void load();
+      } else {
+        const checklist = await loadActivationChecklist(toggledId);
+        setActivationByStoreId((current) => ({
+          ...current,
+          [toggledId]: checklist,
+        }));
       }
     } catch {
       setStores((current) =>
@@ -104,16 +127,19 @@ export default function SuperettesPage() {
             <div className="max-w-xs truncate text-xs text-muted">{row.slug}</div>
           )}
           {!row.archived_at && (
-            <span
-              className={`mt-1 inline-block rounded-full px-1.5 py-0.5 text-xs font-medium ${
-                row.products_count > 0
-                  ? 'bg-green-50 text-green-600'
-                  : 'bg-yellow-50 text-yellow-600'
-              }`}
-            >
-              {row.products_count > 0 ? '✓' : '!'}{' '}
-              {row.products_count} produit{row.products_count > 1 ? 's' : ''}
-            </span>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-medium ${
+                  row.products_count > 0
+                    ? 'bg-green-50 text-green-600'
+                    : 'bg-yellow-50 text-yellow-600'
+                }`}
+              >
+                {row.products_count > 0 ? '✓' : '!'}{' '}
+                {row.products_count} produit{row.products_count > 1 ? 's' : ''}
+              </span>
+              <ActivationBadge checklist={activationByStoreId[row.id]} />
+            </div>
           )}
         </div>
       ),
@@ -250,5 +276,41 @@ export default function SuperettesPage() {
         variant="warning"
       />
     </div>
+  );
+}
+
+function ActivationBadge({ checklist }: { checklist?: StoreActivationChecklist | null }) {
+  if (checklist === undefined) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-soft px-1.5 py-0.5 text-xs font-medium text-muted">
+        <CircleHelp className="h-3 w-3" aria-hidden="true" />
+        Activation…
+      </span>
+    );
+  }
+
+  if (checklist === null) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-500">
+        <CircleHelp className="h-3 w-3" aria-hidden="true" />
+        Activation indisponible
+      </span>
+    );
+  }
+
+  if (checklist.ready) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-600">
+        <CheckCircle className="h-3 w-3" aria-hidden="true" />
+        Prête
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-yellow-50 px-1.5 py-0.5 text-xs font-medium text-yellow-700">
+      <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+      Incomplète {checklist.required_completed_count}/{checklist.required_total_count}
+    </span>
   );
 }

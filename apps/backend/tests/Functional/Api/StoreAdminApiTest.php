@@ -47,6 +47,8 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertTrue($payload['items'][0]['is_active']);
         self::assertSame($shop->getQrCodeToken(), $payload['items'][0]['qr_code_token']);
         self::assertSame(2, $payload['items'][0]['products_count']);
+        self::assertArrayHasKey('activation_checklist', $payload['items'][0]);
+        self::assertFalse($payload['items'][0]['activation_checklist']['ready']);
         self::assertSame($merchant->getId()->toRfc4122(), $payload['items'][0]['owner']['id']);
         self::assertSame('merchant-store-list@example.test', $payload['items'][0]['owner']['email']);
         self::assertArrayHasKey('created_at', $payload['items'][0]);

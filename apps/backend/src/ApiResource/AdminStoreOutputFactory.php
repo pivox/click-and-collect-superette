@@ -13,6 +13,7 @@ final readonly class AdminStoreOutputFactory
         int $productsCount,
         int $exceptionalClosuresCount = 0,
         int $pickupRulesCount = 0,
+        ?AdminStoreActivationChecklistOutput $activationChecklist = null,
     ): AdminStoreOutput {
         $owner = $shop->getOwner();
         $theme = $shop->getTheme();
@@ -40,6 +41,7 @@ final readonly class AdminStoreOutputFactory
             coverUrl: $shop->getCoverUrl(),
             archivedAt: $shop->getArchivedAt()?->format(\DateTimeInterface::ATOM),
             archiveReason: $shop->getArchiveReason(),
+            activationChecklist: $activationChecklist,
         );
     }
 }
