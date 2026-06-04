@@ -1,8 +1,26 @@
 # US-041 — Afficher les photos des produits dans le catalogue
 
 **Epic** : EPIC-011 — Référentiel produit et catalogue marchand
-**Sprint** : Sprint 1 — Référentiel produit et catalogue marchand
+**Sprint** : Sprint 1 (réactivée et livrée en Sprint 13 — #391 / S13-005)
 **Priorité** : Must Have
+**Statut** : ✅ Livré (S13-005)
+
+---
+
+## État livré (S13-005)
+
+L'implémentation diffère des notes techniques initiales (CDN S3 + champ unique `imageUrl`) :
+une entité dédiée `ProductImage` et un **pipeline image commun** sont utilisés.
+
+- Upload admin : `POST /api/admin/product-references/{id}/image` (multipart, `ROLE_ADMIN`).
+  Suppression : `DELETE …/image`.
+- Formats : JPEG, PNG, WebP · max 2 Mo · min 400×400 px · validation du contenu réel.
+- Original conservé + variantes **WebP 200/400/800/1200** + **fallback JPEG** ;
+  **placeholder catégorie** si aucune image.
+- Exposition responsive (objet `image`) dans le catalogue public client et le détail/liste admin.
+- Pipeline réutilisable (`ProductImageApplicationService`) appelable par l'enrichissement IA :
+  une image IA est stockée `needs_review` et **ne devient jamais officielle automatiquement**.
+- Détails complets : `docs/roadmap/product-images-web-mobile.md`.
 
 ---
 
