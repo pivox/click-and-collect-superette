@@ -121,6 +121,8 @@ final readonly class AdminBetaMetricsProvider implements ProviderInterface
             ->andWhere('log.createdAt >= :dateFrom')
             ->andWhere('log.createdAt < :dateTo')
             ->andWhere('log.status IN (:statuses)')
+            ->andWhere('shop.active = true')
+            ->andWhere('shop.archivedAt IS NULL')
             ->groupBy('shop.id')
             ->addGroupBy('shop.name')
             ->addGroupBy('log.status')

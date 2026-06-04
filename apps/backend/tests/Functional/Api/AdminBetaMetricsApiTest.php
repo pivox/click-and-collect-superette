@@ -20,6 +20,7 @@ final class AdminBetaMetricsApiTest extends FunctionalApiTestCase
         $shopA = $this->createShop();
         $shopB = $this->createShop();
         $this->createShop(active: true);
+        $inactiveShop = $this->createShop(active: false);
 
         $orderA = $this->createOrder($customer, $shopA);
         $this->createLog($orderA, OrderStatus::Submitted, '2026-06-02T09:00:00+01:00');
@@ -38,6 +39,10 @@ final class AdminBetaMetricsApiTest extends FunctionalApiTestCase
         $outside = $this->createOrder($customer, $shopB);
         $this->createLog($outside, OrderStatus::Submitted, '2026-05-30T09:00:00+01:00');
         $this->createLog($outside, OrderStatus::Completed, '2026-05-30T10:00:00+01:00');
+
+        $inactiveOrder = $this->createOrder($customer, $inactiveShop);
+        $this->createLog($inactiveOrder, OrderStatus::Submitted, '2026-06-05T09:00:00+01:00');
+        $this->createLog($inactiveOrder, OrderStatus::Completed, '2026-06-05T10:00:00+01:00');
 
         $response = $this->requestJson('GET', '/api/admin/beta-metrics?date_from=2026-06-01&date_to=2026-06-30', user: $admin);
 
