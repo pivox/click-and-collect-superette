@@ -67,7 +67,7 @@ Exclus du MVP :
 
 ## Avancement global
 
-- État au 4 juin 2026 : cœur MVP Sprints 0-9 livré sur `main`; phase go-to-market ouverte (Sprints 10-16).
+- État au 4 juin 2026 : cœur MVP Sprints 0-9 livré sur `main`; Sprint 10 presque terminé côté go-to-market.
 - Backend MVP : 100 % (Sprint 7 audité et clôturé — S7-008 livré ; S7-009 transport Messenger persistant livré).
 - Produit terrain testable : environ 95 % — parcours client complet validé par simulation Playwright (rapport `docs/qa/client-journey-simulation-report-v2.md`) et frontend marchand avancé livré.
 - Sprint 6 (personnalisation visuelle) : implémenté côté backend (`PlatformTheme`, `ShopTheme`, thème public par supérette).
@@ -76,9 +76,10 @@ Exclus du MVP :
 - Frontend client livré : parcours inscription → catalogue → Kadhia → suivi commande fonctionnel, notifications client, QR de retrait, confirmation client, thèmes supérette, liste/sélection supérettes, i18n FR/AR avec RTL client (S14-004 / #401).
 - Frontend marchand livré : login, dashboard, commandes actives, détail et actions jusqu'à `ready`, retrait sécurisé, historique, notifications, catalogue, créneaux/règles/fermetures/horaires, onboarding, QR magasin, thème/apparence, paramètres profil/compte/langue et export CSV.
 - Images produits web/mobile livrées : S13-005 / #391 (upload admin, original conservé, variantes WebP responsive, fallback JPEG, placeholder catégorie, exposition API).
-- Non livré ou ouvert : US-059 / #374 PWA client, #375 PWA marchand, #376 push notifications, #379 accessibilité minimum WCAG, #352 validation worker async en production, #353 monitoring jobs, #354 KPI terrain, #355 QR magasin PNG/PDF, #356 checklist d'activation supérette.
+- Sprint 10 livré hors reliquat #356 : #352 validation worker async en production (runbook + checklist), #353 monitoring jobs (`GET /api/admin/ops/messenger`), #354 KPI terrain (`GET /api/admin/beta-metrics`), #355 QR magasin PNG/PDF côté marchand.
+- Non livré ou ouvert : US-059 / #374 PWA client, #375 PWA marchand, #376 push notifications, #379 accessibilité minimum WCAG, #356 checklist d'activation supérette.
 - S7-009 livré : transport Messenger persistant (`doctrine://default`), `failure_transport`, `retry_strategy`, migration `messenger_messages`, config Supervisor — R1 et R2 résolus.
-- Prochaine priorité recommandée : **EPIC-015 — Fiabilité & observabilité production** (Sprint 10), avant PWA, monétisation ou croissance. Ordre conseillé : #352 worker async production, #353 monitoring jobs, #354 KPI terrain. Ensuite EPIC-016 activation terrain, surtout #355 QR PNG/PDF et #356 checklist d'activation supérette.
+- Prochaine priorité recommandée : terminer le reliquat Sprint 10 **#356 — checklist d'activation supérette**. EPIC-015 est livré ; EPIC-016 est livré pour le QR imprimable (#355) mais reste incomplet tant que la checklist d'activation n'existe pas.
 - Documentation API OpenAPI exposée publiquement : `docs_formats` configuré dans `api_platform.yaml` (`json`, `html`, `jsonopenapi`, `yamlopenapi`) — endpoints accessibles sans auth sur `/api/docs.json`, `/api/docs.html`, `/api/docs.jsonopenapi`, `/api/docs.yamlopenapi`.
 - PHPStan niveau 8 : 0 erreur. CS Fixer : 0 diff. `lint:container` : OK.
 

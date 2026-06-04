@@ -17,7 +17,7 @@ L'objectif est de simplifier les courses du quotidien dans les supérettes tunis
 
 ## État du projet au 4 juin 2026
 
-Le cœur MVP est livré sur `main` : Sprints 0 à 9, backend Symfony/API Platform, frontend client, backoffice admin et espace marchand.
+Le cœur MVP est livré sur `main` : Sprints 0 à 9, backend Symfony/API Platform, frontend client, backoffice admin et espace marchand. Le Sprint 10 est presque terminé : il ne reste que la checklist d'activation supérette (#356) comme reliquat Must.
 
 Blocs livrés :
 
@@ -26,6 +26,7 @@ Blocs livrés :
 - parcours marchand : commandes actives, acceptation/refus/acceptation partielle, préparation, retrait sécurisé, historique, notifications, catalogue, créneaux, horaires, fermetures, QR magasin, thème, paramètres, onboarding et export CSV ;
 - backoffice admin : auth admin, marchands, supérettes, référentiel produit, propositions, audit logs, dashboard KPI ;
 - backend opérationnel : créneaux récurrents, fermetures exceptionnelles, délais automatiques, transport Messenger Doctrine, Supervisor, healthcheck, diagnostics et audit trail ;
+- Sprint 10 fiabilité/terrain : runbook worker async, monitoring Messenger admin, KPI bêta admin et QR magasin imprimable PNG/PDF côté marchand ;
 - personnalisation visuelle par supérette ;
 - images produits web/mobile livrées via S13-005 ;
 - i18n client français / arabe avec RTL livré via S14-004 (#401).
@@ -35,10 +36,9 @@ Limites ouvertes :
 - PWA client et marchand non livrée ;
 - push notifications non livrées ;
 - accessibilité WCAG de base non auditée ;
-- validation terrain du worker async, monitoring jobs et KPI bêta encore à traiter ;
-- QR magasin imprimable PNG/PDF et checklist d'activation supérette encore à traiter.
+- checklist d'activation supérette (#356) encore à traiter avant une activation bêta plus cadrée.
 
-Priorité recommandée : **EPIC-015 — Fiabilité & observabilité production** avant PWA, monétisation ou croissance. Ordre conseillé : #352 worker async production, #353 monitoring jobs, #354 KPI terrain.
+Priorité recommandée : terminer **#356 — checklist d'activation supérette**. EPIC-015 (#352-#354) et le QR imprimable marchand (#355) sont livrés.
 
 Issue documentaire courante : [#405](https://github.com/pivox/click-and-collect-superette/issues/405).
 

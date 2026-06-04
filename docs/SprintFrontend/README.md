@@ -48,7 +48,7 @@ Ce sprint frontend consume les API backend livrées en Sprint 4 (commandes, suiv
 - PWA installable et mode hors ligne
 - Accessibilité WCAG 2.1 AA
 - Push notifications client + marchand
-- Durcissement terrain : worker async production, monitoring jobs, KPI bêta, QR PNG/PDF imprimable, checklist d'activation supérette
+- Durcissement terrain : il reste surtout #356 checklist d'activation supérette ; worker async production, monitoring jobs, KPI bêta et QR PNG/PDF imprimable sont livrés.
 
 ## Documents détaillés
 

@@ -28,7 +28,7 @@ afin de **contrôler quelles supérettes sont accessibles aux clients et aux mar
 4. Il associe un compte marchand propriétaire (optionnel à la création).
 5. Le système génère un `qrCodeToken` opaque unique (UUID v4).
 6. La supérette est créée en statut `active`.
-7. L'administrateur peut télécharger le QR code au format PNG pour impression.
+7. L'administrateur peut consulter le contrat QR et le marchand peut télécharger les assets imprimables depuis son espace.
 
 ---
 
@@ -61,7 +61,7 @@ afin de **contrôler quelles supérettes sont accessibles aux clients et aux mar
 
 1. En cas de compromission ou d'impression défectueuse, l'administrateur peut régénérer le `qrCodeToken`.
 2. L'ancien token est immédiatement invalidé.
-3. Un nouveau QR code est disponible au téléchargement.
+3. Le contrat QR admin expose le nouveau token ; les anciens QR physiques deviennent invalides.
 
 ---
 
@@ -79,7 +79,7 @@ afin de **contrôler quelles supérettes sont accessibles aux clients et aux mar
 
 - [ ] L'administrateur peut créer une supérette avec nom, adresse et ville.
 - [ ] Un `qrCodeToken` unique est généré automatiquement.
-- [ ] Le QR code est téléchargeable au format PNG.
+- [x] Le contrat QR admin est consultable.
 - [ ] L'administrateur peut modifier les informations d'une supérette.
 - [ ] L'administrateur peut désactiver / réactiver une supérette.
 - [ ] L'administrateur peut associer un marchand existant comme propriétaire.
@@ -99,7 +99,7 @@ PATCH  /api/admin/stores/{storeId}/deactivate
 PATCH  /api/admin/stores/{storeId}/activate
 PATCH  /api/admin/stores/{storeId}/owner       { "merchantId": "<uuid>" }
 POST   /api/admin/stores/{storeId}/regenerate-qr
-GET    /api/admin/stores/{storeId}/qr.png      (retourne le PNG du QR code)
+GET    /api/admin/stores/{storeId}/qr-code
 ```
 
 **Payload POST :**
@@ -115,4 +115,4 @@ GET    /api/admin/stores/{storeId}/qr.png      (retourne le PNG du QR code)
 - Le slug est dérivé du nom (slugify) et suffixé si doublon.
 - Le `qrCodeToken` est généré par `Uuid::v4()->toRfc4122()`.
 - Sécurité : `^/api/admin` → `ROLE_ADMIN` (security.yaml).
-- QR code PNG : bibliothèque PHP `endroid/qr-code` ou retour du token et rendu côté frontend.
+- QR code imprimable : téléchargements marchand livrés via `/api/merchant/stores/{storeId}/qr-code.png` et `/api/merchant/stores/{storeId}/qr-code.pdf`.

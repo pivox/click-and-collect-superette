@@ -566,9 +566,10 @@ Deux endpoints exposent le même contrat QR, avec des rôles et des permissions 
 | Rôle requis       | `ROLE_ADMIN`                                 | `ROLE_MERCHANT`                                   |
 | Restriction shop  | Aucune — accès à tout store                  | Propriétaire strict (`MerchantShopAccessChecker`) |
 | Régénération      | `POST /api/admin/stores/{storeId}/regenerate-qr` | Non disponible — lecture seule                |
-| Payload           | Identique (voir ci-dessous)                  | Identique                                         |
+| Payload           | Contrat QR admin                             | Contrat QR marchand                              |
+| Assets imprimables | Non disponible                              | PNG et PDF via routes dédiées                    |
 
-Contrat de réponse commun :
+Contrat de réponse admin :
 
 ```json
 {
@@ -580,13 +581,33 @@ Contrat de réponse commun :
 }
 ```
 
-Règles S5-010 (QR marchand) :
+Contrat de réponse marchand :
+
+```json
+{
+  "store_id": "store-uuid",
+  "store_name": "Supérette El Amal",
+  "slug": "superette-el-amal",
+  "qr_code_token": "qr-token-opaque",
+  "target_url": "https://app.superette.tn/stores/by-qr/qr-token-opaque"
+}
+```
+
+Routes assets marchand livrées avec #355 :
+
+```http
+GET /api/merchant/stores/{storeId}/qr-code.png
+GET /api/merchant/stores/{storeId}/qr-code.pdf
+```
+
+Règles QR marchand :
 
 - réservé à `ROLE_MERCHANT` ;
 - JWT obligatoire — anonyme : `401`, autre rôle : `403` ;
 - seul le marchand propriétaire de la supérette peut accéder au contrat QR ;
 - tout autre marchand reçoit `403` ;
 - lecture seule — aucune régénération de token ;
+- téléchargement PNG/PDF en attachment côté routes assets ;
 - supérette absente : `404`.
 
 ---
@@ -1674,7 +1695,7 @@ Règles :
 - la supérette doit exister ;
 - retourne les informations nécessaires pour afficher ou télécharger un QR côté interface admin ;
 - `qr_payload` encode la route publique existante `GET /api/stores/by-qr/{qrCodeToken}` ;
-- ne génère pas d'image PNG/PDF côté backend ;
+- ne génère pas d'image PNG/PDF côté endpoint admin ; les assets imprimables sont exposés côté marchand via `/api/merchant/stores/{storeId}/qr-code.png` et `/api/merchant/stores/{storeId}/qr-code.pdf` ;
 - n'expose aucun mot de passe, hash, token auth, propriétaire ou donnée sensible.
 
 #### POST /api/admin/stores/{storeId}/regenerate-qr — Régénérer le token QR
