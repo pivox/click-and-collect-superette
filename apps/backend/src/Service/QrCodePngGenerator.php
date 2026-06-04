@@ -60,6 +60,7 @@ final class QrCodePngGenerator
         }
 
         $this->setFunctionModule(8, 4 * self::VERSION + 9, true);
+        $this->reserveFormatInformationModules();
     }
 
     private function drawFinder(int $x, int $y): void
@@ -86,6 +87,13 @@ final class QrCodePngGenerator
                 $isDark = 2 === max(abs($dx), abs($dy)) || (0 === $dx && 0 === $dy);
                 $this->setFunctionModule($centerX + $dx, $centerY + $dy, $isDark);
             }
+        }
+    }
+
+    private function reserveFormatInformationModules(): void
+    {
+        foreach ($this->formatCoordinates() as [$x, $y]) {
+            $this->reserved[$y][$x] = true;
         }
     }
 
@@ -264,22 +272,29 @@ final class QrCodePngGenerator
 
     private function drawFormatBits(int $formatBits): void
     {
-        $coordinates = [
-            [8, 0], [8, 1], [8, 2], [8, 3], [8, 4], [8, 5], [8, 7], [8, 8],
-            [7, 8], [5, 8], [4, 8], [3, 8], [2, 8], [1, 8], [0, 8],
-        ];
-        $mirrored = [
-            [self::SIZE - 1, 8], [self::SIZE - 2, 8], [self::SIZE - 3, 8], [self::SIZE - 4, 8],
-            [self::SIZE - 5, 8], [self::SIZE - 6, 8], [self::SIZE - 7, 8], [self::SIZE - 8, 8],
-            [8, self::SIZE - 7], [8, self::SIZE - 6], [8, self::SIZE - 5], [8, self::SIZE - 4],
-            [8, self::SIZE - 3], [8, self::SIZE - 2], [8, self::SIZE - 1],
-        ];
+        $coordinates = \array_slice($this->formatCoordinates(), 0, 15);
+        $mirrored = \array_slice($this->formatCoordinates(), 15);
 
         for ($i = 0; $i < 15; ++$i) {
             $dark = 1 === (($formatBits >> $i) & 1);
             $this->setFunctionModule($coordinates[$i][0], $coordinates[$i][1], $dark);
             $this->setFunctionModule($mirrored[$i][0], $mirrored[$i][1], $dark);
         }
+    }
+
+    /**
+     * @return list<array{0: int, 1: int}>
+     */
+    private function formatCoordinates(): array
+    {
+        return [
+            [8, 0], [8, 1], [8, 2], [8, 3], [8, 4], [8, 5], [8, 7], [8, 8],
+            [7, 8], [5, 8], [4, 8], [3, 8], [2, 8], [1, 8], [0, 8],
+            [self::SIZE - 1, 8], [self::SIZE - 2, 8], [self::SIZE - 3, 8], [self::SIZE - 4, 8],
+            [self::SIZE - 5, 8], [self::SIZE - 6, 8], [self::SIZE - 7, 8], [self::SIZE - 8, 8],
+            [8, self::SIZE - 7], [8, self::SIZE - 6], [8, self::SIZE - 5], [8, self::SIZE - 4],
+            [8, self::SIZE - 3], [8, self::SIZE - 2], [8, self::SIZE - 1],
+        ];
     }
 
     /**
