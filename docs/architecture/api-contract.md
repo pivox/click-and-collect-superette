@@ -496,11 +496,16 @@ Règles :
 
 - Kadhia `draft` uniquement ;
 - Kadhia non vide ;
+- supérette active acceptant les nouvelles Kadhias ;
 - slot du même store ;
 - slot futur et disponible ;
 - décrémente la capacité du slot ;
 - passe la Kadhia en `submitted` ;
 - crée une commande en `submitted` ou re-soumet l'ordre existant après acceptation partielle.
+
+Erreurs métier :
+
+- `422 STORE_SUSPENDED_FOR_SUBSCRIPTION` — la supérette et son catalogue restent visibles, mais le marchand est suspendu côté abonnement ; aucune nouvelle commande n'est créée.
 
 ---
 

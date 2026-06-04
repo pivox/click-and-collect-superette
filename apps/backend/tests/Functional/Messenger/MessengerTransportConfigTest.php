@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Messenger;
 use App\Message\ExpireMerchantResponseMessage;
 use App\Message\ExpirePartialAcceptanceMessage;
 use App\Message\PartialAcceptanceReminderMessage;
+use App\Message\SendMerchantPaymentReminderMessage;
 use App\Message\SendPickupReminderMessage;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Envelope;
@@ -70,6 +71,22 @@ final class MessengerTransportConfigTest extends KernelTestCase
         $messages = $this->getSentMessages();
         self::assertCount(1, $messages);
         self::assertInstanceOf(SendPickupReminderMessage::class, $messages[0]);
+    }
+
+    public function testSendMerchantPaymentReminderMessageRoutesToAsync(): void
+    {
+        $this->bus->dispatch(new SendMerchantPaymentReminderMessage(
+            merchantEmail: 'merchant@example.test',
+            merchantName: 'Marchand Test',
+            shopName: 'Supérette Test',
+            dueDate: '2026-06-11',
+            amountTnd: '50.000',
+            stage: 'j_plus_7',
+        ));
+
+        $messages = $this->getSentMessages();
+        self::assertCount(1, $messages);
+        self::assertInstanceOf(SendMerchantPaymentReminderMessage::class, $messages[0]);
     }
 
     /**

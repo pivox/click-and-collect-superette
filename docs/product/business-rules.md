@@ -26,6 +26,9 @@ Formaliser les règles minimales nécessaires au fonctionnement du MVP Click & C
 - Une ligne de Kadhia contient un produit marchand, une quantité et un prix au moment de l'ajout.
 - Le total est calculé en TND.
 - Le prix doit être figé au moment de la soumission de commande.
+- Une supérette active dont le marchand est suspendu pour abonnement conserve son catalogue et son historique visibles, mais refuse toute nouvelle soumission de Kadhia avec `STORE_SUSPENDED_FOR_SUBSCRIPTION`.
+- La suspension abonnement n'est pas un archivage : elle ne supprime pas la supérette, les produits, les images, les Kadhias ni les commandes existantes.
+- Quand le modèle `Subscription` existe, le lifecycle `suspended` bloque les nouvelles Kadhias. Le statut marchand existant `is_active = false` reste un fallback de suspension admin compatible.
 
 ## Rendez-vous
 

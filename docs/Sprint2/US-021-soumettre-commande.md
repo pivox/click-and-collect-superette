@@ -128,6 +128,16 @@ alors l'API refuse l'opération.
 quand le client soumet,
 alors l'API refuse la soumission et demande de choisir un autre créneau.
 
+### Marchand suspendu pour abonnement
+
+Étant donné une supérette active dont le marchand est suspendu pour abonnement,
+quand le client consulte le catalogue,
+alors le catalogue reste visible.
+
+Quand le client tente de soumettre une nouvelle Kadhia,
+alors l'API refuse avec `422 STORE_SUSPENDED_FOR_SUBSCRIPTION`,
+sans archiver la supérette ni modifier les commandes existantes.
+
 ### Créneau d'une autre supérette
 
 Étant donné une Kadhia de la supérette A et un créneau de la supérette B,
