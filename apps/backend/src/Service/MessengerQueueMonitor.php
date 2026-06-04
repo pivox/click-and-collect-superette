@@ -12,6 +12,7 @@ final readonly class MessengerQueueMonitor
         private Connection $connection,
         private int $pendingThreshold = 100,
         private int $oldestAgeSecondsThreshold = 900,
+        private int $redeliverTimeoutSeconds = 3600,
     ) {
     }
 
@@ -42,8 +43,11 @@ final readonly class MessengerQueueMonitor
     private function countPendingAsyncMessages(\DateTimeImmutable $checkedAt): int
     {
         return (int) $this->connection->fetchOne(
-            "SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'async' AND delivered_at IS NULL AND available_at <= :checkedAt",
-            ['checkedAt' => $checkedAt->format('Y-m-d H:i:s')],
+            "SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'async' AND available_at <= :checkedAt AND (delivered_at IS NULL OR delivered_at <= :redeliverableBefore)",
+            [
+                'checkedAt' => $checkedAt->format('Y-m-d H:i:s'),
+                'redeliverableBefore' => $this->redeliverableBefore($checkedAt)->format('Y-m-d H:i:s'),
+            ],
         );
     }
 
@@ -57,8 +61,11 @@ final readonly class MessengerQueueMonitor
     private function oldestPendingAgeSeconds(\DateTimeImmutable $checkedAt): ?int
     {
         $raw = $this->connection->fetchOne(
-            "SELECT MIN(available_at) FROM messenger_messages WHERE queue_name = 'async' AND delivered_at IS NULL AND available_at <= :checkedAt",
-            ['checkedAt' => $checkedAt->format('Y-m-d H:i:s')],
+            "SELECT MIN(available_at) FROM messenger_messages WHERE queue_name = 'async' AND available_at <= :checkedAt AND (delivered_at IS NULL OR delivered_at <= :redeliverableBefore)",
+            [
+                'checkedAt' => $checkedAt->format('Y-m-d H:i:s'),
+                'redeliverableBefore' => $this->redeliverableBefore($checkedAt)->format('Y-m-d H:i:s'),
+            ],
         );
 
         if (!\is_string($raw) || '' === $raw) {
@@ -68,6 +75,11 @@ final readonly class MessengerQueueMonitor
         $oldest = new \DateTimeImmutable($raw);
 
         return max(0, $checkedAt->getTimestamp() - $oldest->getTimestamp());
+    }
+
+    private function redeliverableBefore(\DateTimeImmutable $checkedAt): \DateTimeImmutable
+    {
+        return $checkedAt->modify(\sprintf('-%d seconds', $this->redeliverTimeoutSeconds));
     }
 
     private function lastConsumedAt(): ?\DateTimeImmutable

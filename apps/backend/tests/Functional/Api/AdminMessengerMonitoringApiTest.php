@@ -82,6 +82,20 @@ final class AdminMessengerMonitoringApiTest extends FunctionalApiTestCase
         self::assertNull($payload['oldest_age_s']);
     }
 
+    public function testAdminCountsRedeliverableHandlingMessagesAsPendingBacklog(): void
+    {
+        $admin = $this->createUser('admin-messenger-redeliverable@example.test', ['ROLE_ADMIN']);
+        $this->insertMessengerMessage('async', '-90 minutes', '-90 minutes', '-70 minutes');
+
+        $response = $this->requestJson('GET', '/api/admin/ops/messenger', user: $admin);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('degraded', $payload['status']);
+        self::assertSame(1, $payload['pending']);
+        self::assertGreaterThanOrEqual(5400, $payload['oldest_age_s']);
+    }
+
     public function testAnonymousCannotSeeMessengerMonitoring(): void
     {
         $response = $this->requestJson('GET', '/api/admin/ops/messenger');
@@ -119,8 +133,12 @@ final class AdminMessengerMonitoringApiTest extends FunctionalApiTestCase
         )');
     }
 
-    private function insertMessengerMessage(string $queueName, string $createdAtModifier, string $availableAtModifier): void
-    {
+    private function insertMessengerMessage(
+        string $queueName,
+        string $createdAtModifier,
+        string $availableAtModifier,
+        ?string $deliveredAtModifier = null,
+    ): void {
         $now = new \DateTimeImmutable('now');
 
         $this->entityManager->getConnection()->insert('messenger_messages', [
@@ -129,7 +147,7 @@ final class AdminMessengerMonitoringApiTest extends FunctionalApiTestCase
             'queue_name' => $queueName,
             'created_at' => $now->modify($createdAtModifier)->format('Y-m-d H:i:s'),
             'available_at' => $now->modify($availableAtModifier)->format('Y-m-d H:i:s'),
-            'delivered_at' => null,
+            'delivered_at' => null === $deliveredAtModifier ? null : $now->modify($deliveredAtModifier)->format('Y-m-d H:i:s'),
         ]);
     }
 
