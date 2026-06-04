@@ -61,6 +61,26 @@ final class ProductReferenceSearchApiTest extends FunctionalApiTestCase
         self::assertSame('6191234567890', $payload['items'][0]['barcode']);
     }
 
+    public function testBarcodeParameterReturnsExactMatchForManualScanInput(): void
+    {
+        $merchant = $this->createUser('merchant-barcode-param@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $target = $this->createProductReference('Safia', 'Eaux', 'Eau 1.5L', barcode: '6191234567890');
+        $this->createProductReference('Vitalait', 'Laits', 'Lait entier', barcode: '6190000000000');
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/product-references?barcode=6191234567890', $shop->getId()),
+            user: $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($target->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertSame('6191234567890', $payload['items'][0]['barcode']);
+    }
+
     public function testAlreadyInCatalogFlagIsTrueForExistingCatalogProduct(): void
     {
         $merchant = $this->createUser('merchant-flag@example.test', ['ROLE_MERCHANT']);

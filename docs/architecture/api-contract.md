@@ -618,10 +618,15 @@ Règles QR marchand :
 
 ```http
 GET /api/merchant/stores/{storeId}/product-references?q=vitalait
+GET /api/merchant/stores/{storeId}/product-references?barcode=6191234567890
 GET /api/merchant/stores/{storeId}/product-references?q=vitalait&categorySlug=lait-produits-laitiers
 GET /api/merchant/stores/{storeId}/product-references?q=vitalait&brandId={brandId}
 GET /api/merchant/stores/{storeId}/product-references?page=1&limit=20
 ```
+
+Le paramètre `barcode` fait une recherche exacte sur `ProductReference.barcode`.
+Il couvre la saisie manuelle ou le scan code-barres côté interface marchand. Aucun accès caméra
+n'est requis côté API.
 
 ### Lister le catalogue marchand
 
@@ -738,6 +743,101 @@ DELETE /api/merchant/catalog/{merchantProductId}
 ```
 
 Si le produit du catalogue repose sur un produit local, la suppression retire aussi le produit local associé.
+
+### Importer un catalogue marchand depuis CSV
+
+```http
+POST /api/merchant/stores/{storeId}/catalog/import-csv
+Content-Type: text/csv; charset=UTF-8
+```
+
+Colonnes CSV :
+
+| Colonne | Obligatoire | Description |
+|---|---:|---|
+| `name_fr` | Oui | Nom français du produit. |
+| `brand` | Oui | Marque affichée ou marque locale. |
+| `volume` | Oui | Volume ou quantité du format. Nombre positif, 3 décimales maximum. |
+| `unit` | Oui | `litre`, `millilitre`, `kilogramme`, `gramme`, `piece`, `paquet` ou alias simples (`L`, `ml`, `kg`, `g`, `pc`, `pack`). |
+| `price_tnd` | Oui | Prix marchand en TND, positif, 3 décimales maximum. |
+| `is_available` | Oui | Disponibilité : `true/false`, `1/0`, `oui/non`. |
+| `is_visible` | Oui | Visibilité client : `true/false`, `1/0`, `oui/non`. |
+| `barcode` | Non | Code-barres de 8 à 14 chiffres. Utilisé en priorité pour retrouver une référence. |
+| `category` | Non | Catégorie de fallback pour un produit local. |
+| `name_ar` | Non | Nom arabe si connu. |
+| `variant_fr` | Non | Variante indicative acceptée par le contrat CSV, non persistée dans le catalogue marchand MVP. |
+| `merchant_note` | Non | Note marchand, 500 caractères maximum côté offre. |
+| `pack_quantity` | Non | Quantité de pack, entier positif, défaut `1`. |
+
+Exemple :
+
+```csv
+name_fr,brand,volume,unit,price_tnd,is_available,is_visible,barcode,category,merchant_note
+Lait demi-écrémé,Vitalait,1,litre,1.650,true,true,6191234567890,Lait & produits laitiers,
+Spaghetti,Randa,500,gramme,2.300,false,true,6192222222222,Pâtes,Rupture temporaire
+Harissa maison,Jouda,350,gramme,4.500,true,false,6193333333333,Epicerie,Produit local
+```
+
+Règles :
+
+- réservé au marchand propriétaire de la supérette ;
+- le séparateur `,` ou `;` est accepté ;
+- la validation est faite ligne par ligne ;
+- si `barcode` correspond à un `ProductReference` approuvé, le produit référentiel est utilisé ;
+- sinon, l'import cherche une référence approuvée par marque + nom + volume + unité ;
+- si aucune référence approuvée ne correspond, un `MerchantLocalProduct` est créé ou mis à jour pour cette supérette uniquement ;
+- un `ProductReference` commun n'est jamais créé automatiquement par cet import marchand ;
+- un produit déjà présent dans le catalogue est mis à jour : prix TND, disponibilité, visibilité et note marchand ;
+- les changements réels de prix sont historisés avec la source `catalog_import`.
+
+Réponse `200` :
+
+```json
+{
+  "id": "store_uuid",
+  "created": 2,
+  "updated": 1,
+  "ignored": 0,
+  "items": [
+    {
+      "line": 2,
+      "status": "created",
+      "merchant_product_id": "merchant_product_uuid",
+      "product_reference_id": "product_ref_uuid",
+      "local_product_id": null,
+      "name_fr": "Lait demi-écrémé"
+    }
+  ],
+  "errors": [
+    {
+      "line": 5,
+      "code": "NAME_FR_REQUIRED",
+      "field": "name_fr",
+      "message": "La colonne \"name_fr\" est obligatoire."
+    }
+  ]
+}
+```
+
+Erreurs ligne possibles :
+
+- `COLUMN_REQUIRED` ;
+- `CSV_EMPTY` ;
+- `HEADER_REQUIRED` ;
+- `NAME_FR_REQUIRED` ;
+- `BRAND_REQUIRED` ;
+- `VOLUME_REQUIRED` ;
+- `VOLUME_INVALID` ;
+- `UNIT_INVALID` ;
+- `PRICE_TND_INVALID` ;
+- `IS_AVAILABLE_INVALID` ;
+- `IS_VISIBLE_INVALID` ;
+- `BARCODE_INVALID` ;
+- `PACK_QUANTITY_INVALID`.
+
+Limite frontend US-080 : le backend supporte la saisie/recherche exacte par code-barres.
+Le scan caméra marchand doit être ajouté côté interface uniquement si une solution légère et compatible
+navigateur est retenue ; aucune dépendance caméra n'est introduite par ce contrat.
 
 ### Gérer les catégories marchand
 
