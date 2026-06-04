@@ -245,7 +245,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 > Ces epics couvrent la phase go-to-market au-delà du cœur MVP (Sprints 0-9 livrés sur `main`).
 > Mapping détaillé dans `docs/roadmap/mvp-roadmap.md`. Chaque US est suivie sur GitHub (tickets #352-#380 et #382-#389).
 >
-> Priorité recommandée au 4 juin 2026 : traiter **EPIC-015 — Fiabilité & observabilité production** en premier, avant PWA, abonnement, monétisation ou croissance. Ensuite seulement, enchaîner EPIC-016 activation terrain, notamment le QR magasin imprimable et la checklist d'activation supérette.
+> État au 4 juin 2026 : **EPIC-015 — Fiabilité & observabilité production** est livré. Dans EPIC-016, le QR magasin imprimable est livré ; le dernier reliquat Must du Sprint 10 est la checklist d'activation supérette (#356).
 
 ## EPIC-015 — Fiabilité & observabilité production
 
@@ -256,13 +256,13 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 **Sprint** : Sprint 10 — Durcissement bêta
 
 **User stories** :
-- US-067 — Valider en production le worker async (Supervisor déjà livré S7-009)
-- US-068 — Monitoring des jobs asynchrones (santé worker + file)
-- US-069 — Métriques bêta (KPI terrain)
+- US-067 — Livré : valider en production le worker async (runbook + checklist d'exploitation)
+- US-068 — Livré : monitoring des jobs asynchrones (santé worker + file)
+- US-069 — Livré : métriques bêta (KPI terrain)
 
-**Critère de sortie** : Worker async supervisé et monitoré, KPI terrain mesurés (commandes, taux d'acceptation, activation supérette).
+**Critère de sortie** : atteint — worker async supervisé et monitoré, KPI terrain mesurés (commandes, taux d'acceptation, activation supérette).
 
-**Ordre conseillé** : #352 worker async production, #353 monitoring jobs, #354 KPI terrain.
+**Livraison** : #352, #353 et #354 fermées.
 
 ---
 
@@ -275,12 +275,12 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 **Sprint** : Sprint 10 — Durcissement bêta
 
 **User stories** :
-- US-070 — QR magasin imprimable (PNG / PDF)
-- US-071 — Checklist d'activation supérette (gate de mise en bêta)
-- US-072 — Journal opérationnel marchand (vue minimale)
-- US-073 — Décision produit : bêta FR-only vs FR+AR *(spike)*
+- US-070 — Livré : QR magasin imprimable (PNG / PDF)
+- US-071 — À faire : checklist d'activation supérette (gate de mise en bêta)
+- US-072 — Non bloquant Sprint 10 : journal opérationnel marchand (vue minimale)
+- US-073 — À trier : décision produit bêta FR-only vs FR+AR, absorbée par les livraisons FR/AR récentes
 
-**Critère de sortie** : L'admin active des supérettes validées par checklist ; le marchand affiche un QR imprimé en magasin.
+**Critère de sortie** : partiel — le marchand affiche un QR imprimé en magasin ; il reste à livrer la checklist admin d'activation (#356).
 
 ---
 

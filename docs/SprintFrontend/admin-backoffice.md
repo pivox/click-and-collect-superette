@@ -259,5 +259,5 @@ Le debounce des champs texte est à 400 ms.
 2. Implémenter la recherche marchands côté backend si `?search=` n'est pas encore active.
 3. Ajouter un total au endpoint `/api/admin/product-proposals` pour avoir un KPI précis.
 4. Envisager un lookup email → UUID pour le filtre admin de l'audit, ou documenter le UUID dans le profil admin.
-5. Poursuivre EPIC-015 : worker async production, monitoring jobs, KPI terrain.
-6. Préparer EPIC-016 : QR magasin PNG/PDF et checklist d'activation supérette.
+5. Terminer le reliquat Sprint 10 : #356 checklist d'activation supérette côté admin.
+6. Trier les tickets non bloquants #357 / #358 après clôture de #356.

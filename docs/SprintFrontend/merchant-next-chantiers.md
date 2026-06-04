@@ -78,21 +78,21 @@ Livré :
 
 ## Chantiers restants
 
-### P1 — Fiabilité production et observabilité
+### P1 — Sprint 10 : reliquat activation
 
 Priorité produit recommandée avant les nouveaux écrans :
 
-1. #352 — valider le worker async en production.
-2. #353 — monitorer les jobs asynchrones.
-3. #354 — instrumenter les KPI terrain.
+1. #356 — livrer la checklist d'activation supérette côté admin.
 
-Justification : la bêta dépend des rappels, expirations et jobs différés. Le marchand doit pouvoir faire confiance aux automatismes avant l'activation terrain.
+Justification : #352, #353, #354 et #355 sont livrées. Il reste à donner à l'admin une vue claire des critères de complétude avant d'activer une supérette pilote.
 
-### P2 — Activation terrain
+### Livré Sprint 10
 
-- #355 — QR magasin imprimable PNG/PDF, au-delà du SVG/tirage navigateur actuel.
-- #356 — checklist d'activation supérette.
-- #357 — journal opérationnel marchand minimal si besoin terrain confirmé.
+- #352 — runbook worker async production.
+- #353 — monitoring jobs asynchrones.
+- #354 — KPI terrain.
+- #355 — QR magasin imprimable PNG/PDF côté marchand.
+- #357 — journal opérationnel marchand minimal si besoin terrain confirmé, non bloquant Sprint 10.
 
 ### P3 — Mobile et accessibilité
 
