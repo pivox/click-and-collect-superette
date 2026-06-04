@@ -6,6 +6,7 @@ framework:
             async:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
+                    queue_name: '%app.messenger_async_queue_name%'
                     use_notify: true
                     check_delayed_interval: 1000
                 retry_strategy:

@@ -8,6 +8,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class AdminMessengerMonitoringApiTest extends FunctionalApiTestCase
 {
+    private const ASYNC_DOCTRINE_QUEUE = 'default';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -54,7 +56,7 @@ final class AdminMessengerMonitoringApiTest extends FunctionalApiTestCase
     public function testAdminSeesDegradedStatusWhenOldestPendingMessageIsTooOld(): void
     {
         $admin = $this->createUser('admin-messenger-oldest@example.test', ['ROLE_ADMIN']);
-        $this->insertMessengerMessage('async', '-30 minutes', '-30 minutes');
+        $this->insertMessengerMessage(self::ASYNC_DOCTRINE_QUEUE, '-30 minutes', '-30 minutes');
 
         $response = $this->requestJson('GET', '/api/admin/ops/messenger', user: $admin);
 
@@ -70,7 +72,7 @@ final class AdminMessengerMonitoringApiTest extends FunctionalApiTestCase
     {
         $admin = $this->createUser('admin-messenger-delayed@example.test', ['ROLE_ADMIN']);
         for ($i = 0; $i < 101; ++$i) {
-            $this->insertMessengerMessage('async', 'now', '+2 hours');
+            $this->insertMessengerMessage(self::ASYNC_DOCTRINE_QUEUE, 'now', '+2 hours');
         }
 
         $response = $this->requestJson('GET', '/api/admin/ops/messenger', user: $admin);
@@ -85,7 +87,7 @@ final class AdminMessengerMonitoringApiTest extends FunctionalApiTestCase
     public function testAdminCountsRedeliverableHandlingMessagesAsPendingBacklog(): void
     {
         $admin = $this->createUser('admin-messenger-redeliverable@example.test', ['ROLE_ADMIN']);
-        $this->insertMessengerMessage('async', '-90 minutes', '-90 minutes', '-70 minutes');
+        $this->insertMessengerMessage(self::ASYNC_DOCTRINE_QUEUE, '-90 minutes', '-90 minutes', '-70 minutes');
 
         $response = $this->requestJson('GET', '/api/admin/ops/messenger', user: $admin);
 

@@ -10,6 +10,7 @@ final readonly class MessengerQueueMonitor
 {
     public function __construct(
         private Connection $connection,
+        private string $asyncQueueName = 'default',
         private int $pendingThreshold = 100,
         private int $oldestAgeSecondsThreshold = 900,
         private int $redeliverTimeoutSeconds = 3600,
@@ -43,8 +44,9 @@ final readonly class MessengerQueueMonitor
     private function countPendingAsyncMessages(\DateTimeImmutable $checkedAt): int
     {
         return (int) $this->connection->fetchOne(
-            "SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'async' AND available_at <= :checkedAt AND (delivered_at IS NULL OR delivered_at <= :redeliverableBefore)",
+            'SELECT COUNT(*) FROM messenger_messages WHERE queue_name = :queueName AND available_at <= :checkedAt AND (delivered_at IS NULL OR delivered_at <= :redeliverableBefore)',
             [
+                'queueName' => $this->asyncQueueName,
                 'checkedAt' => $checkedAt->format('Y-m-d H:i:s'),
                 'redeliverableBefore' => $this->redeliverableBefore($checkedAt)->format('Y-m-d H:i:s'),
             ],
@@ -61,8 +63,9 @@ final readonly class MessengerQueueMonitor
     private function oldestPendingAgeSeconds(\DateTimeImmutable $checkedAt): ?int
     {
         $raw = $this->connection->fetchOne(
-            "SELECT MIN(available_at) FROM messenger_messages WHERE queue_name = 'async' AND available_at <= :checkedAt AND (delivered_at IS NULL OR delivered_at <= :redeliverableBefore)",
+            'SELECT MIN(available_at) FROM messenger_messages WHERE queue_name = :queueName AND available_at <= :checkedAt AND (delivered_at IS NULL OR delivered_at <= :redeliverableBefore)',
             [
+                'queueName' => $this->asyncQueueName,
                 'checkedAt' => $checkedAt->format('Y-m-d H:i:s'),
                 'redeliverableBefore' => $this->redeliverableBefore($checkedAt)->format('Y-m-d H:i:s'),
             ],
