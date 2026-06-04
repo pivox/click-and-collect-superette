@@ -3,11 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import QRCode from 'react-qr-code';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
-import { getMerchantQrCode } from '@/lib/services/merchant-qr.service';
+import {
+  downloadMerchantQrAsset,
+  getMerchantQrCode,
+  triggerQrDownload,
+} from '@/lib/services/merchant-qr.service';
 import type { MerchantQrCode } from '@/lib/services/merchant-qr.service';
 import { Button } from '@/components/ui/Button';
 
 function buildQrUrl(targetUrl: string): string {
+  if (/^https?:\/\//.test(targetUrl)) return targetUrl;
   const path = targetUrl.replace(/^\/api\/stores\/by-qr\//, '/stores/by-qr/');
   if (typeof window === 'undefined') return path;
   const base =
@@ -19,6 +24,7 @@ export default function MerchantQrCodePage() {
   const { merchant } = useMerchantAuth();
   const [qrData, setQrData] = useState<MerchantQrCode | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [downloading, setDownloading] = useState<'png' | 'pdf' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
 
@@ -39,19 +45,18 @@ export default function MerchantQrCodePage() {
     void load();
   }, [load]);
 
-  const handlePrint = () => window.print();
-
-  const handleDownloadSvg = () => {
-    const svgEl = qrRef.current?.querySelector('svg');
-    if (!svgEl) return;
-    const svgData = new XMLSerializer().serializeToString(svgEl);
-    const blob = new Blob([svgData], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `qr-${merchant?.store.name ?? 'superette'}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownload = async (format: 'png' | 'pdf') => {
+    if (!merchant) return;
+    setDownloading(format);
+    setError(null);
+    try {
+      const blob = await downloadMerchantQrAsset(merchant.store.id, format);
+      triggerQrDownload(blob, `qr-${qrData?.slug ?? 'superette'}.${format}`);
+    } catch {
+      setError('Impossible de télécharger le QR code de votre supérette.');
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const qrUrl = qrData ? buildQrUrl(qrData.target_url) : '';
@@ -120,11 +125,23 @@ export default function MerchantQrCodePage() {
           </div>
 
           <div className="flex gap-3">
-            <Button variant="primary" size="md" onClick={handlePrint} className="flex-1">
-              Imprimer
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => void handleDownload('png')}
+              disabled={downloading !== null}
+              className="flex-1"
+            >
+              {downloading === 'png' ? 'Téléchargement…' : 'Télécharger PNG'}
             </Button>
-            <Button variant="ghost" size="md" onClick={handleDownloadSvg} className="flex-1">
-              Télécharger SVG
+            <Button
+              variant="ghost"
+              size="md"
+              onClick={() => void handleDownload('pdf')}
+              disabled={downloading !== null}
+              className="flex-1"
+            >
+              {downloading === 'pdf' ? 'Téléchargement…' : 'Télécharger PDF'}
             </Button>
           </div>
 
