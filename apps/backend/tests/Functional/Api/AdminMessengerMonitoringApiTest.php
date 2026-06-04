@@ -66,6 +66,22 @@ final class AdminMessengerMonitoringApiTest extends FunctionalApiTestCase
         self::assertGreaterThanOrEqual(1800, $payload['oldest_age_s']);
     }
 
+    public function testAdminDoesNotCountDelayedAsyncMessagesAsPendingBacklog(): void
+    {
+        $admin = $this->createUser('admin-messenger-delayed@example.test', ['ROLE_ADMIN']);
+        for ($i = 0; $i < 101; ++$i) {
+            $this->insertMessengerMessage('async', 'now', '+2 hours');
+        }
+
+        $response = $this->requestJson('GET', '/api/admin/ops/messenger', user: $admin);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('ok', $payload['status']);
+        self::assertSame(0, $payload['pending']);
+        self::assertNull($payload['oldest_age_s']);
+    }
+
     public function testAnonymousCannotSeeMessengerMonitoring(): void
     {
         $response = $this->requestJson('GET', '/api/admin/ops/messenger');

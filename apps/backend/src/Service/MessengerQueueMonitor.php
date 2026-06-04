@@ -18,7 +18,7 @@ final readonly class MessengerQueueMonitor
     public function snapshot(): MessengerQueueSnapshot
     {
         $checkedAt = new \DateTimeImmutable();
-        $pending = $this->countPendingAsyncMessages();
+        $pending = $this->countPendingAsyncMessages($checkedAt);
         $failed = $this->countFailedMessages();
         $oldestAgeSeconds = $this->oldestPendingAgeSeconds($checkedAt);
         $lastConsumedAt = $this->lastConsumedAt();
@@ -39,10 +39,11 @@ final readonly class MessengerQueueMonitor
         );
     }
 
-    private function countPendingAsyncMessages(): int
+    private function countPendingAsyncMessages(\DateTimeImmutable $checkedAt): int
     {
         return (int) $this->connection->fetchOne(
-            "SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'async' AND delivered_at IS NULL",
+            "SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'async' AND delivered_at IS NULL AND available_at <= :checkedAt",
+            ['checkedAt' => $checkedAt->format('Y-m-d H:i:s')],
         );
     }
 
@@ -56,7 +57,8 @@ final readonly class MessengerQueueMonitor
     private function oldestPendingAgeSeconds(\DateTimeImmutable $checkedAt): ?int
     {
         $raw = $this->connection->fetchOne(
-            "SELECT MIN(available_at) FROM messenger_messages WHERE queue_name = 'async' AND delivered_at IS NULL",
+            "SELECT MIN(available_at) FROM messenger_messages WHERE queue_name = 'async' AND delivered_at IS NULL AND available_at <= :checkedAt",
+            ['checkedAt' => $checkedAt->format('Y-m-d H:i:s')],
         );
 
         if (!\is_string($raw) || '' === $raw) {
