@@ -20,6 +20,7 @@ final class MerchantMeApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertSame($merchant->getId()->toRfc4122(), $payload['user_id']);
         self::assertSame('merchant-me@example.test', $payload['email']);
+        self::assertSame('Test User', $payload['name']);
         self::assertSame(['ROLE_MERCHANT'], $payload['roles']);
         self::assertSame(
             [

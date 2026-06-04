@@ -25,19 +25,22 @@ describe('MerchantSettingsPage (MS-001)', () => {
     );
   });
 
-  it('links the store profile shortcut to its edit page', () => {
+  it('links the store profile and account shortcuts to their pages', () => {
     render(React.createElement(MerchantSettingsPage));
 
     expect(screen.getByRole('link', { name: /Profil de la supérette/i })).toHaveAttribute(
       'href',
       '/merchant/parametres/profil',
     );
+    expect(screen.getByRole('link', { name: /Compte/i })).toHaveAttribute(
+      'href',
+      '/merchant/parametres/compte',
+    );
   });
 
-  it('shows remaining account sections as "Bientôt disponible" placeholders', () => {
+  it('shows the remaining language section as a "Bientôt disponible" placeholder', () => {
     render(React.createElement(MerchantSettingsPage));
 
-    expect(screen.getByText('Compte')).toBeInTheDocument();
-    expect(screen.getAllByText(/Bientôt disponible/i)).toHaveLength(2);
+    expect(screen.getAllByText(/Bientôt disponible/i)).toHaveLength(1);
   });
 });

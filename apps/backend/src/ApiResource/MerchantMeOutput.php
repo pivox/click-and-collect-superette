@@ -35,6 +35,8 @@ final readonly class MerchantMeOutput
         #[Groups(['merchant_me:read'])]
         public string $email,
         #[Groups(['merchant_me:read'])]
+        public string $name,
+        #[Groups(['merchant_me:read'])]
         public array $roles,
         #[Groups(['merchant_me:read'])]
         public MerchantMeStoreOutput $store,
@@ -49,6 +51,7 @@ final readonly class MerchantMeOutput
         return new self(
             userId: $merchant->getId()->toRfc4122(),
             email: $merchant->getEmail(),
+            name: $merchant->getName(),
             roles: self::merchantRoles($merchant),
             store: MerchantMeStoreOutput::fromShop($shop),
             onboardingCompleted: null !== $merchant->getOnboardingCompletedAt(),
