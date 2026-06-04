@@ -2,6 +2,7 @@ import { render } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { DesktopNav } from '@/components/layout/DesktopNav';
+import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/stores',
@@ -28,7 +29,11 @@ vi.mock('@/lib/notifications/ClientNotificationsContext', () => ({
 
 describe('DesktopNav theme', () => {
   it('teinte légèrement le menu gauche avec le thème actif', () => {
-    const { container } = render(<DesktopNav />);
+    const { container } = render(
+      <ClientLocaleProvider>
+        <DesktopNav />
+      </ClientLocaleProvider>,
+    );
     const sidebar = container.querySelector('aside');
 
     expect(sidebar?.className).toContain('client-theme-sidebar');

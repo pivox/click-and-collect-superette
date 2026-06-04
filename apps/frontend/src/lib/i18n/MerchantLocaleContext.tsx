@@ -1,43 +1,18 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import arMessages from '@/messages/ar.json';
-import frMessages from '@/messages/fr.json';
+import { type Locale, defaultLocale, isLocale, isRtlLocale, MESSAGES, translate } from './locale-core';
 
 // MS-004 (MVP-4): lightweight merchant interface language preference (FR/AR).
-// Scoped to the merchant area — full app i18n routing (next-intl) is tracked by S14-004.
+// Scoped to the merchant area — full app i18n is delivered incrementally by S14-004.
 // Follows the project pattern: useState + useEffect + useCallback + localStorage.
 
+export type MerchantLocale = Locale;
 export const merchantLocales = ['fr', 'ar'] as const;
-export type MerchantLocale = (typeof merchantLocales)[number];
-export const defaultMerchantLocale: MerchantLocale = 'fr';
+export const defaultMerchantLocale: MerchantLocale = defaultLocale;
 const STORAGE_KEY = 'merchant:lang';
 
-const MESSAGES: Record<MerchantLocale, Record<string, unknown>> = {
-  fr: frMessages as Record<string, unknown>,
-  ar: arMessages as Record<string, unknown>,
-};
-
-export function isRtlLocale(locale: MerchantLocale): boolean {
-  return locale === 'ar';
-}
-
-function isMerchantLocale(value: unknown): value is MerchantLocale {
-  return value === 'fr' || value === 'ar';
-}
-
-/** Resolve a dot-path key (e.g. "merchant.settings.title") against a messages tree. */
-function translate(messages: Record<string, unknown>, key: string): string {
-  const value = key.split('.').reduce<unknown>((acc, part) => {
-    if (acc && typeof acc === 'object' && part in (acc as Record<string, unknown>)) {
-      return (acc as Record<string, unknown>)[part];
-    }
-    return undefined;
-  }, messages);
-
-  // Fallback to the key itself when a translation is missing — keeps the UI usable.
-  return typeof value === 'string' ? value : key;
-}
+export { isRtlLocale };
 
 export interface MerchantLocaleContextValue {
   locale: MerchantLocale;
@@ -54,7 +29,7 @@ export function MerchantLocaleProvider({ children }: { children: React.ReactNode
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (isMerchantLocale(raw)) {
+      if (isLocale(raw)) {
         setLocaleState(raw);
       }
     } catch {

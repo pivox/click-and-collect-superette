@@ -6,21 +6,23 @@ import { Home, Search, ShoppingBasket, ClipboardList, Bell, LogIn, UserCircle } 
 import { cn } from "@/lib/cn";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import { useClientNotifications } from "@/lib/notifications/ClientNotificationsContext";
+import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Accueil", icon: Home },
-  { href: "/stores", label: "Supérettes", icon: Search },
-  { href: "/kadhia", label: "Kadhia", icon: ShoppingBasket },
-  { href: "/orders", label: "Commandes", icon: ClipboardList },
+  { href: "/", labelKey: "client.nav.home", icon: Home },
+  { href: "/stores", labelKey: "client.nav.stores", icon: Search },
+  { href: "/kadhia", labelKey: "client.nav.kadhia", icon: ShoppingBasket },
+  { href: "/orders", labelKey: "client.nav.orders", icon: ClipboardList },
 ] as const;
 
 export function BottomNav() {
   const pathname = usePathname() ?? "/";
   const { user } = useClientAuth();
   const { unreadCount } = useClientNotifications();
+  const { t } = useClientLocale();
 
   const ProfileIcon = user ? UserCircle : LogIn;
-  const profileLabel = user ? "Profil" : "Connexion";
+  const profileLabel = user ? t("client.nav.profile") : t("client.nav.login");
   const profileHref = user ? "/profile" : "/login";
   const profileActive = pathname.startsWith("/profile") || (!user && pathname.startsWith("/login"));
   const notifActive = pathname.startsWith("/notifications");
@@ -33,7 +35,7 @@ export function BottomNav() {
         "bg-white/95 backdrop-blur-md px-3 pt-2 pb-3",
       )}
     >
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+      {NAV_ITEMS.map(({ href, labelKey, icon: Icon }) => {
         const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
         return (
           <Link
@@ -46,7 +48,7 @@ export function BottomNav() {
             )}
           >
             <Icon size={20} strokeWidth={active ? 2.5 : 2} />
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
           </Link>
         );
       })}
@@ -71,7 +73,7 @@ export function BottomNav() {
             </span>
           )}
         </span>
-        <span>Notifs</span>
+        <span>{t("client.nav.notifs")}</span>
       </Link>
 
       {/* Profile */}
