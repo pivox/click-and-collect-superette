@@ -40,7 +40,7 @@ function EmptyState({ tab }: { tab: TabKey }) {
 
 function KadhiaCard({ item }: { item: KadhiaListItem }) {
   const { t } = useClientLocale();
-  const { tone, label } = orderStatusBadge(item.status as OrderStatus);
+  const { tone, labelKey } = orderStatusBadge(item.status as OrderStatus);
   const isDraft = item.status === "draft";
   const title = item.notes?.trim() || null;
   const itemsWord = item.linesCount > 1 ? t("client.itemsPlural") : t("client.itemsSingular");
@@ -62,7 +62,7 @@ function KadhiaCard({ item }: { item: KadhiaListItem }) {
           </p>
         </div>
         <Badge tone={tone} className="shrink-0">
-          {label}
+          {t(labelKey)}
         </Badge>
       </div>
 
