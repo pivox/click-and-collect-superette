@@ -87,7 +87,7 @@ Le fichier `docs/product/mvp-roadmap.md` est conservé comme index court et doit
 | Push notifications (#376) | Oui roadmap | Non | Non | Non | MANQUANT | Hors notifications in-app MVP ; à traiter après durcissement production. |
 | Accessibilité minimum WCAG (#379) | Oui roadmap | Non audité | Non | Non | MANQUANT | Audit et corrections de base restent ouverts Sprint 14. |
 | Fiabilité production EPIC-015 (#352-#354) | Oui roadmap | Oui | Oui | N/A | OK | #352 runbook worker async, #353 monitoring Messenger admin et #354 KPI terrain livrés. |
-| Activation terrain EPIC-016 (#355-#356) | Oui roadmap | Partiel | Partiel | N/A | PARTIEL | #355 QR magasin PNG/PDF livré côté marchand ; reste #356 checklist d'activation supérette. |
+| Activation terrain EPIC-016 (#355-#356) | Oui roadmap | Oui | Oui | N/A | OK | #355 QR magasin PNG/PDF livré côté marchand ; #356 checklist d'activation supérette livrée via PR #412. |
 
 ## Écarts critiques détectés
 
@@ -240,20 +240,23 @@ Ces points n'étaient pas livrés par Sprint 3/Sprint 4, mais plusieurs ont ét�
 
 Le cœur MVP Sprints 0-9 est livré sur `main`, avec frontend client, marchand et admin avancés. S13-005 a livré les images produits web/mobile. S14-004 / #401 a livré l'i18n client FR/AR + RTL.
 
-### P1 — Sprint 10 : dernier reliquat Must
+### P1 — Sprint 10 clôturable
 
 Priorité recommandée avant PWA, monétisation ou croissance :
 
-- #356 — checklist d'activation supérette.
+- clôturer administrativement Sprint 10 ;
+- reporter #357 — journal opérationnel marchand minimal — vers le sprint support/exploitation terrain ;
+- fermer #358 — décision bêta FR-only vs FR+AR — comme non nécessaire depuis les livraisons FR/AR.
 
-Justification : #352, #353, #354 et #355 sont livrées ; il manque encore la vue admin qui confirme qu'une supérette est prête pour la bêta terrain.
+Justification : #352, #353, #354, #355 et #356 sont livrées. Les supérettes peuvent être validées par checklist avant bêta ; le journal opérationnel marchand est utile mais non bloquant, et la décision langue est absorbée par l'i18n client FR/AR + RTL (#401) et la préférence langue marchand (#395).
 
 ### Livré Sprint 10
 
 - #352 — validation production du worker async ;
 - #353 — monitoring des jobs asynchrones ;
 - #354 — KPI terrain ;
-- #355 — QR magasin imprimable PNG/PDF.
+- #355 — QR magasin imprimable PNG/PDF ;
+- #356 — checklist d'activation supérette.
 
 ### P3 — Sprint 14 : PWA, push, accessibilité
 

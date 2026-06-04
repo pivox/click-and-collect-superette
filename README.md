@@ -17,7 +17,7 @@ L'objectif est de simplifier les courses du quotidien dans les supérettes tunis
 
 ## État du projet au 4 juin 2026
 
-Le cœur MVP est livré sur `main` : Sprints 0 à 9, backend Symfony/API Platform, frontend client, backoffice admin et espace marchand. Le Sprint 10 est presque terminé : il ne reste que la checklist d'activation supérette (#356) comme reliquat Must.
+Le cœur MVP est livré sur `main` : Sprints 0 à 9, backend Symfony/API Platform, frontend client, backoffice admin et espace marchand. Le Sprint 10 est clôturable : les Must de durcissement bêta, observabilité, QR magasin imprimable et checklist d'activation supérette sont livrés.
 
 Blocs livrés :
 
@@ -26,19 +26,20 @@ Blocs livrés :
 - parcours marchand : commandes actives, acceptation/refus/acceptation partielle, préparation, retrait sécurisé, historique, notifications, catalogue, créneaux, horaires, fermetures, QR magasin, thème, paramètres, onboarding et export CSV ;
 - backoffice admin : auth admin, marchands, supérettes, référentiel produit, propositions, audit logs, dashboard KPI ;
 - backend opérationnel : créneaux récurrents, fermetures exceptionnelles, délais automatiques, transport Messenger Doctrine, Supervisor, healthcheck, diagnostics et audit trail ;
-- Sprint 10 fiabilité/terrain : runbook worker async, monitoring Messenger admin, KPI bêta admin et QR magasin imprimable PNG/PDF côté marchand ;
+- Sprint 10 fiabilité/terrain : runbook worker async, monitoring Messenger admin, KPI bêta admin, QR magasin imprimable PNG/PDF côté marchand et checklist d'activation supérette ;
 - personnalisation visuelle par supérette ;
 - images produits web/mobile livrées via S13-005 ;
-- i18n client français / arabe avec RTL livré via S14-004 (#401).
+- i18n client français / arabe avec RTL livré via S14-004 (#401), avec préférence langue marchand FR/AR livrée via #395.
 
 Limites ouvertes :
 
 - PWA client et marchand non livrée ;
 - push notifications non livrées ;
 - accessibilité WCAG de base non auditée ;
-- checklist d'activation supérette (#356) encore à traiter avant une activation bêta plus cadrée.
+- journal opérationnel marchand minimal (#357) à reporter vers un sprint support/exploitation terrain ;
+- décision bêta FR-only vs FR+AR (#358) à fermer comme non nécessaire, la bêta pouvant partir en FR+AR sur les parcours livrés.
 
-Priorité recommandée : terminer **#356 — checklist d'activation supérette**. EPIC-015 (#352-#354) et le QR imprimable marchand (#355) sont livrés.
+Priorité recommandée : clôturer administrativement le Sprint 10, reporter #357 et fermer #358 comme décision absorbée par les livraisons FR/AR.
 
 Issue documentaire courante : [#405](https://github.com/pivox/click-and-collect-superette/issues/405).
 
