@@ -69,3 +69,22 @@ export interface StoreQrCode {
   qr_code_token: string;
   target_url: string; // backend relative path: /api/stores/by-qr/{token}
 }
+
+export interface StoreActivationChecklistStep {
+  key: string;
+  label: string;
+  completed: boolean;
+  required: boolean;
+  current_value?: number | null;
+  target_value?: number | null;
+}
+
+export interface StoreActivationChecklist {
+  store_id: string;
+  store_name: string;
+  ready: boolean;
+  minimum_catalog_products: number;
+  required_completed_count: number;
+  required_total_count: number;
+  steps: StoreActivationChecklistStep[];
+}
