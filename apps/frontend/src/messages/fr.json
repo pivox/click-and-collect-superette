@@ -76,6 +76,53 @@
       "deleting": "Suppression…",
       "deleteError": "Impossible de supprimer le compte. Réessaie.",
       "deleted": "Ton compte a été supprimé. Redirection…"
+    },
+    "itemsSingular": "article",
+    "itemsPlural": "articles",
+    "catalog": {
+      "title": "Catalogue",
+      "searchPlaceholder": "Rechercher un produit",
+      "all": "Tous",
+      "products": "Produits",
+      "viewKadhia": "Voir ma Kadhia",
+      "emptyKadhia": "Kadhia vide",
+      "loadError": "Impossible de charger le catalogue.",
+      "retry": "Réessayer",
+      "noSearchResultPrefix": "Aucun résultat pour",
+      "clearSearch": "Effacer la recherche",
+      "noCategoryResult": "Aucun produit dans cette catégorie.",
+      "showAll": "Voir tous les produits",
+      "emptyCatalog": "Catalogue vide pour le moment.",
+      "loadingMore": "Chargement…",
+      "showMorePrefix": "Afficher",
+      "showMoreSuffix": "produits de plus",
+      "addError": "Impossible d’ajouter le produit. Réessaie.",
+      "loadMoreError": "Impossible de charger plus de produits. Réessaie.",
+      "createError": "Impossible de créer une Kadhia. Réessaie.",
+      "loadKadhiaError": "Impossible de charger cette Kadhia. Réessaie.",
+      "kadhiaLoadError": "Impossible de charger ta Kadhia. Réessaie.",
+      "startMessage": "Commence une Kadhia pour ajouter des produits.",
+      "preparing": "Préparation…",
+      "start": "Commencer"
+    },
+    "product": {
+      "available": "Disponible",
+      "outOfStock": "Rupture",
+      "add": "Ajouter"
+    },
+    "kadhiaPanel": {
+      "title": "Ma Kadhia",
+      "empty": "Kadhia vide — ajoute des produits",
+      "totalEstimated": "Total estimé",
+      "chooseSlot": "Choisir un créneau",
+      "priceFrozen": "Prix figés à la soumission."
+    },
+    "kadhiaSelector": {
+      "title": "Choisir une Kadhia",
+      "heading": "Plusieurs Kadhia en cours",
+      "question": "Laquelle veux-tu continuer ?",
+      "updatedOn": "Modifiée le",
+      "createNew": "Commencer une nouvelle Kadhia"
     }
   },
   "merchant": {

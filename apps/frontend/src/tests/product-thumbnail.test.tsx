@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ProductThumbnail } from '@/components/product/ProductThumbnail';
 import { ProductCard } from '@/components/product/ProductCard';
+import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 import type { ProductImage, ProductOffer } from '@/types';
 
 const IMAGE: ProductImage = {
@@ -70,14 +71,22 @@ describe('ProductThumbnail', () => {
 
 describe('ProductCard image integration', () => {
   it('renders the product image when present', () => {
-    render(<ProductCard product={makeProduct({ image: IMAGE })} />);
+    render(
+      <ClientLocaleProvider>
+        <ProductCard product={makeProduct({ image: IMAGE })} />
+      </ClientLocaleProvider>,
+    );
     expect(screen.getByText('Lait demi-écrémé')).toBeTruthy();
     const img = screen.getByRole('img', { name: 'Lait demi-écrémé' });
     expect(img.tagName).toBe('IMG');
   });
 
   it('stays usable and stable when the product has no image', () => {
-    render(<ProductCard product={makeProduct({ image: null })} />);
+    render(
+      <ClientLocaleProvider>
+        <ProductCard product={makeProduct({ image: null })} />
+      </ClientLocaleProvider>,
+    );
     // Name and price still render; placeholder replaces the image without breaking layout.
     expect(screen.getByText('Lait demi-écrémé')).toBeTruthy();
     expect(screen.getByText('🥛')).toBeTruthy();

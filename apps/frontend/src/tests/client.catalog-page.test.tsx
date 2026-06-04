@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CatalogPage from '@/app/(client)/stores/[shopId]/catalog/page';
+import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 import {
   createKadhia,
   getCurrentKadhia,
@@ -9,6 +10,14 @@ import {
   listCatalog,
 } from '@/lib/services';
 import type { Kadhia, ProductOffer, Shop } from '@/types';
+
+function Wrapped({ shopId }: { shopId: string }) {
+  return (
+    <ClientLocaleProvider>
+      <CatalogPage params={{ shopId }} />
+    </ClientLocaleProvider>
+  );
+}
 
 vi.mock('@/lib/services', () => ({
   activateKadhia: vi.fn(),
@@ -59,6 +68,7 @@ function makeProduct(index: number): ProductOffer {
 describe('CatalogPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     vi.mocked(listCatalog).mockResolvedValue({
       items: [],
       categories: [],
@@ -73,9 +83,7 @@ describe('CatalogPage', () => {
 
   it('désactive Commencer dans le HTML serveur avant hydratation', () => {
     const container = document.createElement('div');
-    container.innerHTML = renderToString(
-      <CatalogPage params={{ shopId: 'store-1' }} />,
-    );
+    container.innerHTML = renderToString(<Wrapped shopId="store-1" />);
 
     const startButton = Array.from(container.querySelectorAll('button'))
       .find((button) => button.textContent?.includes('Préparation'));
@@ -86,7 +94,7 @@ describe('CatalogPage', () => {
 
   it('permet de commencer une Kadhia après hydratation', async () => {
     vi.mocked(createKadhia).mockResolvedValue(EMPTY_KADHIA);
-    render(<CatalogPage params={{ shopId: 'store-1' }} />);
+    render(<Wrapped shopId="store-1" />);
 
     const startButton = await screen.findByRole('button', { name: 'Commencer' });
     expect(startButton).toBeEnabled();
@@ -115,7 +123,7 @@ describe('CatalogPage', () => {
         pages: 2,
       });
 
-    render(<CatalogPage params={{ shopId: 'store-1' }} />);
+    render(<Wrapped shopId="store-1" />);
 
     expect(await screen.findByText('Produit test 1')).toBeTruthy();
     expect(screen.getByText('Produit test 30')).toBeTruthy();
@@ -131,5 +139,12 @@ describe('CatalogPage', () => {
       itemsPerPage: 30,
     }));
     expect(await screen.findByText('Produit test 35')).toBeTruthy();
+  });
+
+  it('affiche les libellés du catalogue en arabe quand la langue est AR', async () => {
+    localStorage.setItem('client:lang', 'ar');
+    render(<Wrapped shopId="store-1" />);
+    // "Produits" heading rendered in Arabic, product data (names) stay untranslated.
+    expect(await screen.findByText('المنتجات')).toBeTruthy();
   });
 });

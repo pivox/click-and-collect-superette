@@ -76,6 +76,53 @@
       "deleting": "جارٍ الحذف…",
       "deleteError": "تعذّر حذف الحساب. أعد المحاولة.",
       "deleted": "تم حذف حسابك. إعادة توجيه…"
+    },
+    "itemsSingular": "عنصر",
+    "itemsPlural": "عناصر",
+    "catalog": {
+      "title": "الكتالوج",
+      "searchPlaceholder": "ابحث عن منتج",
+      "all": "الكل",
+      "products": "المنتجات",
+      "viewKadhia": "عرض Kadhia",
+      "emptyKadhia": "Kadhia فارغة",
+      "loadError": "تعذّر تحميل الكتالوج.",
+      "retry": "إعادة المحاولة",
+      "noSearchResultPrefix": "لا نتيجة لـ",
+      "clearSearch": "مسح البحث",
+      "noCategoryResult": "لا توجد منتجات في هذه الفئة.",
+      "showAll": "عرض كل المنتجات",
+      "emptyCatalog": "الكتالوج فارغ حالياً.",
+      "loadingMore": "جارٍ التحميل…",
+      "showMorePrefix": "عرض",
+      "showMoreSuffix": "منتجات إضافية",
+      "addError": "تعذّر إضافة المنتج. أعد المحاولة.",
+      "loadMoreError": "تعذّر تحميل مزيد من المنتجات. أعد المحاولة.",
+      "createError": "تعذّر إنشاء Kadhia. أعد المحاولة.",
+      "loadKadhiaError": "تعذّر تحميل هذه Kadhia. أعد المحاولة.",
+      "kadhiaLoadError": "تعذّر تحميل Kadhia الخاصة بك. أعد المحاولة.",
+      "startMessage": "ابدأ Kadhia لإضافة المنتجات.",
+      "preparing": "جارٍ التحضير…",
+      "start": "ابدأ"
+    },
+    "product": {
+      "available": "متوفر",
+      "outOfStock": "نفد",
+      "add": "إضافة"
+    },
+    "kadhiaPanel": {
+      "title": "Kadhia الخاصة بي",
+      "empty": "Kadhia فارغة — أضف منتجات",
+      "totalEstimated": "الإجمالي التقديري",
+      "chooseSlot": "اختر موعداً",
+      "priceFrozen": "الأسعار مثبّتة عند الإرسال."
+    },
+    "kadhiaSelector": {
+      "title": "اختر Kadhia",
+      "heading": "عدة Kadhia قيد التحضير",
+      "question": "أيها تريد المتابعة؟",
+      "updatedOn": "عُدّلت في",
+      "createNew": "ابدأ Kadhia جديدة"
     }
   },
   "merchant": {

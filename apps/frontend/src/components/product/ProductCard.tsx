@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import type { ProductOffer } from "@/types";
 import { formatTnd } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import { ProductThumbnail } from "./ProductThumbnail";
 
 export interface ProductCardProps {
@@ -18,7 +19,10 @@ export interface ProductCardProps {
  * `.product-card` / `.product` patterns.
  */
 export function ProductCard({ product, onAdd, className }: ProductCardProps) {
-  const stockLabel = product.isAvailable ? "Disponible" : "Rupture";
+  const { t } = useClientLocale();
+  const stockLabel = product.isAvailable
+    ? t("client.product.available")
+    : t("client.product.outOfStock");
   return (
     <article
       className={cn(
@@ -48,7 +52,7 @@ export function ProductCard({ product, onAdd, className }: ProductCardProps) {
           <button
             type="button"
             onClick={() => onAdd(product)}
-            aria-label={`Ajouter ${product.nameFr}`}
+            aria-label={`${t("client.product.add")} ${product.nameFr}`}
             className="grid h-9 w-9 place-items-center rounded bg-primary text-white hover:bg-primary-dark"
           >
             <Plus size={18} strokeWidth={3} />
