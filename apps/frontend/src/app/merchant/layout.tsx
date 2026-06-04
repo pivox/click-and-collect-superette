@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { MerchantShell } from '@/components/merchant/MerchantShell';
 import { MerchantAuthProvider, useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
+import { MerchantLocaleProvider } from '@/lib/i18n/MerchantLocaleContext';
 
 function MerchantContent({ children }: { children: React.ReactNode }) {
   const { merchant, isLoading, error } = useMerchantAuth();
@@ -46,7 +47,9 @@ function MerchantContent({ children }: { children: React.ReactNode }) {
 export default function MerchantLayout({ children }: { children: React.ReactNode }) {
   return (
     <MerchantAuthProvider>
-      <MerchantContent>{children}</MerchantContent>
+      <MerchantLocaleProvider>
+        <MerchantContent>{children}</MerchantContent>
+      </MerchantLocaleProvider>
     </MerchantAuthProvider>
   );
 }
