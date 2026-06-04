@@ -12,6 +12,7 @@ use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
+use App\Repository\MerchantProductRepository;
 use Symfony\Component\Routing\RouterInterface;
 
 final class MerchantCatalogApiTest extends FunctionalApiTestCase
@@ -23,7 +24,7 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         $productReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait demi-écrémé');
         $merchantProduct = $this->createMerchantProduct($shop, $productReference);
         self::assertSame(1, $this->entityManager->getRepository(MerchantProduct::class)->count([]));
-        self::assertCount(1, $this->entityManager->getRepository(MerchantProduct::class)->findCatalogForShop($shop));
+        self::assertCount(1, $this->merchantProductRepository()->findCatalogForShop($shop));
 
         $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()), user: $merchant);
 
@@ -191,7 +192,7 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         );
 
         self::assertSame(201, $postResponse->getStatusCode());
-        $createdMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->findOneForShopAndProductReference($shop, $productReference);
+        $createdMerchantProduct = $this->merchantProductRepository()->findOneForShopAndProductReference($shop, $productReference);
         self::assertInstanceOf(MerchantProduct::class, $createdMerchantProduct);
         self::assertSame('1.650', $createdMerchantProduct->getPriceTnd());
         self::assertTrue($createdMerchantProduct->isAvailable());
@@ -365,6 +366,7 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
             'GET /api/stores/{storeId}/catalog',
             'PATCH /api/merchant/catalog/{merchantProductId}',
             'POST /api/merchant/stores/{storeId}/catalog',
+            'POST /api/merchant/stores/{storeId}/catalog/import-csv',
         ], $catalogRoutes);
     }
 
@@ -504,7 +506,7 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
             $this->validCatalogCreatePayload($productReference, ['price_tnd' => '1.200']),
             $merchant,
         );
-        $createdMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->findOneForShopAndProductReference($shop, $productReference);
+        $createdMerchantProduct = $this->merchantProductRepository()->findOneForShopAndProductReference($shop, $productReference);
         self::assertInstanceOf(MerchantProduct::class, $createdMerchantProduct);
 
         $patchResponse = $this->requestJson(
@@ -582,6 +584,14 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $merchantProduct;
+    }
+
+    private function merchantProductRepository(): MerchantProductRepository
+    {
+        $repository = $this->entityManager->getRepository(MerchantProduct::class);
+        self::assertInstanceOf(MerchantProductRepository::class, $repository);
+
+        return $repository;
     }
 
     /**
