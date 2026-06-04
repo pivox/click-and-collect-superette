@@ -293,10 +293,10 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 **Sprint** : Sprint 11 — Activation commerciale
 
 **User stories** :
-- US-074 — Module abonnement marchand (`Subscription`)
-- US-075 — Statuts : séparer lifecycle et phase tarifaire
+- US-074 — Module abonnement marchand (`Subscription`) *(fondation backend livrée)*
+- US-075 — Statuts : séparer lifecycle et phase tarifaire *(fondation backend livrée)*
 - US-076 — Reçu / facture mensuelle *(à cadrer fiscalement)*
-- US-077 — Paiement manuel (espèces / virement) + validation admin
+- [US-077 — Paiement manuel (espèces / virement) + validation admin](user-stories/US-077-paiement-manuel-abonnement.md) *(à cadrer après US-076)*
 
 **Critère de sortie** : Un marchand a un abonnement avec cycle de vie clair, des factures et un encaissement manuel tracé.
 
