@@ -34,7 +34,16 @@ import {
   getPickupSession,
 } from '@/lib/services';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
+import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 import type { OrderStatus } from '@/types';
+
+function renderPage(orderId = 'order-uuid-1') {
+  return render(
+    <ClientLocaleProvider>
+      <PickupQrPage params={{ orderId }} />
+    </ClientLocaleProvider>,
+  );
+}
 
 const MOCK_USER = { token: 'tok', email: 'client@test.com', name: 'Client Test' };
 const PICKUP_SESSION = {
@@ -154,15 +163,13 @@ describe('PickupQrPage', () => {
 
   it('affiche un état de chargement (null) pendant authLoading', () => {
     mockAuth(null, true);
-    const { container } = render(
-      <PickupQrPage params={{ orderId: 'order-uuid-1' }} />,
-    );
-    expect(container.firstChild).toBeNull();
+    const { container } = renderPage();
+    expect(container.textContent).toBe("");
   });
 
   it('affiche un lien de connexion si non authentifié', () => {
     mockAuth(null);
-    render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+    renderPage();
     expect(screen.getByText(/Connecte-toi/i)).toBeTruthy();
     const link = screen.getByRole('link', { name: /Connecte-toi/i });
     expect(link.getAttribute('href')).toBe(
@@ -172,7 +179,7 @@ describe('PickupQrPage', () => {
 
   it('appelle notFound si getOrder retourne null (commande introuvable)', async () => {
     vi.mocked(getOrder).mockResolvedValue(null);
-    render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+    renderPage();
     await waitFor(() => {
       expect(mockNotFound).toHaveBeenCalled();
     });
@@ -181,7 +188,7 @@ describe('PickupQrPage', () => {
 
   it('redirige via router.replace si le statut n\'est pas éligible au retrait', async () => {
     vi.mocked(getOrder).mockResolvedValue(makeOrder('preparing'));
-    render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+    renderPage();
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/orders/order-uuid-1');
     });
@@ -190,7 +197,7 @@ describe('PickupQrPage', () => {
 
   it('affiche le vrai QR code avec le token de retrait pour une commande ready', async () => {
     vi.mocked(getOrder).mockResolvedValue(makeOrder('ready'));
-    render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText(/Présente ce QR code au comptoir/i)).toBeTruthy();
     });
@@ -214,7 +221,7 @@ describe('PickupQrPage', () => {
         .mockResolvedValueOnce(makeOrder('ready'))
         .mockResolvedValueOnce(makeOrder('pickup_pending'));
 
-      render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+      renderPage();
 
       await waitFor(() => {
         expect(screen.getByText(/Présente ce QR code au comptoir/i)).toBeTruthy();
@@ -241,7 +248,7 @@ describe('PickupQrPage', () => {
 
   it('affiche la confirmation client pour une commande pickup_pending', async () => {
     vi.mocked(getOrder).mockResolvedValue(makeOrder('pickup_pending'));
-    render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText(/Retrait scanné par le marchand/i)).toBeTruthy();
     });
@@ -262,7 +269,7 @@ describe('PickupQrPage', () => {
       isCompleted: false,
     });
 
-    render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+    renderPage();
 
     const button = await screen.findByRole('button', {
       name: /J'ai récupéré ma Kadhia/i,
@@ -281,7 +288,7 @@ describe('PickupQrPage', () => {
     vi.mocked(getOrder).mockResolvedValue(makeOrder('pickup_pending'));
     vi.mocked(getOrderStatus).mockResolvedValue(makeOrderStatus(true));
 
-    render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+    renderPage();
 
     const button = await screen.findByRole('button', {
       name: /Réception confirmée/i,
@@ -310,7 +317,7 @@ describe('PickupQrPage', () => {
         isCompleted: false,
       });
 
-      render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+      renderPage();
 
       const button = await screen.findByRole('button', {
         name: /J'ai récupéré ma Kadhia/i,
@@ -347,7 +354,7 @@ describe('PickupQrPage', () => {
       isExpired: true,
     });
 
-    render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+    renderPage();
 
     await waitFor(() => {
       expect(screen.getByText(/QR code expiré/i)).toBeTruthy();
@@ -357,7 +364,7 @@ describe('PickupQrPage', () => {
 
   it('affiche un message d\'erreur réseau avec bouton Réessayer', async () => {
     vi.mocked(getOrder).mockRejectedValue(new Error('Network Error'));
-    render(<PickupQrPage params={{ orderId: 'order-uuid-1' }} />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText(/Le chargement a échoué/i)).toBeTruthy();
     });

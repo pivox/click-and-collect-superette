@@ -1,17 +1,153 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { AdminDrawer } from '@/components/admin/ui/AdminDrawer';
 import {
   createProductReference,
   updateProductReference,
+  uploadProductReferenceImage,
+  deleteProductReferenceImage,
 } from '@/lib/services/admin/product-references.service';
 import { listBrands } from '@/lib/services/admin/brands.service';
 import { listCategories } from '@/lib/services/admin/categories.service';
-import type { ProductReference, Brand, Category } from '@/lib/types/admin/referentiel.types';
+import type {
+  ProductReference,
+  ProductReferenceImage,
+  Brand,
+  Category,
+} from '@/lib/types/admin/referentiel.types';
+import { mediaUrl } from '@/lib/media';
 
 const UNITS = ['litre', 'millilitre', 'kilogramme', 'gramme', 'piece', 'paquet'] as const;
 const STATUSES = ['draft', 'pending_review', 'approved', 'rejected'] as const;
+
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+const IMAGE_ERROR_MESSAGES: Record<string, string> = {
+  PRODUCT_IMAGE_TOO_SMALL: 'Image trop petite (minimum 400×400 px).',
+  PRODUCT_IMAGE_TOO_LARGE: 'Fichier trop lourd (maximum 2 Mo).',
+  PRODUCT_IMAGE_UNSUPPORTED_MIME: 'Format non supporté (JPEG, PNG ou WebP attendu).',
+  PRODUCT_IMAGE_UNREADABLE: 'Image illisible ou corrompue.',
+  PRODUCT_IMAGE_FILE_REQUIRED: 'Aucun fichier sélectionné.',
+  PRODUCT_IMAGE_VARIANT_GENERATION_FAILED: 'Échec de la génération des variantes.',
+};
+
+function mapImageError(e: unknown): string {
+  if (axios.isAxiosError(e)) {
+    const raw = JSON.stringify(e.response?.data ?? '');
+    for (const code of Object.keys(IMAGE_ERROR_MESSAGES)) {
+      if (raw.includes(code)) return IMAGE_ERROR_MESSAGES[code];
+    }
+  }
+  return "Échec de l'envoi de l'image. Réessayez.";
+}
+
+/**
+ * Image management for an existing product reference: live preview, upload
+ * (with client-side type/size guard mirroring the backend), and removal.
+ */
+function ProductImageSection({
+  productId,
+  initialImage,
+  onImageChange,
+}: {
+  productId: string;
+  initialImage?: ProductReferenceImage | null;
+  onImageChange?: () => void;
+}) {
+  const [image, setImage] = useState<ProductReferenceImage | null>(initialImage ?? null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const preview = mediaUrl(image?.card_url ?? image?.detail_url ?? null);
+
+  const handleFile = async (file: File) => {
+    setError(null);
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setError('Format non supporté (JPEG, PNG ou WebP attendu).');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError('Fichier trop lourd (maximum 2 Mo).');
+      return;
+    }
+    setBusy(true);
+    try {
+      const { image: uploaded } = await uploadProductReferenceImage(productId, file);
+      setImage(uploaded);
+      onImageChange?.();
+    } catch (e) {
+      setError(mapImageError(e));
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const handleDelete = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await deleteProductReferenceImage(productId);
+      setImage(null);
+      onImageChange?.();
+    } catch (e) {
+      setError(mapImageError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-semibold">Image officielle</label>
+      <div className="flex items-start gap-3">
+        <div className="grid h-24 w-24 flex-shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-product-tile">
+          {preview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={preview}
+              alt={image?.alt ?? 'Aperçu produit'}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <span className="text-xs text-muted">Aucune image</span>
+          )}
+        </div>
+        <div className="flex-1 space-y-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACCEPTED_IMAGE_TYPES.join(',')}
+            disabled={busy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleFile(file);
+            }}
+            className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:text-white hover:file:bg-primary-dark"
+          />
+          <p className="text-xs text-muted">
+            JPEG, PNG ou WebP · max 2 Mo · 400×400 px minimum · ratio carré recommandé.
+          </p>
+          {image && (
+            <button
+              type="button"
+              onClick={() => void handleDelete()}
+              disabled={busy}
+              className="text-xs text-danger hover:underline disabled:opacity-50"
+            >
+              Supprimer l’image
+            </button>
+          )}
+          {busy && <p className="text-xs text-muted">Traitement en cours…</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) => void }) {
   const [input, setInput] = useState('');
@@ -54,7 +190,11 @@ interface ProductReferenceDrawerProps {
   open: boolean;
   onClose: () => void;
   product: ProductReference | null;
+  /** Called after a field save: the parent reloads the list and closes the drawer. */
   onSaved: () => void;
+  /** Called after a change that should refresh the list WITHOUT closing the drawer
+   *  (image upload/delete, and the create step that unlocks the image section). */
+  onChanged?: () => void;
 }
 
 type FormState = {
@@ -70,13 +210,17 @@ const EMPTY_FORM: FormState = {
 };
 
 export function ProductReferenceDrawer({
-  open, onClose, product, onSaved,
+  open, onClose, product, onSaved, onChanged,
 }: ProductReferenceDrawerProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Product created within this drawer session — lets the user attach an image
+  // right after creation without closing. `effectiveProduct` unifies edit + create.
+  const [savedProduct, setSavedProduct] = useState<ProductReference | null>(null);
+  const effectiveProduct = savedProduct ?? product;
 
   useEffect(() => {
     void Promise.all([listBrands(1, 50), listCategories(1, 50)])
@@ -108,6 +252,7 @@ export function ProductReferenceDrawer({
     } else {
       setForm(EMPTY_FORM);
     }
+    setSavedProduct(null);
     setError(null);
   }, [product, open]);
 
@@ -136,12 +281,16 @@ export function ProductReferenceDrawer({
         status: form.status,
         aliases: form.aliases.length ? form.aliases : undefined,
       };
-      if (product) {
-        await updateProductReference(product.id, payload);
+      if (effectiveProduct) {
+        await updateProductReference(effectiveProduct.id, payload);
+        onSaved();
       } else {
-        await createProductReference(payload);
+        // Create then stay open in edit mode so the image section unlocks for the
+        // freshly created product; refresh the list without closing.
+        const created = await createProductReference(payload);
+        setSavedProduct(created);
+        onChanged?.();
       }
-      onSaved();
     } catch (e) {
       setError(axios.isAxiosError(e) && e.response?.status === 409
         ? 'Un nom ou slug identique existe déjà.'
@@ -176,7 +325,7 @@ export function ProductReferenceDrawer({
     <AdminDrawer
       open={open}
       onClose={onClose}
-      title={product ? 'Modifier le produit' : 'Nouveau produit'}
+      title={effectiveProduct ? 'Modifier le produit' : 'Nouveau produit'}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       size="lg"
@@ -251,6 +400,18 @@ export function ProductReferenceDrawer({
           <label className="mb-1 block text-sm font-semibold">Aliases</label>
           <TagInput tags={form.aliases} onChange={(t) => set('aliases', t)} />
         </div>
+        {effectiveProduct ? (
+          <ProductImageSection
+            key={effectiveProduct.id}
+            productId={effectiveProduct.id}
+            initialImage={effectiveProduct.image}
+            onImageChange={onChanged}
+          />
+        ) : (
+          <p className="rounded-md bg-soft px-3 py-2 text-xs text-muted">
+            Enregistrez le produit pour pouvoir ajouter une image.
+          </p>
+        )}
       </div>
     </AdminDrawer>
   );

@@ -1,4 +1,4 @@
-import type { ProductOffer } from "@/types";
+import type { ProductImage, ProductOffer } from "@/types";
 import { MOCK_PRODUCTS } from "@/lib/mock/products.mock";
 import { apiClient } from "@/lib/api";
 import { USE_MOCKS, mockDelay } from "./index";
@@ -9,6 +9,17 @@ export interface CatalogQuery {
   search?: string;
   page?: number;
   itemsPerPage?: number;
+}
+
+interface CatalogApiImage {
+  original_url: string | null;
+  thumbnail_url: string | null;
+  card_url: string | null;
+  detail_url: string | null;
+  zoom_url: string | null;
+  fallback_jpeg_url: string | null;
+  alt: string | null;
+  status: string | null;
 }
 
 interface CatalogApiItem {
@@ -25,6 +36,7 @@ interface CatalogApiItem {
   unit: string;
   price_tnd: string;
   is_available: boolean;
+  image?: CatalogApiImage | null;
 }
 
 interface CatalogApiCategory {
@@ -55,6 +67,26 @@ export interface CatalogResult {
   itemsPerPage: number;
   total: number;
   pages: number;
+}
+
+function mapCatalogImage(image: CatalogApiImage): ProductImage {
+  const status =
+    image.status === "verified" ||
+    image.status === "candidate" ||
+    image.status === "needs_review"
+      ? image.status
+      : null;
+
+  return {
+    originalUrl: image.original_url,
+    thumbnailUrl: image.thumbnail_url,
+    cardUrl: image.card_url,
+    detailUrl: image.detail_url,
+    zoomUrl: image.zoom_url,
+    fallbackJpegUrl: image.fallback_jpeg_url,
+    alt: image.alt,
+    status,
+  };
 }
 
 export async function listCatalog(q: CatalogQuery): Promise<CatalogResult> {
@@ -127,7 +159,8 @@ export async function listCatalog(q: CatalogQuery): Promise<CatalogResult> {
     unit: item.unit,
     priceTnd: item.price_tnd,
     isAvailable: item.is_available,
-    photoUrl: null,
+    photoUrl: item.image?.card_url ?? null,
+    image: item.image ? mapCatalogImage(item.image) : null,
     category: item.category_slug,
     categoryNameFr: item.category,
     categoryNameAr: item.category_ar,

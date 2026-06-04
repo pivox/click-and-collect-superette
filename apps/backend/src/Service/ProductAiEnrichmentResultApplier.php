@@ -6,7 +6,11 @@ namespace App\Service;
 
 use App\Entity\Brand;
 use App\Entity\ProductAiEnrichmentJob;
+use App\Entity\ProductImage;
 use App\Entity\ProductReference;
+use App\Enum\ProductImageSource;
+use App\Service\ProductImage\ProductImageApplicationService;
+use App\Service\ProductImage\ProductImageStoreCommand;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 
@@ -18,6 +22,7 @@ final class ProductAiEnrichmentResultApplier
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
+        private readonly ProductImageApplicationService $productImageApplicationService,
     ) {
         $this->slugger = new AsciiSlugger('fr');
     }
@@ -77,6 +82,32 @@ final class ProductAiEnrichmentResultApplier
             'warnings' => $result->warnings,
         ]);
         $job->markApplied();
+    }
+
+    /**
+     * Extension point for the AI image flow (S13-005).
+     *
+     * When the enrichment payload starts carrying a candidate picture (image bytes
+     * detected/proposed by the model), the runner can call this method to push it
+     * through the SAME shared image pipeline used by the admin upload endpoint —
+     * no controller dependency, no duplicated processing.
+     *
+     * The source is fixed to ai_enrichment, so the pipeline always stores the image
+     * as needs_review (never verified): the AI can never auto-promote a picture to
+     * the official referential image. An admin validates it afterwards.
+     *
+     * This method is intentionally not wired into apply() yet because the current
+     * OpenAI batch schema returns no image; it is ready to be called the moment it
+     * does (see ProductAiEnrichmentPayloadFactory).
+     */
+    public function attachCandidateImage(ProductReference $productReference, string $imageContents, ?string $altText = null): ProductImage
+    {
+        return $this->productImageApplicationService->store(new ProductImageStoreCommand(
+            contents: $imageContents,
+            source: ProductImageSource::AiEnrichment,
+            productReference: $productReference,
+            altText: $altText,
+        ));
     }
 
     private function validate(ProductAiEnrichmentResult $result): void

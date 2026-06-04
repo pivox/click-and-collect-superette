@@ -48,7 +48,7 @@ final class ProductAiEnrichmentResultApplierTest extends FunctionalApiTestCase
         $this->entityManager->persist($job);
         $this->entityManager->flush();
 
-        $applier = new ProductAiEnrichmentResultApplier($this->entityManager);
+        $applier = self::getContainer()->get(ProductAiEnrichmentResultApplier::class);
         $result = new ProductAiEnrichmentResult(
             brand: 'Safia',
             barcode: '6191234567890',
@@ -104,7 +104,7 @@ final class ProductAiEnrichmentResultApplierTest extends FunctionalApiTestCase
         $this->entityManager->persist($job);
         $this->entityManager->flush();
 
-        $applier = new ProductAiEnrichmentResultApplier($this->entityManager);
+        $applier = self::getContainer()->get(ProductAiEnrichmentResultApplier::class);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('AI_RESULT_BARCODE_INVALID');

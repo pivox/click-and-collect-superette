@@ -308,11 +308,26 @@ Réponse :
       "volume": "1",
       "unit": "litre",
       "price_tnd": "1.650",
-      "is_available": true
+      "is_available": true,
+      "image": {
+        "original_url": "/uploads/products/{image_id}/original.jpg",
+        "thumbnail_url": "/uploads/products/{image_id}/200.webp",
+        "card_url": "/uploads/products/{image_id}/400.webp",
+        "detail_url": "/uploads/products/{image_id}/800.webp",
+        "zoom_url": "/uploads/products/{image_id}/1200.webp",
+        "fallback_jpeg_url": "/uploads/products/{image_id}/fallback.jpg",
+        "alt": "Lait demi-écrémé",
+        "status": "verified"
+      }
     }
   ]
 }
 ```
+
+> `image` (US-041 / S13-005) est **absent** quand le produit n'a pas d'image officielle
+> (une image manquante ne bloque jamais le produit ; le frontend affiche un placeholder
+> catégorie). Les URL sont relatives et résolues contre l'origine API. Voir
+> `docs/roadmap/product-images-web-mobile.md`.
 
 ### Lire les créneaux disponibles d'une supérette
 
@@ -1821,7 +1836,38 @@ GET    /api/admin/product-references/{productReferenceId}
 POST   /api/admin/product-references
 PATCH  /api/admin/product-references/{productReferenceId}
 PATCH  /api/admin/product-references/{productReferenceId}/archive
+POST   /api/admin/product-references/{productReferenceId}/image     # multipart, S13-005
+DELETE /api/admin/product-references/{productReferenceId}/image     # S13-005
 ```
+
+#### Image officielle du produit référentiel (US-041 / S13-005)
+
+`POST .../image` — `Content-Type: multipart/form-data`, champ fichier `image`
+(+ champ texte optionnel `alt`). Formats : JPEG/PNG/WebP · max 2 Mo · min 400×400 px.
+Conserve l'original, génère les variantes WebP `200/400/800/1200` + un fallback JPEG,
+et renvoie `201` :
+
+```json
+{
+  "image": {
+    "original_url": "/uploads/products/{image_id}/original.jpg",
+    "thumbnail_url": "/uploads/products/{image_id}/200.webp",
+    "card_url": "/uploads/products/{image_id}/400.webp",
+    "detail_url": "/uploads/products/{image_id}/800.webp",
+    "zoom_url": "/uploads/products/{image_id}/1200.webp",
+    "fallback_jpeg_url": "/uploads/products/{image_id}/fallback.jpg",
+    "alt": "Lait demi-écrémé",
+    "status": "verified"
+  }
+}
+```
+
+Erreurs : `400 PRODUCT_IMAGE_FILE_REQUIRED` ; `422` (`PRODUCT_IMAGE_TOO_LARGE`,
+`PRODUCT_IMAGE_UNSUPPORTED_MIME`, `PRODUCT_IMAGE_TOO_SMALL`, `PRODUCT_IMAGE_UNREADABLE`,
+`PRODUCT_IMAGE_VARIANT_GENERATION_FAILED`) ; `404` produit introuvable.
+`DELETE .../image` → `204` (ou `404 PRODUCT_IMAGE_NOT_FOUND`). Le GET détail/liste admin
+expose le même objet `image` (absent si aucune image). Voir
+`docs/roadmap/product-images-web-mobile.md`.
 
 Payload `POST` :
 

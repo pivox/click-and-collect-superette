@@ -14,7 +14,9 @@ use App\Provider\AdminProductReferenceItemProvider;
 use App\Repository\AdminBrandRepository;
 use App\Repository\AdminCategoryRepository;
 use App\Repository\AdminProductReferenceRepository;
+use App\Repository\ProductImageRepository;
 use App\Service\AdminAuditLogger;
+use App\Service\ProductImage\ProductImageUrlBuilder;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -29,6 +31,8 @@ final readonly class AdminUpdateProductReferenceProcessor implements ProcessorIn
         private AdminProductReferenceRepository $adminProductReferenceRepository,
         private AdminBrandRepository $adminBrandRepository,
         private AdminCategoryRepository $adminCategoryRepository,
+        private ProductImageRepository $productImageRepository,
+        private ProductImageUrlBuilder $productImageUrlBuilder,
         private RequestStack $requestStack,
         private AdminAuditLogger $auditLogger,
     ) {
@@ -148,7 +152,11 @@ final readonly class AdminUpdateProductReferenceProcessor implements ProcessorIn
         );
         $this->adminProductReferenceRepository->save($productReference);
 
-        return AdminProductReferenceItemProvider::toOutput($productReference);
+        $image = $this->productImageUrlBuilder->build(
+            $this->productImageRepository->findOfficialForProductReference($productReference),
+        );
+
+        return AdminProductReferenceItemProvider::toOutput($productReference, $image);
     }
 
     /**

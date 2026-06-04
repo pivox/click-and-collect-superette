@@ -8,9 +8,12 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\StoreCatalogCategoryOutput;
 use App\ApiResource\StoreCatalogOutput;
+use App\ApiResource\StoreCatalogProductOutput;
 use App\Entity\MerchantProduct;
+use App\Entity\ProductReference;
 use App\Mapper\StoreCatalogProductMapper;
 use App\Repository\MerchantProductRepository;
+use App\Repository\ProductImageRepository;
 use App\Repository\ShopRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -25,6 +28,7 @@ final readonly class StoreCatalogProvider implements ProviderInterface
         private ShopRepository $shopRepository,
         private MerchantProductRepository $merchantProductRepository,
         private StoreCatalogProductMapper $storeCatalogProductMapper,
+        private ProductImageRepository $productImageRepository,
         private RequestStack $requestStack,
     ) {
     }
@@ -57,8 +61,23 @@ final readonly class StoreCatalogProvider implements ProviderInterface
         $page = min($page, $pages);
         $paginatedCatalog = \array_slice($catalog, ($page - 1) * $itemsPerPage, $itemsPerPage);
 
+        // Batch-load the official images for the current page only (not the full catalog).
+        $pageReferences = [];
+        foreach ($paginatedCatalog as $merchantProduct) {
+            $reference = $merchantProduct->getProductReference();
+            if ($reference instanceof ProductReference) {
+                $pageReferences[] = $reference;
+            }
+        }
+        $officialImages = $this->productImageRepository->findOfficialByProductReferences($pageReferences);
+
         $items = array_map(
-            $this->storeCatalogProductMapper->toOutput(...),
+            function (MerchantProduct $merchantProduct) use ($officialImages): StoreCatalogProductOutput {
+                $reference = $merchantProduct->getProductReference();
+                $image = null !== $reference ? ($officialImages[$reference->getId()->toRfc4122()] ?? null) : null;
+
+                return $this->storeCatalogProductMapper->toOutput($merchantProduct, $image);
+            },
             $paginatedCatalog,
         );
 

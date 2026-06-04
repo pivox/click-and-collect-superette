@@ -1,90 +1,74 @@
-# Roadmap addendum — Images produits web/mobile
+# Images produits web/mobile — S13-005 / US-041 / Issue #391
 
-## Contexte
+Statut : **livré** (backend + frontend).
 
-L'US-041 existe déjà dans le scope historique, mais elle est encore marquée manquante dans la synthèse Sprint 1. Elle couvre l'affichage des photos produits et un premier upload admin, mais ne cadre pas suffisamment la stratégie moderne web/mobile : formats optimisés, variantes responsive, fallback, CDN/cache et exposition API.
+Pipeline de **stockage, transformation et diffusion** des images finales affichées
+dans les catalogues client, marchand et admin. À ne pas confondre avec l'import
+catalogue par photo IA (détection de produits depuis un ticket/rayon), hors périmètre.
 
-Ce sujet doit donc être rattaché à la roadmap post-MVP comme un lot explicite, sans le confondre avec l'import catalogue par photo assisté IA. L'import photo IA sert à détecter des produits depuis un ticket, un rayon ou une liste ; ce lot sert à stocker, transformer et servir les images finales affichées dans le catalogue client et marchand.
+## Décision technique
 
-## Positionnement recommandé
+- Image **originale conservée** + variantes **WebP** `200 / 400 / 800 / 1200` px.
+- **Fallback JPEG** (800 px) pour les navigateurs sans WebP (`<picture>`).
+- Ratio carré 1:1 recommandé ; les variantes **préservent le ratio** (pas de déformation)
+  et **n'agrandissent jamais** au-delà de l'original ; le rendu se fait dans une boîte
+  carrée en `object-contain`.
+- **Placeholder catégorie** (emoji / initiale) quand aucune image — une image manquante
+  **ne bloque jamais** le produit.
+- Génération via l'extension **GD** (aucun service externe, aucun binaire). `ext-gd`
+  est déclarée dans `apps/backend/composer.json`.
 
-Ajouter au **Sprint 13 — Catalogue intelligent & qualité** un lot dédié :
+## Pipeline image commun (réutilisable)
 
-```text
-[S13-005] Gestion optimisée des images produits web/mobile
+Services dans `apps/backend/src/Service/ProductImage/` :
+
+| Service | Rôle |
+|---|---|
+| `ProductImageApplicationService` | **Point d'entrée unique** : valide la source, génère, stocke, applique la règle de statut, remplace l'ancienne image officielle. |
+| `ProductImageVariantGenerator` | Validation contenu (MIME réel, dimensions min) + génération WebP + fallback JPEG (GD). |
+| `ProductImageStorage` | Écriture/suppression des fichiers sous une racine maîtrisée, renvoie les chemins publics relatifs. |
+| `ProductImageUrlBuilder` | Construit le payload responsive (`thumbnail/card/detail/zoom/fallback_jpeg`) ; base URL configurable (CDN futur). |
+| `ProductImageStoreCommand` | DTO d'entrée du pipeline (contenu, source, cible, alt, statut éventuel). |
+
+Le même pipeline est appelable depuis :
+
+1. l'endpoint admin d'upload (`AdminProductReferenceImageController`) ;
+2. l'enrichissement IA (`ProductAiEnrichmentResultApplier::attachCandidateImage()`) ;
+3. les futurs imports catalogue par photo et contributions marchands.
+
+```
+AdminProductReferenceImageController ─┐
+ProductAiEnrichmentResultApplier ─────┼─▶ ProductImageApplicationService
+(futurs imports / contributions) ─────┘        ├─▶ ProductImageVariantGenerator
+                                               ├─▶ ProductImageStorage
+                                               └─▶ ProductImageUrlBuilder
 ```
 
-Ce lot complète :
+## Image officielle vs candidate IA vs contribution marchand
 
-- US-041 — Afficher les photos des produits dans le catalogue.
-- S13-001 — Import catalogue par photo assisté IA.
-- S13-003 — Score de qualité des références produit, qui inclut déjà la présence d'une image dans le score.
+Règle de gouvernance appliquée dans `ProductImageApplicationService` :
 
-## Objectif business
+| Source (`ProductImageSource`) | Statut par défaut (`ProductImageStatus`) | Devient officielle ? |
+|---|---|---|
+| `admin_upload` | `verified` | ✅ oui (image officielle du référentiel) |
+| `ai_enrichment` | `needs_review` | ❌ jamais automatiquement |
+| `merchant_contribution` | `needs_review` | ❌ jamais automatiquement |
+| `open_source` / `external_authorized_source` | `needs_review` | ❌ jamais automatiquement |
 
-Améliorer la lisibilité du catalogue, la confiance client et la performance web/mobile en servant des images produits propres, rapides et cohérentes sur catalogue, recherche, panier, fiche produit et administration.
+**Garde dure** : une source non-admin demandant explicitement `verified` est rétrogradée
+en `needs_review`. Seule une image `verified` est exposée dans les catalogues. L'image
+officielle appartient au `ProductReference` partagé ; un marchand ne remplace pas l'image
+référentiel dans ce lot.
 
-## Périmètre inclus
+## Modèle de données
 
-- Upload admin d'une image produit référentiel.
-- Stockage de l'original.
-- Génération automatique de variantes responsive.
-- Format principal servi : WebP.
-- Fallback JPEG si nécessaire.
-- Variantes recommandées : 200, 400, 800 et 1200 px.
-- Ratio recommandé : 1:1 carré.
-- Placeholder par catégorie si aucune image n'est disponible.
-- Texte alternatif exploitable côté accessibilité.
-- Exposition API des URLs par taille.
-- Invalidations simples de cache après remplacement d'image.
-- Tests upload, validation MIME/taille, génération de variantes et exposition catalogue.
+Entité `ProductImage` (table `product_images`, migration `Version20260604120000`) :
 
-## Hors périmètre
+`id`, `product_reference_id` (nullable), `product_reference_proposal_id` (nullable),
+`original_path`, `mime_type`, `width`, `height`, `variants` (JSON), `source`, `status`,
+`alt_text`, `created_at`, `updated_at`.
 
-- Copie d'images depuis les catalogues d'autres enseignes.
-- Génération IA d'images produit.
-- Retouche avancée ou détourage automatique.
-- CDN externe obligatoire dès le MVP.
-- AVIF obligatoire dès le premier lot ; à prévoir comme optimisation ultérieure.
-- Images spécifiques par marchand, sauf décision produit séparée.
-
-## Règles produit
-
-- L'image officielle d'un produit appartient d'abord au `ProductReference`.
-- Le marchand ne remplace pas librement l'image référentiel partagée.
-- Une image manquante ne bloque jamais la vente du produit.
-- Les images externes issues de sources commerciales ne doivent pas être copiées sans droit clair.
-- Les imports IA peuvent produire des contributions, mais ne valident pas automatiquement une image officielle.
-
-## Modèle technique cible
-
-Première version compatible avec l'US-041 :
-
-```text
-ProductReference.imageUrl
-ProductReference.imageUrlThumbnail
-ProductReference.imageUrlMedium
-```
-
-Version plus robuste recommandée :
-
-```text
-product_image
-- id
-- product_reference_id nullable
-- merchant_product_id nullable
-- original_path
-- mime_type
-- width
-- height
-- variants_json
-- source
-- status
-- created_at
-- updated_at
-```
-
-Exemple de `variants_json` :
+`variants` (JSON) :
 
 ```json
 {
@@ -92,34 +76,75 @@ Exemple de `variants_json` :
   "400": "/uploads/products/{id}/400.webp",
   "800": "/uploads/products/{id}/800.webp",
   "1200": "/uploads/products/{id}/1200.webp",
-  "fallback_jpeg": "/uploads/products/{id}/800.jpg"
+  "fallback_jpeg": "/uploads/products/{id}/fallback.jpg"
 }
 ```
 
-## Critères d'acceptation
+> Évolution : colonnes `merchant_product_id` / `product_candidate_id` ajoutables plus tard
+> quand ces flux seront livrés (volontairement hors table MVP pour éviter des colonnes orphelines).
 
-- Une image JPEG, PNG ou WebP valide peut être uploadée par l'admin pour une référence produit.
-- Le serveur conserve l'original et génère au minimum 200, 400 et 800 px en WebP.
-- Le catalogue public expose les URLs adaptées aux cartes produit et aux fiches produit.
-- Le frontend affiche un placeholder catégorie si aucune image n'existe.
-- Une image trop lourde, trop petite ou au MIME non autorisé est refusée avec une erreur claire.
-- Le remplacement d'une image met à jour les variantes et évite d'afficher une ancienne image en cache.
-- Les tests couvrent l'upload, la validation, le resize et l'exposition API.
+## Endpoint admin
 
-## Ajout recommandé dans `docs/roadmap/mvp-roadmap.md`
-
-Dans la section **Sprint 13 — Catalogue intelligent & qualité**, ajouter :
-
-```markdown
-- **[#TODO](https://github.com/pivox/click-and-collect-superette/issues/TODO)** — Gestion optimisée des images produits web/mobile : réactivation US-041, upload admin, original conservé, variantes WebP 200/400/800/1200, fallback JPEG, placeholder catégorie, exposition API responsive.
+```
+POST   /api/admin/product-references/{id}/image   (multipart/form-data, champ "image", "alt" optionnel)
+DELETE /api/admin/product-references/{id}/image
 ```
 
-Adapter ensuite le critère de sortie du Sprint 13 :
+- `ROLE_ADMIN` requis ; produit référentiel existant requis.
+- Formats acceptés : JPEG, PNG, WebP. Taille max : **2 Mo** (configurable). Dimensions min : **400×400**.
+- Validation du **contenu réel** (sniff binaire), pas de l'extension.
+- Codes d'erreur : `PRODUCT_IMAGE_FILE_REQUIRED` (400), `PRODUCT_IMAGE_TOO_LARGE`,
+  `PRODUCT_IMAGE_UNSUPPORTED_MIME`, `PRODUCT_IMAGE_TOO_SMALL`, `PRODUCT_IMAGE_UNREADABLE`,
+  `PRODUCT_IMAGE_VARIANT_GENERATION_FAILED` (422), produit introuvable (404).
+- Remplacement : l'ancienne image officielle (ligne + fichiers) est nettoyée.
 
-```markdown
-Un marchand crée un catalogue exploitable sans saisir produit par produit ; le référentiel reste propre, gouverné et illustré avec des images produit optimisées pour le web/mobile.
+## Exposition API
+
+Objet `image` imbriqué (ou absent si aucune image — `null` exclu de la sérialisation) :
+
+```json
+"image": {
+  "original_url": "…",
+  "thumbnail_url": "…/200.webp",
+  "card_url": "…/400.webp",
+  "detail_url": "…/800.webp",
+  "zoom_url": "…/1200.webp",
+  "fallback_jpeg_url": "…/fallback.jpg",
+  "alt": "…",
+  "status": "verified"
+}
 ```
 
-## Prochaine étape
+Exposé dans :
+- catalogue public client : `GET /api/stores/{storeId}/catalog` (items) ;
+- détail/liste admin : `GET /api/admin/product-references/{id}` et la collection.
 
-Créer l'issue GitHub dédiée, puis remplacer `#TODO` dans la roadmap principale par son numéro.
+Les URL sont **relatives** par défaut (`/uploads/...`) ; le frontend les résout contre
+l'origine API (`mediaUrl()`). Un `PRODUCT_IMAGE_BASE_URL` (param `app.product_image.public_base_url`)
+permet de préfixer une origine CDN/stockage objet sans changer le code.
+
+## Frontend
+
+- `ProductThumbnail` (`<picture>` WebP + fallback JPEG, `loading="lazy"`, `object-contain`,
+  placeholder emoji/initiale à l'erreur ou en l'absence d'image) — utilisé par `ProductCard`
+  et `KadhiaLineRow`.
+- `mediaUrl()` résout les chemins relatifs.
+- Admin : section upload dans `ProductReferenceDrawer` (aperçu, garde type/taille côté client,
+  messages d'erreur clairs, suppression).
+
+## Limites restantes / prochaines PR
+
+- Branchement **réel** de l'image IA non actif : le payload d'enrichissement OpenAI ne renvoie
+  pas encore d'image ; le point d'extension `attachCandidateImage()` est prêt et testé.
+- Pas d'écran d'administration de modération des images `candidate` / `needs_review`.
+- Pas d'AVIF, pas de CDN externe obligatoire, pas de retouche/détourage (hors périmètre).
+- Stockage local (`public/uploads/products/`) ; migration vers stockage objet à prévoir avant
+  forte charge (le `ProductImageStorage` isole déjà cette responsabilité).
+- Contribution marchand et `ProductCandidate` : structure prête (statuts/source), flux UI non livrés.
+- **Unicité de l'image officielle non garantie en base** (limite acceptée, admin-only / faible
+  risque — même posture que la race condition slug documentée dans `AI_CONTEXT.md`). Deux uploads
+  admin simultanés sur le **même** `ProductReference` peuvent lire l'ancienne/absence d'image
+  officielle avant le flush de l'autre, laissant brièvement deux lignes `verified` (la lecture
+  retient la plus récente par `updatedAt`). Durcissement recommandé avant forte charge : index
+  unique partiel `product_reference_id WHERE status = 'verified'` + remplacement transactionnel
+  (suppression de l'ancienne avant insertion) avec gestion du conflit (409). Hors périmètre de ce lot.

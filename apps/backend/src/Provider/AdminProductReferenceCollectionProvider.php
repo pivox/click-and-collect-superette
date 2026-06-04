@@ -9,6 +9,8 @@ use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\AdminProductReferenceListOutput;
 use App\Enum\ProductReferenceStatus;
 use App\Repository\AdminProductReferenceRepository;
+use App\Repository\ProductImageRepository;
+use App\Service\ProductImage\ProductImageUrlBuilder;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -24,6 +26,8 @@ final readonly class AdminProductReferenceCollectionProvider implements Provider
 
     public function __construct(
         private AdminProductReferenceRepository $adminProductReferenceRepository,
+        private ProductImageRepository $productImageRepository,
+        private ProductImageUrlBuilder $productImageUrlBuilder,
         private RequestStack $requestStack,
     ) {
     }
@@ -56,8 +60,12 @@ final readonly class AdminProductReferenceCollectionProvider implements Provider
         }
 
         $productReferences = $this->adminProductReferenceRepository->findPaginated($limit, $offset, $q, $categoryId, $brandId, $status);
+        $officialImages = $this->productImageRepository->findOfficialByProductReferences($productReferences);
         $items = array_map(
-            static fn ($ref) => AdminProductReferenceItemProvider::toOutput($ref),
+            fn ($ref) => AdminProductReferenceItemProvider::toOutput(
+                $ref,
+                $this->productImageUrlBuilder->build($officialImages[$ref->getId()->toRfc4122()] ?? null),
+            ),
             $productReferences,
         );
 

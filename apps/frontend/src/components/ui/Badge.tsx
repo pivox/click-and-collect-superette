@@ -37,30 +37,33 @@ export function Badge({ tone = "default", className, ...rest }: BadgeProps) {
   );
 }
 
-/** Map an OrderStatus to its visual tone + label. */
+/**
+ * Map an OrderStatus to its visual tone + i18n label key.
+ * The caller resolves `labelKey` with the locale-aware `t()` (S14-004).
+ */
 export function orderStatusBadge(status: OrderStatus): {
   tone: BadgeTone;
-  label: string;
+  labelKey: string;
 } {
   switch (status) {
     case "draft":
-      return { tone: "default", label: "Brouillon" };
+      return { tone: "default", labelKey: "client.orderStatus.draft" };
     case "submitted":
-      return { tone: "prep", label: "Soumise" };
+      return { tone: "prep", labelKey: "client.orderStatus.submitted" };
     case "accepted":
-      return { tone: "prep", label: "Acceptée" };
+      return { tone: "prep", labelKey: "client.orderStatus.accepted" };
     case "partially_accepted":
-      return { tone: "wait", label: "Partiellement acceptée" };
+      return { tone: "wait", labelKey: "client.orderStatus.partiallyAccepted" };
     case "rejected":
-      return { tone: "cancel", label: "Refusée" };
+      return { tone: "cancel", labelKey: "client.orderStatus.rejected" };
     case "preparing":
-      return { tone: "wait", label: "En préparation" };
+      return { tone: "wait", labelKey: "client.orderStatus.preparing" };
     case "ready":
     case "pickup_pending":
-      return { tone: "ready", label: "Commande prête" };
+      return { tone: "ready", labelKey: "client.orderStatus.ready" };
     case "completed":
-      return { tone: "ready", label: "Récupérée" };
+      return { tone: "ready", labelKey: "client.orderStatus.completed" };
     case "cancelled":
-      return { tone: "cancel", label: "Annulée" };
+      return { tone: "cancel", labelKey: "client.orderStatus.cancelled" };
   }
 }

@@ -9,6 +9,9 @@
 /vendor/
 ###< symfony/framework-bundle ###
 
+# Product image pipeline — user-uploaded files must not be committed.
+/public/uploads/
+
 ###> lexik/jwt-authentication-bundle ###
 /config/jwt/*.pem
 ###< lexik/jwt-authentication-bundle ###

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { KadhiaSelectorDialog } from "@/components/client/KadhiaSelectorDialog";
 import { ShoppingBasket } from "lucide-react";
 import { useHydrated } from "@/lib/hooks/useHydrated";
+import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import {
   addLine,
   createKadhia,
@@ -33,19 +34,22 @@ export default function CatalogPage({
 }) {
   const { shopId } = params;
   const isHydrated = useHydrated();
+  const { t } = useClientLocale();
+  const itemsWord = (n: number) =>
+    n > 1 ? t("client.itemsPlural") : t("client.itemsSingular");
   const [category, setCategory] = useState<string>("all");
   const [categoryOptions, setCategoryOptions] = useState<CatalogCategoryOption[]>([]);
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<ProductOffer[]>([]);
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [selectorDrafts, setSelectorDrafts] = useState<KadhiaListItem[] | null>(null);
   const [retryKey, setRetryKey] = useState(0);
-  const [kadhiaLoadError, setKadhiaLoadError] = useState<string | null>(null);
+  const [kadhiaLoadError, setKadhiaLoadError] = useState(false);
   const [catalogPage, setCatalogPage] = useState(1);
   const [catalogPages, setCatalogPages] = useState(1);
   const [catalogTotal, setCatalogTotal] = useState(0);
@@ -54,7 +58,7 @@ export default function CatalogPage({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let cancelled = false;
-    setCatalogError(null);
+    setCatalogError(false);
     setIsLoading(true);
     void listCatalog({
       shopId,
@@ -75,12 +79,12 @@ export default function CatalogPage({
           setIsLoading(false);
         }
       })
-      .catch(() => { if (!cancelled) { setCatalogError("Impossible de charger le catalogue."); setIsLoading(false); } });
+      .catch(() => { if (!cancelled) { setCatalogError(true); setIsLoading(false); } });
     return () => { cancelled = true; };
   }, [shopId, category, search, retryKey]);
 
   useEffect(() => {
-    setKadhiaLoadError(null);
+    setKadhiaLoadError(false);
     void getCurrentKadhia(shopId)
       .then((result) => {
         if (result.type === "active") setKadhia(result.kadhia);
@@ -93,7 +97,7 @@ export default function CatalogPage({
         // and let the "Commencer une Kadhia" bar prompt for login on demand.
         if (status === 401) return;
         if (status !== 404 && status !== 405) {
-          setKadhiaLoadError("Impossible de charger ta Kadhia. Réessaie.");
+          setKadhiaLoadError(true);
         }
       });
   }, [shopId]);
@@ -111,7 +115,7 @@ export default function CatalogPage({
       const created = await createKadhia(shopId);
       setKadhia(created);
     } catch {
-      setAddError("Impossible de créer une Kadhia. Réessaie.");
+      setAddError(t("client.catalog.createError"));
     } finally {
       setIsStarting(false);
     }
@@ -123,7 +127,7 @@ export default function CatalogPage({
       setSelectorDrafts(null);
       setKadhia(activated);
     } catch {
-      setAddError("Impossible de charger cette Kadhia. Réessaie.");
+      setAddError(t("client.catalog.loadKadhiaError"));
     }
   };
 
@@ -141,7 +145,7 @@ export default function CatalogPage({
       const next = await addLine(shopId, kadhia.id, p, newQty);
       setKadhia(next);
     } catch {
-      setAddError("Impossible d'ajouter le produit. Réessaie.");
+      setAddError(t("client.catalog.addError"));
     }
   };
 
@@ -164,7 +168,7 @@ export default function CatalogPage({
       setCatalogPages(data.pages);
       setCatalogTotal(data.total);
     } catch {
-      setAddError("Impossible de charger plus de produits. Réessaie.");
+      setAddError(t("client.catalog.loadMoreError"));
     } finally {
       setIsLoadingMore(false);
     }
@@ -176,15 +180,15 @@ export default function CatalogPage({
   );
 
   const cartLabel = cartCount === 0
-    ? "Kadhia vide"
-    : `${cartCount} article${cartCount > 1 ? "s" : ""}`;
+    ? t("client.catalog.emptyKadhia")
+    : `${cartCount} ${itemsWord(cartCount)}`;
 
   const hasActiveKadhia = !!kadhia?.id;
   const startLabel = !isHydrated
-    ? "Préparation…"
+    ? t("client.catalog.preparing")
     : isStarting
       ? "…"
-      : "Commencer";
+      : t("client.catalog.start");
   const remainingProductCount = Math.max(catalogTotal - products.length, 0);
 
   return (
@@ -198,13 +202,13 @@ export default function CatalogPage({
       )}
 
       <TopBar
-        title="Catalogue"
+        title={t("client.catalog.title")}
         subtitle={shop?.name}
         backHref={`/stores/${shopId}`}
         action={
           <Link
             href={kadhia?.id ? `/kadhia/${kadhia.id}` : "/kadhia"}
-            aria-label="Voir ma Kadhia"
+            aria-label={t("client.catalog.viewKadhia")}
             className="relative grid h-10 w-10 place-items-center rounded-[15px] border border-line bg-card shadow-[0_8px_18px_rgba(18,30,20,.06)] md:hidden"
           >
             <ShoppingBasket size={18} />
@@ -218,14 +222,14 @@ export default function CatalogPage({
       />
 
       <SearchInput
-        placeholder="Rechercher un produit"
+        placeholder={t("client.catalog.searchPlaceholder")}
         value={search}
         onChange={(e) => setSearch(e.currentTarget.value)}
         className="mb-3"
       />
 
       <PillRow className="mb-4">
-        {[{ key: "all", labelFr: "Tous" }, ...categoryOptions].map((c) => (
+        {[{ key: "all", labelFr: t("client.catalog.all") }, ...categoryOptions].map((c) => (
           <Pill
             key={c.key}
             active={category === c.key}
@@ -240,7 +244,7 @@ export default function CatalogPage({
       <div className="min-w-0 md:grid md:grid-cols-[minmax(0,1fr)_360px] md:gap-5 md:items-start">
         <section className="min-w-0">
           <header className="mb-2.5 flex items-baseline justify-between">
-            <h3 className="m-0 text-h3 font-extrabold">Produits</h3>
+            <h3 className="m-0 text-h3 font-extrabold">{t("client.catalog.products")}</h3>
             {hasActiveKadhia && (
               <Link href={`/kadhia/${kadhia!.id}`} className="text-xs font-extrabold text-primary md:hidden">
                 {cartLabel}
@@ -254,13 +258,13 @@ export default function CatalogPage({
           )}
           {catalogError ? (
             <div className="py-8 text-center">
-              <p className="text-sm text-muted">{catalogError}</p>
+              <p className="text-sm text-muted">{t("client.catalog.loadError")}</p>
               <button
                 type="button"
                 onClick={() => setRetryKey((k) => k + 1)}
                 className="mt-3 text-sm font-extrabold text-primary underline"
               >
-                Réessayer
+                {t("client.catalog.retry")}
               </button>
             </div>
           ) : isLoading ? (
@@ -281,28 +285,30 @@ export default function CatalogPage({
             <div className="py-8 text-center">
               {search ? (
                 <>
-                  <p className="text-sm text-muted">Aucun résultat pour « {search} ».</p>
+                  <p className="text-sm text-muted">
+                    {t("client.catalog.noSearchResultPrefix")} « {search} ».
+                  </p>
                   <button
                     type="button"
                     onClick={() => setSearch("")}
                     className="mt-3 text-sm font-extrabold text-primary underline"
                   >
-                    Effacer la recherche
+                    {t("client.catalog.clearSearch")}
                   </button>
                 </>
               ) : category !== "all" ? (
                 <>
-                  <p className="text-sm text-muted">Aucun produit dans cette catégorie.</p>
+                  <p className="text-sm text-muted">{t("client.catalog.noCategoryResult")}</p>
                   <button
                     type="button"
                     onClick={() => setCategory("all")}
                     className="mt-3 text-sm font-extrabold text-primary underline"
                   >
-                    Voir tous les produits
+                    {t("client.catalog.showAll")}
                   </button>
                 </>
               ) : (
-                <p className="text-sm text-muted">Catalogue vide pour le moment.</p>
+                <p className="text-sm text-muted">{t("client.catalog.emptyCatalog")}</p>
               )}
             </div>
           ) : (
@@ -325,8 +331,8 @@ export default function CatalogPage({
                     disabled={isLoadingMore}
                   >
                     {isLoadingMore
-                      ? "Chargement…"
-                      : `Afficher ${Math.min(CATALOG_PAGE_SIZE, remainingProductCount)} produits de plus`}
+                      ? t("client.catalog.loadingMore")
+                      : `${t("client.catalog.showMorePrefix")} ${Math.min(CATALOG_PAGE_SIZE, remainingProductCount)} ${t("client.catalog.showMoreSuffix")}`}
                   </Button>
                 </div>
               )}
@@ -344,25 +350,25 @@ export default function CatalogPage({
         <div className="fixed bottom-[calc(60px+env(safe-area-inset-bottom))] left-0 right-0 z-30 border-t border-line bg-white px-4 pb-3 pt-3 shadow-[0_-4px_16px_rgba(18,30,20,.08)] md:bottom-0">
           {kadhiaLoadError ? (
             <div className="mx-auto flex max-w-md items-center justify-between gap-3">
-              <p className="text-sm text-red-600">{kadhiaLoadError}</p>
+              <p className="text-sm text-red-600">{t("client.catalog.kadhiaLoadError")}</p>
               <Button
                 onClick={() => {
-                  setKadhiaLoadError(null);
+                  setKadhiaLoadError(false);
                   void getCurrentKadhia(shopId)
                     .then((result) => {
                       if (result.type === "active") setKadhia(result.kadhia);
                       else if (result.type === "multiple") setSelectorDrafts(result.drafts);
                     })
-                    .catch(() => setKadhiaLoadError("Impossible de charger ta Kadhia. Réessaie."));
+                    .catch(() => setKadhiaLoadError(true));
                 }}
                 className="shrink-0"
               >
-                Réessayer
+                {t("client.catalog.retry")}
               </Button>
             </div>
           ) : (
             <div className="mx-auto flex max-w-md items-center justify-between gap-3">
-              <p className="text-sm text-muted">Commence une Kadhia pour ajouter des produits.</p>
+              <p className="text-sm text-muted">{t("client.catalog.startMessage")}</p>
               <Button
                 onClick={onStart}
                 disabled={!isHydrated || isStarting}

@@ -10,6 +10,15 @@ parameters:
     app.partial_acceptance_reminder_lead_seconds: 14400
     app.partial_acceptance_expiration_lead_seconds: 7200
     app.diagnostics.allow_non_count_aware_messenger_transport: false
+    # Product image pipeline (S13-005 / US-041)
+    app.product_image.upload_dir: '%kernel.project_dir%/public/uploads/products'
+    app.product_image.public_path_prefix: '/uploads/products'
+    # Optional absolute base URL (CDN / object storage origin). Empty → relative
+    # paths resolved by the frontend against the API origin.
+    app.product_image.public_base_url_default: ''
+    app.product_image.public_base_url: '%env(default:app.product_image.public_base_url_default:string:PRODUCT_IMAGE_BASE_URL)%'
+    app.product_image.max_upload_bytes: 2097152
+    app.product_image.min_dimension: 400
 
 services:
     # default configuration for services in *this* file
@@ -43,6 +52,10 @@ services:
     # please note that last definitions always *replace* previous ones
 
 when@test:
+    parameters:
+        # Keep uploaded test fixtures out of the public web root.
+        app.product_image.upload_dir: '%kernel.cache_dir%/product-image-uploads'
+
     services:
         App\Doctrine\Middleware\SQLiteUnaccentMiddleware:
             tags:

@@ -249,9 +249,17 @@ final class PickupSlotApiTest extends FunctionalApiTestCase
         $timezone = new \DateTimeZone('Africa/Tunis');
         $now = new \DateTimeImmutable('now', $timezone);
 
+        // The "today" window is [now, tomorrow midnight). In the last few minutes
+        // of the day a future-but-still-today slot cannot exist (now+5min rolls
+        // over to tomorrow), making the scenario impossible — skip that edge.
+        $slotStart = $now->modify('+5 minutes');
+        if ($slotStart->format('Y-m-d') !== $now->format('Y-m-d')) {
+            self::markTestSkipped('Too close to midnight for a future same-day slot.');
+        }
+
         $todaySlot = $this->createPickupSlot(
             $shop,
-            $now->modify('+5 minutes'),
+            $slotStart,
             $now->modify('+65 minutes'),
             3,
         );

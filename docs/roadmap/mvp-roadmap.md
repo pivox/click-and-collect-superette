@@ -497,10 +497,11 @@ L'équipe gère les problèmes terrain (incidents, retards, suspensions) avec de
 
 ### Objectif
 
-Accélérer l'onboarding produit au-delà du CSV/scan (livré en Sprint 11). Socle déjà présent : bulk multi-format (Sprint 8), infra IA `ProductAiEnrichment*`, merge proposition→référence (PR #203).
+Accélérer l'onboarding produit au-delà du CSV/scan (livré en Sprint 11) et garder un référentiel illustré, propre et gouverné. Socle déjà présent : images produits web/mobile (S13-005 / #391), bulk multi-format (Sprint 8), infra IA `ProductAiEnrichment*`, merge proposition→référence (PR #203).
 
 ### Fonctionnalités
 
+- **US-041** ([#391](https://github.com/pivox/click-and-collect-superette/issues/391)) · EPIC-011 · *Must* — Gestion optimisée des images produits web/mobile : upload admin, original conservé, variantes WebP 200/400/800/1200, fallback JPEG, placeholder catégorie, exposition API responsive. **Livré S13-005** ; détails dans `docs/roadmap/product-images-web-mobile.md`.
 - **US-081** ([#370](https://github.com/pivox/click-and-collect-superette/issues/370)) · EPIC-019 · *Could* — Import catalogue par photo assisté IA (réutilise l'infra `ProductAiEnrichment*`).
 - **US-082** ([#371](https://github.com/pivox/click-and-collect-superette/issues/371)) · EPIC-020 · *Should* — Déduplication du référentiel (workflow admin, priorité code-barres).
 - **US-083** ([#372](https://github.com/pivox/click-and-collect-superette/issues/372)) · EPIC-020 · *Could* — Score de qualité des références produit.
@@ -508,7 +509,7 @@ Accélérer l'onboarding produit au-delà du CSV/scan (livré en Sprint 11). Soc
 
 ### Critère de sortie
 
-Un marchand crée un catalogue exploitable sans saisir produit par produit ; le référentiel reste propre et gouverné.
+Un marchand crée un catalogue exploitable sans saisir produit par produit ; le référentiel reste propre, gouverné et illustré avec des images produit optimisées pour le web/mobile.
 
 ---
 
@@ -674,7 +675,7 @@ Les apps natives reprennent les parcours validés par la PWA, sans réinventer l
 |---|---|---|---|
 | Sprint 0 | Documentation | — | ✅ Complet |
 | Sprint Auth | US-034, US-035, US-046 | P0 | ✅ Backend terminé |
-| Sprint 1 | US-013 à US-016, US-041 | P0 | ✅ Partiel (US-041 manquante) |
+| Sprint 1 | US-013 à US-016, US-041 | P0 | ✅ Complet (US-041 livrée S13-005) |
 | Sprint 2 | US-001 à US-004, US-017 à US-021, US-031 à US-033, US-042, US-044, US-048 | P0 | ✅ Partiel (3 US manquantes) |
 | Sprint 3 | US-005, US-006, US-022, US-023, US-024, US-036, US-037, US-040, US-045, US-051 | P0 | ✅ Backend terminé |
 | Sprint 3b | US-043, US-047, US-049, US-052, US-053, US-056, US-057 | P1 | ✅ Backend terminé |
@@ -685,7 +686,17 @@ Les apps natives reprennent les parcours validés par la PWA, sans réinventer l
 | Sprint 10 | US-067 à US-073 (EPIC-015, EPIC-016) | P0 | 🔵 Planifié (go-to-market) |
 | Sprint 11 | US-074 à US-080 (EPIC-017, EPIC-018, EPIC-019) | P0 | 🔵 Planifié (monétisation) |
 | Sprint 12 | US-085 à US-088 (EPIC-021) | P1 | 🔵 Planifié (support) |
-| Sprint 13 | US-081 à US-084 (EPIC-019, EPIC-020) | P1 | 🔵 Planifié (catalogue scalable) |
-| Sprint 14 | US-089 à US-094 + US-093 (EPIC-022, EPIC-008, EPIC-018) | P1 | 🔵 Planifié (mobile PWA + AR) |
+| Sprint 13 | US-041 (#391 / S13-005), US-081 à US-084 (EPIC-011, EPIC-019, EPIC-020) | P1 | 🟢 Partiel : US-041 livrée, reste catalogue scalable planifié |
+| Sprint 14 | US-089 à US-094 (EPIC-022, EPIC-008, EPIC-018) | P1 | 🔵 Planifié (mobile PWA + AR) |
 | Sprint 15 | US-095 à US-099 (EPIC-023) | P2 | 🔵 Planifié (croissance) |
 | Sprint 16 | US-100 à US-103 (EPIC-024) | P2 | 🔵 Planifié (natif) |
+
+### Sprint 13 — Catalogue intelligent & qualité
+
+- **#391 / S13-005 — Gestion optimisée des images produits web/mobile** : réactivation
+  d'US-041. Upload admin (`POST /api/admin/product-references/{id}/image`), original
+  conservé, variantes WebP 200/400/800/1200, fallback JPEG, placeholder catégorie,
+  exposition API responsive (catalogue public + détail admin). Pipeline image commun
+  réutilisable (`ProductImageApplicationService`) appelable par l'enrichissement IA
+  comme image `candidate` / `needs_review` sans jamais devenir officielle automatiquement.
+  Détails : `docs/roadmap/product-images-web-mobile.md`.

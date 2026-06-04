@@ -13,9 +13,10 @@ import { StickyBottom } from "@/components/layout/StickyBottom";
 import { getOrder, projectTimeline, cancelOrder } from "@/lib/services";
 import { formatTnd, formatSlotRange } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
+import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import type { Order } from "@/types";
 
-function renderPickupAction(order: Order) {
+function renderPickupAction(order: Order, t: (key: string) => string) {
   if (order.status === "partially_accepted") return null;
 
   if (order.status === "ready" || order.status === "pickup_pending") {
@@ -24,7 +25,7 @@ function renderPickupAction(order: Order) {
         href={`/orders/${order.id}/pickup`}
         className={getButtonClassName({ full: true })}
       >
-        Afficher le QR retrait
+        {t("client.orders.showPickupQr")}
       </Link>
     );
   }
@@ -32,14 +33,14 @@ function renderPickupAction(order: Order) {
   if (order.status === "completed") {
     return (
       <Button full disabled>
-        Retrait finalisé
+        {t("client.orders.pickupDone")}
       </Button>
     );
   }
 
   return (
     <Button full disabled>
-      QR retrait — disponible quand la commande est prête
+      {t("client.orders.pickupWhenReady")}
     </Button>
   );
 }
@@ -51,6 +52,7 @@ export default function OrderTrackingPage({
 }) {
   const { orderId } = params;
   const { user, isLoading: authLoading } = useClientAuth();
+  const { t } = useClientLocale();
   const [order, setOrder] = useState<Order | null>(null);
   const [fetchDone, setFetchDone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,7 +69,7 @@ export default function OrderTrackingPage({
 
   const handleCancel = async () => {
     if (!order) return;
-    if (!window.confirm("Es-tu sûr de vouloir annuler cette commande ? Cette action est irréversible.")) return;
+    if (!window.confirm(t("client.orders.cancelConfirm"))) return;
     setCancelling(true);
     setCancelError(null);
     try {
@@ -76,9 +78,9 @@ export default function OrderTrackingPage({
     } catch (err) {
       const status = (err as { response?: { status?: number } }).response?.status;
       if (status === 409) {
-        setCancelError("Cette commande ne peut plus être annulée car le marchand l'a déjà traitée.");
+        setCancelError(t("client.orders.cancel409"));
       } else {
-        setCancelError("Impossible d'annuler la commande. Réessaie.");
+        setCancelError(t("client.orders.cancelError"));
       }
     } finally {
       setCancelling(false);
@@ -92,7 +94,7 @@ export default function OrderTrackingPage({
       const fresh = await getOrder(orderId);
       if (fresh) setOrder(fresh);
     } catch {
-      setRefreshError("Impossible d'actualiser. Vérifie ta connexion.");
+      setRefreshError(t("client.orders.refreshError"));
     } finally {
       setRefreshing(false);
     }
@@ -103,16 +105,16 @@ export default function OrderTrackingPage({
   if (!user) {
     return (
       <>
-        <TopBar title="Suivi commande" backHref="/orders" />
+        <TopBar title={t("client.orders.trackTitle")} backHref="/orders" />
         <Card className="text-center">
           <p className="py-4 text-sm text-muted">
             <Link
               href={`/login?redirect=/orders/${orderId}`}
               className="font-extrabold text-primary"
             >
-              Connecte-toi
+              {t("client.orders.loginPrompt")}
             </Link>{" "}
-            pour consulter ta commande.
+            {t("client.orders.loginToConsult")}
           </p>
         </Card>
       </>
@@ -123,8 +125,12 @@ export default function OrderTrackingPage({
   if (!order) notFound();
 
   const badge = orderStatusBadge(order.status);
-  const steps = projectTimeline(order);
-  const storeName = order.shopName ?? "Supérette";
+  const steps = projectTimeline(order).map((s) => ({
+    ...s,
+    label: t(`client.timeline.${s.key}.label`),
+    hint: t(`client.timeline.${s.key}.hint`),
+  }));
+  const storeName = order.shopName ?? t("client.orders.defaultShop");
   const pickupSlotLabel = order.pickupSlot
     ? formatSlotRange(order.pickupSlot.startsAt, order.pickupSlot.endsAt)
     : "—";
@@ -143,10 +149,10 @@ export default function OrderTrackingPage({
       {order.status === "partially_accepted" && (
         <div className="mb-4 rounded-lg border px-4 py-3" style={{ background: "var(--status-wait-bg)", borderColor: "var(--status-wait)" }}>
           <p className="text-sm font-bold" style={{ color: "var(--status-wait)" }}>
-            Le marchand a modifié ta commande — certains produits ne sont plus disponibles.
+            {t("client.orders.partialTitle")}
           </p>
           <p className="mt-1 text-sm" style={{ color: "var(--status-wait)" }}>
-            Consulte ta Kadhia pour voir les changements et re-soumettre.
+            {t("client.orders.partialBody")}
           </p>
         </div>
       )}
@@ -155,18 +161,18 @@ export default function OrderTrackingPage({
         {/* Colonne gauche : timeline */}
         <div>
           <Card>
-            <Badge tone={badge.tone}>{badge.label}</Badge>
+            <Badge tone={badge.tone}>{t(badge.labelKey)}</Badge>
             <div className="mt-3">
               <Summary>
                 <SummaryRow
-                  label="Retrait"
+                  label={t("client.orders.pickup")}
                   value={pickupSlotLabel}
                 />
                 <SummaryRow
-                  label="Total"
+                  label={t("client.orders.total")}
                   value={formatTnd(order.totalAmountTnd)}
                 />
-                <SummaryRow label="Code" value={order.code} />
+                <SummaryRow label={t("client.orders.code")} value={order.code} />
               </Summary>
             </div>
           </Card>
@@ -184,21 +190,21 @@ export default function OrderTrackingPage({
                 disabled={cancelling}
                 className="text-sm text-red-500 underline disabled:opacity-50"
               >
-                {cancelling ? "Annulation…" : "Annuler la commande"}
+                {cancelling ? t("client.orders.cancelling") : t("client.orders.cancel")}
               </button>
             </section>
           )}
 
           <section className="mt-4">
             <div className="mb-2.5 flex items-center justify-between">
-              <h3 className="text-h3 font-extrabold">Suivi</h3>
+              <h3 className="text-h3 font-extrabold">{t("client.orders.tracking")}</h3>
               <button
                 type="button"
                 onClick={handleRefresh}
                 disabled={refreshing}
                 className="text-xs font-extrabold text-primary underline disabled:opacity-50"
               >
-                {refreshing ? "Actualisation…" : "Actualiser"}
+                {refreshing ? t("client.orders.refreshing") : t("client.orders.refresh")}
               </button>
             </div>
             {refreshError && (
@@ -216,14 +222,14 @@ export default function OrderTrackingPage({
         <div>
           {order.customerNote && (
             <section className="mt-4 md:mt-0">
-              <h3 className="mb-2.5 text-h3 font-extrabold">Ta note</h3>
+              <h3 className="mb-2.5 text-h3 font-extrabold">{t("client.orders.yourNote")}</h3>
               <Card className="text-sm text-muted">{order.customerNote}</Card>
             </section>
           )}
 
           {order.status === "ready" && order.pickupCode && (
             <section className="mt-4">
-              <h3 className="mb-2.5 text-h3 font-extrabold">Code de retrait</h3>
+              <h3 className="mb-2.5 text-h3 font-extrabold">{t("client.orders.pickupCodeTitle")}</h3>
               <Card>
                 <div className="flex flex-col items-center py-3 gap-3">
                   <div className="flex gap-2">
@@ -237,8 +243,7 @@ export default function OrderTrackingPage({
                     ))}
                   </div>
                   <p className="text-center text-xs text-muted">
-                    Communique ce code au marchand si le QR code ne peut pas
-                    être scanné.
+                    {t("client.orders.pickupCodeHint")}
                   </p>
                 </div>
               </Card>
@@ -249,10 +254,10 @@ export default function OrderTrackingPage({
           <div className="hidden md:block mt-4">
             {order.status === "partially_accepted" ? (
               <Link href={kadhiaHref} className={getButtonClassName({ full: true })}>
-                Voir ma Kadhia
+                {t("client.orders.viewKadhia")}
               </Link>
             ) : (
-              renderPickupAction(order)
+              renderPickupAction(order, t)
             )}
           </div>
         </div>
@@ -262,10 +267,10 @@ export default function OrderTrackingPage({
       <StickyBottom className="md:hidden">
         {order.status === "partially_accepted" ? (
           <Link href={kadhiaHref} className={getButtonClassName({ full: true })}>
-            Voir ma Kadhia
+            {t("client.orders.viewKadhia")}
           </Link>
         ) : (
-          renderPickupAction(order)
+          renderPickupAction(order, t)
         )}
       </StickyBottom>
     </>

@@ -16,13 +16,14 @@ import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 import { useSelectedStore } from '@/lib/store/SelectedStoreContext';
 import { useHydrated } from '@/lib/hooks/useHydrated';
 import { useClientNotifications } from '@/lib/notifications/ClientNotificationsContext';
+import { useClientLocale } from '@/lib/i18n/ClientLocaleContext';
 
 const NAV = [
-  { href: '/',               label: 'Accueil',        icon: Home },
-  { href: '/stores',         label: 'Supérettes',     icon: Search },
-  { href: '/kadhia',         label: 'Kadhia',         icon: ShoppingBasket },
-  { href: '/orders',         label: 'Commandes',      icon: ClipboardList },
-  { href: '/notifications',  label: 'Notifications',  icon: Bell },
+  { href: '/',               labelKey: 'client.nav.home',          icon: Home },
+  { href: '/stores',         labelKey: 'client.nav.stores',        icon: Search },
+  { href: '/kadhia',         labelKey: 'client.nav.kadhia',        icon: ShoppingBasket },
+  { href: '/orders',         labelKey: 'client.nav.orders',        icon: ClipboardList },
+  { href: '/notifications',  labelKey: 'client.nav.notifications', icon: Bell },
 ] as const;
 
 /**
@@ -36,6 +37,7 @@ export function DesktopNav() {
   const isHydrated = useHydrated();
   const router = useRouter();
   const { unreadCount } = useClientNotifications();
+  const { t } = useClientLocale();
 
   function handleLogout() {
     logout();
@@ -61,13 +63,11 @@ export function DesktopNav() {
           </div>
           <div>
             <strong className="block text-base">Kadhia</strong>
-            <span className="text-xs text-muted">
-              Click &amp; Collect Supérette
-            </span>
+            <span className="text-xs text-muted">{t('client.nav.brandTagline')}</span>
           </div>
         </div>
         <nav className="grid gap-2">
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {NAV.map(({ href, labelKey, icon: Icon }) => {
             const active = pathname === href || (href !== '/' && pathname.startsWith(href));
             const isNotifications = href === '/notifications';
             const badge = isNotifications && unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null;
@@ -83,7 +83,7 @@ export function DesktopNav() {
                 )}
               >
                 <Icon size={18} />
-                {label}
+                {t(labelKey)}
                 {badge && (
                   <span className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-black text-white">
                     {badge}
@@ -100,7 +100,7 @@ export function DesktopNav() {
         {isHydrated && (
           <div className="border-t border-line pt-4">
             <p className="mb-2 text-[10px] font-extrabold uppercase tracking-widest text-muted">
-              Supérette active
+              {t('client.nav.activeStore')}
             </p>
             <Link
               href="/stores"
@@ -111,9 +111,9 @@ export function DesktopNav() {
               </div>
               <div className="min-w-0 flex-1">
                 <strong className="block truncate text-xs">
-                  {selectedStore ? selectedStore.name : 'Aucune supérette'}
+                  {selectedStore ? selectedStore.name : t('client.nav.noStore')}
                 </strong>
-                <span className="text-[10px] text-primary">Changer →</span>
+                <span className="text-[10px] text-primary">{t('client.nav.change')}</span>
               </div>
             </Link>
           </div>
@@ -128,7 +128,7 @@ export function DesktopNav() {
               </div>
               <div className="min-w-0 flex-1">
                 <strong className="block truncate text-xs">
-                  {user.name || 'Client'}
+                  {user.name || t('client.nav.clientFallback')}
                 </strong>
                 <span className="block truncate text-[11px] text-muted">
                   {user.email}
@@ -137,7 +137,7 @@ export function DesktopNav() {
               <button
                 type="button"
                 onClick={handleLogout}
-                aria-label="Se déconnecter"
+                aria-label={t('client.nav.logout')}
                 className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted hover:bg-soft hover:text-red-600"
               >
                 <LogOut size={16} />
@@ -150,13 +150,13 @@ export function DesktopNav() {
                 className="flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-extrabold text-muted hover:bg-soft hover:text-primary-dark"
               >
                 <LogIn size={16} />
-                Se connecter
+                {t('client.nav.signIn')}
               </Link>
               <Link
                 href="/register"
                 className="flex items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-extrabold text-white hover:bg-primary-dark"
               >
-                Créer un compte
+                {t('client.nav.register')}
               </Link>
             </div>
           )}

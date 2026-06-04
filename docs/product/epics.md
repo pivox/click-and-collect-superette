@@ -185,8 +185,9 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 - US-014 — Ajouter un produit du référentiel à son catalogue
 - US-015 — Définir le prix et la disponibilité d'un produit de son catalogue
 - US-016 — Proposer un nouveau produit au référentiel
+- US-041 — Afficher les photos des produits dans le catalogue *(livrée S13-005 / #391)*
 
-**Critère de sortie** : Un marchand peut rechercher « Lait Vitalait 1L », l'ajouter, fixer son prix à 2,800 TND et le rendre visible.
+**Critère de sortie** : Un marchand peut rechercher « Lait Vitalait 1L », l'ajouter, fixer son prix à 2,800 TND, le rendre visible et l'afficher avec une image produit optimisée quand elle existe.
 
 ---
 
@@ -242,7 +243,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 # Epics post-MVP — Mise sur le marché (Sprints 10-16)
 
 > Ces epics couvrent la phase go-to-market au-delà du cœur MVP (Sprints 0-9 livrés sur `main`).
-> Mapping détaillé dans `docs/roadmap/mvp-roadmap.md`. Chaque US est suivie sur GitHub (issues #352-#389).
+> Mapping détaillé dans `docs/roadmap/mvp-roadmap.md`. Chaque US est suivie sur GitHub (tickets #352-#380 et #382-#389).
 
 ## EPIC-015 — Fiabilité & observabilité production
 
