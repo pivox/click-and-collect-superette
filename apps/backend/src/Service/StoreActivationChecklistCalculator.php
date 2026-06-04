@@ -180,7 +180,7 @@ final readonly class StoreActivationChecklistCalculator
         [$placeholders, $shopParams, $shopTypes] = $this->shopSqlParameters($shops);
         $rows = $this->entityManager->getConnection()->executeQuery(
             \sprintf(
-                'SELECT shop_id FROM pickup_slot_rules WHERE shop_id IN (%s) AND is_active = 1 GROUP BY shop_id',
+                'SELECT shop_id FROM pickup_slot_rules WHERE shop_id IN (%s) AND is_active = true GROUP BY shop_id',
                 $placeholders,
             ),
             $shopParams,
@@ -190,7 +190,7 @@ final readonly class StoreActivationChecklistCalculator
         $withPickupSlots = $this->boolMapFromRows($rows);
         $slotRows = $this->entityManager->getConnection()->executeQuery(
             \sprintf(
-                'SELECT shop_id FROM pickup_slots WHERE shop_id IN (%s) AND is_active = 1 AND starts_at > ? GROUP BY shop_id',
+                'SELECT shop_id FROM pickup_slots WHERE shop_id IN (%s) AND is_active = true AND starts_at > ? GROUP BY shop_id',
                 $placeholders,
             ),
             [...$shopParams, new \DateTimeImmutable()],
@@ -214,7 +214,7 @@ final readonly class StoreActivationChecklistCalculator
         [$placeholders, $shopParams, $shopTypes] = $this->shopSqlParameters($shops);
         $rows = $this->entityManager->getConnection()->executeQuery(
             \sprintf(
-                'SELECT shop_id, COUNT(id) AS products_count FROM merchant_products WHERE shop_id IN (%s) AND is_visible = 1 AND is_available = 1 GROUP BY shop_id',
+                'SELECT shop_id, COUNT(id) AS products_count FROM merchant_products WHERE shop_id IN (%s) AND is_visible = true AND is_available = true GROUP BY shop_id',
                 $placeholders,
             ),
             $shopParams,
@@ -274,12 +274,10 @@ LEFT JOIN order_status_logs AS pickup_code_log
     AND pickup_code_log.note = ?
 WHERE orders.shop_id IN (%s)
     AND orders.status = ?
-    AND pickup_sessions.used = 1
-    AND pickup_sessions.scanned_at < pickup_sessions.merchant_confirmed_at
-    AND pickup_sessions.scanned_at < pickup_sessions.customer_confirmed_at
+    AND pickup_sessions.used = true
     AND pickup_sessions.merchant_confirmed_at IS NOT NULL
     AND pickup_sessions.customer_confirmed_at IS NOT NULL
-    AND pickup_sessions.force_completed_by_merchant = 0
+    AND pickup_sessions.force_completed_by_merchant = false
     AND pickup_code_log.id IS NULL
 GROUP BY orders.shop_id
 SQL,

@@ -109,6 +109,22 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         self::assertFalse($steps['test_pickup']['completed']);
     }
 
+    public function testSameSecondDoubleValidationSatisfiesValidatedTestPickup(): void
+    {
+        $admin = $this->createUser('admin-activation-same-second-pickup@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-activation-same-second-pickup@example.test', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('customer-activation-same-second-pickup@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createCompleteStore($merchant, $customer, sameSecondPickupConfirmation: true);
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/stores/%s/activation-checklist', $shop->getId()), user: $admin);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        $steps = $this->indexStepsByKey($payload['steps']);
+        self::assertTrue($payload['ready']);
+        self::assertTrue($steps['test_pickup']['completed']);
+    }
+
     public function testSubmittedOnlyOrderDoesNotSatisfyTestOrder(): void
     {
         $admin = $this->createUser('admin-activation-submitted-order@example.test', ['ROLE_ADMIN']);
@@ -166,6 +182,7 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         bool $forceCompletedPickup = false,
         bool $pickupCodeCompletion = false,
         bool $submittedOnlyOrder = false,
+        bool $sameSecondPickupConfirmation = false,
     ): Shop {
         $shop = $this->createShop($merchant);
         $shop
@@ -191,6 +208,7 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
                 $customer,
                 forceCompleted: $forceCompletedPickup,
                 pickupCodeCompletion: $pickupCodeCompletion,
+                sameSecondPickupConfirmation: $sameSecondPickupConfirmation,
             );
         }
 
@@ -270,6 +288,7 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         User $customer,
         bool $forceCompleted = false,
         bool $pickupCodeCompletion = false,
+        bool $sameSecondPickupConfirmation = false,
     ): Order {
         $order = $this->createDraftOrderWithLine($shop, $customer);
         $order->submit();
@@ -296,6 +315,10 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         $pickupSession->scan(new \DateTimeImmutable('2026-06-04T10:00:00+01:00'));
         if ($forceCompleted) {
             $pickupSession->forceCompleteByMerchant('Client indisponible pour validation test.', new \DateTimeImmutable('2026-06-04T10:03:00+01:00'));
+        } elseif ($sameSecondPickupConfirmation) {
+            $confirmedAt = new \DateTimeImmutable('2026-06-04T10:00:00+01:00');
+            $pickupSession->confirmByMerchant($confirmedAt);
+            $pickupSession->confirmByCustomer($confirmedAt);
         } else {
             $pickupSession->confirmByMerchant(new \DateTimeImmutable('2026-06-04T10:02:00+01:00'));
             $pickupSession->confirmByCustomer(new \DateTimeImmutable('2026-06-04T10:03:00+01:00'));
