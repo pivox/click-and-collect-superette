@@ -168,6 +168,36 @@
       "deleteConfirm": "Supprimer cette Kadhia ? Tu pourras recommencer depuis le catalogue.",
       "chooseSlot": "Choisir un créneau",
       "trackOrder": "Suivre la commande"
+    },
+    "slot": {
+      "title": "Créneau de retrait",
+      "subtitle": "Choisis quand récupérer ta commande",
+      "today": "Aujourd'hui",
+      "tomorrow": "Demain",
+      "available": "Créneaux disponibles",
+      "noSlots": "Aucun créneau ce jour.",
+      "noSlotsHint": "Essaie un autre jour ou reviens plus tard.",
+      "slotsError": "Impossible de charger les créneaux. Vérifie ta connexion et réessaie.",
+      "merchantNote": "Note au marchand",
+      "defaultNote": "Si un produit est absent, remplacer par une marque proche.",
+      "submit": "Envoyer la commande",
+      "submitting": "Envoi en cours…",
+      "period": {
+        "morning": "Matin",
+        "noon": "Midi",
+        "afternoon": "Après-midi",
+        "evening": "Soir"
+      },
+      "errors": {
+        "full": "Ce créneau est complet. Choisis un autre créneau ci-dessous.",
+        "expired": "Ce créneau est passé. Choisis un créneau disponible.",
+        "closed": "La supérette est fermée à ce créneau. Choisis un autre.",
+        "notFound": "Ce créneau n'est plus disponible. Choisis-en un autre.",
+        "kadhiaEmpty": "Ta Kadhia est vide. Ajoute des produits avant d'envoyer.",
+        "productUnavailable": "Un produit de ta Kadhia n'est plus disponible. Reviens à ta Kadhia pour le retirer.",
+        "kadhiaNotFound": "Aucune Kadhia active trouvée. Retourne au catalogue pour en créer une.",
+        "generic": "La commande n'a pas pu être envoyée. Ta Kadhia est conservée, tu peux réessayer."
+      }
     }
   },
   "merchant": {
