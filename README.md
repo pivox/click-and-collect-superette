@@ -15,30 +15,32 @@ L'objectif est de simplifier les courses du quotidien dans les supérettes tunis
 - proposer une expérience bilingue français / arabe ;
 - utiliser le dinar tunisien comme devise de référence.
 
-## État du projet
+## État du projet au 4 juin 2026
 
-Version actuelle : backend MVP avancé — post PR #104.
+Le cœur MVP est livré sur `main` : Sprints 0 à 9, backend Symfony/API Platform, frontend client, backoffice admin et espace marchand.
 
-Sprints et blocs backend livrés :
+Blocs livrés :
 
-- Foundation ;
-- Theme / branding ;
-- Product reference ;
-- Customer ordering ;
-- Merchant workflow core ;
-- Auth client ;
-- Sprint 4 — Secure pickup ;
-- Sprint 3b — Merchant operational maturity ;
-- Sprint 5 — Administration minimale : S5-001 et S5-002 livrées.
+- Auth client : inscription, login JWT, profil, reset password ;
+- parcours client : accès supérette par QR, catalogue, Kadhia, rendez-vous, soumission, suivi commande, notifications, QR de retrait et validation client ;
+- parcours marchand : commandes actives, acceptation/refus/acceptation partielle, préparation, retrait sécurisé, historique, notifications, catalogue, créneaux, horaires, fermetures, QR magasin, thème, paramètres, onboarding et export CSV ;
+- backoffice admin : auth admin, marchands, supérettes, référentiel produit, propositions, audit logs, dashboard KPI ;
+- backend opérationnel : créneaux récurrents, fermetures exceptionnelles, délais automatiques, transport Messenger Doctrine, Supervisor, healthcheck, diagnostics et audit trail ;
+- personnalisation visuelle par supérette ;
+- images produits web/mobile livrées via S13-005 ;
+- i18n client français / arabe avec RTL livré via S14-004 (#401).
 
-Sprint courant : Sprint 5 — Administration minimale.
+Limites ouvertes :
 
-Dernières PRs livrées :
+- PWA client et marchand non livrée ;
+- push notifications non livrées ;
+- accessibilité WCAG de base non auditée ;
+- validation terrain du worker async, monitoring jobs et KPI bêta encore à traiter ;
+- QR magasin imprimable PNG/PDF et checklist d'activation supérette encore à traiter.
 
-- PR #103 — S5-001 : lecture admin des comptes marchands ;
-- PR #104 — S5-002 : lecture admin des supérettes.
+Priorité recommandée : **EPIC-015 — Fiabilité & observabilité production** avant PWA, monétisation ou croissance. Ordre conseillé : #352 worker async production, #353 monitoring jobs, #354 KPI terrain.
 
-Prochaine étape recommandée : S5-003 — création/mise à jour admin des supérettes ou gestion admin des comptes marchands selon priorité produit.
+Issue documentaire courante : [#405](https://github.com/pivox/click-and-collect-superette/issues/405).
 
 ## Développement frontend avec Docker
 
@@ -261,6 +263,8 @@ Aucune application mobile native n'est prévue dans le MVP. La décision est doc
 La documentation produit est organisée dans `docs/product/` :
 
 - `docs/product/epics.md` : vision PO, epics et découpage fonctionnel ;
+- `docs/roadmap/mvp-roadmap.md` : roadmap sprint par sprint et go-to-market ;
+- `docs/product/mvp-functional-audit.md` : audit fonctionnel courant ;
 - `docs/product/user-stories/` : une user story par fichier.
 
 La documentation technique est organisée dans :
@@ -269,7 +273,7 @@ La documentation technique est organisée dans :
 - `docs/architecture/api-contract.md` : contrat API ;
 - `docs/architecture/front-back-structure.md` : structure frontend / backend du MVP ;
 - `docs/adr/0001-front-back-only-mvp.md` : décision de ne garder que frontend + backend pour le MVP ;
-- `docs/Sprint5/README.md` : cadrage du sprint d'administration minimale.
+- `docs/SprintFrontend/README.md` : état courant des interfaces client, marchand et admin.
 
 ## Références utiles
 

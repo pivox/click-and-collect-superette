@@ -6,6 +6,10 @@ Branch : `feat/admin-marchands-superettes-audit-dashboard`
 
 ---
 
+> Note de réalignement — 2026-06-04 : ce document reste le rapport technique des PRs admin #130 à #132. Depuis, le parcours client, le front marchand avancé, l'i18n client FR/AR + RTL et les images produits web/mobile ont été livrés ailleurs. Les prochaines étapes ci-dessous ont été recalées pour ne pas pointer vers des chantiers déjà traités.
+
+---
+
 ## Périmètre
 
 L'espace `/admin` du frontend Next.js 14 permet aux opérateurs plateforme (`ROLE_ADMIN`) de :
@@ -255,4 +259,5 @@ Le debounce des champs texte est à 400 ms.
 2. Implémenter la recherche marchands côté backend si `?search=` n'est pas encore active.
 3. Ajouter un total au endpoint `/api/admin/product-proposals` pour avoir un KPI précis.
 4. Envisager un lookup email → UUID pour le filtre admin de l'audit, ou documenter le UUID dans le profil admin.
-5. Parcours client frontend (scan QR, catalogue, Kadhia, commande).
+5. Poursuivre EPIC-015 : worker async production, monitoring jobs, KPI terrain.
+6. Préparer EPIC-016 : QR magasin PNG/PDF et checklist d'activation supérette.

@@ -2,6 +2,8 @@
 
 Date d'audit : 2026-05-20
 
+> Archive historique — 2026-06-04 : ce rapport décrit l'état constaté à la clôture Sprint 5. Ne pas le réécrire pour refléter les sprints ultérieurs. Pour l'état courant de `main`, utiliser `AI_CONTEXT.md`, `docs/roadmap/mvp-roadmap.md` et `docs/product/mvp-functional-audit.md`.
+
 ## Objectif
 
 Sprint 5 avait pour mission de rendre la plateforme opérable par un administrateur sans accès direct à la base de données : création de supérettes, comptes marchands, référentiel produit, validation des propositions, et onboarding guidé du marchand.

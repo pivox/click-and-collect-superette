@@ -125,13 +125,13 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Valeur produit** : L'application est accessible à tous les usagers tunisiens.
 
-**Sprint** : Sprint 2 (intégré), Sprint 7 (affinage), Sprint 14 (câblage AR complet)
+**Sprint** : Sprint 2 (intégré), Sprint 7 (affinage), Sprint 14 (câblage AR complet livré côté client)
 
 **User stories** :
 - US-008 — Basculer la langue de l'interface
-- US-093 — Arabe / RTL câblé dans l'application *(dette MVP — Sprint 14)*
+- US-093 — Arabe / RTL câblé dans l'application *(livré côté client via S14-004 / #401 ; #377 fermée)*
 
-**Critère de sortie** : L'interface bascule entre français et arabe. Les montants sont affichés en TND. Le mode RTL fonctionne sur les vues principales. Le parcours client est entièrement traduit en arabe (US-093).
+**Critère de sortie** : L'interface client bascule entre français et arabe. Les montants sont affichés en TND. Le mode RTL fonctionne sur les vues principales client. Le marchand dispose d'un contexte langue FR/AR léger ; les extensions PWA/push/WCAG restent dans EPIC-022.
 
 ---
 
@@ -185,7 +185,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 - US-014 — Ajouter un produit du référentiel à son catalogue
 - US-015 — Définir le prix et la disponibilité d'un produit de son catalogue
 - US-016 — Proposer un nouveau produit au référentiel
-- US-041 — Afficher les photos des produits dans le catalogue *(livrée S13-005 / #391)*
+- US-041 — Afficher les photos des produits dans le catalogue *(livrée S13-005 côté code/docs ; #391 encore ouverte GitHub au 4 juin 2026)*
 
 **Critère de sortie** : Un marchand peut rechercher « Lait Vitalait 1L », l'ajouter, fixer son prix à 2,800 TND, le rendre visible et l'afficher avec une image produit optimisée quand elle existe.
 
@@ -244,6 +244,8 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 > Ces epics couvrent la phase go-to-market au-delà du cœur MVP (Sprints 0-9 livrés sur `main`).
 > Mapping détaillé dans `docs/roadmap/mvp-roadmap.md`. Chaque US est suivie sur GitHub (tickets #352-#380 et #382-#389).
+>
+> Priorité recommandée au 4 juin 2026 : traiter **EPIC-015 — Fiabilité & observabilité production** en premier, avant PWA, abonnement, monétisation ou croissance. Ensuite seulement, enchaîner EPIC-016 activation terrain, notamment le QR magasin imprimable et la checklist d'activation supérette.
 
 ## EPIC-015 — Fiabilité & observabilité production
 
@@ -259,6 +261,8 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 - US-069 — Métriques bêta (KPI terrain)
 
 **Critère de sortie** : Worker async supervisé et monitoré, KPI terrain mesurés (commandes, taux d'acceptation, activation supérette).
+
+**Ordre conseillé** : #352 worker async production, #353 monitoring jobs, #354 KPI terrain.
 
 ---
 
@@ -375,12 +379,12 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 **Sprint** : Sprint 14 — PWA & notifications
 
 **User stories** :
-- US-089 — PWA client (installable, mobile-first)
-- US-090 — PWA marchand (installable, terrain)
-- US-091 — Push notifications (client + marchand)
-- US-092 — Accessibilité minimum (WCAG de base)
+- US-089 — PWA client (installable, mobile-first) *(#374 ouverte)*
+- US-090 — PWA marchand (installable, terrain) *(#375 ouverte)*
+- US-091 — Push notifications (client + marchand) *(#376 ouverte)*
+- US-092 — Accessibilité minimum (WCAG de base) *(#379 ouverte)*
 
-**Critère de sortie** : Client et marchand installent l'app sur mobile et reçoivent des notifications push. *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée.*
+**Critère de sortie** : Client et marchand installent l'app sur mobile et reçoivent des notifications push. *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée.* L'arabe/RTL client n'est plus le bloc principal de cet epic : US-093 a été livrée via #401.
 
 ---
 

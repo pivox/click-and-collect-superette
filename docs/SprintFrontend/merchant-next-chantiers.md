@@ -1,214 +1,109 @@
-# Front marchand — prochains chantiers
+# Front marchand — état livré et chantiers restants
 
-Date : 2026-05-25
+Date de réalignement : 2026-06-04
 
 ## Contexte
 
-Le front marchand dispose désormais des bases suivantes :
+L'espace marchand Next.js est désormais un backoffice opérationnel pour une supérette Kadhia. Il consomme les API backend existantes et reste dans le périmètre MVP strict : pas de paiement en ligne, pas de livraison, pas de programme de fidélité et pas de panier multi-marchand.
 
-- **PR #134** — fondations front marchand : login, contexte marchand, shell, dashboard, liste des commandes actives ;
-- **PR #135** — détail commande et actions jusqu'à `ready` : accepter, refuser, accepter partiellement, préparer les lignes, marquer la commande prête ;
-- **PR #136** — retrait sécurisé marchand : scan par token QR, passage en `pickup_pending`, confirmation marchand, force completion avec note ;
-- **PR #138** — historique commandes marchand : onglet historique, filtres "À retirer" / "Clôturées", pagination, détail existant ;
-- **PR #139** — notifications marchand : page notifications, badge non lu, filtres, rafraîchissement manuel, marquage lu et liens commandes.
+## Écrans livrés
 
-Ce document liste les prochains chantiers front marchand, dans un ordre compatible avec le MVP Kadhia. Les chantiers déjà couverts sont conservés en bas de document pour garder la trace des décisions. Le périmètre reste strict : pas de paiement en ligne, pas de livraison, pas de programme de fidélité, pas de panier marketplace multi-marchands.
+```text
+/merchant/login                    → connexion marchand
+/merchant                          → dashboard marchand
+/merchant/commandes                → commandes actives, historique, export CSV
+/merchant/commandes/[orderId]      → détail commande et actions métier
+/merchant/retrait                  → retrait sécurisé par QR, code ou mode manuel
+/merchant/notifications            → notifications marchand
+/merchant/catalogue                → catalogue marchand
+/merchant/creneaux                 → créneaux, règles, fermetures, horaires
+/merchant/onboarding               → onboarding guidé
+/merchant/qr-code                  → QR magasin
+/merchant/apparence                → thème supérette
+/merchant/parametres               → hub paramètres
+/merchant/parametres/profil        → profil public supérette
+/merchant/parametres/compte        → compte marchand
+/merchant/parametres/langue        → langue marchand FR/AR
+```
 
-## Priorité recommandée
+## Fonctionnalités résolues
 
-### P1 — Créneaux, horaires et fermetures
+### Commandes, retrait, historique, notifications
 
-Objectif : donner au marchand l'autonomie minimale pour organiser les rendez-vous de retrait.
+Livré par PRs #134, #135, #136, #138 et #139 :
 
-À livrer :
+- login, contexte marchand, shell, dashboard ;
+- liste commandes actives ;
+- détail commande ;
+- acceptation, refus, acceptation partielle ;
+- préparation ligne par ligne et passage `ready` ;
+- retrait sécurisé par token QR, confirmation marchand et force completion ;
+- historique avec filtres "À retirer" / "Clôturées" et pagination ;
+- notifications avec badge non lu, filtres, rafraîchissement manuel, marquage lu.
 
-- entrée active "Créneaux" dans `MerchantShell` ;
-- CRUD des créneaux ponctuels ;
-- affichage des règles récurrentes existantes ;
-- génération de créneaux depuis les règles ;
-- gestion des fermetures exceptionnelles ;
-- consultation/modification des horaires d'ouverture.
+### Catalogue marchand
 
-Points d'attention :
+Livré par PR #141 et checkpoints associés :
 
-- ne pas créer de logique de capacité uniquement côté frontend ;
-- afficher clairement les impacts sur les rendez-vous existants ;
-- garder les dates/heures compréhensibles localement.
+- page `/merchant/catalogue` ;
+- recherche, filtres, états chargement/vide/erreur ;
+- édition prix TND, disponibilité, visibilité, note marchand ;
+- rupture en masse limitée ;
+- ajout depuis référentiel avec garde anti-doublon ;
+- produit local marchand vendable immédiatement ;
+- catégories marchand propres à la supérette ;
+- assistant guidé.
 
-Tests attendus :
-
-- services créneaux/règles/fermetures ;
-- création/modification/suppression ;
-- états de conflit ou validation backend.
-
-## Priorité secondaire
-
-### P2 — Onboarding marchand guidé
-
-Objectif : accompagner un marchand nouvellement créé vers une supérette exploitable.
-
-À livrer :
-
-- page ou wizard d'onboarding au premier login ;
-- consommation `GET /api/merchant/onboarding` ;
-- affichage des étapes par `step.key`, pas par label backend uniquement ;
-- action `PATCH /api/merchant/onboarding/complete` ;
-- reprise depuis les paramètres.
-
-Points d'attention :
-
-- les labels backend sont en français uniquement ; le frontend doit prévoir des clés i18n ;
-- aucune obligation bloquante côté MVP : le backend accepte déjà la complétion de façon idempotente.
-
-### P2 — QR code magasin marchand
-
-Objectif : permettre au marchand d'accéder et de partager le QR code de sa supérette.
-
-À livrer :
-
-- page ou bloc dans paramètres ;
-- consommation `GET /api/merchant/stores/{storeId}/qr-code` ;
-- rendu QR côté frontend ;
-- copie du lien cible ;
-- téléchargement PNG si le choix frontend est confirmé.
-
-Point d'attention :
-
-- l'URL cible backend peut être relative selon les endpoints ; composer une URL absolue côté frontend avant impression.
-
-### P2 — Thème et paramètres supérette
-
-Objectif : permettre au marchand de personnaliser l'identité visuelle de sa supérette dans le périmètre Sprint 6.
-
-À livrer :
-
-- entrée active "Paramètres" ;
-- lecture et modification du thème de supérette ;
-- aperçu simple des couleurs/police ;
-- modification des informations publiques autorisées si l'API marchand le permet.
-
-Points d'attention :
-
-- garder les contrôles simples : couleurs, police, taille de base ;
-- pas d'upload média dans cette tranche sauf décision explicite.
-
-### P2 — Export CSV commandes
-
-Objectif : exposer côté UI l'export CSV déjà livré côté backend.
-
-À livrer :
-
-- bouton "Exporter CSV" dans l'historique commandes ;
-- filtres alignés avec ceux de l'historique ;
-- gestion du téléchargement et des erreurs API.
-
-## Chantiers résolus
-
-### PR #141 — Gestion catalogue marchand
-
-Objectif livré : permettre au marchand de gérer les produits proposés par sa supérette, sans modifier le référentiel commun.
-
-Livré par checkpoints :
-
-- Checkpoint A : entrée "Catalogue" active, page `/merchant/catalogue`, liste, recherche, filtres, états chargement/vide/erreur ;
-- Checkpoint B : édition prix TND, disponibilité, visibilité, note marchand, rupture en masse limitée à 50 produits ;
-- Checkpoint C : recherche dans le référentiel, ajout au catalogue, garde "Déjà dans mon catalogue" ;
-- Checkpoint D : produit local marchand vendable immédiatement dans sa supérette, sans validation admin bloquante ;
-- Checkpoint E : catégories marchand propres à la supérette, fallback référentiel/local et override par produit ;
-- Checkpoint F : assistant guidé qui réutilise les flows référentiel et produit local.
-
-Points d'attention :
-
-- le marchand ne modifie jamais directement un `ProductReference` approuvé ;
-- la validation admin concerne uniquement l'enrichissement du référentiel commun ;
-- pas de paiement en ligne, livraison, fidélité ni panier multi-supérette ;
-- les catégories inactives restent listables côté API mais ne sont pas assignables côté interface.
-
-Tests couverts :
-
-- services catalogue marchand ;
-- rendu et filtres catalogue ;
-- édition produit et rupture en masse ;
-- ajout depuis référentiel et garde anti-doublon ;
-- création de produit local ;
-- catégories marchand et assistant guidé ;
-- tests fonctionnels backend produit local, catégories et catalogue public.
-
-### PR #139 — Notifications marchand
-
-Objectif livré : informer le marchand des nouvelles commandes, annulations client et retraits finalisés sans push ni temps réel dans le MVP.
+### Créneaux, horaires et fermetures
 
 Livré :
 
-- service API notifications marchand et contrat frontend typé ;
-- entrée "Notifications" dans `MerchantShell` ;
-- badge de notifications non lues dans la navigation marchand ;
-- page `/merchant/notifications` ;
-- filtres "Toutes" / "Non lues" ;
-- rafraîchissement manuel ;
-- actions de marquage lu unitaire et global ;
-- pagination ;
-- liens vers les commandes liées ;
-- états vide et erreur.
+- page `/merchant/creneaux` ;
+- CRUD créneaux ponctuels ;
+- affichage et génération depuis règles récurrentes ;
+- fermetures exceptionnelles ;
+- consultation/modification des horaires d'ouverture ;
+- warning de couverture des créneaux.
 
-Points d'attention :
-
-- pas de changement backend dans cette tranche ;
-- pas de polling automatique, push, SMS, email, WebSocket ni Mercure ;
-- la notification reste un écran consultatif MVP, basé sur l'API existante.
-
-Tests couverts :
-
-- service notifications marchand ;
-- rendu de la page notifications ;
-- filtres toutes / non lues ;
-- marquage lu unitaire et global ;
-- badge non lu dans `MerchantShell` ;
-- `tsc --noEmit`, lint et build frontend.
-
-### PR #138 — Historique complet des commandes marchand
-
-Objectif livré : permettre au marchand de retrouver les commandes terminées, annulées, refusées ou encore à retirer.
+### Onboarding, QR, thème et paramètres
 
 Livré :
 
-- onglet "Historique" actif sur `/merchant/commandes` ;
-- consommation de `GET /api/merchant/stores/{storeId}/orders/history` ;
-- filtres "À retirer" (`ready`, `pickup_pending`) et "Clôturées" (`completed`, `cancelled`, `rejected`) ;
-- pagination simple ;
-- ouverture du détail existant `/merchant/commandes/{orderId}` ;
-- types frontend dédiés au payload historique ;
-- support backend des filtres multi-statuts CSV pour l'historique.
+- page `/merchant/onboarding` consommant `GET /api/merchant/onboarding` et `PATCH /api/merchant/onboarding/complete` ;
+- page `/merchant/qr-code` consommant `GET /api/merchant/stores/{storeId}/qr-code` ;
+- rendu QR avec `react-qr-code`, copie/affichage URL, téléchargement SVG et impression ;
+- page `/merchant/apparence` pour le thème supérette ;
+- hub paramètres, profil supérette, compte et langue FR/AR ;
+- export CSV depuis `/merchant/commandes`.
 
-Points d'attention :
+## Chantiers restants
 
-- pas de mode lecture seule forcé par provenance historique : le détail reste déterminé par le statut courant ;
-- export CSV toujours traité comme chantier P2 séparé.
+### P1 — Fiabilité production et observabilité
 
-Tests couverts :
+Priorité produit recommandée avant les nouveaux écrans :
 
-- service `listMerchantOrderHistory` avec filtres ;
-- rendu de l'onglet historique ;
-- navigation vers le détail ;
-- test fonctionnel backend des filtres multi-statuts.
+1. #352 — valider le worker async en production.
+2. #353 — monitorer les jobs asynchrones.
+3. #354 — instrumenter les KPI terrain.
 
-## Chantiers à reporter
+Justification : la bêta dépend des rappels, expirations et jobs différés. Le marchand doit pouvoir faire confiance aux automatismes avant l'activation terrain.
 
-Ces sujets sont utiles mais ne doivent pas bloquer le MVP marchand :
+### P2 — Activation terrain
 
-- scan caméra QR réel dans le navigateur ;
-- WebSocket, Mercure ou notifications push ;
-- statistiques avancées ;
-- multi-supérette complexe pour un même marchand ;
-- gestion de stock multi-entrepôts ;
-- paiement en ligne ou livraison.
+- #355 — QR magasin imprimable PNG/PDF, au-delà du SVG/tirage navigateur actuel.
+- #356 — checklist d'activation supérette.
+- #357 — journal opérationnel marchand minimal si besoin terrain confirmé.
 
-## Ordre de PR conseillé
+### P3 — Mobile et accessibilité
 
-1. Créneaux, horaires et fermetures.
-2. Onboarding marchand guidé.
-3. QR code magasin marchand.
-4. Paramètres et thème supérette.
-5. Export CSV.
+- #375 — PWA marchand.
+- #376 — push notifications.
+- #379 — accessibilité minimum WCAG.
 
-Après le catalogue, cet ordre privilégie les opérations quotidiennes restantes : gérer les rendez-vous de retrait, puis finaliser l'autonomie marchand.
+## Points d'attention
+
+- Composer une URL absolue côté front pour toute impression QR.
+- Ne pas créer de logique de capacité uniquement côté frontend.
+- Garder les dates/heures compréhensibles localement.
+- Utiliser les clés i18n, pas uniquement les labels backend en français.
+- Ne jamais ajouter paiement, livraison, fidélité ou panier multi-supérette sans décision explicite.
