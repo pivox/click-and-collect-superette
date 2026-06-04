@@ -73,6 +73,37 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         self::assertFalse($steps['test_pickup']['completed']);
     }
 
+    public function testForceCompletedPickupDoesNotSatisfyValidatedTestPickup(): void
+    {
+        $admin = $this->createUser('admin-activation-force-pickup@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-activation-force-pickup@example.test', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('customer-activation-force-pickup@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createCompleteStore($merchant, $customer, forceCompletedPickup: true);
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/stores/%s/activation-checklist', $shop->getId()), user: $admin);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        $steps = $this->indexStepsByKey($payload['steps']);
+        self::assertFalse($payload['ready']);
+        self::assertTrue($steps['test_order']['completed']);
+        self::assertFalse($steps['test_pickup']['completed']);
+    }
+
+    public function testInactiveStoreDoesNotSatisfyQrCodeAccess(): void
+    {
+        $admin = $this->createUser('admin-activation-inactive-qr@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-activation-inactive-qr@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant, active: false);
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/stores/%s/activation-checklist', $shop->getId()), user: $admin);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $steps = $this->indexStepsByKey($this->decodeJson($response)['steps']);
+        self::assertFalse($steps['store_active']['completed']);
+        self::assertFalse($steps['qr_code']['completed']);
+    }
+
     public function testActivationChecklistRequiresAdminAccess(): void
     {
         $merchant = $this->createUser('merchant-activation-forbidden@example.test', ['ROLE_MERCHANT']);
@@ -93,7 +124,7 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         );
     }
 
-    private function createCompleteStore(User $merchant, User $customer): Shop
+    private function createCompleteStore(User $merchant, User $customer, bool $forceCompletedPickup = false): Shop
     {
         $shop = $this->createShop($merchant);
         $shop
@@ -111,7 +142,7 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
             $this->createMerchantProduct($shop, 'Produit activation '.$i);
         }
         $this->createPickupSlotRule($shop);
-        $this->createCompletedPickupOrder($shop, $customer);
+        $this->createCompletedPickupOrder($shop, $customer, forceCompleted: $forceCompletedPickup);
 
         return $shop;
     }
@@ -174,7 +205,7 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
         return $rule;
     }
 
-    private function createCompletedPickupOrder(Shop $shop, User $customer): Order
+    private function createCompletedPickupOrder(Shop $shop, User $customer, bool $forceCompleted = false): Order
     {
         $merchantProduct = $this->createMerchantProduct($shop, 'Produit commande test');
         $order = (new Order())
@@ -197,8 +228,12 @@ final class AdminStoreActivationChecklistApiTest extends FunctionalApiTestCase
 
         $pickupSession = new PickupSession($order);
         $pickupSession->scan();
-        $pickupSession->confirmByMerchant();
-        $pickupSession->confirmByCustomer();
+        if ($forceCompleted) {
+            $pickupSession->forceCompleteByMerchant('Client indisponible pour validation test.');
+        } else {
+            $pickupSession->confirmByMerchant();
+            $pickupSession->confirmByCustomer();
+        }
 
         $this->entityManager->persist($order);
         $this->entityManager->persist($line);

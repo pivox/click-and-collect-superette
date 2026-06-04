@@ -32,6 +32,16 @@ export default function SuperettesPage() {
 
   const { sorted, sortKey, sortDir, toggleSort } = useSort(stores);
 
+  const loadActivationChecklist = useCallback(async (storeId: string) => {
+    try {
+      return await getStoreActivationChecklist(storeId);
+    } catch (err) {
+      console.error('[superettes] getStoreActivationChecklist failed', err);
+
+      return null;
+    }
+  }, []);
+
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -45,15 +55,9 @@ export default function SuperettesPage() {
       setTotal(data.total);
       const activationEntries = await Promise.all(
         data.items.map(async (store) => {
-          try {
-            const checklist = await getStoreActivationChecklist(store.id);
+          const checklist = await loadActivationChecklist(store.id);
 
-            return [store.id, checklist] as const;
-          } catch (err) {
-            console.error('[superettes] getStoreActivationChecklist failed', err);
-
-            return [store.id, null] as const;
-          }
+          return [store.id, checklist] as const;
         }),
       );
       setActivationByStoreId(Object.fromEntries(activationEntries));
@@ -63,7 +67,7 @@ export default function SuperettesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, isActiveFilter]);
+  }, [page, isActiveFilter, loadActivationChecklist]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { setPage(1); }, [isActiveFilter]);
@@ -98,6 +102,12 @@ export default function SuperettesPage() {
       // When a status filter is active, the toggled row may no longer belong — reload.
       if (isActiveFilter !== '') {
         void load();
+      } else {
+        const checklist = await loadActivationChecklist(toggledId);
+        setActivationByStoreId((current) => ({
+          ...current,
+          [toggledId]: checklist,
+        }));
       }
     } catch {
       setStores((current) =>

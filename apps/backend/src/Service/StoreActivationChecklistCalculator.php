@@ -61,8 +61,8 @@ final readonly class StoreActivationChecklistCalculator
             ),
             new AdminStoreActivationChecklistStepOutput(
                 key: 'qr_code',
-                label: 'QR code affichable',
-                completed: '' !== trim($shop->getQrCodeToken()),
+                label: 'QR code accessible',
+                completed: $shop->isActive() && null === $shop->getArchivedAt() && '' !== trim($shop->getQrCodeToken()),
                 required: true,
             ),
             new AdminStoreActivationChecklistStepOutput(
@@ -208,6 +208,9 @@ final readonly class StoreActivationChecklistCalculator
             ->andWhere('IDENTITY(orderEntity.shop) = :shopId')
             ->andWhere('orderEntity.status = :completed')
             ->andWhere('pickupSession.used = true')
+            ->andWhere('pickupSession.merchantConfirmedAt IS NOT NULL')
+            ->andWhere('pickupSession.customerConfirmedAt IS NOT NULL')
+            ->andWhere('pickupSession.forceCompletedByMerchant = false')
             ->setParameter('shopId', $shop->getId(), 'uuid')
             ->setParameter('completed', OrderStatus::Completed)
             ->getQuery()
