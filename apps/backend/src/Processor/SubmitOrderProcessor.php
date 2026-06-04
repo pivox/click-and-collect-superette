@@ -24,6 +24,7 @@ use App\Service\OrderNumberGenerator;
 use App\Service\OrderStatusLogRecorder;
 use App\Service\PickupSlotDisplayTime;
 use App\Service\PickupSlotDuration;
+use App\Service\ShopOrderingAvailabilityChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -51,6 +52,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         private Security $security,
         private NotificationService $notificationService,
         private MerchantResponseTimeoutScheduler $merchantResponseTimeoutScheduler,
+        private ShopOrderingAvailabilityChecker $shopOrderingAvailabilityChecker,
         private ClockInterface $clock,
         private int $partialAcceptanceExpirationLeadSeconds,
         #[Autowire(service: 'monolog.logger.order')]
@@ -111,6 +113,14 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         if (!$shop->isActive()) {
             $this->logRejected('STORE_NOT_FOUND', $kadhiaId, $slotId, $userId, $storeId);
             throw new NotFoundHttpException('STORE_NOT_FOUND');
+        }
+
+        if (
+            ShopOrderingAvailabilityChecker::STORE_SUSPENDED_FOR_SUBSCRIPTION
+            === $this->shopOrderingAvailabilityChecker->blockReason($shop)
+        ) {
+            $this->logRejected(ShopOrderingAvailabilityChecker::STORE_SUSPENDED_FOR_SUBSCRIPTION, $kadhiaId, $slotId, $userId, $storeId);
+            throw new UnprocessableEntityHttpException(ShopOrderingAvailabilityChecker::STORE_SUSPENDED_FOR_SUBSCRIPTION);
         }
 
         if (!Uuid::isValid((string) $slotId)) {
