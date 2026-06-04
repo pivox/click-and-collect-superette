@@ -6,12 +6,12 @@ Livrer les interfaces frontend Kadhia nécessaires au MVP : parcours client mobi
 
 Ce sprint frontend consume les API backend livrées en Sprint 4 (commandes, suivi, retrait), Sprint 5 (admin CRUD) et Sprint 7 (audit trail), puis prépare les prochains chantiers marchand autour du catalogue, des créneaux et des paramètres.
 
-## État actuel
+## État actuel au 4 juin 2026
 
 - **Design system + parcours client** — livré. PR #126.
   - Foundations Tailwind (couleurs, typographie, spacing, shadows)
   - Composants `Button`, `Input`, badge statut
-  - Parcours client mobile-first (scan QR, catalogue, Kadhia, rendez-vous)
+  - Parcours client mobile-first, ensuite branché sur les services réels : auth, supérettes, catalogue, Kadhia, rendez-vous, commandes, notifications et retrait
 
 - **Auth admin + layout** — livré. PRs #130, #131.
   - Middleware Next.js, `AdminAuthContext`, `AdminShell`, `AdminSidebar`
@@ -30,20 +30,28 @@ Ce sprint frontend consume les API backend livrées en Sprint 4 (commandes, suiv
   - Historique commandes avec filtres "À retirer" / "Clôturées" et pagination
   - Notifications marchand avec badge non lu, filtres, rafraîchissement manuel et marquage lu
 
-## Fonctionnalités prévues
+- **Front marchand — autonomie opérationnelle** — livré.
+  - Catalogue marchand
+  - Créneaux ponctuels, règles récurrentes, fermetures exceptionnelles et horaires
+  - Onboarding marchand guidé
+  - QR code magasin avec rendu et téléchargement SVG / impression
+  - Paramètres, profil supérette, compte, langue FR/AR et thème/apparence
+  - Export CSV commandes côté UI
 
-- Gestion catalogue marchand
-- Créneaux, horaires et fermetures marchand
-- Onboarding marchand guidé
-- QR code magasin marchand
-- Paramètres et thème supérette
-- Export CSV commandes côté UI
+- **i18n client FR/AR + RTL** — livré via S14-004 / #401.
+  - `ClientLocaleProvider`, `LanguageToggle`, persistance `client:lang`
+  - `dir="rtl"` appliqué sur l'espace client quand la langue arabe est sélectionnée
+  - Traductions client dans `src/messages/fr.json` et `src/messages/ar.json`
+
+## Fonctionnalités ouvertes
+
 - PWA installable et mode hors ligne
 - Accessibilité WCAG 2.1 AA
-- Localisation FR/AR avec RTL
+- Push notifications client + marchand
+- Durcissement terrain : worker async production, monitoring jobs, KPI bêta, QR PNG/PDF imprimable, checklist d'activation supérette
 
 ## Documents détaillés
 
-- [Parcours client — état actuel + roadmap](parcours-client.md)
+- [Parcours client — état actuel](parcours-client.md)
 - [Admin backoffice — PRs #130, #131, #132](admin-backoffice.md)
-- [Front marchand — prochains chantiers](merchant-next-chantiers.md)
+- [Front marchand — état livré + chantiers restants](merchant-next-chantiers.md)

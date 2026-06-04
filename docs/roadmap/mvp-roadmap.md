@@ -391,9 +391,9 @@ Préparer la mise en production avec observabilité, localisation FR/AR et outil
 | US-062 | Conservation et suppression des données | ✅ Backend livré (S7-003) |
 | US-063 | Audit trail des actions admin | ✅ Backend livré (S7-004) |
 | US-065 | Observabilité production | ✅ Backend livré (S7-005) |
-| US-059 | PWA installable et mode hors ligne | ❌ Non livré — Sprint 8 |
-| US-060 | Accessibilité WCAG 2.1 AA | ❌ Non livré — Sprint 8 |
-| US-008 | Localisation FR/AR câblée dans l'app | ⚠️ Partiel — fichiers i18n présents, next-intl non câblé |
+| US-059 | PWA installable et mode hors ligne | ❌ Non livré — Sprint 14 (#374, #375) |
+| US-060 | Accessibilité WCAG 2.1 AA | ❌ Non livré — Sprint 14 (#379) |
+| US-008 | Localisation FR/AR câblée dans l'app | ✅ Livré côté client via S14-004 / #401 (#377 fermée) |
 
 Frontend admin backoffice livré hors sprint officiel (PRs #130–#132) : auth admin, référentiel produits, marchands, supérettes, audit logs, dashboard KPI.
 
@@ -419,7 +419,7 @@ Frontend admin backoffice livré hors sprint officiel (PRs #130–#132) : auth a
 ### Critère de sortie ⚠️ Partiel
 
 Backend : ✅ — 5 US livrées, 81 tests fonctionnels, PHPStan niveau 8 clean, CS Fixer clean.
-Frontend : ⚠️ — parcours client validé par simulation Playwright (rapport v2). PWA, WCAG et i18n AR reportés Sprint 8.
+Frontend : ✅ — parcours client, backoffice admin et front marchand avancés livrés. PWA, push et WCAG restent ouverts Sprint 14. i18n client FR/AR + RTL livré via S14-004 / #401.
 Production : ⚠️ — risques bloquants documentés (extension `unaccent`, transport Messenger async, drift schéma) à résoudre avant déploiement.
 
 Rapport de clôture complet : `docs/Sprint7/completion-report.md`.
@@ -427,6 +427,8 @@ Rapport de clôture complet : `docs/Sprint7/completion-report.md`.
 ---
 
 > **Sprints 8 et 9 — livrés sur `main`** (voir `CLAUDE.md`) : catalogue marchand (produits locaux, bulk multi-format, `ProductFamily`, `pack_quantity`) et Kadhia multi + UX. Le cœur MVP (Sprints 0–9) est en place. Les sprints suivants couvrent la **mise sur le marché** : bêta terrain, monétisation, support, catalogue scalable, mobile, croissance, natif.
+>
+> **Priorité produit recommandée au 4 juin 2026** : attaquer d'abord **EPIC-015 — Fiabilité & observabilité production** (#352, #353, #354), avant PWA, monétisation ou croissance. La bêta doit garantir les jobs différés, les rappels, les expirations et la visibilité opérationnelle. Ensuite seulement, traiter EPIC-016 activation terrain, surtout #355 QR PNG/PDF et #356 checklist d'activation supérette.
 >
 > **Note suivi GitHub** : `#381` est la PR de consolidation de cette roadmap, pas une user story. La séquence des tickets US passe donc de `#380` à `#382`.
 
@@ -503,7 +505,7 @@ Accélérer l'onboarding produit au-delà du CSV/scan (livré en Sprint 11) et g
 
 ### Fonctionnalités
 
-- **US-041** ([#391](https://github.com/pivox/click-and-collect-superette/issues/391)) · EPIC-011 · *Must* — Gestion optimisée des images produits web/mobile : upload admin, original conservé, variantes WebP 200/400/800/1200, fallback JPEG, placeholder catégorie, exposition API responsive. **Livré S13-005** ; détails dans `docs/roadmap/product-images-web-mobile.md`.
+- **US-041** ([#391](https://github.com/pivox/click-and-collect-superette/issues/391)) · EPIC-011 · *Must* — Gestion optimisée des images produits web/mobile : upload admin, original conservé, variantes WebP 200/400/800/1200, fallback JPEG, placeholder catégorie, exposition API responsive. **Livré S13-005 côté code/docs** ; l'issue GitHub #391 est encore ouverte au 4 juin 2026 et doit être triée manuellement. Détails dans `docs/roadmap/product-images-web-mobile.md`.
 - **US-081** ([#370](https://github.com/pivox/click-and-collect-superette/issues/370)) · EPIC-019 · *Could* — Import catalogue par photo assisté IA (réutilise l'infra `ProductAiEnrichment*`).
 - **US-082** ([#371](https://github.com/pivox/click-and-collect-superette/issues/371)) · EPIC-020 · *Should* — Déduplication du référentiel (workflow admin, priorité code-barres).
 - **US-083** ([#372](https://github.com/pivox/click-and-collect-superette/issues/372)) · EPIC-020 · *Could* — Score de qualité des références produit.
@@ -523,16 +525,16 @@ Transformer le web responsive en vraie expérience mobile installable. PWA (US-0
 
 ### Fonctionnalités
 
-- **US-089** ([#374](https://github.com/pivox/click-and-collect-superette/issues/374)) · EPIC-022 · *Must* — PWA client (installable, mobile-first).
-- **US-090** ([#375](https://github.com/pivox/click-and-collect-superette/issues/375)) · EPIC-022 · *Must* — PWA marchand (installable, terrain).
-- **US-091** ([#376](https://github.com/pivox/click-and-collect-superette/issues/376)) · EPIC-022 · *Should* — Push notifications (client + marchand). *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée → peut justifier l'iOS natif plus tôt.*
-- **US-093** ([#377](https://github.com/pivox/click-and-collect-superette/issues/377)) · EPIC-008 · *Must* — **Arabe / RTL câblé** dans l'application (dette MVP, étend US-008).
+- **US-089** ([#374](https://github.com/pivox/click-and-collect-superette/issues/374)) · EPIC-022 · *Must* — PWA client (installable, mobile-first). **Ouvert.**
+- **US-090** ([#375](https://github.com/pivox/click-and-collect-superette/issues/375)) · EPIC-022 · *Must* — PWA marchand (installable, terrain). **Ouvert.**
+- **US-091** ([#376](https://github.com/pivox/click-and-collect-superette/issues/376)) · EPIC-022 · *Should* — Push notifications (client + marchand). **Ouvert.** *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée → peut justifier l'iOS natif plus tôt.*
+- **US-093** ([#377](https://github.com/pivox/click-and-collect-superette/issues/377)) · EPIC-008 · *Must* — **Arabe / RTL câblé** dans l'application (dette MVP, étend US-008). **Livré via #401 ; #377 fermée.**
 - **US-094** ([#378](https://github.com/pivox/click-and-collect-superette/issues/378)) · EPIC-018 · *Could* — WhatsApp semi-manuel (client + marchand).
-- **US-092** ([#379](https://github.com/pivox/click-and-collect-superette/issues/379)) · EPIC-022 · *Should* — Accessibilité minimum (WCAG de base).
+- **US-092** ([#379](https://github.com/pivox/click-and-collect-superette/issues/379)) · EPIC-022 · *Should* — Accessibilité minimum (WCAG de base). **Ouvert.**
 
 ### Critère de sortie
 
-Le client et le marchand utilisent l'application confortablement sur mobile, en français comme en arabe (RTL), avec notifications push.
+Le client utilise l'application en français comme en arabe (RTL). Le reste du sprint reste ouvert : PWA client, PWA marchand, push notifications et accessibilité de base.
 
 ---
 
@@ -684,12 +686,12 @@ Les apps natives reprennent les parcours validés par la PWA, sans réinventer l
 | Sprint 4 | US-007, US-025, US-026, US-038, US-039, US-064 | P1 | ✅ Backend terminé |
 | Sprint 5 | US-009, US-028, US-029, US-030, US-050, US-054, US-055 | P1 | ✅ Backend terminé |
 | Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
-| Sprint 7 | US-008, US-058, US-059, US-060, US-061, US-062, US-063 | P2 | 🟡 À implémenter |
+| Sprint 7 | US-008, US-058, US-059, US-060, US-061, US-062, US-063 | P2 | ✅ Backend livré ; PWA/WCAG reportées Sprint 14 ; i18n client livrée S14-004 |
 | Sprint 10 | US-067 à US-073 (EPIC-015, EPIC-016) | P0 | 🔵 Planifié (go-to-market) |
 | Sprint 11 | US-074 à US-080 (EPIC-017, EPIC-018, EPIC-019) | P0 | 🔵 Planifié (monétisation) |
 | Sprint 12 | US-085 à US-088 (EPIC-021) | P1 | 🔵 Planifié (support) |
 | Sprint 13 | US-041 (#391 / S13-005), US-081 à US-084 (EPIC-011, EPIC-019, EPIC-020) | P1 | 🟢 Partiel : US-041 livrée, reste catalogue scalable planifié |
-| Sprint 14 | US-089 à US-094 (EPIC-022, EPIC-008, EPIC-018) | P1 | 🔵 Planifié (mobile PWA + AR) |
+| Sprint 14 | US-089 à US-094 (EPIC-022, EPIC-008, EPIC-018) | P1 | 🟡 Partiel : US-093 livrée ; PWA/push/WCAG ouverts |
 | Sprint 15 | US-095 à US-099 (EPIC-023) | P2 | 🔵 Planifié (croissance) |
 | Sprint 16 | US-100 à US-103 (EPIC-024) | P2 | 🔵 Planifié (natif) |
 

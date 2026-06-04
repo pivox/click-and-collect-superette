@@ -1,6 +1,8 @@
 # Sprint 7 — Rapport de clôture MVP
 
 > Produit le 2026-05-27 par audit S7-008. Résultats réels de vérifications — aucune valeur inventée.
+>
+> Archive historique — 2026-06-04 : ce rapport garde l'état Sprint 7, y compris les limites alors ouvertes. Depuis, le frontend marchand avancé, les images produits S13-005 et l'i18n client FR/AR + RTL via S14-004 / #401 ont évolué. Pour l'état courant de `main`, utiliser `AI_CONTEXT.md`, `docs/roadmap/mvp-roadmap.md` et `docs/product/mvp-functional-audit.md`.
 
 ---
 
