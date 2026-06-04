@@ -50,9 +50,11 @@ function mapImageError(e: unknown): string {
 function ProductImageSection({
   productId,
   initialImage,
+  onImageChange,
 }: {
   productId: string;
   initialImage?: ProductReferenceImage | null;
+  onImageChange?: () => void;
 }) {
   const [image, setImage] = useState<ProductReferenceImage | null>(initialImage ?? null);
   const [busy, setBusy] = useState(false);
@@ -75,6 +77,7 @@ function ProductImageSection({
     try {
       const { image: uploaded } = await uploadProductReferenceImage(productId, file);
       setImage(uploaded);
+      onImageChange?.();
     } catch (e) {
       setError(mapImageError(e));
     } finally {
@@ -89,6 +92,7 @@ function ProductImageSection({
     try {
       await deleteProductReferenceImage(productId);
       setImage(null);
+      onImageChange?.();
     } catch (e) {
       setError(mapImageError(e));
     } finally {
@@ -186,7 +190,11 @@ interface ProductReferenceDrawerProps {
   open: boolean;
   onClose: () => void;
   product: ProductReference | null;
+  /** Called after a field save: the parent reloads the list and closes the drawer. */
   onSaved: () => void;
+  /** Called after a change that should refresh the list WITHOUT closing the drawer
+   *  (image upload/delete, and the create step that unlocks the image section). */
+  onChanged?: () => void;
 }
 
 type FormState = {
@@ -202,13 +210,17 @@ const EMPTY_FORM: FormState = {
 };
 
 export function ProductReferenceDrawer({
-  open, onClose, product, onSaved,
+  open, onClose, product, onSaved, onChanged,
 }: ProductReferenceDrawerProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Product created within this drawer session — lets the user attach an image
+  // right after creation without closing. `effectiveProduct` unifies edit + create.
+  const [savedProduct, setSavedProduct] = useState<ProductReference | null>(null);
+  const effectiveProduct = savedProduct ?? product;
 
   useEffect(() => {
     void Promise.all([listBrands(1, 50), listCategories(1, 50)])
@@ -240,6 +252,7 @@ export function ProductReferenceDrawer({
     } else {
       setForm(EMPTY_FORM);
     }
+    setSavedProduct(null);
     setError(null);
   }, [product, open]);
 
@@ -268,12 +281,16 @@ export function ProductReferenceDrawer({
         status: form.status,
         aliases: form.aliases.length ? form.aliases : undefined,
       };
-      if (product) {
-        await updateProductReference(product.id, payload);
+      if (effectiveProduct) {
+        await updateProductReference(effectiveProduct.id, payload);
+        onSaved();
       } else {
-        await createProductReference(payload);
+        // Create then stay open in edit mode so the image section unlocks for the
+        // freshly created product; refresh the list without closing.
+        const created = await createProductReference(payload);
+        setSavedProduct(created);
+        onChanged?.();
       }
-      onSaved();
     } catch (e) {
       setError(axios.isAxiosError(e) && e.response?.status === 409
         ? 'Un nom ou slug identique existe déjà.'
@@ -308,7 +325,7 @@ export function ProductReferenceDrawer({
     <AdminDrawer
       open={open}
       onClose={onClose}
-      title={product ? 'Modifier le produit' : 'Nouveau produit'}
+      title={effectiveProduct ? 'Modifier le produit' : 'Nouveau produit'}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       size="lg"
@@ -383,11 +400,12 @@ export function ProductReferenceDrawer({
           <label className="mb-1 block text-sm font-semibold">Aliases</label>
           <TagInput tags={form.aliases} onChange={(t) => set('aliases', t)} />
         </div>
-        {product ? (
+        {effectiveProduct ? (
           <ProductImageSection
-            key={product.id}
-            productId={product.id}
-            initialImage={product.image}
+            key={effectiveProduct.id}
+            productId={effectiveProduct.id}
+            initialImage={effectiveProduct.image}
+            onImageChange={onChanged}
           />
         ) : (
           <p className="rounded-md bg-soft px-3 py-2 text-xs text-muted">
