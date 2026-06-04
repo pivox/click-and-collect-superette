@@ -190,6 +190,32 @@ Résultat attendu :
 - il est consommé après redémarrage ;
 - aucune transition métier n'est perdue pour la Kadhia ou le retrait concerné.
 
+## Monitoring de file
+
+L'état de la file Messenger est exposé côté API admin :
+
+```text
+GET /api/admin/ops/messenger
+```
+
+L'accès est réservé aux administrateurs plateforme. La réponse contient :
+
+- `status` : `ok` ou `degraded` ;
+- `pending` : messages encore en attente sur `async` ;
+- `failed` : messages présents dans le transport `failed` ;
+- `oldest_age_s` : âge en secondes du plus vieux message `async` non consommé ;
+- `last_consumed_at` : dernier message traité par le worker `async`, si disponible ;
+- `thresholds` : seuils actifs pour basculer en `degraded`.
+
+Seuils configurables :
+
+```dotenv
+MESSENGER_MONITOR_PENDING_THRESHOLD=100
+MESSENGER_MONITOR_OLDEST_AGE_THRESHOLD_SECONDS=900
+```
+
+Le statut passe en `degraded` si la file dépasse le seuil de messages en attente, si le plus vieux message dépasse le seuil d'âge, ou si au moins un message est présent dans `failed`.
+
 ## Gestion des échecs
 
 ### Visualiser les messages échoués
