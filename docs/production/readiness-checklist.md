@@ -12,8 +12,8 @@
 - [x] Transport async persistant configuré — `MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0` (surcharger en Redis en production si disponible)
 - [x] `failure_transport: failed` configuré (file dédiée aux messages en échec, sans bloquer la file principale)
 - [x] Index sur `messenger_messages(queue_name, available_at)` créé (`Version20260527100000`)
-- [ ] Worker actif en production : `php bin/console messenger:consume async --time-limit=3600 --memory-limit=128M`
-- [ ] Worker supervisé via `docker/supervisor/messenger-worker.conf` (Supervisor redémarre automatiquement en cas de crash) — procédure : `docs/ops/messenger-worker.md`
+- [ ] Worker actif en production : service Docker Compose `worker` ou `php bin/console messenger:consume async --time-limit=3600 --memory-limit=128M`
+- [ ] Worker supervisé via `restart: unless-stopped` dans `docker-compose.yml` ou via `docker/supervisor/messenger-worker.conf` — procédure : `docs/ops/messenger-worker.md`
 
 ## Variables d'environnement critiques
 

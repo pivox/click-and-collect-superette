@@ -53,6 +53,31 @@ services:
       postgres:
         condition: service_healthy
 
+  # ─── Messenger worker (Symfony async jobs) ──────────────────────────────────
+  worker:
+    build:
+      context: ./apps/backend
+      dockerfile: ../../docker/backend/Dockerfile
+    container_name: cc_worker
+    command: php bin/console messenger:consume async --time-limit=3600 --memory-limit=128M
+    restart: unless-stopped
+    volumes:
+      - ./apps/backend:/var/www/backend
+      - backend_vendor:/var/www/backend/vendor
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: "postgresql://app:app@postgres:5432/clickcollect?serverVersion=16&charset=utf8"
+      MESSENGER_TRANSPORT_DSN: "doctrine://default"
+      MAILER_DSN: "smtp://mailpit:1025"
+      JWT_SECRET_KEY: /var/www/backend/config/jwt/private.pem
+      JWT_PUBLIC_KEY: /var/www/backend/config/jwt/public.pem
+      JWT_PASSPHRASE: changeme_jwt_passphrase
+      CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # ─── Nginx (reverse proxy backend) ───────────────────────────────────────────
   nginx:
     image: nginx:alpine
