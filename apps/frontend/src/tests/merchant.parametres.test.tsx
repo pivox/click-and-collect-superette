@@ -1,11 +1,24 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import MerchantSettingsPage from '@/app/merchant/parametres/page';
+import { MerchantLocaleProvider } from '@/lib/i18n/MerchantLocaleContext';
 
-describe('MerchantSettingsPage (MS-001)', () => {
+function renderPage() {
+  return render(
+    <MerchantLocaleProvider>
+      <MerchantSettingsPage />
+    </MerchantLocaleProvider>,
+  );
+}
+
+describe('MerchantSettingsPage (MS-001 / MS-004)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it('renders working shortcuts to existing configuration pages', () => {
-    render(React.createElement(MerchantSettingsPage));
+    renderPage();
 
     expect(screen.getByRole('link', { name: /Horaires & créneaux/i })).toHaveAttribute(
       'href',
@@ -25,8 +38,8 @@ describe('MerchantSettingsPage (MS-001)', () => {
     );
   });
 
-  it('links the store profile and account shortcuts to their pages', () => {
-    render(React.createElement(MerchantSettingsPage));
+  it('links the store profile, account and language shortcuts to their pages', () => {
+    renderPage();
 
     expect(screen.getByRole('link', { name: /Profil de la supérette/i })).toHaveAttribute(
       'href',
@@ -36,11 +49,15 @@ describe('MerchantSettingsPage (MS-001)', () => {
       'href',
       '/merchant/parametres/compte',
     );
+    expect(screen.getByRole('link', { name: /Langue de l’interface/i })).toHaveAttribute(
+      'href',
+      '/merchant/parametres/langue',
+    );
   });
 
-  it('shows the remaining language section as a "Bientôt disponible" placeholder', () => {
-    render(React.createElement(MerchantSettingsPage));
+  it('no longer shows a "Bientôt disponible" placeholder (language is now live)', () => {
+    renderPage();
 
-    expect(screen.getAllByText(/Bientôt disponible/i)).toHaveLength(1);
+    expect(screen.queryByText(/Bientôt disponible/i)).toBeNull();
   });
 });

@@ -37,7 +37,46 @@
     "reject": "Refuser",
     "prepare": "Préparer",
     "markReady": "Déclarer prête",
-    "validatePickup": "Valider le retrait"
+    "validatePickup": "Valider le retrait",
+    "settings": {
+      "title": "Paramètres",
+      "subtitle": "Configurez votre supérette et votre compte marchand.",
+      "sectionConfig": "Configuration de la supérette",
+      "sectionAccount": "Compte & profil",
+      "slots": {
+        "title": "Horaires & créneaux",
+        "description": "Créneaux de retrait, règles hebdomadaires et fermetures exceptionnelles."
+      },
+      "appearance": {
+        "title": "Apparence",
+        "description": "Couleurs et police de votre supérette, avec contrôle de contraste."
+      },
+      "qr": {
+        "title": "QR code magasin",
+        "description": "Affichez, imprimez ou téléchargez le QR code de votre supérette."
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Historique des notifications liées à vos commandes et retraits."
+      },
+      "storeProfile": {
+        "title": "Profil de la supérette",
+        "description": "Nom, adresse, téléphone, logo et image de couverture vus par le client."
+      },
+      "account": {
+        "title": "Compte",
+        "description": "Email, nom affiché et changement de mot de passe."
+      },
+      "language": {
+        "title": "Langue de l’interface",
+        "description": "Basculer entre français et arabe (RTL).",
+        "pageSubtitle": "Choisissez la langue d’affichage de votre espace marchand.",
+        "french": "Français",
+        "arabic": "العربية",
+        "saved": "Langue mise à jour.",
+        "back": "Paramètres"
+      }
+    }
   },
   "admin": {
     "shops": "Supérettes",

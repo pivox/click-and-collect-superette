@@ -12,41 +12,43 @@ import {
   Store,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { useMerchantLocale } from '@/lib/i18n/MerchantLocaleContext';
 
 // MS-001 (MVP-1): unified merchant settings entry point.
 // MS-002 (MVP-2): the "Profil de la supérette" shortcut is now live.
-// "Compte" (MS-003) and "Langue" (MS-004) remain placeholders until their lots land.
+// MS-003 (MVP-3): the "Compte" shortcut is now live.
+// MS-004 (MVP-4): the "Langue" shortcut is now live and the hub labels are i18n-driven.
 
 type Shortcut = {
   href: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   icon: typeof CalendarClock;
 };
 
-const SHORTCUTS: Shortcut[] = [
+const CONFIG_SHORTCUTS: Shortcut[] = [
   {
     href: '/merchant/creneaux',
-    title: 'Horaires & créneaux',
-    description: 'Créneaux de retrait, règles hebdomadaires et fermetures exceptionnelles.',
+    titleKey: 'merchant.settings.slots.title',
+    descriptionKey: 'merchant.settings.slots.description',
     icon: CalendarClock,
   },
   {
     href: '/merchant/apparence',
-    title: 'Apparence',
-    description: 'Couleurs et police de votre supérette, avec contrôle de contraste.',
+    titleKey: 'merchant.settings.appearance.title',
+    descriptionKey: 'merchant.settings.appearance.description',
     icon: Palette,
   },
   {
     href: '/merchant/qr-code',
-    title: 'QR code magasin',
-    description: 'Affichez, imprimez ou téléchargez le QR code de votre supérette.',
+    titleKey: 'merchant.settings.qr.title',
+    descriptionKey: 'merchant.settings.qr.description',
     icon: Printer,
   },
   {
     href: '/merchant/notifications',
-    title: 'Notifications',
-    description: 'Historique des notifications liées à vos commandes et retraits.',
+    titleKey: 'merchant.settings.notifications.title',
+    descriptionKey: 'merchant.settings.notifications.description',
     icon: Bell,
   },
 ];
@@ -54,33 +56,26 @@ const SHORTCUTS: Shortcut[] = [
 const ACCOUNT_SHORTCUTS: Shortcut[] = [
   {
     href: '/merchant/parametres/profil',
-    title: 'Profil de la supérette',
-    description: 'Nom, adresse, téléphone, logo et image de couverture vus par le client.',
+    titleKey: 'merchant.settings.storeProfile.title',
+    descriptionKey: 'merchant.settings.storeProfile.description',
     icon: Store,
   },
   {
     href: '/merchant/parametres/compte',
-    title: 'Compte',
-    description: 'Email, nom affiché et changement de mot de passe.',
+    titleKey: 'merchant.settings.account.title',
+    descriptionKey: 'merchant.settings.account.description',
     icon: Lock,
   },
-];
-
-type Upcoming = {
-  title: string;
-  description: string;
-  icon: typeof Store;
-};
-
-const UPCOMING: Upcoming[] = [
   {
-    title: 'Langue de l’interface',
-    description: 'Basculer entre français et arabe (RTL).',
+    href: '/merchant/parametres/langue',
+    titleKey: 'merchant.settings.language.title',
+    descriptionKey: 'merchant.settings.language.description',
     icon: Languages,
   },
 ];
 
 function ShortcutCard({ item }: { item: Shortcut }) {
+  const { t } = useMerchantLocale();
   const Icon = item.icon;
   return (
     <Link href={item.href} className="group block">
@@ -90,13 +85,13 @@ function ShortcutCard({ item }: { item: Shortcut }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1 font-bold text-ink">
-            {item.title}
+            {t(item.titleKey)}
             <ChevronRight
               className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5"
               aria-hidden="true"
             />
           </span>
-          <span className="mt-0.5 block text-sm text-muted">{item.description}</span>
+          <span className="mt-0.5 block text-sm text-muted">{t(item.descriptionKey)}</span>
         </span>
       </Card>
     </Link>
@@ -104,53 +99,34 @@ function ShortcutCard({ item }: { item: Shortcut }) {
 }
 
 export default function MerchantSettingsPage() {
+  const { t } = useMerchantLocale();
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
       <header className="space-y-1">
-        <h1 className="text-xl font-black text-ink">Paramètres</h1>
-        <p className="text-sm text-muted">
-          Configurez votre supérette et votre compte marchand.
-        </p>
+        <h1 className="text-xl font-black text-ink">{t('merchant.settings.title')}</h1>
+        <p className="text-sm text-muted">{t('merchant.settings.subtitle')}</p>
       </header>
 
       <section className="space-y-3" aria-labelledby="settings-config">
         <h2 id="settings-config" className="text-sm font-bold uppercase tracking-wide text-muted">
-          Configuration de la supérette
+          {t('merchant.settings.sectionConfig')}
         </h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          {SHORTCUTS.map((item) => (
+          {CONFIG_SHORTCUTS.map((item) => (
             <ShortcutCard key={item.href} item={item} />
           ))}
         </div>
       </section>
 
-      <section className="space-y-3" aria-labelledby="settings-upcoming">
-        <h2 id="settings-upcoming" className="text-sm font-bold uppercase tracking-wide text-muted">
-          Compte & profil
+      <section className="space-y-3" aria-labelledby="settings-account">
+        <h2 id="settings-account" className="text-sm font-bold uppercase tracking-wide text-muted">
+          {t('merchant.settings.sectionAccount')}
         </h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {ACCOUNT_SHORTCUTS.map((item) => (
             <ShortcutCard key={item.href} item={item} />
           ))}
-          {UPCOMING.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Card key={item.title} className="flex items-start gap-3 opacity-60">
-                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-soft text-muted">
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-2 font-bold text-ink">
-                    {item.title}
-                    <span className="rounded-full bg-soft px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-muted">
-                      Bientôt disponible
-                    </span>
-                  </span>
-                  <span className="mt-0.5 block text-sm text-muted">{item.description}</span>
-                </span>
-              </Card>
-            );
-          })}
         </div>
       </section>
     </div>
