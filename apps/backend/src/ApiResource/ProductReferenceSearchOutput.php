@@ -26,6 +26,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
             security: "is_granted('ROLE_MERCHANT')",
             parameters: [
                 'q' => new QueryParameter(schema: ['type' => 'string'], description: 'Recherche sur nom, marque, code-barres.'),
+                'barcode' => new QueryParameter(schema: ['type' => 'string'], description: 'Recherche exacte par code-barres saisi ou scanné.'),
                 'brandId' => new QueryParameter(schema: ['type' => 'string'], description: 'Filtrer par marque (UUID).'),
                 'categorySlug' => new QueryParameter(schema: ['type' => 'string'], description: 'Filtrer par slug de catégorie.'),
                 'page' => new QueryParameter(schema: ['type' => 'integer', 'default' => 1], description: 'Numéro de page (défaut : 1).'),

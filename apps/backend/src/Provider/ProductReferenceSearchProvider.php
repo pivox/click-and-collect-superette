@@ -53,6 +53,7 @@ final readonly class ProductReferenceSearchProvider implements ProviderInterface
         $q = $request?->query->get('q');
         $brandId = $request?->query->get('brandId');
         $categorySlug = $request?->query->get('categorySlug');
+        $barcode = $request?->query->get('barcode');
 
         $page = max(1, (int) ($request?->query->get('page') ?? 1));
         $limit = min(50, max(1, (int) ($request?->query->get('limit') ?? 20)));
@@ -61,16 +62,18 @@ final readonly class ProductReferenceSearchProvider implements ProviderInterface
         $queryStr = null !== $q ? (string) $q : null;
         $brandIdStr = null !== $brandId ? (string) $brandId : null;
         $categorySlugStr = null !== $categorySlug ? (string) $categorySlug : null;
+        $barcodeStr = null !== $barcode && '' !== trim((string) $barcode) ? trim((string) $barcode) : null;
 
         $references = $this->productReferenceRepository->search(
-            $queryStr,
-            $brandIdStr,
-            $categorySlugStr,
-            $limit,
-            $offset,
+            query: $queryStr,
+            brandId: $brandIdStr,
+            categorySlug: $categorySlugStr,
+            limit: $limit,
+            offset: $offset,
+            barcode: $barcodeStr,
         );
 
-        $total = $this->productReferenceRepository->countSearch($queryStr, $brandIdStr, $categorySlugStr);
+        $total = $this->productReferenceRepository->countSearch($queryStr, $brandIdStr, $categorySlugStr, $barcodeStr);
 
         $items = array_map(
             function (ProductReference $ref) use ($shop): ProductReferenceItemOutput {

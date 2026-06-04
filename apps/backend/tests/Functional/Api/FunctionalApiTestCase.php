@@ -71,6 +71,27 @@ abstract class FunctionalApiTestCase extends KernelTestCase
         return self::$kernel->handle($request, HttpKernelInterface::MAIN_REQUEST, true);
     }
 
+    protected function requestRaw(
+        string $method,
+        string $path,
+        string $content,
+        string $contentType,
+        ?User $user = null,
+    ): Response {
+        $server = [
+            'HTTP_ACCEPT' => 'application/json',
+            'CONTENT_TYPE' => $contentType,
+        ];
+
+        if (null !== $user) {
+            $server['HTTP_X_TEST_USER'] = $user->getEmail();
+        }
+
+        $request = Request::create($path, $method, server: $server, content: $content);
+
+        return self::$kernel->handle($request, HttpKernelInterface::MAIN_REQUEST, true);
+    }
+
     /**
      * @return array<string, mixed>
      */

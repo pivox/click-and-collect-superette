@@ -97,6 +97,25 @@ Endpoints backend :
 5. L'administrateur valide, corrige ou refuse.
 6. Une fois approuvé, le produit devient réutilisable par d'autres marchands.
 
+## Import CSV marchand
+
+US-080 ajoute un import CSV d'onboarding catalogue minimum pour éviter une saisie produit par produit.
+
+Contrat MVP :
+
+- endpoint marchand : `POST /api/merchant/stores/{storeId}/catalog/import-csv` en `text/csv` ;
+- colonnes obligatoires : `name_fr`, `brand`, `volume`, `unit`, `price_tnd`, `is_available`, `is_visible` ;
+- colonnes optionnelles : `barcode`, `category`, `name_ar`, `variant_fr`, `merchant_note`, `pack_quantity` ;
+- validation ligne par ligne avec résultat global : créés, mis à jour, ignorés, erreurs ;
+- recherche prioritaire par `barcode`, puis par marque + nom + volume + unité dans les `ProductReference` approuvés ;
+- si aucune référence approuvée ne correspond, création d'un `MerchantLocalProduct` vendable uniquement par la supérette ;
+- aucun `ProductReference` commun n'est créé automatiquement par l'import marchand ;
+- pas d'import photo IA ni de scraping de données protégées.
+
+Le scan code-barres côté frontend n'est pas requis pour ce socle : l'API expose déjà la recherche exacte
+via `GET /api/merchant/stores/{storeId}/product-references?barcode=...`, utilisable par saisie manuelle ou
+par une future intégration caméra légère.
+
 ## Implication UX
 
 Côté marchand, l'ajout au catalogue doit commencer par une recherche dans le référentiel, pas par un formulaire vide.
