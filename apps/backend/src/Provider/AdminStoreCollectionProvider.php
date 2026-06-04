@@ -9,6 +9,7 @@ use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\AdminStoreListOutput;
 use App\ApiResource\AdminStoreOutputFactory;
 use App\Repository\AdminStoreRepository;
+use App\Service\StoreActivationChecklistCalculator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -24,6 +25,7 @@ final readonly class AdminStoreCollectionProvider implements ProviderInterface
     public function __construct(
         private AdminStoreRepository $adminStoreRepository,
         private AdminStoreOutputFactory $adminStoreOutputFactory,
+        private StoreActivationChecklistCalculator $activationChecklistCalculator,
         private RequestStack $requestStack,
     ) {
     }
@@ -43,10 +45,12 @@ final readonly class AdminStoreCollectionProvider implements ProviderInterface
 
         $stores = $this->adminStoreRepository->findPaginated($limit, $offset, $isActive);
         $productCounts = $this->adminStoreRepository->countProductsGrouped($stores);
+        $activationChecklists = $this->activationChecklistCalculator->calculateMany($stores);
         $items = array_map(
             fn ($shop) => $this->adminStoreOutputFactory->create(
                 shop: $shop,
                 productsCount: $productCounts[$shop->getId()->toRfc4122()] ?? 0,
+                activationChecklist: $activationChecklists[$shop->getId()->toRfc4122()] ?? null,
             ),
             $stores,
         );

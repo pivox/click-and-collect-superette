@@ -6,6 +6,7 @@ import type {
   CreateStorePayload,
   UpdateStorePayload,
   StoreQrCode,
+  StoreActivationChecklist,
 } from '@/lib/types/admin/stores.types';
 
 export async function listStores(filters: StoreFilters = {}): Promise<StoreListResponse> {
@@ -51,6 +52,13 @@ export async function regenerateStoreQrCode(id: string): Promise<StoreQrCode> {
   const { data } = await apiClient.post<StoreQrCode>(
     `/api/admin/stores/${id}/regenerate-qr`,
     {},
+  );
+  return data;
+}
+
+export async function getStoreActivationChecklist(id: string): Promise<StoreActivationChecklist> {
+  const { data } = await apiClient.get<StoreActivationChecklist>(
+    `/api/admin/stores/${id}/activation-checklist`,
   );
   return data;
 }

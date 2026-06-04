@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   activateStore,
   deactivateStore,
+  getStoreActivationChecklist,
   getStoreQrCode,
   regenerateStoreQrCode,
 } from '@/lib/services/admin/stores.service';
@@ -27,6 +28,23 @@ const QR_RESPONSE = {
   slug: 'ma-superette',
   qr_code_token: 'tok_abc123',
   target_url: '/api/stores/by-qr/tok_abc123',
+};
+
+const ACTIVATION_CHECKLIST_RESPONSE = {
+  store_id: STORE_ID,
+  store_name: 'Ma Supérette',
+  ready: true,
+  minimum_catalog_products: 5,
+  required_completed_count: 8,
+  required_total_count: 8,
+  steps: [
+    {
+      key: 'merchant_active',
+      label: 'Marchand actif',
+      completed: true,
+      required: true,
+    },
+  ],
 };
 
 beforeEach(() => {
@@ -74,5 +92,16 @@ describe('regenerateStoreQrCode', () => {
       {},
     );
     expect(result.qr_code_token).toBe('tok_new456');
+  });
+});
+
+describe('getStoreActivationChecklist', () => {
+  it('sends GET to activation-checklist endpoint and returns checklist', async () => {
+    mockGet.mockResolvedValue({ data: ACTIVATION_CHECKLIST_RESPONSE });
+    const result = await getStoreActivationChecklist(STORE_ID);
+
+    expect(mockGet).toHaveBeenCalledWith(`/api/admin/stores/${STORE_ID}/activation-checklist`);
+    expect(result.ready).toBe(true);
+    expect(result.steps[0].key).toBe('merchant_active');
   });
 });

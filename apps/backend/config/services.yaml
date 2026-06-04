@@ -18,6 +18,8 @@ parameters:
     app.messenger_monitor.pending_threshold: '%env(default:app.messenger_monitor.pending_threshold_default:int:MESSENGER_MONITOR_PENDING_THRESHOLD)%'
     app.messenger_monitor.oldest_age_threshold_seconds: '%env(default:app.messenger_monitor.oldest_age_threshold_seconds_default:int:MESSENGER_MONITOR_OLDEST_AGE_THRESHOLD_SECONDS)%'
     app.messenger_monitor.redeliver_timeout_seconds: '%env(default:app.messenger_monitor.redeliver_timeout_seconds_default:int:MESSENGER_MONITOR_REDELIVER_TIMEOUT_SECONDS)%'
+    app.store_activation.minimum_catalog_products_default: 5
+    app.store_activation.minimum_catalog_products: '%env(default:app.store_activation.minimum_catalog_products_default:int:STORE_ACTIVATION_MINIMUM_CATALOG_PRODUCTS)%'
     # Product image pipeline (S13-005 / US-041)
     app.product_image.upload_dir: '%kernel.project_dir%/public/uploads/products'
     app.product_image.public_path_prefix: '/uploads/products'
@@ -43,6 +45,7 @@ services:
             int $pendingThreshold: '%app.messenger_monitor.pending_threshold%'
             int $oldestAgeSecondsThreshold: '%app.messenger_monitor.oldest_age_threshold_seconds%'
             int $redeliverTimeoutSeconds: '%app.messenger_monitor.redeliver_timeout_seconds%'
+            int $minimumCatalogProducts: '%app.store_activation.minimum_catalog_products%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name

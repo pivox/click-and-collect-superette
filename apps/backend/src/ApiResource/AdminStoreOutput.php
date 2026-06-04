@@ -150,6 +150,9 @@ final readonly class AdminStoreOutput
         #[Groups(['admin_store:read'])]
         #[SerializedName('archive_reason')]
         public ?string $archiveReason,
+        #[Groups(['admin_store_list:read'])]
+        #[SerializedName('activation_checklist')]
+        public ?AdminStoreActivationChecklistOutput $activationChecklist = null,
     ) {
     }
 }
