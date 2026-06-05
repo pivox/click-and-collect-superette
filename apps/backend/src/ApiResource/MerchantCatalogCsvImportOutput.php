@@ -13,6 +13,7 @@ use App\Processor\MerchantCatalogCsvImportProcessor;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ApiResource(
+    shortName: 'CsvImportOutput',
     operations: [
         new Post(
             uriTemplate: '/merchant/stores/{storeId}/catalog/import-csv',
@@ -39,7 +40,7 @@ final readonly class MerchantCatalogCsvImportOutput
      * @param list<MerchantCatalogCsvImportErrorOutput> $errors
      */
     public function __construct(
-        #[ApiProperty(identifier: true)]
+        #[ApiProperty(identifier: false)]
         #[Groups(['merchant_catalog_import:read'])]
         public string $id,
         #[Groups(['merchant_catalog_import:read'])]
