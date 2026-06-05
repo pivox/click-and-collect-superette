@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,7 +17,7 @@ vi.mock('@/lib/auth/ClientAuthContext', () => ({
 }));
 
 import SlotPage from '@/app/(client)/kadhia/slot/page';
-import { listSlotsForShop, readLocalKadhia } from '@/lib/services';
+import { listSlotsForShop, readLocalKadhia, submitKadhia } from '@/lib/services';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 import type { PickupSlot } from '@/types';
@@ -81,5 +81,23 @@ describe('SlotPage (S14-004)', () => {
     expect(await screen.findByText('موعد الاستلام')).toBeTruthy(); // "Créneau de retrait"
     expect(screen.getByText('المواعيد المتاحة')).toBeTruthy(); // "Créneaux disponibles"
     expect(screen.getByText('صباحاً')).toBeTruthy(); // "Matin"
+  });
+
+  it('affiche le blocage suspension sans perdre la Kadhia', async () => {
+    vi.mocked(submitKadhia).mockRejectedValue({
+      response: { data: { detail: 'STORE_SUSPENDED_FOR_SUBSCRIPTION' } },
+    });
+
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Envoyer la commande' }));
+
+    expect(await screen.findByText('Cette supérette ne prend temporairement plus de nouvelles Kadhia. Votre Kadhia reste disponible.')).toBeTruthy();
+    expect(submitKadhia).toHaveBeenCalledWith({
+      shopId: 'shop-1',
+      pickupSlotId: 'slot-1',
+      customerNote: 'Si un produit est absent, remplacer par une marque proche.',
+    });
+    expect(readLocalKadhia).toHaveBeenCalled();
   });
 });

@@ -80,6 +80,38 @@ final class AdminSubscriptionPaymentApiTest extends FunctionalApiTestCase
         self::assertSame('VIR-2026-00042', $payload['reference']);
     }
 
+    public function testAdminPaymentReactivatesSuspendedSubscriptionWithAuditLog(): void
+    {
+        $admin = $this->createUser('admin-payment-reactivation@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-payment-reactivation@example.test', ['ROLE_MERCHANT']);
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $subscription->setLifecycle(SubscriptionLifecycle::Suspended);
+        $document = $this->createBillingDocument($subscription, 'MS-2026-000105', '10.000');
+        $this->entityManager->persist($subscription);
+        $this->entityManager->persist($document);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', '/api/admin/subscription-payments', [
+            'billing_document_id' => $document->getId()->toRfc4122(),
+            'amount_tnd' => '10.000',
+            'method' => 'cash',
+            'paid_at' => '2026-06-04T10:30:00+01:00',
+        ], $admin);
+
+        self::assertSame(201, $response->getStatusCode());
+
+        $this->entityManager->refresh($subscription);
+        self::assertSame(SubscriptionLifecycle::Active, $subscription->getLifecycle());
+
+        $auditLog = $this->entityManager->getRepository(AdminAuditLog::class)->findOneBy([
+            'action' => 'subscription.reactivated',
+            'resourceType' => 'subscription',
+            'resourceId' => $subscription->getId()->toRfc4122(),
+        ]);
+        self::assertNotNull($auditLog);
+        self::assertSame('suspended', $auditLog->getMetadata()['previous_lifecycle'] ?? null);
+    }
+
     public function testAdminPaymentOnAlreadyPaidDocumentReturns409(): void
     {
         $admin = $this->createUser('admin-payment-duplicate@example.test', ['ROLE_ADMIN']);

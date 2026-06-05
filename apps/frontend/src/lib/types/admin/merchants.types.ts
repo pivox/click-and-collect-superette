@@ -8,6 +8,7 @@ export interface Merchant {
   last_name: string | null;
   phone: string | null;
   is_active: boolean;
+  subscription_lifecycle: 'active' | 'payment_due' | 'grace_period' | 'suspended' | 'cancelled' | null;
   created_at: string;
   stores_count: number;
   ops_journal?: MerchantOpsJournal | null;

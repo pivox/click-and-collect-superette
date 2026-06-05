@@ -26,6 +26,27 @@ class SubscriptionRepository extends ServiceEntityRepository
     }
 
     /**
+     * @param list<User> $merchants
+     *
+     * @return array<string, Subscription>
+     */
+    public function findByMerchantsIndexed(array $merchants): array
+    {
+        if ([] === $merchants) {
+            return [];
+        }
+
+        /** @var list<Subscription> $subscriptions */
+        $subscriptions = $this->findBy(['merchant' => $merchants]);
+        $indexed = [];
+        foreach ($subscriptions as $subscription) {
+            $indexed[$subscription->getMerchant()->getId()->toRfc4122()] = $subscription;
+        }
+
+        return $indexed;
+    }
+
+    /**
      * @return list<Subscription>
      */
     public function findPaginated(int $limit, int $offset): array

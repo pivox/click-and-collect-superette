@@ -505,7 +505,7 @@ Règles :
 
 Erreurs métier :
 
-- `422 STORE_SUSPENDED_FOR_SUBSCRIPTION` — la supérette et son catalogue restent visibles, mais le marchand est suspendu côté abonnement ; aucune nouvelle commande n'est créée.
+- `409 STORE_SUSPENDED_FOR_SUBSCRIPTION` — conflit métier : la supérette et son catalogue restent visibles, mais le marchand est suspendu côté abonnement ; aucune nouvelle commande n'est créée.
 
 ---
 

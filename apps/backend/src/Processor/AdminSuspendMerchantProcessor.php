@@ -10,6 +10,7 @@ use App\ApiResource\AdminMerchantOutput;
 use App\Entity\User;
 use App\Provider\AdminMerchantItemProvider;
 use App\Repository\AdminMerchantRepository;
+use App\Repository\SubscriptionRepository;
 use App\Service\AdminAuditLogger;
 use App\Service\MerchantOperationalJournalCalculator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,6 +26,7 @@ final readonly class AdminSuspendMerchantProcessor implements ProcessorInterface
 {
     public function __construct(
         private AdminMerchantRepository $adminMerchantRepository,
+        private SubscriptionRepository $subscriptionRepository,
         private EntityManagerInterface $entityManager,
         private AdminAuditLogger $auditLogger,
         private MerchantOperationalJournalCalculator $operationalJournalCalculator,
@@ -74,7 +76,8 @@ final readonly class AdminSuspendMerchantProcessor implements ProcessorInterface
         return AdminMerchantItemProvider::toOutput(
             $merchant,
             $this->adminMerchantRepository->countStores($merchant),
-            $this->operationalJournalCalculator->calculate($merchant),
+            subscriptionLifecycle: $this->subscriptionRepository->findOneByMerchant($merchant)?->getLifecycle()->value,
+            opsJournal: $this->operationalJournalCalculator->calculate($merchant),
         );
     }
 

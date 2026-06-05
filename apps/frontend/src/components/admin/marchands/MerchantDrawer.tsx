@@ -74,6 +74,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
   const inputClass =
     'w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
   const opsJournal = merchant?.ops_journal ?? null;
+  const isSubscriptionSuspended = merchant?.subscription_lifecycle === 'suspended';
 
   return (
     <AdminDrawer
@@ -142,6 +143,14 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
             className={inputClass}
           />
         </div>
+        {isSubscriptionSuspended && (
+          <section className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
+            <h3 className="text-sm font-black text-amber-900">Suspension douce abonnement</h3>
+            <p className="mt-1 text-sm text-amber-800">
+              Les nouvelles Kadhia sont bloquées, le catalogue et l’historique restent conservés.
+            </p>
+          </section>
+        )}
         {merchant && opsJournal && (
           <section className="rounded-md border border-line bg-soft px-4 py-3">
             <h3 className="text-sm font-black text-ink">Journal opérationnel</h3>

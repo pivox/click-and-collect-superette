@@ -58,6 +58,8 @@ function resolveSubmitErrorKey(err: unknown): string {
       return "client.slot.errors.productUnavailable";
     case "KADHIA_NOT_FOUND":
       return "client.slot.errors.kadhiaNotFound";
+    case "STORE_SUSPENDED_FOR_SUBSCRIPTION":
+      return "client.slot.errors.storeSuspended";
     default:
       return "client.slot.errors.generic";
   }

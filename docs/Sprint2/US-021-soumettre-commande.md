@@ -135,7 +135,7 @@ quand le client consulte le catalogue,
 alors le catalogue reste visible.
 
 Quand le client tente de soumettre une nouvelle Kadhia,
-alors l'API refuse avec `422 STORE_SUSPENDED_FOR_SUBSCRIPTION`,
+alors l'API refuse avec `409 STORE_SUSPENDED_FOR_SUBSCRIPTION`,
 sans archiver la supérette ni modifier les commandes existantes.
 
 ### Créneau d'une autre supérette

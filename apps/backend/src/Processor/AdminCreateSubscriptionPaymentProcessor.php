@@ -87,6 +87,7 @@ final readonly class AdminCreateSubscriptionPaymentProcessor implements Processo
         );
 
         $document->markPaid($paidAt);
+        $previousLifecycle = $subscription->getLifecycle();
         if (\in_array($subscription->getLifecycle(), [
             SubscriptionLifecycle::PaymentDue,
             SubscriptionLifecycle::GracePeriod,
@@ -109,6 +110,21 @@ final readonly class AdminCreateSubscriptionPaymentProcessor implements Processo
                     'method' => $method->value,
                 ],
             );
+            if (SubscriptionLifecycle::Suspended === $previousLifecycle) {
+                $this->auditLogger->log(
+                    action: 'subscription.reactivated',
+                    resourceType: 'subscription',
+                    resourceId: $subscription->getId()->toRfc4122(),
+                    summary: \sprintf('Abonnement marchand %s réactivé après paiement manuel.', $document->getMerchant()->getEmail()),
+                    metadata: [
+                        'billing_document_id' => $document->getId()->toRfc4122(),
+                        'subscription_payment_id' => $payment->getId()->toRfc4122(),
+                        'merchant_id' => $document->getMerchant()->getId()->toRfc4122(),
+                        'previous_lifecycle' => $previousLifecycle->value,
+                        'next_lifecycle' => SubscriptionLifecycle::Active->value,
+                    ],
+                );
+            }
             $this->entityManager->flush();
         } catch (UniqueConstraintViolationException) {
             throw new ConflictHttpException('SUBSCRIPTION_PAYMENT_DOCUMENT_ALREADY_PAID');

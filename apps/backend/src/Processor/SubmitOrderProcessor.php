@@ -31,6 +31,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -120,7 +121,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             === $this->shopOrderingAvailabilityChecker->blockReason($shop)
         ) {
             $this->logRejected(ShopOrderingAvailabilityChecker::STORE_SUSPENDED_FOR_SUBSCRIPTION, $kadhiaId, $slotId, $userId, $storeId);
-            throw new UnprocessableEntityHttpException(ShopOrderingAvailabilityChecker::STORE_SUSPENDED_FOR_SUBSCRIPTION);
+            throw new ConflictHttpException(ShopOrderingAvailabilityChecker::STORE_SUSPENDED_FOR_SUBSCRIPTION);
         }
 
         if (!Uuid::isValid((string) $slotId)) {

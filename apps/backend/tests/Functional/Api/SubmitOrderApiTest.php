@@ -199,7 +199,7 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
             $customer,
         );
 
-        self::assertSame(422, $submitResponse->getStatusCode());
+        self::assertSame(409, $submitResponse->getStatusCode());
         self::assertStringContainsString('STORE_SUSPENDED_FOR_SUBSCRIPTION', (string) $submitResponse->getContent());
 
         $this->entityManager->clear();
@@ -240,7 +240,7 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
             $customer,
         );
 
-        self::assertSame(422, $submitResponse->getStatusCode());
+        self::assertSame(409, $submitResponse->getStatusCode());
         self::assertStringContainsString('STORE_SUSPENDED_FOR_SUBSCRIPTION', (string) $submitResponse->getContent());
 
         $storedSubscription = $this->entityManager->getRepository(Subscription::class)->find($subscription->getId());

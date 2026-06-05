@@ -8,8 +8,10 @@ use App\Entity\Order;
 use App\Entity\OrderStatusLog;
 use App\Entity\PickupSlot;
 use App\Entity\Shop;
+use App\Entity\Subscription;
 use App\Entity\User;
 use App\Enum\OrderStatus;
+use App\Enum\SubscriptionLifecycle;
 use App\Service\MerchantOperationalJournalCalculator;
 use Symfony\Component\Uid\Uuid;
 
@@ -43,6 +45,7 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertSame('Ben Salah', $payload['items'][0]['last_name']);
         self::assertSame('+21600000001', $payload['items'][0]['phone']);
         self::assertTrue($payload['items'][0]['is_active']);
+        self::assertNull($payload['items'][0]['subscription_lifecycle']);
         self::assertSame(2, $payload['items'][0]['stores_count']);
         self::assertArrayHasKey('created_at', $payload['items'][0]);
         self::assertArrayNotHasKey('password', $payload['items'][0]);
@@ -74,6 +77,7 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertSame('Trabelsi', $payload['last_name']);
         self::assertSame('+21600000002', $payload['phone']);
         self::assertFalse($payload['is_active']);
+        self::assertNull($payload['subscription_lifecycle']);
         self::assertSame(1, $payload['stores_count']);
         self::assertArrayHasKey('ops_journal', $payload);
         self::assertArrayNotHasKey('password', $payload);
@@ -123,6 +127,55 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertSame(1, $journal['cancelled_orders_count']);
         self::assertSame('2026-06-01T11:15:00+00:00', $journal['last_activity_at']);
         self::assertSame('cancelled', $journal['last_activity_status']);
+    }
+
+    public function testAdminSeesSuspendedSubscriptionLifecycleOnMerchantListAndDetail(): void
+    {
+        $admin = $this->createUser('admin-merchant-subscription-lifecycle@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-subscription-lifecycle@example.test', new \DateTimeImmutable('2026-05-18T09:00:00+00:00'));
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $subscription->setLifecycle(SubscriptionLifecycle::Suspended);
+        $this->entityManager->persist($subscription);
+        $this->entityManager->flush();
+
+        $listResponse = $this->requestJson('GET', '/api/admin/merchants', user: $admin);
+        $detailResponse = $this->requestJson('GET', \sprintf('/api/admin/merchants/%s', $merchant->getId()), user: $admin);
+
+        self::assertSame(200, $listResponse->getStatusCode());
+        self::assertSame('suspended', $this->decodeJson($listResponse)['items'][0]['subscription_lifecycle']);
+
+        self::assertSame(200, $detailResponse->getStatusCode());
+        self::assertSame('suspended', $this->decodeJson($detailResponse)['subscription_lifecycle']);
+    }
+
+    public function testAdminMerchantMutationResponsesPreserveSubscriptionLifecycle(): void
+    {
+        $admin = $this->createUser('admin-merchant-mutation-lifecycle@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant(
+            'merchant-mutation-lifecycle@example.test',
+            new \DateTimeImmutable('2026-05-18T09:00:00+00:00'),
+            firstName: 'Ali',
+            lastName: 'Lifecycle',
+        );
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $subscription->setLifecycle(SubscriptionLifecycle::Suspended);
+        $this->entityManager->persist($subscription);
+        $this->entityManager->flush();
+
+        $updateResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s', $merchant->getId()), [
+            'first_name' => 'Meriem',
+            'last_name' => 'Lifecycle',
+            'phone' => '+21600000022',
+        ], $admin);
+        $suspendResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s/suspend', $merchant->getId()), [], $admin);
+        $activateResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s/activate', $merchant->getId()), [], $admin);
+
+        self::assertSame(200, $updateResponse->getStatusCode());
+        self::assertSame('suspended', $this->decodeJson($updateResponse)['subscription_lifecycle']);
+        self::assertSame(200, $suspendResponse->getStatusCode());
+        self::assertSame('suspended', $this->decodeJson($suspendResponse)['subscription_lifecycle']);
+        self::assertSame(200, $activateResponse->getStatusCode());
+        self::assertSame('suspended', $this->decodeJson($activateResponse)['subscription_lifecycle']);
     }
 
     public function testAdminSeesEmptyMerchantOperationalJournalWhenMerchantHasNoActivity(): void
