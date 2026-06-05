@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import AdminOpsPage from '@/app/admin/ops/page';
+import AdminOpsMessengerPage from '@/app/admin/ops/messenger/page';
 import { getAdminMessengerMonitoring } from '@/lib/services/admin/ops.service';
 import type { AdminMessengerMonitoring } from '@/lib/types/admin/ops.types';
 
@@ -34,14 +34,14 @@ const DEGRADED: AdminMessengerMonitoring = {
   checked_at: '2026-06-05T18:45:00+01:00',
 };
 
-describe('AdminOpsPage', () => {
+describe('AdminOpsMessengerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getAdminMessengerMonitoring).mockResolvedValue(HEALTHY);
   });
 
   it('affiche une santé Messenger OK avec les compteurs et seuils', async () => {
-    render(<AdminOpsPage />);
+    render(<AdminOpsMessengerPage />);
 
     expect(await screen.findByRole('heading', { name: 'Santé plateforme' })).toBeInTheDocument();
     expect(screen.getByText('Messenger OK')).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe('AdminOpsPage', () => {
   it('rend clairement un état dégradé et les actions de diagnostic', async () => {
     vi.mocked(getAdminMessengerMonitoring).mockResolvedValue(DEGRADED);
 
-    render(<AdminOpsPage />);
+    render(<AdminOpsMessengerPage />);
 
     expect(await screen.findByText('Messenger dégradé')).toBeInTheDocument();
     expect(screen.getByText('File en attente')).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('AdminOpsPage', () => {
       .mockRejectedValueOnce(new Error('api down'))
       .mockResolvedValueOnce(HEALTHY);
 
-    render(<AdminOpsPage />);
+    render(<AdminOpsMessengerPage />);
 
     expect(await screen.findByText('Impossible de charger la santé plateforme.')).toBeInTheDocument();
 

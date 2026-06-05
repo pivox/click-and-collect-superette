@@ -52,7 +52,7 @@ describe('AdminShell', () => {
     );
     expect(screen.getByRole('link', { name: 'Santé plateforme' })).toHaveAttribute(
       'href',
-      '/admin/ops',
+      '/admin/ops/messenger',
     );
     expect(screen.getByRole('button', { name: 'Ouvrir la navigation admin' })).toHaveClass(
       'md:hidden',

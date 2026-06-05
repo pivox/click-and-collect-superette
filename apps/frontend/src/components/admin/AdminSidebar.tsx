@@ -29,7 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/admin/abonnements', label: 'Abonnements', icon: BadgeCheck },
   { href: '/admin/facturation', label: 'Facturation', icon: FileText },
   { href: '/admin/incidents', label: 'Incidents', icon: LifeBuoy },
-  { href: '/admin/ops', label: 'Santé plateforme', icon: Activity },
+  { href: '/admin/ops/messenger', label: 'Santé plateforme', icon: Activity },
   { href: '/admin/superettes', label: 'Supérettes', icon: Store },
   {
     href: '/admin/referentiel/produits',
