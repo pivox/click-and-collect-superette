@@ -62,6 +62,19 @@ const DOCUMENT: BillingDocument = {
   amount_tnd: '50.000',
   amount_paid_tnd: '0.000',
   amount_due_tnd: '50.000',
+  is_payment_reminder_contactable: true,
+  reminder_schedule: [
+    {
+      stage: 'j_plus_3',
+      label: 'J+3',
+      scheduled_at: '2026-06-11T23:59:59+01:00',
+      email_status: 'sent',
+      email_sent_at: '2026-06-11T09:00:00+01:00',
+      email_failed_at: null,
+      whatsapp_contacted_at: null,
+    },
+  ],
+  whatsapp_manual_contacted_at: null,
   created_at: '2026-06-01T09:00:00+01:00',
 };
 
@@ -122,6 +135,26 @@ describe('MerchantSubscriptionPage', () => {
     expect(await screen.findByText('Historique paiements')).toBeInTheDocument();
     expect(screen.getByText('Espèces')).toBeInTheDocument();
     expect(screen.getByText('Caisse')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /payer/i })).not.toBeInTheDocument();
+  });
+
+  it('explains overdue payment consequences without online payment action', async () => {
+    vi.mocked(getMerchantSubscription).mockResolvedValue({
+      ...SUBSCRIPTION,
+      lifecycle: 'grace_period',
+    });
+    vi.mocked(listMerchantBillingDocuments).mockResolvedValue({
+      id: 'merchant-billing-documents',
+      items: [{ ...DOCUMENT, status: 'overdue' }],
+      page: 1,
+      limit: 20,
+      total: 1,
+    });
+
+    renderWithLocale(<MerchantSubscriptionPage />);
+
+    expect(await screen.findByText('Paiement abonnement attendu')).toBeInTheDocument();
+    expect(screen.getByText(/Contactez l’équipe Kadhia après règlement manuel/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /payer/i })).not.toBeInTheDocument();
   });
 

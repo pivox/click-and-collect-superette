@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api';
 import type {
+  AdminBillingDocumentWhatsappContact,
   BillingDocument,
   BillingDocumentListResponse,
 } from '@/lib/types/billing-documents.types';
@@ -25,6 +26,16 @@ export async function listAdminBillingDocuments(
 export async function getAdminBillingDocument(documentId: string): Promise<BillingDocument> {
   const { data } = await apiClient.get<BillingDocument>(
     `/api/admin/billing-documents/${documentId}`,
+  );
+
+  return data;
+}
+
+export async function openAdminBillingDocumentWhatsappContact(
+  documentId: string,
+): Promise<AdminBillingDocumentWhatsappContact> {
+  const { data } = await apiClient.post<AdminBillingDocumentWhatsappContact>(
+    `/api/admin/billing-documents/${documentId}/whatsapp-contact`,
   );
 
   return data;

@@ -92,6 +92,13 @@ function formatMoney(value: string, currency: string, locale: MerchantLocale): s
   })} ${currency}`;
 }
 
+function hasPaymentDelay(subscription: MerchantSubscription | null, documents: BillingDocument[]): boolean {
+  if (!subscription) return documents.some((document) => document.status === 'overdue');
+
+  return ['payment_due', 'grace_period', 'suspended'].includes(subscription.lifecycle)
+    || documents.some((document) => document.status === 'overdue');
+}
+
 export default function MerchantSubscriptionPage() {
   const { locale, t } = useMerchantLocale();
   const [subscription, setSubscription] = useState<MerchantSubscription | null>(null);
@@ -226,6 +233,19 @@ export default function MerchantSubscriptionPage() {
             <Info label={t('merchant.settings.subscription.nextBilling')} value={formatDate(subscription.current_period_ends_at, locale)} />
             <Info label={t('merchant.settings.subscription.nextPhase')} value={formatDate(subscription.next_phase_change_at, locale)} />
           </dl>
+        </Card>
+      )}
+
+      {hasPaymentDelay(subscription, documents) && (
+        <Card as="section" className="border-status-cancel-bg bg-status-cancel-bg/30">
+          <h2 className="text-lg font-black text-ink">
+            {locale === 'ar' ? 'الدفع مطلوب للاشتراك' : 'Paiement abonnement attendu'}
+          </h2>
+          <p className="mt-2 text-sm text-muted">
+            {locale === 'ar'
+              ? 'يرجى التواصل مع فريق Kadhia بعد الدفع اليدوي لتأكيد الاشتراك وتجنب التعليق التدريجي.'
+              : 'Contactez l’équipe Kadhia après règlement manuel pour confirmer votre abonnement et éviter la suspension douce.'}
+          </p>
         </Card>
       )}
 

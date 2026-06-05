@@ -76,6 +76,8 @@ final class MessengerTransportConfigTest extends KernelTestCase
     public function testSendMerchantPaymentReminderMessageRoutesToAsync(): void
     {
         $this->bus->dispatch(new SendMerchantPaymentReminderMessage(
+            billingDocumentId: '00000000-0000-0000-0000-000000000005',
+            documentNumber: 'MS-2026-000001',
             merchantEmail: 'merchant@example.test',
             merchantName: 'Marchand Test',
             shopName: 'Supérette Test',

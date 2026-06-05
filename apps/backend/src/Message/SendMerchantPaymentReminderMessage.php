@@ -13,6 +13,8 @@ final readonly class SendMerchantPaymentReminderMessage
         public string $dueDate,
         public string $amountTnd,
         public string $stage,
+        public ?string $billingDocumentId = null,
+        public string $documentNumber = '',
     ) {
     }
 }

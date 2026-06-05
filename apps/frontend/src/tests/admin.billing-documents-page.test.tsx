@@ -4,6 +4,7 @@ import AdminBillingDocumentsPage from '@/app/admin/facturation/page';
 import {
   getAdminBillingDocument,
   listAdminBillingDocuments,
+  openAdminBillingDocumentWhatsappContact,
 } from '@/lib/services/billing-documents.service';
 import { createAdminSubscriptionPayment } from '@/lib/services/subscription-payments.service';
 import type { BillingDocument } from '@/lib/types/billing-documents.types';
@@ -11,6 +12,7 @@ import type { BillingDocument } from '@/lib/types/billing-documents.types';
 vi.mock('@/lib/services/billing-documents.service', () => ({
   listAdminBillingDocuments: vi.fn(),
   getAdminBillingDocument: vi.fn(),
+  openAdminBillingDocumentWhatsappContact: vi.fn(),
 }));
 
 vi.mock('@/lib/services/subscription-payments.service', () => ({
@@ -38,6 +40,28 @@ const DOCUMENT: BillingDocument = {
   amount_tnd: '10.000',
   amount_paid_tnd: '0.000',
   amount_due_tnd: '10.000',
+  is_payment_reminder_contactable: true,
+  reminder_schedule: [
+    {
+      stage: 'j_minus_7',
+      label: 'J-7',
+      scheduled_at: '2026-06-01T23:59:59+01:00',
+      email_status: 'sent',
+      email_sent_at: '2026-06-01T09:00:00+01:00',
+      email_failed_at: null,
+      whatsapp_contacted_at: null,
+    },
+    {
+      stage: 'j_minus_3',
+      label: 'J-3',
+      scheduled_at: '2026-06-05T23:59:59+01:00',
+      email_status: 'planned',
+      email_sent_at: null,
+      email_failed_at: null,
+      whatsapp_contacted_at: null,
+    },
+  ],
+  whatsapp_manual_contacted_at: null,
   created_at: '2026-06-01T09:00:00+01:00',
 };
 
@@ -52,6 +76,13 @@ describe('AdminBillingDocumentsPage', () => {
       total: 1,
     });
     vi.mocked(getAdminBillingDocument).mockResolvedValue(DOCUMENT);
+    vi.mocked(openAdminBillingDocumentWhatsappContact).mockResolvedValue({
+      id: 'doc-1-whatsapp',
+      billing_document_id: 'doc-1',
+      phone: '21620123456',
+      message: 'Bonjour document MS-2026-000001',
+      whatsapp_url: 'https://wa.me/21620123456?text=Bonjour',
+    });
     vi.mocked(createAdminSubscriptionPayment).mockResolvedValue({
       id: 'payment-1',
       billing_document_id: 'doc-1',
@@ -92,10 +123,97 @@ describe('AdminBillingDocumentsPage', () => {
     expect(within(detail).getByText('MS-2026-000001')).toBeInTheDocument();
     expect(within(detail).getByText('Reste à payer')).toBeInTheDocument();
     expect(within(detail).getAllByText('10,000 TND')).toHaveLength(2);
+    expect(within(detail).getByText('Relances paiement')).toBeInTheDocument();
+    expect(within(detail).getByText('J-7')).toBeInTheDocument();
+    expect(within(detail).getByText('Email envoyé')).toBeInTheDocument();
+    expect(within(detail).getByText('J-3')).toBeInTheDocument();
+    expect(within(detail).getByText('Email planifié')).toBeInTheDocument();
+  });
+
+  it('opens WhatsApp with a contextual message from document detail', async () => {
+    const popup = {
+      opener: {},
+      location: { href: '' },
+      close: vi.fn(),
+    } as unknown as Window;
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => popup);
+
+    render(<AdminBillingDocumentsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
+    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+    fireEvent.click(within(detail).getByRole('button', { name: 'Contacter sur WhatsApp' }));
+
+    expect(openSpy).toHaveBeenCalledWith('', '_blank');
+    await waitFor(() => expect(openAdminBillingDocumentWhatsappContact).toHaveBeenCalledWith('doc-1'));
+    expect(popup.opener).toBeNull();
+    expect(popup.location.href).toBe('https://wa.me/21620123456?text=Bonjour');
+    expect(getAdminBillingDocument).toHaveBeenLastCalledWith('doc-1');
+
+    openSpy.mockRestore();
+  });
+
+  it('does not audit WhatsApp contact when popup cannot be opened synchronously', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(<AdminBillingDocumentsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
+    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+    fireEvent.click(within(detail).getByRole('button', { name: 'Contacter sur WhatsApp' }));
+
+    expect(openSpy).toHaveBeenCalledWith('', '_blank');
+    expect(openAdminBillingDocumentWhatsappContact).not.toHaveBeenCalled();
+    expect(await within(detail).findByText('Impossible d’ouvrir WhatsApp.')).toBeInTheDocument();
+
+    openSpy.mockRestore();
+  });
+
+  it('hides WhatsApp contact on paid billing document detail', async () => {
+    const paidDocument = {
+      ...DOCUMENT,
+      status: 'paid' as const,
+      amount_paid_tnd: '10.000',
+      amount_due_tnd: '0.000',
+      is_payment_reminder_contactable: false,
+    };
+    vi.mocked(getAdminBillingDocument).mockResolvedValue(paidDocument);
+
+    render(<AdminBillingDocumentsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
+    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+
+    expect(within(detail).queryByRole('button', { name: 'Contacter sur WhatsApp' })).not.toBeInTheDocument();
+    expect(openAdminBillingDocumentWhatsappContact).not.toHaveBeenCalled();
+  });
+
+  it('hides WhatsApp contact when backend marks issued document as not relaunchable', async () => {
+    vi.mocked(getAdminBillingDocument).mockResolvedValue({
+      ...DOCUMENT,
+      is_payment_reminder_contactable: false,
+      reminder_schedule: DOCUMENT.reminder_schedule.map((reminder) => ({
+        ...reminder,
+        email_status: 'not_applicable' as const,
+      })),
+    });
+
+    render(<AdminBillingDocumentsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
+    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+
+    expect(within(detail).queryByRole('button', { name: 'Contacter sur WhatsApp' })).not.toBeInTheDocument();
   });
 
   it('records a manual cash payment from billing document detail', async () => {
-    const paidDocument = { ...DOCUMENT, status: 'paid' as const, amount_paid_tnd: '10.000', amount_due_tnd: '0.000' };
+    const paidDocument = {
+      ...DOCUMENT,
+      status: 'paid' as const,
+      amount_paid_tnd: '10.000',
+      amount_due_tnd: '0.000',
+      is_payment_reminder_contactable: false,
+    };
     vi.mocked(getAdminBillingDocument)
       .mockResolvedValueOnce(DOCUMENT)
       .mockResolvedValueOnce(paidDocument);

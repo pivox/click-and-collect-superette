@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\AdminAuditLog;
 use App\Entity\BillingDocument;
 use App\Entity\Subscription;
 use App\Enum\BillingDocumentStatus;
+use App\Enum\SubscriptionLifecycle;
 use App\Enum\SubscriptionPricingPhase;
 use Symfony\Component\Uid\Uuid;
 
@@ -49,6 +51,7 @@ final class AdminBillingDocumentApiTest extends FunctionalApiTestCase
         self::assertSame('10.000', $payload['items'][0]['amount_tnd']);
         self::assertSame('TND', $payload['items'][0]['currency']);
         self::assertSame('merchant-billing-list@example.test', $payload['items'][0]['merchant_email']);
+        self::assertTrue($payload['items'][0]['is_payment_reminder_contactable']);
     }
 
     public function testAdminCanReadBillingDocumentDetail(): void
@@ -82,6 +85,12 @@ final class AdminBillingDocumentApiTest extends FunctionalApiTestCase
         self::assertSame('paid', $payload['status']);
         self::assertSame('50.000', $payload['amount_paid_tnd']);
         self::assertSame('0.000', $payload['amount_due_tnd']);
+        self::assertFalse($payload['is_payment_reminder_contactable']);
+        self::assertCount(7, $payload['reminder_schedule']);
+        self::assertSame('j_minus_7', $payload['reminder_schedule'][0]['stage']);
+        self::assertSame('not_applicable', $payload['reminder_schedule'][0]['email_status']);
+        self::assertSame('2026-07-01T23:59:59+01:00', $payload['reminder_schedule'][0]['scheduled_at']);
+        self::assertNull($payload['whatsapp_manual_contacted_at']);
     }
 
     public function testMerchantIsForbiddenFromAdminBillingDocumentEndpoints(): void
@@ -117,6 +126,114 @@ final class AdminBillingDocumentApiTest extends FunctionalApiTestCase
         $response = $this->requestJson('GET', \sprintf('/api/admin/billing-documents/%s', Uuid::v4()), user: $admin);
 
         self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testAdminCanOpenWhatsappContactForBillingDocumentAndTraceAction(): void
+    {
+        $admin = $this->createUser('admin-billing-whatsapp@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-billing-whatsapp@example.test', ['ROLE_MERCHANT']);
+        $merchant->setPhone('+216 20 123 456');
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $document = BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: 'MS-2026-000005',
+            billingPeriodStart: new \DateTimeImmutable('2026-06-01T00:00:00+01:00'),
+            billingPeriodEnd: new \DateTimeImmutable('2026-07-01T00:00:00+01:00'),
+            issuedAt: new \DateTimeImmutable('2026-06-01T09:00:00+01:00'),
+            dueAt: new \DateTimeImmutable('2026-06-08T23:59:59+01:00'),
+            pricingPhase: SubscriptionPricingPhase::Promo,
+            amountTnd: '10.000',
+        );
+
+        $this->entityManager->persist($subscription);
+        $this->entityManager->persist($document);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', \sprintf('/api/admin/billing-documents/%s/whatsapp-contact', $document->getId()), user: $admin);
+
+        self::assertSame(201, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame($document->getId()->toRfc4122(), $payload['billing_document_id']);
+        self::assertSame('21620123456', $payload['phone']);
+        self::assertStringStartsWith('https://wa.me/21620123456?text=', $payload['whatsapp_url']);
+        self::assertStringContainsString('MS-2026-000005', $payload['message']);
+        self::assertStringContainsString('10.000 TND', $payload['message']);
+        self::assertStringNotContainsString('paiement en ligne', $payload['message']);
+
+        $auditLog = $this->entityManager->getRepository(AdminAuditLog::class)->findOneBy([
+            'action' => 'subscription_payment_reminder.whatsapp_contacted',
+            'resourceType' => 'billing_document',
+            'resourceId' => $document->getId()->toRfc4122(),
+        ]);
+        self::assertNotNull($auditLog);
+    }
+
+    public function testAdminCannotOpenWhatsappContactForPaidBillingDocument(): void
+    {
+        $admin = $this->createUser('admin-billing-whatsapp-paid@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-billing-whatsapp-paid@example.test', ['ROLE_MERCHANT']);
+        $merchant->setPhone('+216 20 123 456');
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $document = BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: 'MS-2026-000006',
+            billingPeriodStart: new \DateTimeImmutable('2026-06-01T00:00:00+01:00'),
+            billingPeriodEnd: new \DateTimeImmutable('2026-07-01T00:00:00+01:00'),
+            issuedAt: new \DateTimeImmutable('2026-06-01T09:00:00+01:00'),
+            dueAt: new \DateTimeImmutable('2026-06-08T23:59:59+01:00'),
+            pricingPhase: SubscriptionPricingPhase::Promo,
+            amountTnd: '10.000',
+        );
+        $document->markPaid(new \DateTimeImmutable('2026-06-04T10:00:00+01:00'));
+
+        $this->entityManager->persist($subscription);
+        $this->entityManager->persist($document);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', \sprintf('/api/admin/billing-documents/%s/whatsapp-contact', $document->getId()), user: $admin);
+
+        self::assertSame(409, $response->getStatusCode());
+
+        $auditLog = $this->entityManager->getRepository(AdminAuditLog::class)->findOneBy([
+            'action' => 'subscription_payment_reminder.whatsapp_contacted',
+            'resourceType' => 'billing_document',
+            'resourceId' => $document->getId()->toRfc4122(),
+        ]);
+        self::assertNull($auditLog);
+    }
+
+    public function testAdminCannotOpenWhatsappContactForSuspendedSubscriptionBillingDocument(): void
+    {
+        $admin = $this->createUser('admin-billing-whatsapp-suspended@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-billing-whatsapp-suspended@example.test', ['ROLE_MERCHANT']);
+        $merchant->setPhone('+216 20 123 456');
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $subscription->setLifecycle(SubscriptionLifecycle::Suspended);
+        $document = BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: 'MS-2026-000007',
+            billingPeriodStart: new \DateTimeImmutable('2026-06-01T00:00:00+01:00'),
+            billingPeriodEnd: new \DateTimeImmutable('2026-07-01T00:00:00+01:00'),
+            issuedAt: new \DateTimeImmutable('2026-06-01T09:00:00+01:00'),
+            dueAt: new \DateTimeImmutable('2026-06-08T23:59:59+01:00'),
+            pricingPhase: SubscriptionPricingPhase::Promo,
+            amountTnd: '10.000',
+        );
+
+        $this->entityManager->persist($subscription);
+        $this->entityManager->persist($document);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', \sprintf('/api/admin/billing-documents/%s/whatsapp-contact', $document->getId()), user: $admin);
+
+        self::assertSame(409, $response->getStatusCode());
+
+        $auditLog = $this->entityManager->getRepository(AdminAuditLog::class)->findOneBy([
+            'action' => 'subscription_payment_reminder.whatsapp_contacted',
+            'resourceType' => 'billing_document',
+            'resourceId' => $document->getId()->toRfc4122(),
+        ]);
+        self::assertNull($auditLog);
     }
 
     public function testBillingDocumentCanMoveToOverdue(): void

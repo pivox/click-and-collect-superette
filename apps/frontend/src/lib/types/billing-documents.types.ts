@@ -4,6 +4,18 @@ export type BillingDocumentType = 'monthly_statement';
 
 export type BillingDocumentPricingPhase = 'trial' | 'promo' | 'standard';
 
+export type BillingDocumentReminderEmailStatus = 'planned' | 'sent' | 'failed' | 'not_configured' | 'not_applicable';
+
+export interface BillingDocumentReminderScheduleItem {
+  stage: string;
+  label: string;
+  scheduled_at: string;
+  email_status: BillingDocumentReminderEmailStatus;
+  email_sent_at: string | null;
+  email_failed_at: string | null;
+  whatsapp_contacted_at: string | null;
+}
+
 export interface BillingDocument {
   id: string;
   subscription_id: string;
@@ -25,6 +37,9 @@ export interface BillingDocument {
   amount_tnd: string;
   amount_paid_tnd: string;
   amount_due_tnd: string;
+  is_payment_reminder_contactable: boolean;
+  reminder_schedule: BillingDocumentReminderScheduleItem[];
+  whatsapp_manual_contacted_at: string | null;
   created_at: string;
 }
 
@@ -34,4 +49,12 @@ export interface BillingDocumentListResponse {
   page: number;
   limit: number;
   total: number;
+}
+
+export interface AdminBillingDocumentWhatsappContact {
+  id: string;
+  billing_document_id: string;
+  phone: string;
+  message: string;
+  whatsapp_url: string;
 }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import {
   getAdminBillingDocument,
   listAdminBillingDocuments,
+  openAdminBillingDocumentWhatsappContact,
 } from '@/lib/services/billing-documents.service';
 import { createAdminSubscriptionPayment } from '@/lib/services/subscription-payments.service';
 import type {
@@ -22,6 +23,14 @@ const STATUS_LABELS: Record<BillingDocumentStatus, string> = {
   paid: 'Payé',
   overdue: 'En retard',
   cancelled: 'Annulé',
+};
+
+const EMAIL_STATUS_LABELS: Record<string, string> = {
+  planned: 'Email planifié',
+  sent: 'Email envoyé',
+  failed: 'Email échoué',
+  not_configured: 'Email non configuré',
+  not_applicable: 'Email non applicable',
 };
 
 function formatDate(value: string | null): string {
@@ -58,6 +67,10 @@ function statusClass(status: BillingDocumentStatus): string {
   return 'bg-[var(--status-wait-bg)] text-[var(--status-wait)]';
 }
 
+function canPreparePaymentReminderContact(document: BillingDocument): boolean {
+  return document.is_payment_reminder_contactable;
+}
+
 function formatDateTimeWithOffset(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   const offsetMinutes = -date.getTimezoneOffset();
@@ -83,6 +96,8 @@ export default function AdminBillingDocumentsPage() {
   const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
   const [isPaymentSaving, setIsPaymentSaving] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isWhatsappOpening, setIsWhatsappOpening] = useState(false);
+  const [whatsappError, setWhatsappError] = useState<string | null>(null);
   const detailRequestSeq = useRef(0);
 
   const load = useCallback(async () => {
@@ -117,6 +132,7 @@ export default function AdminBillingDocumentsPage() {
       setPaymentPaidAt('');
       setPaymentReference('');
       setPaymentError(null);
+      setWhatsappError(null);
     } catch (err) {
       if (detailRequestSeq.current !== requestSeq) return;
       console.error('[admin-billing-documents] detail failed', err);
@@ -134,6 +150,7 @@ export default function AdminBillingDocumentsPage() {
     setIsDetailLoading(false);
     setIsPaymentConfirmOpen(false);
     setPaymentError(null);
+    setWhatsappError(null);
   };
 
   const paidAtToAtom = (value: string): string => {
@@ -170,6 +187,33 @@ export default function AdminBillingDocumentsPage() {
         : 'Impossible d’enregistrer le paiement manuel.');
     } finally {
       setIsPaymentSaving(false);
+    }
+  };
+
+  const contactOnWhatsapp = async () => {
+    if (!detail) return;
+
+    const popup = window.open('', '_blank');
+    if (!popup) {
+      setWhatsappError('Impossible d’ouvrir WhatsApp.');
+
+      return;
+    }
+
+    setIsWhatsappOpening(true);
+    setWhatsappError(null);
+    try {
+      const contact = await openAdminBillingDocumentWhatsappContact(detail.id);
+      popup.opener = null;
+      popup.location.href = contact.whatsapp_url;
+      const refreshed = await getAdminBillingDocument(detail.id);
+      setDetail(refreshed);
+    } catch (err) {
+      popup?.close();
+      console.error('[admin-billing-documents] whatsapp contact failed', err);
+      setWhatsappError('Impossible de préparer le contact WhatsApp.');
+    } finally {
+      setIsWhatsappOpening(false);
     }
   };
 
@@ -283,6 +327,51 @@ export default function AdminBillingDocumentsPage() {
               <Detail label="Montant" value={formatMoney(detail.amount_tnd, detail.currency)} />
               <Detail label="Reste à payer" value={formatMoney(detail.amount_due_tnd, detail.currency)} />
             </dl>
+
+            <section className="mt-5 space-y-3 rounded-md border border-line bg-soft p-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-sm font-black text-ink">Relances paiement</h3>
+                {canPreparePaymentReminderContact(detail) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="md"
+                    onClick={() => void contactOnWhatsapp()}
+                    disabled={isWhatsappOpening}
+                  >
+                    Contacter sur WhatsApp
+                  </Button>
+                )}
+              </div>
+              {whatsappError && (
+                <div role="alert" className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+                  {whatsappError}
+                </div>
+              )}
+              {detail.whatsapp_manual_contacted_at && (
+                <div className="rounded-md bg-card px-3 py-2 text-xs font-semibold text-primary">
+                  WhatsApp manuel préparé le {formatDate(detail.whatsapp_manual_contacted_at)}
+                </div>
+              )}
+              <div className="grid gap-2 sm:grid-cols-2">
+                {detail.reminder_schedule.map((reminder) => (
+                  <div key={reminder.stage} className="rounded-md border border-line bg-card px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-black text-ink">{reminder.label}</span>
+                      <span className="text-xs font-semibold text-muted">{formatDate(reminder.scheduled_at)}</span>
+                    </div>
+                    <div className="mt-1 text-xs font-semibold text-muted">
+                      {EMAIL_STATUS_LABELS[reminder.email_status] ?? reminder.email_status}
+                    </div>
+                    {reminder.whatsapp_contacted_at && (
+                      <div className="mt-1 text-xs font-semibold text-primary">
+                        WhatsApp préparé le {formatDate(reminder.whatsapp_contacted_at)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
 
             {detail.status !== 'paid' && detail.status !== 'cancelled' && (
               <form
