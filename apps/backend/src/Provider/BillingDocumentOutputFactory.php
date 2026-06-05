@@ -9,6 +9,7 @@ use App\ApiResource\BillingDocumentReminderScheduleItemOutput;
 use App\Billing\PaymentReminderSchedule;
 use App\Entity\BillingDocument;
 use App\Entity\SubscriptionPaymentReminder;
+use App\Enum\BillingDocumentStatus;
 use App\Enum\SubscriptionPaymentReminderChannel;
 use App\Repository\SubscriptionPaymentReminderRepository;
 
@@ -67,7 +68,7 @@ final readonly class BillingDocumentOutputFactory
         $traces = $this->indexTraces($reminderTraces);
 
         return array_map(
-            function (array $item) use ($traces): BillingDocumentReminderScheduleItemOutput {
+            function (array $item) use ($document, $traces): BillingDocumentReminderScheduleItemOutput {
                 $stage = $item['stage'];
                 $stageValue = $stage->value;
                 $emailTrace = $traces[$stageValue][SubscriptionPaymentReminderChannel::Email->value] ?? null;
@@ -77,7 +78,7 @@ final readonly class BillingDocumentOutputFactory
                     stage: $stageValue,
                     label: $stage->labelFr(),
                     scheduledAt: $item['scheduled_at']->format(\DateTimeInterface::ATOM),
-                    emailStatus: $this->emailStatus($emailTrace),
+                    emailStatus: $this->emailStatus($document, $emailTrace),
                     emailSentAt: $emailTrace?->getSentAt()?->format(\DateTimeInterface::ATOM),
                     emailFailedAt: $emailTrace?->getFailedAt()?->format(\DateTimeInterface::ATOM),
                     whatsappContactedAt: $whatsappTrace?->getSentAt()?->format(\DateTimeInterface::ATOM),
@@ -116,10 +117,14 @@ final readonly class BillingDocumentOutputFactory
         return $indexed;
     }
 
-    private function emailStatus(?SubscriptionPaymentReminder $trace): string
+    private function emailStatus(BillingDocument $document, ?SubscriptionPaymentReminder $trace): string
     {
         if (null !== $trace) {
             return $trace->getStatus()->value;
+        }
+
+        if (\in_array($document->getStatus(), [BillingDocumentStatus::Paid, BillingDocumentStatus::Cancelled], true)) {
+            return 'not_applicable';
         }
 
         return 'planned';

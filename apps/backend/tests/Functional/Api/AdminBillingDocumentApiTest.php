@@ -85,7 +85,7 @@ final class AdminBillingDocumentApiTest extends FunctionalApiTestCase
         self::assertSame('0.000', $payload['amount_due_tnd']);
         self::assertCount(7, $payload['reminder_schedule']);
         self::assertSame('j_minus_7', $payload['reminder_schedule'][0]['stage']);
-        self::assertSame('planned', $payload['reminder_schedule'][0]['email_status']);
+        self::assertSame('not_applicable', $payload['reminder_schedule'][0]['email_status']);
         self::assertSame('2026-07-01T23:59:59+01:00', $payload['reminder_schedule'][0]['scheduled_at']);
         self::assertNull($payload['whatsapp_manual_contacted_at']);
     }

@@ -189,14 +189,20 @@ export default function AdminBillingDocumentsPage() {
   const contactOnWhatsapp = async () => {
     if (!detail) return;
 
+    const popup = window.open('', '_blank', 'noopener,noreferrer');
     setIsWhatsappOpening(true);
     setWhatsappError(null);
     try {
       const contact = await openAdminBillingDocumentWhatsappContact(detail.id);
-      window.open(contact.whatsapp_url, '_blank', 'noopener,noreferrer');
+      if (popup) {
+        popup.location.href = contact.whatsapp_url;
+      } else {
+        window.open(contact.whatsapp_url, '_blank', 'noopener,noreferrer');
+      }
       const refreshed = await getAdminBillingDocument(detail.id);
       setDetail(refreshed);
     } catch (err) {
+      popup?.close();
       console.error('[admin-billing-documents] whatsapp contact failed', err);
       setWhatsappError('Impossible de préparer le contact WhatsApp.');
     } finally {

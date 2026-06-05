@@ -130,7 +130,11 @@ describe('AdminBillingDocumentsPage', () => {
   });
 
   it('opens WhatsApp with a contextual message from document detail', async () => {
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const popup = {
+      location: { href: '' },
+      close: vi.fn(),
+    } as unknown as Window;
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => popup);
 
     render(<AdminBillingDocumentsPage />);
 
@@ -138,8 +142,9 @@ describe('AdminBillingDocumentsPage', () => {
     const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
     fireEvent.click(within(detail).getByRole('button', { name: 'Contacter sur WhatsApp' }));
 
+    expect(openSpy).toHaveBeenCalledWith('', '_blank', 'noopener,noreferrer');
     await waitFor(() => expect(openAdminBillingDocumentWhatsappContact).toHaveBeenCalledWith('doc-1'));
-    expect(openSpy).toHaveBeenCalledWith('https://wa.me/21620123456?text=Bonjour', '_blank', 'noopener,noreferrer');
+    expect(popup.location.href).toBe('https://wa.me/21620123456?text=Bonjour');
     expect(getAdminBillingDocument).toHaveBeenLastCalledWith('doc-1');
 
     openSpy.mockRestore();
