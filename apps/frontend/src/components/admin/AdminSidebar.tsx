@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Activity,
   BadgeCheck,
+  BarChart3,
   FileText,
   LifeBuoy,
   LayoutDashboard,
@@ -30,6 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/admin/facturation', label: 'Facturation', icon: FileText },
   { href: '/admin/incidents', label: 'Incidents', icon: LifeBuoy },
   { href: '/admin/ops/messenger', label: 'Santé plateforme', icon: Activity },
+  { href: '/admin/beta-metrics', label: 'Métriques bêta', icon: BarChart3 },
   { href: '/admin/superettes', label: 'Supérettes', icon: Store },
   {
     href: '/admin/referentiel/produits',
