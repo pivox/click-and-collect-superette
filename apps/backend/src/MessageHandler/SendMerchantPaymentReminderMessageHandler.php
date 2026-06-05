@@ -8,7 +8,9 @@ use App\Billing\MerchantPaymentReminderContext;
 use App\Billing\MerchantPaymentReminderEmailSenderInterface;
 use App\Billing\PaymentReminderStage;
 use App\Message\SendMerchantPaymentReminderMessage;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
+#[AsMessageHandler]
 final readonly class SendMerchantPaymentReminderMessageHandler
 {
     public function __construct(private MerchantPaymentReminderEmailSenderInterface $sender)
