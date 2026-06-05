@@ -6,6 +6,8 @@
 parameters:
     app.password_reset_token_ttl: 3600
     app.frontend_url: '%env(string:FRONTEND_URL)%'
+    app.mailer_from_email: '%env(string:MAILER_FROM_EMAIL)%'
+    app.mailer_from_name: '%env(string:MAILER_FROM_NAME)%'
     app.merchant_response_timeout_lead_seconds: 7200
     app.partial_acceptance_reminder_lead_seconds: 14400
     app.partial_acceptance_expiration_lead_seconds: 7200
@@ -38,6 +40,8 @@ services:
         bind:
             int $passwordResetTokenTtl: '%app.password_reset_token_ttl%'
             string $frontendUrl: '%app.frontend_url%'
+            string $mailerFromEmail: '%app.mailer_from_email%'
+            string $mailerFromName: '%app.mailer_from_name%'
             int $merchantResponseTimeoutLeadSeconds: '%app.merchant_response_timeout_lead_seconds%'
             int $partialAcceptanceReminderLeadSeconds: '%app.partial_acceptance_reminder_lead_seconds%'
             int $partialAcceptanceExpirationLeadSeconds: '%app.partial_acceptance_expiration_lead_seconds%'
@@ -61,7 +65,13 @@ services:
         arguments: ['@.inner']
 
     App\Service\PasswordResetTokenSenderInterface:
-        alias: App\Service\NativePasswordResetTokenSender
+        alias: App\Service\PasswordResetTokenEmailSender
+
+    App\Email\TransactionalEmailSenderInterface:
+        alias: App\Email\SymfonyMailerTransactionalEmailSender
+
+    App\Billing\MerchantPaymentReminderEmailSenderInterface:
+        alias: App\Billing\MerchantPaymentReminderEmailSender
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

@@ -25,6 +25,7 @@ framework:
             'App\Message\ExpirePartialAcceptanceMessage': async
             'App\Message\PartialAcceptanceReminderMessage': async
             'App\Message\SendPickupReminderMessage': async
+            'App\Message\SendMerchantPaymentReminderMessage': async
 
 when@test:
     framework:

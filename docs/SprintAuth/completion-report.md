@@ -136,7 +136,7 @@ git diff --check
 
 ## Limites restantes
 
-- L'envoi email de reset est volontairement minimal côté backend : le service de production actuel utilise l'envoi natif PHP tant qu'un mailer produit n'est pas configuré.
+- L'envoi email de reset est volontairement minimal côté contenu, mais il passe désormais par Symfony Mailer et la configuration `MAILER_DSN`.
 - La documentation ne considère pas les notifications client/marchand comme livrées par Sprint Auth.
 - Les sujets de retrait sécurisé, QR de retrait, double validation et finalisation de commande restent Sprint 4.
 

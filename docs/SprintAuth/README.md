@@ -306,7 +306,7 @@ Ces tests couvrent notamment :
 
 ## Limites connues
 
-- L'envoi réel du mail de reset reste minimal : `NativePasswordResetTokenSender` utilise l'envoi natif PHP tant qu'une infrastructure mailer produit n'est pas configurée.
+- L'envoi réel du mail de reset utilise désormais l'infrastructure Symfony Mailer via `PasswordResetTokenEmailSender`.
 - Aucun template email avancé n'est livré.
 - Le changement d'email connecté est hors périmètre.
 - Le changement de mot de passe depuis un profil connecté est hors périmètre.
