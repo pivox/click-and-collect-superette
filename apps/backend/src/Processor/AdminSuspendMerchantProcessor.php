@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Provider\AdminMerchantItemProvider;
 use App\Repository\AdminMerchantRepository;
 use App\Service\AdminAuditLogger;
+use App\Service\MerchantOperationalJournalCalculator;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -26,6 +27,7 @@ final readonly class AdminSuspendMerchantProcessor implements ProcessorInterface
         private AdminMerchantRepository $adminMerchantRepository,
         private EntityManagerInterface $entityManager,
         private AdminAuditLogger $auditLogger,
+        private MerchantOperationalJournalCalculator $operationalJournalCalculator,
         #[Autowire(service: 'monolog.logger.admin')]
         private LoggerInterface $logger,
     ) {
@@ -69,7 +71,11 @@ final readonly class AdminSuspendMerchantProcessor implements ProcessorInterface
             throw $e;
         }
 
-        return AdminMerchantItemProvider::toOutput($merchant, $this->adminMerchantRepository->countStores($merchant));
+        return AdminMerchantItemProvider::toOutput(
+            $merchant,
+            $this->adminMerchantRepository->countStores($merchant),
+            $this->operationalJournalCalculator->calculate($merchant),
+        );
     }
 
     private function resolveMerchant(string $merchantId): User

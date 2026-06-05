@@ -1,11 +1,12 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
 import { MerchantDrawer } from '@/components/admin/marchands/MerchantDrawer';
 import { Button } from '@/components/ui/Button';
 import { useSort } from '@/lib/hooks/useSort';
 import {
+  getMerchant,
   listMerchants,
   suspendMerchant,
   activateMerchant,
@@ -29,6 +30,8 @@ export default function MarchandsPage() {
   const [editTarget, setEditTarget] = useState<Merchant | null>(null);
   const [suspendTarget, setSuspendTarget] = useState<Merchant | null>(null);
   const [activateTarget, setActivateTarget] = useState<Merchant | null>(null);
+  const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
+  const detailRequestSeq = useRef(0);
 
   const { sorted: sortedAll, sortKey, sortDir, toggleSort } = useSort(merchants);
 
@@ -85,6 +88,46 @@ export default function MarchandsPage() {
     }
   };
 
+  const handleOpenEdit = async (merchant: Merchant) => {
+    const requestSeq = detailRequestSeq.current + 1;
+    detailRequestSeq.current = requestSeq;
+    setError(null);
+    setLoadingDetailId(merchant.id);
+    try {
+      const detail = await getMerchant(merchant.id);
+      if (detailRequestSeq.current !== requestSeq) return;
+      setEditTarget(detail);
+      setDrawerOpen(true);
+    } catch (err) {
+      if (detailRequestSeq.current !== requestSeq) return;
+      console.error('[marchands] getMerchant failed', err);
+      setError('Impossible de charger la fiche marchand.');
+    } finally {
+      if (detailRequestSeq.current === requestSeq) {
+        setLoadingDetailId(null);
+      }
+    }
+  };
+
+  const openCreateDrawer = () => {
+    detailRequestSeq.current += 1;
+    setLoadingDetailId(null);
+    setEditTarget(null);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    detailRequestSeq.current += 1;
+    setLoadingDetailId(null);
+    setDrawerOpen(false);
+    setEditTarget(null);
+  };
+
+  const handleSaved = () => {
+    closeDrawer();
+    void load();
+  };
+
   const merchantName = (m: Merchant) =>
     [m.first_name, m.last_name].filter(Boolean).join(' ') || m.email;
 
@@ -135,10 +178,11 @@ export default function MarchandsPage() {
       render: (row) => (
         <div className="flex justify-end gap-2">
           <button
-            onClick={() => { setEditTarget(row); setDrawerOpen(true); }}
+            onClick={() => { void handleOpenEdit(row); }}
+            disabled={loadingDetailId === row.id}
             className="text-xs text-muted hover:text-ink"
           >
-            ✏ Modifier
+            {loadingDetailId === row.id ? 'Chargement…' : '✏ Modifier'}
           </button>
           {row.is_active ? (
             <button
@@ -167,7 +211,7 @@ export default function MarchandsPage() {
         <Button
           size="md"
           className="w-full sm:w-auto"
-          onClick={() => { setEditTarget(null); setDrawerOpen(true); }}
+          onClick={openCreateDrawer}
         >
           + Nouveau marchand
         </Button>
@@ -214,7 +258,7 @@ export default function MarchandsPage() {
         emptyMessage="Aucun marchand trouvé."
         emptyAction={{
           label: '+ Créer le premier marchand',
-          onClick: () => { setEditTarget(null); setDrawerOpen(true); },
+          onClick: openCreateDrawer,
         }}
         pagination={{ page, total, limit: PAGE_SIZE, onPageChange: setPage }}
         sortKey={sortKey as string | null}
@@ -223,9 +267,9 @@ export default function MarchandsPage() {
       />
       <MerchantDrawer
         open={drawerOpen}
-        onClose={() => { setDrawerOpen(false); setEditTarget(null); }}
+        onClose={closeDrawer}
         merchant={editTarget}
-        onSaved={() => { setDrawerOpen(false); setEditTarget(null); void load(); }}
+        onSaved={handleSaved}
       />
       <AdminConfirmDialog
         open={!!suspendTarget}

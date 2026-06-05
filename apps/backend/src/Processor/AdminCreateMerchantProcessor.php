@@ -13,6 +13,7 @@ use App\Provider\AdminMerchantItemProvider;
 use App\Repository\AdminMerchantRepository;
 use App\Repository\UserRepository;
 use App\Service\AdminAuditLogger;
+use App\Service\MerchantOperationalJournalCalculator;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -31,6 +32,7 @@ final readonly class AdminCreateMerchantProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
         private AdminAuditLogger $auditLogger,
+        private MerchantOperationalJournalCalculator $operationalJournalCalculator,
         #[Autowire(service: 'monolog.logger.admin')]
         private LoggerInterface $logger,
     ) {
@@ -101,6 +103,10 @@ final readonly class AdminCreateMerchantProcessor implements ProcessorInterface
             throw $e;
         }
 
-        return AdminMerchantItemProvider::toOutput($user, $this->adminMerchantRepository->countStores($user));
+        return AdminMerchantItemProvider::toOutput(
+            $user,
+            $this->adminMerchantRepository->countStores($user),
+            $this->operationalJournalCalculator->calculate($user),
+        );
     }
 }

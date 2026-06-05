@@ -73,6 +73,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
 
   const inputClass =
     'w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
+  const opsJournal = merchant?.ops_journal ?? null;
 
   return (
     <AdminDrawer
@@ -141,7 +142,89 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
             className={inputClass}
           />
         </div>
+        {merchant && opsJournal && (
+          <section className="rounded-md border border-line bg-soft px-4 py-3">
+            <h3 className="text-sm font-black text-ink">Journal opérationnel</h3>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <Metric
+                label="Retards"
+                value={opsJournal.overdue_orders_count.toString()}
+                tone={opsJournal.overdue_orders_count > 0 ? 'danger' : 'neutral'}
+              />
+              <Metric
+                label="Annulations"
+                value={opsJournal.cancelled_orders_count.toString()}
+                tone={opsJournal.cancelled_orders_count > 0 ? 'warning' : 'neutral'}
+              />
+              <Metric
+                label="Dernière activité"
+                value={formatLastActivity(opsJournal.last_activity_status)}
+                detail={formatLastActivityDate(opsJournal.last_activity_at)}
+              />
+            </div>
+          </section>
+        )}
       </div>
     </AdminDrawer>
   );
+}
+
+function Metric({
+  label,
+  value,
+  detail,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+  tone?: 'neutral' | 'warning' | 'danger';
+}) {
+  const valueColor = {
+    neutral: 'text-ink',
+    warning: 'text-amber-700',
+    danger: 'text-status-cancel',
+  }[tone];
+
+  return (
+    <div>
+      <div className="text-xs font-semibold uppercase text-muted">{label}</div>
+      <div className={`mt-1 text-lg font-black ${valueColor}`}>{value}</div>
+      {detail && <div className="mt-1 text-xs text-muted">{detail}</div>}
+    </div>
+  );
+}
+
+function formatLastActivity(status: string | null): string {
+  if (!status) {
+    return 'Aucune activité';
+  }
+
+  return {
+    draft: 'Brouillon',
+    submitted: 'Envoyée',
+    accepted: 'Acceptée',
+    partially_accepted: 'Partielle',
+    rejected: 'Refusée',
+    preparing: 'Préparation',
+    ready: 'Prête',
+    pickup_pending: 'Retrait',
+    completed: 'Terminée',
+    cancelled: 'Annulée',
+  }[status] ?? status;
+}
+
+function formatLastActivityDate(value: string | null): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return new Date(value).toLocaleString('fr-TN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 }

@@ -245,10 +245,10 @@ Le cœur MVP Sprints 0-9 est livré sur `main`, avec frontend client, marchand e
 Priorité recommandée avant PWA, monétisation ou croissance :
 
 - clôturer administrativement Sprint 10 ;
-- reporter #357 — journal opérationnel marchand minimal — vers le sprint support/exploitation terrain ;
+- considérer #357 — journal opérationnel marchand minimal — livré côté backend ;
 - fermer #358 — décision bêta FR-only vs FR+AR — comme non nécessaire depuis les livraisons FR/AR.
 
-Justification : #352, #353, #354, #355 et #356 sont livrées. Les supérettes peuvent être validées par checklist avant bêta ; le journal opérationnel marchand est utile mais non bloquant, et la décision langue est absorbée par l'i18n client FR/AR + RTL (#401) et la préférence langue marchand (#395).
+Justification : #352, #353, #354, #355, #356 et #357 sont livrées. Les supérettes peuvent être validées par checklist avant bêta ; le journal opérationnel marchand minimal donne une première lecture support sur la fiche marchand admin, et la décision langue est absorbée par l'i18n client FR/AR + RTL (#401) et la préférence langue marchand (#395).
 
 ### Livré Sprint 10
 
@@ -256,7 +256,8 @@ Justification : #352, #353, #354, #355 et #356 sont livrées. Les supérettes pe
 - #353 — monitoring des jobs asynchrones ;
 - #354 — KPI terrain ;
 - #355 — QR magasin imprimable PNG/PDF ;
-- #356 — checklist d'activation supérette.
+- #356 — checklist d'activation supérette ;
+- #357 — journal opérationnel marchand minimal.
 
 ### P3 — Sprint 14 : PWA, push, accessibilité
 
