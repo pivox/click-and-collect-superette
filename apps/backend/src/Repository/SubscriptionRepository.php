@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Subscription;
 use App\Entity\User;
+use App\Enum\SubscriptionLifecycle;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -47,4 +48,24 @@ class SubscriptionRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
+    /**
+     * @return list<Subscription>
+     */
+    public function findPaymentReminderCandidates(): array
+    {
+        /* @var list<Subscription> */
+        return $this->createQueryBuilder('s')
+            ->andWhere('s.lifecycle IN (:lifecycles)')
+            ->andWhere('s.monthlyPriceTnd > :zero')
+            ->setParameter('lifecycles', [
+                SubscriptionLifecycle::Active,
+                SubscriptionLifecycle::PaymentDue,
+                SubscriptionLifecycle::GracePeriod,
+            ])
+            ->setParameter('zero', '0.000')
+            ->addOrderBy('s.currentPeriodEndsAt', 'ASC')
+            ->addOrderBy('s.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

@@ -3,7 +3,7 @@
 **Epic** : EPIC-017 — Abonnement & monétisation
 **Sprint** : Sprint 11 — Activation commerciale
 **Priorité** : Must Have
-**État au 2026-06-04** : bloquée côté implémentation backend
+**État au 2026-06-04** : cadrée, implémentation backend à faire après validation US-076
 
 ---
 
@@ -15,17 +15,15 @@ afin de **réactiver ou maintenir l'abonnement d'un marchand sans paiement en li
 
 ---
 
-## Décision de blocage
+## Décision de cadrage
 
 L'implémentation de US-077 ne doit pas créer une fondation abonnement concurrente.
 
-Au 2026-06-04, aucune entité, enum, repository ou ressource backend `Subscription` n'existe dans `apps/backend/src`. US-077 dépend donc de la livraison préalable de US-074 et US-075 :
+La fondation US-074 / US-075 livre l'entité `Subscription`, ses statuts de lifecycle et sa phase tarifaire. US-077 ne doit donc pas recréer ces concepts : elle doit s'y brancher et ajouter uniquement la traçabilité du paiement manuel.
 
-- une entité d'abonnement marchand unique et stable ;
-- des statuts d'abonnement séparant lifecycle et phase tarifaire ;
-- une règle métier existante pour sortir de `payment_due`, `grace_period` ou `suspended` après encaissement validé.
+L'implémentation reste à faire après le cadrage US-076, car le paiement manuel doit pouvoir être rapproché d'un document mensuel ou d'une période facturée clairement définie.
 
-Sans cette fondation, créer directement `Payment` ou `SubscriptionPayment` introduirait un modèle parallèle difficile à raccorder ensuite.
+Sans cette décision, créer directement `Payment` ou `SubscriptionPayment` risquerait de figer un modèle difficile à raccorder aux futurs reçus / factures.
 
 ---
 
@@ -39,23 +37,22 @@ Sans cette fondation, créer directement `Payment` ou `SubscriptionPayment` intr
 
 ---
 
-## Contrat minimal attendu avant US-077
+## Contrat `Subscription` disponible pour US-077
 
 ### Entité `Subscription`
 
-Contrat minimal requis pour permettre l'ajout d'un paiement manuel :
+Contrat de fondation sur lequel US-077 doit s'appuyer :
 
 | Champ | Type attendu | Rôle |
 |---|---|---|
 | `id` | UUID | Identifiant stable de l'abonnement. |
 | `merchant` | `User` marchand | Marchand propriétaire de l'abonnement. |
-| `lifecycle_status` | enum | `active`, `payment_due`, `grace_period`, `suspended`, `cancelled`. |
+| `lifecycle` | enum | `active`, `payment_due`, `grace_period`, `suspended`, `cancelled`. |
 | `pricing_phase` | enum | `trial`, `promo`, `standard`. |
-| `current_period_start` | datetime immutable | Début de période couverte. |
-| `current_period_end` | datetime immutable | Fin de période couverte. |
-| `amount_due_tnd` | decimal string 3 décimales | Montant attendu en TND, cohérent avec les prix existants (`"10.000"`). |
+| `current_period_started_at` | datetime immutable | Début de période couverte. |
+| `current_period_ends_at` | datetime immutable | Fin de période couverte. |
+| `monthly_price_tnd` | decimal string 3 décimales | Montant mensuel attendu en TND, cohérent avec les prix existants (`"10.000"`). |
 | `currency` | string | Toujours `TND` pour le MVP. |
-| `paid_until` | datetime immutable nullable | Date jusqu'à laquelle l'abonnement est couvert après validation. |
 | `created_at` | datetime immutable | Création. |
 | `updated_at` | datetime immutable | Dernière modification. |
 

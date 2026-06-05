@@ -108,6 +108,43 @@ class MerchantProductRepository extends ServiceEntityRepository
         ]);
     }
 
+    public function findOneLocalForShopAndBarcode(Shop $shop, string $barcode): ?MerchantProduct
+    {
+        return $this->createQueryBuilder('mp')
+            ->join('mp.localProduct', 'lp')
+            ->where('mp.shop = :shop')
+            ->andWhere('lp.barcode = :barcode')
+            ->setParameter('shop', $shop)
+            ->setParameter('barcode', trim($barcode))
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function findOneLocalForShopAndIdentity(
+        Shop $shop,
+        string $brandName,
+        string $nameFr,
+        string $volume,
+        ProductUnit $unit,
+    ): ?MerchantProduct {
+        return $this->createQueryBuilder('mp')
+            ->join('mp.localProduct', 'lp')
+            ->where('mp.shop = :shop')
+            ->andWhere('LOWER(lp.brandName) = LOWER(:brandName)')
+            ->andWhere('LOWER(lp.nameFr) = LOWER(:nameFr)')
+            ->andWhere('lp.volume = :volume')
+            ->andWhere('lp.unit = :unit')
+            ->setParameter('shop', $shop)
+            ->setParameter('brandName', trim($brandName))
+            ->setParameter('nameFr', trim($nameFr))
+            ->setParameter('volume', $volume)
+            ->setParameter('unit', $unit)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     /**
      * @param list<string> $merchantProductIds
      *

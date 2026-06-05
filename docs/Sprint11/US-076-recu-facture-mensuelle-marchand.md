@@ -1,8 +1,8 @@
 # US-076 — Reçu / facture mensuelle marchand
 
-**Epic** : EPIC-017 — Abonnement & monétisation
-**Sprint** : Sprint 11 — Activation commerciale + abonnement
-**Priorité** : Must
+**Epic** : EPIC-017 — Abonnement & monétisation  
+**Sprint** : Sprint 11 — Activation commerciale + abonnement  
+**Priorité** : Must  
 **Statut** : Cadrage produit / technique, à valider fiscalement avant modèle de données définitif
 
 ---

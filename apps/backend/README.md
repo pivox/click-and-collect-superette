@@ -75,7 +75,13 @@ MAILER_FROM_NAME="Kadhia"
 
 En test, `MAILER_DSN=null://null` évite tout envoi réel. En production, `MAILER_DSN` doit pointer vers le SMTP ou le transport mail validé pour la plateforme.
 
-US-078 ajoute le socle email et les contenus de relance d'abonnement plateforme marchand selon l'échéancier MVP J-7, J, J+7, J+14 et J+21. Le message Messenger `SendMerchantPaymentReminderMessage` et son handler sont prêts à être alimentés par la fondation abonnement/facturation US-074/075, sans créer d'entité facture, paiement ou historique de relance dans cette tranche.
+US-078 ajoute le socle email et les contenus de relance d'abonnement plateforme marchand selon l'échéancier MVP J-7, J, J+7, J+14 et J+21. La commande suivante sélectionne les abonnements marchands payants éligibles, puis dispatch les emails via Messenger :
+
+```bash
+bin/console app:billing:send-payment-reminders
+```
+
+La relance utilise `Subscription.currentPeriodEndsAt` comme échéance et `Subscription.monthlyPriceTnd` comme montant. Elle ne crée pas d'entité facture, paiement ou historique de relance : ces modèles restent à brancher dans les US de facturation dédiées.
 
 ## Documentation API locale
 
