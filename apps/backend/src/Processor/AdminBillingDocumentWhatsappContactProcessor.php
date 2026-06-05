@@ -12,6 +12,7 @@ use App\Entity\BillingDocument;
 use App\Entity\SubscriptionPaymentReminder;
 use App\Entity\User;
 use App\Enum\BillingDocumentStatus;
+use App\Enum\SubscriptionLifecycle;
 use App\Repository\BillingDocumentRepository;
 use App\Repository\SubscriptionPaymentReminderRepository;
 use App\Service\AdminAuditLogger;
@@ -52,6 +53,13 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
 
         $document = $this->resolveDocument((string) ($uriVariables['billingDocumentId'] ?? ''));
         if (!\in_array($document->getStatus(), [BillingDocumentStatus::Issued, BillingDocumentStatus::Overdue], true)) {
+            throw new ConflictHttpException('BILLING_DOCUMENT_NOT_RELAUNCHABLE');
+        }
+        if (!\in_array($document->getSubscription()->getLifecycle(), [
+            SubscriptionLifecycle::Active,
+            SubscriptionLifecycle::PaymentDue,
+            SubscriptionLifecycle::GracePeriod,
+        ], true)) {
             throw new ConflictHttpException('BILLING_DOCUMENT_NOT_RELAUNCHABLE');
         }
 
