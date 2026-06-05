@@ -31,6 +31,12 @@ parameters:
     app.product_image.public_base_url: '%env(default:app.product_image.public_base_url_default:string:PRODUCT_IMAGE_BASE_URL)%'
     app.product_image.max_upload_bytes: 2097152
     app.product_image.min_dimension: 400
+    # Catalogue photo import (S13-001). Empty API key makes the endpoint return
+    # a clear 503 instead of attempting an external call.
+    app.openai.api_key_default: ''
+    app.openai.api_key: '%env(default:app.openai.api_key_default:string:OPENAI_API_KEY)%'
+    app.catalog_photo_import.model_default: 'gpt-4o-mini'
+    app.catalog_photo_import.model: '%env(default:app.catalog_photo_import.model_default:string:OPENAI_CATALOG_PHOTO_IMPORT_MODEL)%'
 
 services:
     # default configuration for services in *this* file
@@ -50,6 +56,8 @@ services:
             int $oldestAgeSecondsThreshold: '%app.messenger_monitor.oldest_age_threshold_seconds%'
             int $redeliverTimeoutSeconds: '%app.messenger_monitor.redeliver_timeout_seconds%'
             int $minimumCatalogProducts: '%app.store_activation.minimum_catalog_products%'
+            string $catalogPhotoImportOpenAiApiKey: '%app.openai.api_key%'
+            string $catalogPhotoImportOpenAiModel: '%app.catalog_photo_import.model%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
@@ -70,6 +78,9 @@ services:
     App\Email\TransactionalEmailSenderInterface:
         alias: App\Email\SymfonyMailerTransactionalEmailSender
 
+    App\Service\MerchantCatalogPhotoImportExtractorInterface:
+        alias: App\Service\OpenAiMerchantCatalogPhotoImportExtractor
+
     App\Billing\MerchantPaymentReminderEmailSenderInterface:
         alias: App\Billing\MerchantPaymentReminderEmailSender
 
@@ -85,3 +96,8 @@ when@test:
         App\Doctrine\Middleware\SQLiteUnaccentMiddleware:
             tags:
                 - { name: doctrine.middleware }
+
+        App\Tests\Support\CatalogPhotoImport\TestMerchantCatalogPhotoImportExtractor: ~
+
+        App\Service\MerchantCatalogPhotoImportExtractorInterface:
+            alias: App\Tests\Support\CatalogPhotoImport\TestMerchantCatalogPhotoImportExtractor

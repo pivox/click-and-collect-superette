@@ -15,6 +15,8 @@ import type {
   MerchantCatalogListOptions,
   MerchantCatalogListResult,
   MerchantCatalogCsvImportResult,
+  MerchantCatalogPhotoImportPreviewResult,
+  MerchantCatalogPhotoImportSourceType,
   MerchantCatalogProduct,
   MerchantLocalProductOutput,
   MerchantProductPriceHistoryResult,
@@ -264,6 +266,24 @@ export async function importMerchantCatalogCsv(
         Accept: 'application/json',
       },
     },
+  );
+
+  return data;
+}
+
+export async function previewMerchantCatalogPhotoImport(
+  storeId: string,
+  photo: File,
+  sourceType: MerchantCatalogPhotoImportSourceType,
+): Promise<MerchantCatalogPhotoImportPreviewResult> {
+  const formData = new FormData();
+  formData.append('photo', photo);
+  formData.append('source_type', sourceType);
+
+  const { data } = await apiClient.post<MerchantCatalogPhotoImportPreviewResult>(
+    `/api/merchant/stores/${storeId}/catalog/photo-import/preview`,
+    formData,
+    { headers: { Accept: 'application/json' } },
   );
 
   return data;

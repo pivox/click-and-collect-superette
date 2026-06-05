@@ -119,6 +119,35 @@ export interface MerchantCatalogCsvImportResult {
   errors: MerchantCatalogCsvImportError[];
 }
 
+export type MerchantCatalogPhotoImportSourceType =
+  | 'receipt'
+  | 'shelf'
+  | 'cash_register_export'
+  | 'paper_list';
+
+export interface MerchantCatalogPhotoImportPreviewItem {
+  line: number;
+  status: 'matched_reference' | 'local_candidate' | 'already_in_catalog';
+  product_reference_id: string | null;
+  name_fr: string;
+  brand: string | null;
+  volume: string | null;
+  unit: string | null;
+  barcode: string | null;
+  suggested_price_tnd: string | null;
+  confidence: string | null;
+  already_in_catalog: boolean;
+}
+
+export interface MerchantCatalogPhotoImportPreviewResult {
+  id: string;
+  source_type: MerchantCatalogPhotoImportSourceType;
+  detected_count: number;
+  matched_reference_count: number;
+  local_candidate_count: number;
+  items: MerchantCatalogPhotoImportPreviewItem[];
+}
+
 export interface AddMerchantCatalogProductPayload {
   product_reference_id: string;
   price_tnd: string;

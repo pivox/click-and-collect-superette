@@ -10,6 +10,7 @@ import {
   importMerchantCatalogCsv,
   listMerchantCategories,
   listMerchantCatalog,
+  previewMerchantCatalogPhotoImport,
   searchMerchantProductReferences,
   updateMerchantCatalogProduct,
 } from '@/lib/services/merchant-catalog.service';
@@ -388,6 +389,32 @@ describe('merchant catalogue service', () => {
     );
     expect(result.created).toBe(1);
     expect(result.items[0].name_fr).toBe('Lait demi-écrémé');
+  });
+
+  it('previews a merchant catalogue photo import as multipart form data', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        id: 'store-1',
+        source_type: 'receipt',
+        detected_count: 2,
+        matched_reference_count: 1,
+        local_candidate_count: 1,
+        items: [],
+      },
+    });
+    const photo = new File(['fake'], 'ticket.jpg', { type: 'image/jpeg' });
+
+    const result = await previewMerchantCatalogPhotoImport('store-1', photo, 'receipt');
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/merchant/stores/store-1/catalog/photo-import/preview',
+      expect.any(FormData),
+      { headers: { Accept: 'application/json' } },
+    );
+    const formData = vi.mocked(apiClient.post).mock.calls[0][1] as FormData;
+    expect(formData.get('photo')).toBe(photo);
+    expect(formData.get('source_type')).toBe('receipt');
+    expect(result.detected_count).toBe(2);
   });
 
   it('adds a product reference to the merchant catalogue', async () => {

@@ -11,6 +11,7 @@ import {
   importMerchantCatalogCsv,
   listMerchantCategories,
   listMerchantCatalog,
+  previewMerchantCatalogPhotoImport,
   searchMerchantProductReferences,
   updateMerchantCatalogProduct,
 } from '@/lib/services/merchant-catalog.service';
@@ -45,6 +46,7 @@ vi.mock('@/lib/services/merchant-catalog.service', async () => {
     importMerchantCatalogCsv: vi.fn(),
     listMerchantCategories: vi.fn(),
     listMerchantCatalog: vi.fn(),
+    previewMerchantCatalogPhotoImport: vi.fn(),
     searchMerchantProductReferences: vi.fn(),
     updateMerchantCatalogProduct: vi.fn(),
   };
@@ -238,6 +240,41 @@ describe('MerchantCatalogPage', () => {
         },
       ],
     });
+    vi.mocked(previewMerchantCatalogPhotoImport).mockResolvedValue({
+      id: 'store-1',
+      source_type: 'receipt',
+      detected_count: 2,
+      matched_reference_count: 1,
+      local_candidate_count: 1,
+      items: [
+        {
+          line: 1,
+          status: 'matched_reference',
+          product_reference_id: 'ref-photo-1',
+          name_fr: 'Lait demi-écrémé',
+          brand: 'Vitalait',
+          volume: '1.000',
+          unit: 'litre',
+          barcode: '6191234567890',
+          suggested_price_tnd: '1.650',
+          confidence: '0.940',
+          already_in_catalog: false,
+        },
+        {
+          line: 2,
+          status: 'local_candidate',
+          product_reference_id: null,
+          name_fr: 'Harissa maison',
+          brand: 'Jouda',
+          volume: '350.000',
+          unit: 'gramme',
+          barcode: null,
+          suggested_price_tnd: '4.500',
+          confidence: '0.820',
+          already_in_catalog: false,
+        },
+      ],
+    });
     vi.mocked(updateMerchantCatalogProduct).mockResolvedValue(undefined);
   });
 
@@ -417,6 +454,26 @@ describe('MerchantCatalogPage', () => {
     expect(screen.getByText('1. Chercher')).toBeInTheDocument();
     expect(screen.getByText('2. Configurer')).toBeInTheDocument();
     expect(screen.getByText('3. Publier')).toBeInTheDocument();
+  });
+
+  it('previews catalogue import from a photo in the guided assistant', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
+
+    const photo = new File(['fake'], 'ticket.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Photo ticket, rayon ou liste papier'), {
+      target: { files: [photo] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Analyser la photo' }));
+
+    await waitFor(() =>
+      expect(previewMerchantCatalogPhotoImport).toHaveBeenCalledWith('store-1', photo, 'receipt'),
+    );
+
+    expect(await screen.findByText('2 produits détectés · 1 match référentiel · 1 à créer localement')).toBeInTheDocument();
+    expect(screen.getByText('Ligne 1 · Référentiel · Lait demi-écrémé · 1.650 TND')).toBeInTheDocument();
+    expect(screen.getByText('Ligne 2 · À créer localement · Harissa maison · 4.500 TND')).toBeInTheDocument();
   });
 
   it('imports a CSV file and shows a line-by-line report', async () => {
@@ -616,18 +673,18 @@ describe('MerchantCatalogPage', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Assistant catalogue' });
     const closeButton = within(dialog).getByRole('button', { name: 'Fermer' });
-    const referenceButton = within(dialog).getByRole('button', { name: 'Ajouter un produit connu' });
+    const sourceSelect = within(dialog).getByLabelText('Source photo');
 
     expect(closeButton).toHaveFocus();
 
-    referenceButton.focus();
+    sourceSelect.focus();
     fireEvent.keyDown(dialog, { key: 'Tab' });
 
     expect(closeButton).toHaveFocus();
 
     fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true });
 
-    expect(referenceButton).toHaveFocus();
+    expect(sourceSelect).toHaveFocus();
   });
 
   it('opens the existing product reference drawer from the guided assistant', async () => {
