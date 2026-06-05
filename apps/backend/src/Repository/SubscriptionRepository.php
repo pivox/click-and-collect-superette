@@ -72,6 +72,22 @@ class SubscriptionRepository extends ServiceEntityRepository
     /**
      * @return list<Subscription>
      */
+    public function findPricingPhaseRefreshCandidates(\DateTimeImmutable $now): array
+    {
+        /* @var list<Subscription> */
+        return $this->createQueryBuilder('s')
+            ->andWhere('s.nextPhaseChangeAt IS NOT NULL')
+            ->andWhere('s.nextPhaseChangeAt <= :now')
+            ->setParameter('now', $now)
+            ->addOrderBy('s.nextPhaseChangeAt', 'ASC')
+            ->addOrderBy('s.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return list<Subscription>
+     */
     public function findPaymentReminderCandidates(): array
     {
         /* @var list<Subscription> */
