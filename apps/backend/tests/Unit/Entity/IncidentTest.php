@@ -25,8 +25,9 @@ final class IncidentTest extends TestCase
             ->setOwner($merchant);
         $order = (new Order())->setShop($shop)->setCustomer($customer);
         $occurredAt = new \DateTimeImmutable('2026-06-05T12:30:00+01:00');
+        $createdAt = new \DateTimeImmutable('2026-06-05T14:00:00+01:00');
 
-        $incident = Incident::open($order, IncidentType::MissingProduct, $occurredAt);
+        $incident = Incident::open($order, IncidentType::MissingProduct, $occurredAt, $createdAt);
 
         self::assertNotNull($incident->getId());
         self::assertSame($order, $incident->getOrder());
@@ -35,7 +36,8 @@ final class IncidentTest extends TestCase
         self::assertSame(IncidentType::MissingProduct, $incident->getType());
         self::assertSame(IncidentStatus::Open, $incident->getStatus());
         self::assertSame($occurredAt, $incident->getOccurredAt());
-        self::assertSame($occurredAt, $incident->getCreatedAt());
+        self::assertSame($createdAt, $incident->getCreatedAt());
+        self::assertSame($createdAt, $incident->getUpdatedAt());
         self::assertNull($incident->getClosedAt());
     }
 
@@ -58,12 +60,23 @@ final class IncidentTest extends TestCase
     public function testClosedIncidentCannotBeReopenedByProcessingTransition(): void
     {
         $incident = Incident::open($this->createOrder(), IncidentType::LateCancellation, new \DateTimeImmutable('2026-06-05T12:30:00+01:00'));
-        $incident->close(new \DateTimeImmutable('2026-06-05T13:00:00+01:00'));
+        $incident->startProcessing(new \DateTimeImmutable('2026-06-05T13:00:00+01:00'));
+        $incident->close(new \DateTimeImmutable('2026-06-05T14:00:00+01:00'));
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('INCIDENT_ALREADY_CLOSED');
 
         $incident->startProcessing(new \DateTimeImmutable('2026-06-05T14:00:00+01:00'));
+    }
+
+    public function testOpenIncidentCannotBeClosedBeforeProcessing(): void
+    {
+        $incident = Incident::open($this->createOrder(), IncidentType::QrIssue, new \DateTimeImmutable('2026-06-05T12:30:00+01:00'));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('INCIDENT_NOT_IN_PROGRESS');
+
+        $incident->close(new \DateTimeImmutable('2026-06-05T14:00:00+01:00'));
     }
 
     public function testIncidentRequiresMerchantOwnerOnOrderShop(): void

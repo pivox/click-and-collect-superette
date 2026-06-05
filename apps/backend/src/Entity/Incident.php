@@ -53,7 +53,7 @@ class Incident
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    private function __construct(Order $order, IncidentType $type, \DateTimeImmutable $occurredAt)
+    private function __construct(Order $order, IncidentType $type, \DateTimeImmutable $occurredAt, \DateTimeImmutable $createdAt)
     {
         $merchant = $order->getShop()->getOwner();
         if (null === $merchant) {
@@ -66,13 +66,13 @@ class Incident
         $this->customer = $order->getCustomer();
         $this->type = $type;
         $this->occurredAt = $occurredAt;
-        $this->createdAt = $occurredAt;
-        $this->updatedAt = $occurredAt;
+        $this->createdAt = $createdAt;
+        $this->updatedAt = $createdAt;
     }
 
-    public static function open(Order $order, IncidentType $type, \DateTimeImmutable $occurredAt): self
+    public static function open(Order $order, IncidentType $type, \DateTimeImmutable $occurredAt, ?\DateTimeImmutable $createdAt = null): self
     {
-        return new self($order, $type, $occurredAt);
+        return new self($order, $type, $occurredAt, $createdAt ?? new \DateTimeImmutable());
     }
 
     public function getId(): Uuid
@@ -139,6 +139,9 @@ class Incident
     {
         if (IncidentStatus::Closed === $this->status) {
             throw new \LogicException('INCIDENT_ALREADY_CLOSED');
+        }
+        if (IncidentStatus::InProgress !== $this->status) {
+            throw new \LogicException('INCIDENT_NOT_IN_PROGRESS');
         }
 
         $this->status = IncidentStatus::Closed;
