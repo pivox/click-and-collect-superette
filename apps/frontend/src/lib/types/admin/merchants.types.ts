@@ -15,8 +15,17 @@ export interface Merchant {
 }
 
 export interface MerchantOpsJournal {
+  received_orders_count: number;
+  accepted_orders_count: number;
+  rejected_orders_count: number;
+  average_response_minutes: number | null;
   overdue_orders_count: number;
   cancelled_orders_count: number;
+  incidents_count: number;
+  open_incidents_count: number;
+  payment_reminders_count: number;
+  admin_actions_count: number;
+  health_status: 'healthy' | 'watch' | 'risk';
   last_activity_at: string | null;
   last_activity_status: string | null;
 }

@@ -4,14 +4,21 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Billing\PaymentReminderStage;
+use App\Entity\AdminAuditLog;
+use App\Entity\BillingDocument;
+use App\Entity\Incident;
 use App\Entity\Order;
 use App\Entity\OrderStatusLog;
 use App\Entity\PickupSlot;
 use App\Entity\Shop;
 use App\Entity\Subscription;
+use App\Entity\SubscriptionPaymentReminder;
 use App\Entity\User;
+use App\Enum\IncidentType;
 use App\Enum\OrderStatus;
 use App\Enum\SubscriptionLifecycle;
+use App\Enum\SubscriptionPricingPhase;
 use App\Service\MerchantOperationalJournalCalculator;
 use Symfony\Component\Uid\Uuid;
 
@@ -112,19 +119,71 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
 
         $overdueOrder = $this->createOrder($shop, $customer, OrderStatus::Submitted, $pastSlot);
         $cancelledOrder = $this->createOrder($shop, $customer, OrderStatus::Cancelled, $pastSlot);
+        $acceptedOrder = $this->createOrder($shop, $customer, OrderStatus::Accepted, $futureSlot);
+        $rejectedOrder = $this->createOrder($shop, $customer, OrderStatus::Rejected, $pastSlot);
         $this->createOrder($shop, $customer, OrderStatus::Completed, $pastSlot);
         $this->createOrder($shop, $customer, OrderStatus::Ready, $futureSlot);
         $this->createOrder($otherShop, $customer, OrderStatus::Cancelled, $otherPastSlot);
 
         $this->createStatusLog($overdueOrder, OrderStatus::Submitted, new \DateTimeImmutable('2026-06-01T08:55:00+00:00'));
         $this->createStatusLog($cancelledOrder, OrderStatus::Cancelled, new \DateTimeImmutable('2026-06-01T11:15:00+00:00'));
+        $this->createStatusLog($acceptedOrder, OrderStatus::Submitted, new \DateTimeImmutable('2026-06-01T09:00:00+00:00'));
+        $this->createStatusLog($acceptedOrder, OrderStatus::Accepted, new \DateTimeImmutable('2026-06-01T09:20:00+00:00'));
+        $this->createStatusLog($rejectedOrder, OrderStatus::Submitted, new \DateTimeImmutable('2026-06-01T10:00:00+00:00'));
+        $this->createStatusLog($rejectedOrder, OrderStatus::Rejected, new \DateTimeImmutable('2026-06-01T10:40:00+00:00'));
+
+        $openIncident = Incident::open($acceptedOrder, IncidentType::MissingProduct, new \DateTimeImmutable('2026-06-01T12:00:00+00:00'));
+        $closedIncident = Incident::open($rejectedOrder, IncidentType::Other, new \DateTimeImmutable('2026-06-01T13:00:00+00:00'));
+        $closedIncident->startProcessing(new \DateTimeImmutable('2026-06-01T13:10:00+00:00'));
+        $closedIncident->close(new \DateTimeImmutable('2026-06-01T13:30:00+00:00'));
+
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $document = BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: 'MS-OPS-000001',
+            billingPeriodStart: new \DateTimeImmutable('2026-06-01T00:00:00+01:00'),
+            billingPeriodEnd: new \DateTimeImmutable('2026-07-01T00:00:00+01:00'),
+            issuedAt: new \DateTimeImmutable('2026-06-01T09:00:00+01:00'),
+            dueAt: new \DateTimeImmutable('2026-06-08T23:59:59+01:00'),
+            pricingPhase: SubscriptionPricingPhase::Promo,
+            amountTnd: '10.000',
+        );
+        $reminder = SubscriptionPaymentReminder::emailSent(
+            $document,
+            PaymentReminderStage::BeforeDueDate,
+            new \DateTimeImmutable('2026-06-01T09:30:00+01:00'),
+        );
+        $auditLog = new AdminAuditLog(
+            $admin,
+            'merchant.support_note',
+            'merchant',
+            $merchant->getId()->toRfc4122(),
+            'Note support marchand.',
+        );
+
+        $this->entityManager->persist($openIncident);
+        $this->entityManager->persist($closedIncident);
+        $this->entityManager->persist($subscription);
+        $this->entityManager->persist($document);
+        $this->entityManager->persist($reminder);
+        $this->entityManager->persist($auditLog);
+        $this->entityManager->flush();
 
         $response = $this->requestJson('GET', \sprintf('/api/admin/merchants/%s', $merchant->getId()), user: $admin);
 
         self::assertSame(200, $response->getStatusCode());
         $journal = $this->decodeJson($response)['ops_journal'];
+        self::assertSame(6, $journal['received_orders_count']);
+        self::assertSame(3, $journal['accepted_orders_count']);
+        self::assertSame(1, $journal['rejected_orders_count']);
+        self::assertSame(30, $journal['average_response_minutes']);
         self::assertSame(1, $journal['overdue_orders_count']);
         self::assertSame(1, $journal['cancelled_orders_count']);
+        self::assertSame(2, $journal['incidents_count']);
+        self::assertSame(1, $journal['open_incidents_count']);
+        self::assertSame(1, $journal['payment_reminders_count']);
+        self::assertSame(1, $journal['admin_actions_count']);
+        self::assertSame('risk', $journal['health_status']);
         self::assertSame('2026-06-01T11:15:00+00:00', $journal['last_activity_at']);
         self::assertSame('cancelled', $journal['last_activity_status']);
     }
@@ -189,6 +248,15 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         $journal = $this->decodeJson($response)['ops_journal'];
         self::assertSame(0, $journal['overdue_orders_count']);
         self::assertSame(0, $journal['cancelled_orders_count']);
+        self::assertSame(0, $journal['received_orders_count']);
+        self::assertSame(0, $journal['accepted_orders_count']);
+        self::assertSame(0, $journal['rejected_orders_count']);
+        self::assertNull($journal['average_response_minutes']);
+        self::assertSame(0, $journal['incidents_count']);
+        self::assertSame(0, $journal['open_incidents_count']);
+        self::assertSame(0, $journal['payment_reminders_count']);
+        self::assertSame(0, $journal['admin_actions_count']);
+        self::assertSame('healthy', $journal['health_status']);
         self::assertNull($journal['last_activity_at']);
         self::assertNull($journal['last_activity_status']);
     }

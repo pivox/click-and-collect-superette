@@ -62,8 +62,17 @@ describe('MarchandsPage', () => {
     vi.mocked(getMerchant).mockResolvedValue({
       ...MERCHANT,
       ops_journal: {
+        received_orders_count: 6,
+        accepted_orders_count: 3,
+        rejected_orders_count: 1,
+        average_response_minutes: 30,
         overdue_orders_count: 3,
         cancelled_orders_count: 2,
+        incidents_count: 2,
+        open_incidents_count: 1,
+        payment_reminders_count: 1,
+        admin_actions_count: 1,
+        health_status: 'risk',
         last_activity_at: '2026-06-05T11:15:00+01:00',
         last_activity_status: 'cancelled',
       },
@@ -84,11 +93,24 @@ describe('MarchandsPage', () => {
     const journal = (await screen.findByText('Journal opérationnel')).closest('section');
     expect(journal).not.toBeNull();
     expect(within(journal!).getByText('Retards')).toBeInTheDocument();
-    expect(within(journal!).getByText('3')).toBeInTheDocument();
+    expect(within(journal!).getAllByText('3')).toHaveLength(2);
     expect(within(journal!).getByText('Annulations')).toBeInTheDocument();
     expect(within(journal!).getByText('2')).toBeInTheDocument();
     expect(within(journal!).getByText('Dernière activité')).toBeInTheDocument();
     expect(within(journal!).getByText('Annulée')).toBeInTheDocument();
+    expect(within(journal!).getByText('Vue santé')).toBeInTheDocument();
+    expect(within(journal!).getByText('Risque')).toBeInTheDocument();
+    expect(within(journal!).getByText('Commandes reçues')).toBeInTheDocument();
+    expect(within(journal!).getByText('6')).toBeInTheDocument();
+    expect(within(journal!).getByText('Acceptées')).toBeInTheDocument();
+    expect(within(journal!).getByText('Refusées')).toBeInTheDocument();
+    expect(within(journal!).getAllByText('1')).toHaveLength(3);
+    expect(within(journal!).getByText('Délai moyen')).toBeInTheDocument();
+    expect(within(journal!).getByText('30 min')).toBeInTheDocument();
+    expect(within(journal!).getByText('Incidents')).toBeInTheDocument();
+    expect(within(journal!).getByText('1 / 2')).toBeInTheDocument();
+    expect(within(journal!).getByText('Relances paiement')).toBeInTheDocument();
+    expect(within(journal!).getByText('Actions admin')).toBeInTheDocument();
   });
 
   it('affiche le statut de suspension abonnement dans la fiche marchand admin', async () => {
@@ -103,8 +125,17 @@ describe('MarchandsPage', () => {
       ...MERCHANT,
       subscription_lifecycle: 'suspended',
       ops_journal: {
+        received_orders_count: 0,
+        accepted_orders_count: 0,
+        rejected_orders_count: 0,
+        average_response_minutes: null,
         overdue_orders_count: 0,
         cancelled_orders_count: 0,
+        incidents_count: 0,
+        open_incidents_count: 0,
+        payment_reminders_count: 0,
+        admin_actions_count: 0,
+        health_status: 'healthy',
         last_activity_at: null,
         last_activity_status: null,
       },
@@ -189,8 +220,17 @@ describe('MarchandsPage', () => {
       secondDetail.resolve({
         ...SECOND_MERCHANT,
         ops_journal: {
+          received_orders_count: 0,
+          accepted_orders_count: 0,
+          rejected_orders_count: 0,
+          average_response_minutes: null,
           overdue_orders_count: 0,
           cancelled_orders_count: 0,
+          incidents_count: 0,
+          open_incidents_count: 0,
+          payment_reminders_count: 0,
+          admin_actions_count: 0,
+          health_status: 'healthy',
           last_activity_at: null,
           last_activity_status: null,
         },
@@ -205,8 +245,17 @@ describe('MarchandsPage', () => {
       firstDetail.resolve({
         ...MERCHANT,
         ops_journal: {
+          received_orders_count: 6,
+          accepted_orders_count: 3,
+          rejected_orders_count: 1,
+          average_response_minutes: 30,
           overdue_orders_count: 3,
           cancelled_orders_count: 2,
+          incidents_count: 2,
+          open_incidents_count: 1,
+          payment_reminders_count: 1,
+          admin_actions_count: 1,
+          health_status: 'risk',
           last_activity_at: '2026-06-05T11:15:00+01:00',
           last_activity_status: 'cancelled',
         },
