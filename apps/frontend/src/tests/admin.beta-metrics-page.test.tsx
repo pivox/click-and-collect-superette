@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminBetaMetricsPage from '@/app/admin/beta-metrics/page';
 import { getAdminBetaMetrics } from '@/lib/services/admin/beta-metrics.service';
@@ -74,6 +74,35 @@ const EMPTY_METRICS: AdminBetaMetrics = {
   activated_stores: 0,
   store_activation_rate: 0,
   stores: [],
+};
+
+const FILTERED_METRICS: AdminBetaMetrics = {
+  ...EMPTY_METRICS,
+  date_from: '2026-06-01',
+  date_to: '2026-06-30',
+  store_id: 'store-2',
+  submitted: 3,
+  accepted: 2,
+  completed: 1,
+  acceptance_rate: 0.667,
+  active_stores: 1,
+  activated_stores: 1,
+  store_activation_rate: 1,
+  stores: [
+    {
+      store_id: 'store-2',
+      store_name: 'Supérette Medina',
+      submitted: 3,
+      accepted: 2,
+      partially_accepted: 0,
+      rejected: 0,
+      cancelled: 0,
+      completed: 1,
+      acceptance_rate: 0.667,
+      cancellation_rate: 0,
+      last_activity_at: '2026-06-05T10:00:00+01:00',
+    },
+  ],
 };
 
 const STORES: StoreListResponse = {
@@ -160,6 +189,84 @@ describe('AdminBetaMetricsPage', () => {
     );
   });
 
+  it('ignore une réponse métriques obsolète après changement de filtre', async () => {
+    const initial = createDeferred<AdminBetaMetrics>();
+    const filtered = createDeferred<AdminBetaMetrics>();
+    vi.mocked(getAdminBetaMetrics)
+      .mockReturnValueOnce(initial.promise)
+      .mockReturnValueOnce(filtered.promise);
+
+    render(<AdminBetaMetricsPage />);
+
+    await screen.findByRole('heading', { name: 'Métriques bêta terrain' });
+
+    fireEvent.change(screen.getByLabelText('Début de période'), {
+      target: { value: '2026-06-01' },
+    });
+    fireEvent.change(screen.getByLabelText('Fin de période'), {
+      target: { value: '2026-06-30' },
+    });
+    fireEvent.change(screen.getByLabelText('Filtrer par supérette'), {
+      target: { value: 'store-2' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Appliquer' }));
+
+    await waitFor(() => expect(getAdminBetaMetrics).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      filtered.resolve(FILTERED_METRICS);
+      await filtered.promise;
+    });
+
+    expect((await screen.findAllByText('3')).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText('12')).not.toBeInTheDocument();
+
+    await act(async () => {
+      initial.resolve(METRICS);
+      await initial.promise;
+    });
+
+    expect(screen.getAllByText('3').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText('12')).not.toBeInTheDocument();
+  });
+
+  it('charge toutes les pages de supérettes actives pour le filtre', async () => {
+    vi.mocked(listStores)
+      .mockResolvedValueOnce({
+        ...STORES,
+        page: 1,
+        limit: 50,
+        total: 51,
+        items: STORES.items.slice(0, 1),
+      })
+      .mockResolvedValueOnce({
+        ...STORES,
+        page: 2,
+        limit: 50,
+        total: 51,
+        items: [
+          {
+            id: 'store-51',
+            name: 'Supérette Route 51',
+            slug: 'route-51',
+            city: 'Sousse',
+            is_active: true,
+            qr_code_token: 'qr-store-51',
+            created_at: '2026-06-03T09:00:00+01:00',
+            owner: null,
+            products_count: 7,
+            archived_at: null,
+          },
+        ],
+      });
+
+    render(<AdminBetaMetricsPage />);
+
+    expect(await screen.findByRole('option', { name: 'Supérette Route 51' })).toBeInTheDocument();
+    expect(listStores).toHaveBeenNthCalledWith(1, { page: 1, limit: 50, isActive: true });
+    expect(listStores).toHaveBeenNthCalledWith(2, { page: 2, limit: 50, isActive: true });
+  });
+
   it('gère une erreur API puis recharge au retry', async () => {
     vi.mocked(getAdminBetaMetrics)
       .mockRejectedValueOnce(new Error('api down'))
@@ -183,3 +290,12 @@ describe('AdminBetaMetricsPage', () => {
     expect(await screen.findByText('Aucune activité bêta sur cette période.')).toBeInTheDocument();
   });
 });
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+
+  return { promise, resolve };
+}

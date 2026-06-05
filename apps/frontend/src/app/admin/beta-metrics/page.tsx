@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { Button } from '@/components/ui/Button';
 import { getAdminBetaMetrics } from '@/lib/services/admin/beta-metrics.service';
@@ -23,17 +23,28 @@ export default function AdminBetaMetricsPage() {
   const [draftStoreId, setDraftStoreId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const metricsRequestSeq = useRef(0);
 
   const loadMetrics = useCallback(() => {
+    const requestSeq = metricsRequestSeq.current + 1;
+    metricsRequestSeq.current = requestSeq;
     setIsLoading(true);
     setError(null);
     void getAdminBetaMetrics(filters)
-      .then(setMetrics)
+      .then((data) => {
+        if (metricsRequestSeq.current !== requestSeq) return;
+        setMetrics(data);
+      })
       .catch((err: unknown) => {
+        if (metricsRequestSeq.current !== requestSeq) return;
         console.error('[admin-beta-metrics] metrics failed', err);
         setError('Impossible de charger les métriques bêta.');
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (metricsRequestSeq.current === requestSeq) {
+          setIsLoading(false);
+        }
+      });
   }, [filters]);
 
   useEffect(() => {
@@ -43,10 +54,10 @@ export default function AdminBetaMetricsPage() {
   useEffect(() => {
     let isMounted = true;
 
-    void listStores({ page: 1, limit: 100, isActive: true })
+    void loadActiveStoresForFilter()
       .then((data) => {
         if (isMounted) {
-          setStores(data.items);
+          setStores(data);
         }
       })
       .catch((err: unknown) => {
@@ -171,7 +182,6 @@ export default function AdminBetaMetricsPage() {
           size="md"
           className="self-end"
           onClick={applyFilters}
-          disabled={isLoading}
         >
           Appliquer
         </Button>
@@ -250,6 +260,25 @@ function formatRate(value: number): string {
     : percentage.toFixed(1).replace('.', ',');
 
   return `${formatted} %`;
+}
+
+async function loadActiveStoresForFilter(): Promise<Store[]> {
+  const limit = 50;
+  let page = 1;
+  let total = Number.POSITIVE_INFINITY;
+  const stores: Store[] = [];
+
+  while (stores.length < total) {
+    const data = await listStores({ page, limit, isActive: true });
+    stores.push(...data.items);
+    total = data.total;
+    if (data.items.length === 0) {
+      break;
+    }
+    page += 1;
+  }
+
+  return stores;
 }
 
 function formatDateTime(value: string | null): string {
