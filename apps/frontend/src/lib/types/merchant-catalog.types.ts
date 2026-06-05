@@ -87,10 +87,36 @@ export interface MerchantProductReferenceSearchResult {
 
 export interface MerchantProductReferenceSearchOptions {
   q?: string;
+  barcode?: string;
   brandId?: string;
   categorySlug?: string;
   page?: number;
   limit?: number;
+}
+
+export interface MerchantCatalogCsvImportItem {
+  line: number;
+  status: string;
+  merchant_product_id: string;
+  product_reference_id: string | null;
+  local_product_id: string | null;
+  name_fr: string;
+}
+
+export interface MerchantCatalogCsvImportError {
+  line: number;
+  code: string;
+  field: string | null;
+  message: string;
+}
+
+export interface MerchantCatalogCsvImportResult {
+  id: string;
+  created: number;
+  updated: number;
+  ignored: number;
+  items: MerchantCatalogCsvImportItem[];
+  errors: MerchantCatalogCsvImportError[];
 }
 
 export interface AddMerchantCatalogProductPayload {
