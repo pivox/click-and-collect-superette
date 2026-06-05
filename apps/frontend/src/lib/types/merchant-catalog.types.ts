@@ -148,6 +148,28 @@ export interface MerchantCatalogPhotoImportPreviewResult {
   items: MerchantCatalogPhotoImportPreviewItem[];
 }
 
+export interface MerchantCatalogPhotoImportCommitItemPayload {
+  line: number;
+  selected: boolean;
+  status?: MerchantCatalogPhotoImportPreviewItem['status'];
+  product_reference_id: string | null;
+  name_fr: string;
+  brand: string | null;
+  volume: string | null;
+  unit: string | null;
+  barcode: string | null;
+  price_tnd: string;
+  is_available: boolean;
+  is_visible: boolean;
+  category?: string | null;
+  merchant_note?: string | null;
+  pack_quantity?: number;
+}
+
+export interface MerchantCatalogPhotoImportCommitPayload {
+  items: MerchantCatalogPhotoImportCommitItemPayload[];
+}
+
 export interface AddMerchantCatalogProductPayload {
   product_reference_id: string;
   price_tnd: string;

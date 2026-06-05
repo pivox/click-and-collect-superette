@@ -390,6 +390,7 @@ export default function MerchantCatalogPage() {
         onClose={() => setIsCatalogWizardOpen(false)}
         onOpenReferenceSearch={() => setIsAddProductDrawerOpen(true)}
         onOpenLocalProduct={() => setIsLocalProductDrawerOpen(true)}
+        onCatalogChanged={() => void loadCatalog()}
       />
 
       <ProductReferenceSearchDrawer

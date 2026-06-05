@@ -8,8 +8,10 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
+use App\Dto\MerchantCatalogPhotoImportCommitInput;
 use App\Entity\Shop;
 use App\Processor\MerchantCatalogCsvImportProcessor;
+use App\Processor\MerchantCatalogPhotoImportCommitProcessor;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ApiResource(
@@ -29,6 +31,20 @@ use Symfony\Component\Serializer\Attribute\Groups;
             deserialize: false,
             normalizationContext: ['groups' => ['merchant_catalog_import:read']],
             processor: MerchantCatalogCsvImportProcessor::class,
+            security: "is_granted('ROLE_MERCHANT')",
+        ),
+        new Post(
+            uriTemplate: '/merchant/stores/{storeId}/catalog/photo-import/commit',
+            uriVariables: [
+                'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            input: MerchantCatalogPhotoImportCommitInput::class,
+            output: self::class,
+            status: 200,
+            read: false,
+            normalizationContext: ['groups' => ['merchant_catalog_import:read']],
+            processor: MerchantCatalogPhotoImportCommitProcessor::class,
             security: "is_granted('ROLE_MERCHANT')",
         ),
     ],

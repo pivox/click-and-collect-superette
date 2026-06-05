@@ -15,6 +15,7 @@ import type {
   MerchantCatalogListOptions,
   MerchantCatalogListResult,
   MerchantCatalogCsvImportResult,
+  MerchantCatalogPhotoImportCommitPayload,
   MerchantCatalogPhotoImportPreviewResult,
   MerchantCatalogPhotoImportSourceType,
   MerchantCatalogProduct,
@@ -284,6 +285,18 @@ export async function previewMerchantCatalogPhotoImport(
     `/api/merchant/stores/${storeId}/catalog/photo-import/preview`,
     formData,
     { headers: { Accept: 'application/json', 'Content-Type': undefined } },
+  );
+
+  return data;
+}
+
+export async function commitMerchantCatalogPhotoImport(
+  storeId: string,
+  payload: MerchantCatalogPhotoImportCommitPayload,
+): Promise<MerchantCatalogCsvImportResult> {
+  const { data } = await apiClient.post<MerchantCatalogCsvImportResult>(
+    `/api/merchant/stores/${storeId}/catalog/photo-import/commit`,
+    payload,
   );
 
   return data;

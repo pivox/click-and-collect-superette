@@ -6,6 +6,7 @@ import {
   addMerchantCatalogProduct,
   buildMerchantCatalogCsvTemplate,
   bulkUpdateMerchantProductAvailability,
+  commitMerchantCatalogPhotoImport,
   createMerchantCategory,
   createMerchantLocalProduct,
   importMerchantCatalogCsv,
@@ -41,6 +42,7 @@ vi.mock('@/lib/services/merchant-catalog.service', async () => {
     addMerchantCatalogProduct: vi.fn(),
     buildMerchantCatalogCsvTemplate: vi.fn(),
     bulkUpdateMerchantProductAvailability: vi.fn(),
+    commitMerchantCatalogPhotoImport: vi.fn(),
     createMerchantCategory: vi.fn(),
     createMerchantLocalProduct: vi.fn(),
     importMerchantCatalogCsv: vi.fn(),
@@ -179,6 +181,31 @@ describe('MerchantCatalogPage', () => {
       is_available: false,
       merchant_note: 'Rupture temporaire',
       merchant_product_ids: ['mp-1', 'mp-2'],
+    });
+    vi.mocked(commitMerchantCatalogPhotoImport).mockResolvedValue({
+      id: 'store-1',
+      created: 2,
+      updated: 0,
+      ignored: 0,
+      items: [
+        {
+          line: 1,
+          status: 'created',
+          merchant_product_id: 'mp-photo-1',
+          product_reference_id: 'ref-photo-1',
+          local_product_id: null,
+          name_fr: 'Lait demi-écrémé',
+        },
+        {
+          line: 2,
+          status: 'created',
+          merchant_product_id: 'mp-photo-2',
+          product_reference_id: null,
+          local_product_id: 'local-photo-2',
+          name_fr: 'Harissa maison',
+        },
+      ],
+      errors: [],
     });
     vi.mocked(addMerchantCatalogProduct).mockResolvedValue(undefined);
     vi.mocked(buildMerchantCatalogCsvTemplate).mockReturnValue('name_fr,brand,volume,unit,price_tnd,is_available,is_visible\n');
@@ -456,7 +483,7 @@ describe('MerchantCatalogPage', () => {
     expect(screen.getByText('3. Publier')).toBeInTheDocument();
   });
 
-  it('previews catalogue import from a photo in the guided assistant', async () => {
+  it('previews and commits catalogue import from a photo in the guided assistant', async () => {
     render(React.createElement(MerchantCatalogPage));
 
     fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
@@ -474,6 +501,33 @@ describe('MerchantCatalogPage', () => {
     expect(await screen.findByText('2 produits détectés · 1 match référentiel · 1 à créer localement')).toBeInTheDocument();
     expect(screen.getByText('Ligne 1 · Référentiel · Lait demi-écrémé · 1.650 TND')).toBeInTheDocument();
     expect(screen.getByText('Ligne 2 · À créer localement · Harissa maison · 4.500 TND')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Valider l’import photo' }));
+
+    await waitFor(() =>
+      expect(commitMerchantCatalogPhotoImport).toHaveBeenCalledWith('store-1', {
+        items: [
+          expect.objectContaining({
+            line: 1,
+            selected: true,
+            product_reference_id: 'ref-photo-1',
+            price_tnd: '1.650',
+            is_available: true,
+            is_visible: true,
+          }),
+          expect.objectContaining({
+            line: 2,
+            selected: true,
+            product_reference_id: null,
+            price_tnd: '4.500',
+            is_available: true,
+            is_visible: true,
+          }),
+        ],
+      }),
+    );
+    expect(await screen.findByText('2 créé, 0 mis à jour, 0 ignoré')).toBeInTheDocument();
+    await waitFor(() => expect(listMerchantCatalog).toHaveBeenCalledTimes(2));
   });
 
   it('imports a CSV file and shows a line-by-line report', async () => {
