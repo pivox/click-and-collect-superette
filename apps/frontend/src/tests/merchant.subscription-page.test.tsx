@@ -7,8 +7,10 @@ import {
   getMerchantBillingDocument,
   listMerchantBillingDocuments,
 } from '@/lib/services/billing-documents.service';
+import { listMerchantSubscriptionPayments } from '@/lib/services/subscription-payments.service';
 import { getMerchantSubscription } from '@/lib/services/subscriptions.service';
 import type { BillingDocument } from '@/lib/types/billing-documents.types';
+import type { SubscriptionPayment } from '@/lib/types/subscription-payments.types';
 import type { MerchantSubscription } from '@/lib/types/subscriptions.types';
 
 vi.mock('@/lib/services/subscriptions.service', () => ({
@@ -18,6 +20,10 @@ vi.mock('@/lib/services/subscriptions.service', () => ({
 vi.mock('@/lib/services/billing-documents.service', () => ({
   listMerchantBillingDocuments: vi.fn(),
   getMerchantBillingDocument: vi.fn(),
+}));
+
+vi.mock('@/lib/services/subscription-payments.service', () => ({
+  listMerchantSubscriptionPayments: vi.fn(),
 }));
 
 const SUBSCRIPTION: MerchantSubscription = {
@@ -59,6 +65,24 @@ const DOCUMENT: BillingDocument = {
   created_at: '2026-06-01T09:00:00+01:00',
 };
 
+const PAYMENT: SubscriptionPayment = {
+  id: 'payment-merchant',
+  billing_document_id: 'doc-merchant',
+  subscription_id: 'sub-merchant',
+  merchant_id: 'merchant-1',
+  merchant_email: 'ali@example.test',
+  amount_tnd: '50.000',
+  currency: 'TND',
+  method: 'cash',
+  reference: 'Caisse',
+  status: 'confirmed',
+  paid_at: '2026-06-04T10:30:00+01:00',
+  period_start: '2026-06-01T00:00:00+01:00',
+  period_end: '2026-07-01T00:00:00+01:00',
+  validated_by_admin_id: 'admin-1',
+  validated_at: '2026-06-04T10:35:00+01:00',
+};
+
 function renderWithLocale(children: React.ReactNode) {
   return render(<MerchantLocaleProvider>{children}</MerchantLocaleProvider>);
 }
@@ -76,6 +100,13 @@ describe('MerchantSubscriptionPage', () => {
       total: 1,
     });
     vi.mocked(getMerchantBillingDocument).mockResolvedValue(DOCUMENT);
+    vi.mocked(listMerchantSubscriptionPayments).mockResolvedValue({
+      id: 'merchant-subscription-payments',
+      items: [PAYMENT],
+      page: 1,
+      limit: 20,
+      total: 1,
+    });
   });
 
   it('renders the current merchant subscription in read-only mode', async () => {
@@ -84,10 +115,13 @@ describe('MerchantSubscriptionPage', () => {
     expect(await screen.findByText('Abonnement marchand')).toBeInTheDocument();
     expect(screen.getByText('Actif')).toBeInTheDocument();
     expect(screen.getByText('Standard')).toBeInTheDocument();
-    expect(screen.getAllByText('50,000 TND')).toHaveLength(2);
+    expect(screen.getAllByText('50,000 TND')).toHaveLength(3);
     expect(screen.getByText('01/07/2026')).toBeInTheDocument();
     expect(await screen.findByText('MS-2026-000001')).toBeInTheDocument();
     expect(screen.getByText('Document mensuel interne non fiscal')).toBeInTheDocument();
+    expect(await screen.findByText('Historique paiements')).toBeInTheDocument();
+    expect(screen.getByText('Espèces')).toBeInTheDocument();
+    expect(screen.getByText('Caisse')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /payer/i })).not.toBeInTheDocument();
   });
 

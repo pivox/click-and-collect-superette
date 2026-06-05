@@ -9,11 +9,13 @@ import {
   getMerchantBillingDocument,
   listMerchantBillingDocuments,
 } from '@/lib/services/billing-documents.service';
+import { listMerchantSubscriptionPayments } from '@/lib/services/subscription-payments.service';
 import { getMerchantSubscription } from '@/lib/services/subscriptions.service';
 import type {
   BillingDocument,
   BillingDocumentStatus,
 } from '@/lib/types/billing-documents.types';
+import type { SubscriptionPayment } from '@/lib/types/subscription-payments.types';
 import type {
   MerchantSubscription,
   SubscriptionLifecycle,
@@ -94,19 +96,24 @@ export default function MerchantSubscriptionPage() {
   const { locale, t } = useMerchantLocale();
   const [subscription, setSubscription] = useState<MerchantSubscription | null>(null);
   const [documents, setDocuments] = useState<BillingDocument[]>([]);
+  const [payments, setPayments] = useState<SubscriptionPayment[]>([]);
   const [documentDetail, setDocumentDetail] = useState<BillingDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDocumentsLoading, setIsDocumentsLoading] = useState(true);
+  const [isPaymentsLoading, setIsPaymentsLoading] = useState(true);
   const [isDocumentDetailLoading, setIsDocumentDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [documentsError, setDocumentsError] = useState<string | null>(null);
+  const [paymentsError, setPaymentsError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     setIsLoading(true);
     setIsDocumentsLoading(true);
+    setIsPaymentsLoading(true);
     setError(null);
     setDocumentsError(null);
+    setPaymentsError(null);
 
     getMerchantSubscription()
       .then((data) => {
@@ -134,6 +141,21 @@ export default function MerchantSubscriptionPage() {
       })
       .finally(() => {
         if (active) setIsDocumentsLoading(false);
+      });
+
+    listMerchantSubscriptionPayments()
+      .then((data) => {
+        if (!active) return;
+        setPayments(data.items);
+      })
+      .catch(() => {
+        if (!active) return;
+        setPaymentsError(locale === 'ar'
+          ? 'تعذر تحميل سجل المدفوعات.'
+          : 'Impossible de charger l’historique des paiements.');
+      })
+      .finally(() => {
+        if (active) setIsPaymentsLoading(false);
       });
 
     return () => {
@@ -313,6 +335,68 @@ export default function MerchantSubscriptionPage() {
           </section>
         </div>
       )}
+
+      <Card as="section" className="space-y-4">
+        <div>
+          <h2 className="text-lg font-black text-ink">
+            {locale === 'ar' ? 'سجل المدفوعات' : 'Historique paiements'}
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            {locale === 'ar'
+              ? 'قراءة فقط للمدفوعات اليدوية التي أكدها المسؤول.'
+              : 'Lecture seule des paiements manuels confirmés par l’admin.'}
+          </p>
+        </div>
+
+        {isPaymentsLoading && (
+          <p className="text-sm text-muted">
+            {locale === 'ar' ? 'جار تحميل المدفوعات…' : 'Chargement des paiements…'}
+          </p>
+        )}
+
+        {paymentsError && (
+          <div role="alert" className="rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
+            {paymentsError}
+          </div>
+        )}
+
+        {!isPaymentsLoading && !paymentsError && payments.length === 0 && (
+          <p className="text-sm text-muted">
+            {locale === 'ar' ? 'لا يوجد دفع يدوي مؤكد.' : 'Aucun paiement manuel confirmé.'}
+          </p>
+        )}
+
+        {!isPaymentsLoading && payments.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead className="border-b border-line text-left text-xs font-semibold uppercase text-muted">
+                <tr>
+                  <th className="py-2 pr-3">{locale === 'ar' ? 'التاريخ' : 'Date'}</th>
+                  <th className="py-2 pr-3">{locale === 'ar' ? 'الوسيلة' : 'Moyen'}</th>
+                  <th className="py-2 pr-3">{locale === 'ar' ? 'المبلغ' : 'Montant'}</th>
+                  <th className="py-2 pr-3">{locale === 'ar' ? 'المرجع' : 'Référence'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {payments.map((payment) => (
+                  <tr key={payment.id}>
+                    <td className="py-3 pr-3">{formatDate(payment.paid_at, locale)}</td>
+                    <td className="py-3 pr-3">
+                      {payment.method === 'cash'
+                        ? (locale === 'ar' ? 'نقدا' : 'Espèces')
+                        : (locale === 'ar' ? 'تحويل بنكي' : 'Virement')}
+                    </td>
+                    <td className="py-3 pr-3 tabular-nums">
+                      {formatMoney(payment.amount_tnd, payment.currency, locale)}
+                    </td>
+                    <td className="py-3 pr-3">{payment.reference ?? '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
