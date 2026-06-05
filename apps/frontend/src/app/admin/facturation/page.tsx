@@ -7,10 +7,12 @@ import {
   getAdminBillingDocument,
   listAdminBillingDocuments,
 } from '@/lib/services/billing-documents.service';
+import { createAdminSubscriptionPayment } from '@/lib/services/subscription-payments.service';
 import type {
   BillingDocument,
   BillingDocumentStatus,
 } from '@/lib/types/billing-documents.types';
+import type { SubscriptionPaymentMethod } from '@/lib/types/subscription-payments.types';
 
 const PAGE_SIZE = 20;
 
@@ -64,6 +66,12 @@ export default function AdminBillingDocumentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<BillingDocument | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<SubscriptionPaymentMethod>('cash');
+  const [paymentPaidAt, setPaymentPaidAt] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
+  const [isPaymentSaving, setIsPaymentSaving] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const detailRequestSeq = useRef(0);
 
   const load = useCallback(async () => {
@@ -94,6 +102,10 @@ export default function AdminBillingDocumentsPage() {
       const data = await getAdminBillingDocument(documentId);
       if (detailRequestSeq.current !== requestSeq) return;
       setDetail(data);
+      setPaymentMethod('cash');
+      setPaymentPaidAt('');
+      setPaymentReference('');
+      setPaymentError(null);
     } catch (err) {
       if (detailRequestSeq.current !== requestSeq) return;
       console.error('[admin-billing-documents] detail failed', err);
@@ -109,6 +121,45 @@ export default function AdminBillingDocumentsPage() {
     detailRequestSeq.current += 1;
     setDetail(null);
     setIsDetailLoading(false);
+    setIsPaymentConfirmOpen(false);
+    setPaymentError(null);
+  };
+
+  const paidAtToAtom = (value: string): string => {
+    if (!value) {
+      return new Date().toISOString();
+    }
+
+    return `${value}:00+01:00`;
+  };
+
+  const confirmPayment = async () => {
+    if (!detail) return;
+
+    setIsPaymentSaving(true);
+    setPaymentError(null);
+    try {
+      await createAdminSubscriptionPayment({
+        billing_document_id: detail.id,
+        amount_tnd: detail.amount_due_tnd,
+        method: paymentMethod,
+        paid_at: paidAtToAtom(paymentPaidAt),
+        reference: paymentReference,
+      });
+      const refreshed = await getAdminBillingDocument(detail.id);
+      setDetail(refreshed);
+      await load();
+      setIsPaymentConfirmOpen(false);
+    } catch (err: unknown) {
+      const status = typeof err === 'object' && err && 'response' in err
+        ? (err as { response?: { status?: number } }).response?.status
+        : undefined;
+      setPaymentError(status === 409
+        ? 'Ce document est déjà payé.'
+        : 'Impossible d’enregistrer le paiement manuel.');
+    } finally {
+      setIsPaymentSaving(false);
+    }
   };
 
   const columns: Column<BillingDocument>[] = [
@@ -221,6 +272,81 @@ export default function AdminBillingDocumentsPage() {
               <Detail label="Montant" value={formatMoney(detail.amount_tnd, detail.currency)} />
               <Detail label="Reste à payer" value={formatMoney(detail.amount_due_tnd, detail.currency)} />
             </dl>
+
+            {detail.status !== 'paid' && detail.status !== 'cancelled' && (
+              <form
+                className="mt-5 space-y-3 rounded-md border border-line bg-soft p-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setIsPaymentConfirmOpen(true);
+                }}
+              >
+                <h3 className="text-sm font-black text-ink">Paiement manuel</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="text-xs font-semibold text-muted">
+                    Moyen
+                    <select
+                      className="mt-1 w-full rounded-md border border-line bg-card px-3 py-2 text-sm text-ink"
+                      value={paymentMethod}
+                      onChange={(event) => setPaymentMethod(event.target.value as SubscriptionPaymentMethod)}
+                    >
+                      <option value="cash">Espèces</option>
+                      <option value="bank_transfer">Virement</option>
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-muted">
+                    Date de paiement
+                    <input
+                      type="datetime-local"
+                      className="mt-1 w-full rounded-md border border-line bg-card px-3 py-2 text-sm text-ink"
+                      value={paymentPaidAt}
+                      onChange={(event) => setPaymentPaidAt(event.target.value)}
+                    />
+                  </label>
+                </div>
+                <label className="block text-xs font-semibold text-muted">
+                  Référence
+                  <input
+                    type="text"
+                    className="mt-1 w-full rounded-md border border-line bg-card px-3 py-2 text-sm text-ink"
+                    value={paymentReference}
+                    onChange={(event) => setPaymentReference(event.target.value)}
+                  />
+                </label>
+                {paymentError && (
+                  <div role="alert" className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+                    {paymentError}
+                  </div>
+                )}
+                <Button type="submit" variant="primary" size="md" disabled={isPaymentSaving}>
+                  Enregistrer paiement
+                </Button>
+              </form>
+            )}
+          </section>
+        </div>
+      )}
+
+      {isPaymentConfirmOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+          <section className="w-full max-w-md rounded-md bg-card p-5 shadow-xl">
+            <h2 className="text-lg font-black text-ink">Confirmer le paiement manuel</h2>
+            <p className="mt-2 text-sm text-muted">
+              Cette action marque le document payé et peut réactiver l’abonnement marchand.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="ghost" size="md" onClick={() => setIsPaymentConfirmOpen(false)}>
+                Annuler
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => void confirmPayment()}
+                disabled={isPaymentSaving}
+              >
+                Confirmer le paiement manuel
+              </Button>
+            </div>
           </section>
         </div>
       )}
