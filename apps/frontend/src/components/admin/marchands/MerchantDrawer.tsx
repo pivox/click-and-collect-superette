@@ -153,7 +153,10 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
         )}
         {merchant && opsJournal && (
           <section className="rounded-md border border-line bg-soft px-4 py-3">
-            <h3 className="text-sm font-black text-ink">Journal opérationnel</h3>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-black text-ink">Journal opérationnel</h3>
+              <HealthBadge status={opsJournal.health_status} />
+            </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <Metric
                 label="Retards"
@@ -171,6 +174,34 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
                 detail={formatLastActivityDate(opsJournal.last_activity_at)}
               />
             </div>
+            <div className="mt-4 border-t border-line pt-3">
+              <h4 className="text-xs font-black uppercase text-muted">Vue santé</h4>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <Metric label="Commandes reçues" value={opsJournal.received_orders_count.toString()} />
+                <Metric
+                  label="Acceptées"
+                  value={opsJournal.accepted_orders_count.toString()}
+                  tone={opsJournal.accepted_orders_count > 0 ? 'success' : 'neutral'}
+                />
+                <Metric
+                  label="Refusées"
+                  value={opsJournal.rejected_orders_count.toString()}
+                  tone={opsJournal.rejected_orders_count > 0 ? 'danger' : 'neutral'}
+                />
+                <Metric label="Délai moyen" value={formatAverageResponse(opsJournal.average_response_minutes)} />
+                <Metric
+                  label="Incidents"
+                  value={`${opsJournal.open_incidents_count} / ${opsJournal.incidents_count}`}
+                  tone={opsJournal.open_incidents_count > 0 ? 'danger' : opsJournal.incidents_count > 0 ? 'warning' : 'neutral'}
+                />
+                <Metric
+                  label="Relances paiement"
+                  value={opsJournal.payment_reminders_count.toString()}
+                  tone={opsJournal.payment_reminders_count > 0 ? 'warning' : 'neutral'}
+                />
+                <Metric label="Actions admin" value={opsJournal.admin_actions_count.toString()} />
+              </div>
+            </div>
           </section>
         )}
       </div>
@@ -187,10 +218,11 @@ function Metric({
   label: string;
   value: string;
   detail?: string;
-  tone?: 'neutral' | 'warning' | 'danger';
+  tone?: 'neutral' | 'success' | 'warning' | 'danger';
 }) {
   const valueColor = {
     neutral: 'text-ink',
+    success: 'text-green-700',
     warning: 'text-amber-700',
     danger: 'text-status-cancel',
   }[tone];
@@ -202,6 +234,28 @@ function Metric({
       {detail && <div className="mt-1 text-xs text-muted">{detail}</div>}
     </div>
   );
+}
+
+function HealthBadge({ status }: { status: 'healthy' | 'watch' | 'risk' }) {
+  const config = {
+    healthy: { label: 'Sain', className: 'bg-green-50 text-green-700' },
+    watch: { label: 'À surveiller', className: 'bg-amber-50 text-amber-800' },
+    risk: { label: 'Risque', className: 'bg-status-cancel-bg text-status-cancel' },
+  }[status];
+
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${config.className}`}>
+      {config.label}
+    </span>
+  );
+}
+
+function formatAverageResponse(value: number | null): string {
+  if (null === value) {
+    return '—';
+  }
+
+  return `${value} min`;
 }
 
 function formatLastActivity(status: string | null): string {
