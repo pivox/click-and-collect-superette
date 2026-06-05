@@ -10,6 +10,7 @@ use App\Billing\PaymentReminderSchedule;
 use App\Entity\BillingDocument;
 use App\Entity\SubscriptionPaymentReminder;
 use App\Enum\BillingDocumentStatus;
+use App\Enum\SubscriptionLifecycle;
 use App\Enum\SubscriptionPaymentReminderChannel;
 use App\Repository\SubscriptionPaymentReminderRepository;
 
@@ -124,6 +125,14 @@ final readonly class BillingDocumentOutputFactory
         }
 
         if (\in_array($document->getStatus(), [BillingDocumentStatus::Paid, BillingDocumentStatus::Cancelled], true)) {
+            return 'not_applicable';
+        }
+
+        if (!\in_array($document->getSubscription()->getLifecycle(), [
+            SubscriptionLifecycle::Active,
+            SubscriptionLifecycle::PaymentDue,
+            SubscriptionLifecycle::GracePeriod,
+        ], true)) {
             return 'not_applicable';
         }
 

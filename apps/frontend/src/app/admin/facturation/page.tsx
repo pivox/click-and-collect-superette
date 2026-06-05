@@ -189,12 +189,13 @@ export default function AdminBillingDocumentsPage() {
   const contactOnWhatsapp = async () => {
     if (!detail) return;
 
-    const popup = window.open('', '_blank', 'noopener,noreferrer');
+    const popup = window.open('', '_blank');
     setIsWhatsappOpening(true);
     setWhatsappError(null);
     try {
       const contact = await openAdminBillingDocumentWhatsappContact(detail.id);
       if (popup) {
+        popup.opener = null;
         popup.location.href = contact.whatsapp_url;
       } else {
         window.open(contact.whatsapp_url, '_blank', 'noopener,noreferrer');

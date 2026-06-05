@@ -131,6 +131,7 @@ describe('AdminBillingDocumentsPage', () => {
 
   it('opens WhatsApp with a contextual message from document detail', async () => {
     const popup = {
+      opener: {},
       location: { href: '' },
       close: vi.fn(),
     } as unknown as Window;
@@ -142,8 +143,9 @@ describe('AdminBillingDocumentsPage', () => {
     const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
     fireEvent.click(within(detail).getByRole('button', { name: 'Contacter sur WhatsApp' }));
 
-    expect(openSpy).toHaveBeenCalledWith('', '_blank', 'noopener,noreferrer');
+    expect(openSpy).toHaveBeenCalledWith('', '_blank');
     await waitFor(() => expect(openAdminBillingDocumentWhatsappContact).toHaveBeenCalledWith('doc-1'));
+    expect(popup.opener).toBeNull();
     expect(popup.location.href).toBe('https://wa.me/21620123456?text=Bonjour');
     expect(getAdminBillingDocument).toHaveBeenLastCalledWith('doc-1');
 
