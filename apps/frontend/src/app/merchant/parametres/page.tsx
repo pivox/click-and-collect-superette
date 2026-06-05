@@ -5,6 +5,7 @@ import {
   Bell,
   CalendarClock,
   ChevronRight,
+  BadgeCheck,
   Languages,
   Lock,
   Palette,
@@ -71,6 +72,12 @@ const ACCOUNT_SHORTCUTS: Shortcut[] = [
     titleKey: 'merchant.settings.language.title',
     descriptionKey: 'merchant.settings.language.description',
     icon: Languages,
+  },
+  {
+    href: '/merchant/parametres/abonnement',
+    titleKey: 'merchant.settings.subscription.title',
+    descriptionKey: 'merchant.settings.subscription.description',
+    icon: BadgeCheck,
   },
 ];
 

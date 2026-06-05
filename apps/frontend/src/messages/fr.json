@@ -328,6 +328,19 @@
         "arabic": "العربية",
         "saved": "Langue mise à jour.",
         "back": "Paramètres"
+      },
+      "subscription": {
+        "title": "Abonnement marchand",
+        "description": "Consulter votre phase tarifaire, votre statut et la prochaine échéance.",
+        "pageSubtitle": "Lecture seule de l’abonnement plateforme de votre supérette.",
+        "loading": "Chargement de l’abonnement…",
+        "error": "Impossible de charger votre abonnement marchand.",
+        "back": "Paramètres",
+        "lifecycle": "Statut",
+        "monthlyPrice": "Montant mensuel",
+        "currentPeriod": "Période courante",
+        "nextBilling": "Prochaine échéance",
+        "nextPhase": "Prochain changement"
       }
     }
   },

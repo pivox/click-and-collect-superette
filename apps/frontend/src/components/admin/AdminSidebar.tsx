@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList,
+  BadgeCheck,
   LayoutDashboard,
   Package,
   Store,
@@ -22,6 +23,7 @@ interface AdminSidebarProps {
 const NAV_ITEMS: NavItem[] = [
   { href: '/admin/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/admin/marchands', label: 'Marchands', icon: Users },
+  { href: '/admin/abonnements', label: 'Abonnements', icon: BadgeCheck },
   { href: '/admin/superettes', label: 'Supérettes', icon: Store },
   {
     href: '/admin/referentiel/produits',
