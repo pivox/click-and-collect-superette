@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AlertTriangle, CheckCircle, CircleHelp } from 'lucide-react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
 import { StoreDrawer } from '@/components/admin/superettes/StoreDrawer';
+import { ActivationChecklistDialog } from '@/components/admin/superettes/ActivationChecklistDialog';
 import { Button } from '@/components/ui/Button';
 import { useSort } from '@/lib/hooks/useSort';
 import {
@@ -29,6 +30,11 @@ export default function SuperettesPage() {
   const [archiveTarget, setArchiveTarget] = useState<Store | null>(null);
   const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
   const [activationByStoreId, setActivationByStoreId] = useState<Record<string, StoreActivationChecklist | null>>({});
+  const [checklistTarget, setChecklistTarget] = useState<Store | null>(null);
+  const [checklistDetail, setChecklistDetail] = useState<StoreActivationChecklist | null>(null);
+  const [isChecklistLoading, setIsChecklistLoading] = useState(false);
+  const [checklistError, setChecklistError] = useState<string | null>(null);
+  const checklistRequestSeq = useRef(0);
 
   const { sorted, sortKey, sortDir, toggleSort } = useSort(stores);
 
@@ -115,6 +121,48 @@ export default function SuperettesPage() {
     }
   };
 
+  const openActivationChecklist = async (row: Store) => {
+    const requestSeq = checklistRequestSeq.current + 1;
+    checklistRequestSeq.current = requestSeq;
+    setChecklistTarget(row);
+    setChecklistError(null);
+
+    const cachedChecklist = activationByStoreId[row.id];
+    if (cachedChecklist) {
+      setChecklistDetail(cachedChecklist);
+      setIsChecklistLoading(false);
+      return;
+    }
+
+    setChecklistDetail(null);
+    setIsChecklistLoading(true);
+    try {
+      const checklist = await getStoreActivationChecklist(row.id);
+      if (checklistRequestSeq.current !== requestSeq) return;
+      setChecklistDetail(checklist);
+      setActivationByStoreId((current) => ({
+        ...current,
+        [row.id]: checklist,
+      }));
+    } catch (err) {
+      if (checklistRequestSeq.current !== requestSeq) return;
+      console.error('[superettes] activation checklist detail failed', err);
+      setChecklistError("Impossible de charger la checklist d'activation.");
+    } finally {
+      if (checklistRequestSeq.current === requestSeq) {
+        setIsChecklistLoading(false);
+      }
+    }
+  };
+
+  const closeActivationChecklist = () => {
+    checklistRequestSeq.current += 1;
+    setChecklistTarget(null);
+    setChecklistDetail(null);
+    setChecklistError(null);
+    setIsChecklistLoading(false);
+  };
+
   const columns: Column<Store>[] = [
     {
       key: 'name',
@@ -190,6 +238,13 @@ export default function SuperettesPage() {
       label: '',
       render: (row) => (
         <div className="flex justify-end gap-2">
+          <button
+            onClick={() => void openActivationChecklist(row)}
+            aria-label="Voir la checklist activation"
+            className="text-xs text-muted hover:text-ink"
+          >
+            Checklist
+          </button>
           <button
             onClick={() => { setEditTarget(row); setDrawerOpen(true); }}
             className="text-xs text-muted hover:text-ink"
@@ -274,6 +329,14 @@ export default function SuperettesPage() {
         message={`Archiver "${archiveTarget?.name}" ? La supérette ne sera plus visible pour les clients. Toutes les commandes actives seront annulées. Les données sont conservées et l'opération n'est pas réversible depuis l'interface.`}
         confirmLabel="Archiver"
         variant="warning"
+      />
+      <ActivationChecklistDialog
+        open={!!checklistTarget}
+        storeName={checklistTarget?.name ?? ''}
+        checklist={checklistDetail}
+        isLoading={isChecklistLoading}
+        error={checklistError}
+        onClose={closeActivationChecklist}
       />
     </div>
   );
