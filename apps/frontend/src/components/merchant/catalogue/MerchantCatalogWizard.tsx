@@ -1,10 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { previewMerchantCatalogPhotoImport } from '@/lib/services/merchant-catalog.service';
+import type {
+  MerchantCatalogPhotoImportPreviewResult,
+  MerchantCatalogPhotoImportSourceType,
+} from '@/lib/types/merchant-catalog.types';
 
 interface MerchantCatalogWizardProps {
   isOpen: boolean;
+  storeId: string | null;
   onClose: () => void;
   onOpenLocalProduct: () => void;
   onOpenReferenceSearch: () => void;
@@ -30,6 +36,7 @@ const steps = [
 
 export function MerchantCatalogWizard({
   isOpen,
+  storeId,
   onClose,
   onOpenLocalProduct,
   onOpenReferenceSearch,
@@ -37,6 +44,11 @@ export function MerchantCatalogWizard({
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [sourceType, setSourceType] = useState<MerchantCatalogPhotoImportSourceType>('receipt');
+  const [photoPreview, setPhotoPreview] = useState<MerchantCatalogPhotoImportPreviewResult | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [isPhotoSubmitting, setIsPhotoSubmitting] = useState(false);
 
   const handleOpenReferenceSearch = () => {
     onClose();
@@ -51,6 +63,22 @@ export function MerchantCatalogWizard({
   const handleClose = useCallback(() => {
     onClose();
   }, [onClose]);
+
+  const handlePhotoPreview = async () => {
+    if (!storeId || !photo) return;
+
+    setIsPhotoSubmitting(true);
+    setPhotoError(null);
+    setPhotoPreview(null);
+
+    try {
+      setPhotoPreview(await previewMerchantCatalogPhotoImport(storeId, photo, sourceType));
+    } catch {
+      setPhotoError("Impossible d'analyser cette photo.");
+    } finally {
+      setIsPhotoSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -159,8 +187,81 @@ export function MerchantCatalogWizard({
               Ajouter un produit connu
             </Button>
           </div>
+
+          <div className="mt-5 border-t border-line pt-4">
+            <div className="grid gap-3 md:grid-cols-[1fr_180px_auto] md:items-end">
+              <div>
+                <label htmlFor="catalog-photo-import" className="mb-1 block text-sm font-bold">
+                  Photo ticket, rayon ou liste papier
+                </label>
+                <input
+                  id="catalog-photo-import"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="block w-full rounded-md border border-line bg-white px-3 py-2 text-sm"
+                  onChange={(event) => {
+                    setPhoto(event.target.files?.[0] ?? null);
+                    setPhotoPreview(null);
+                    setPhotoError(null);
+                  }}
+                />
+              </div>
+              <div>
+                <label htmlFor="catalog-photo-source" className="mb-1 block text-sm font-bold">
+                  Source photo
+                </label>
+                <select
+                  id="catalog-photo-source"
+                  value={sourceType}
+                  onChange={(event) => setSourceType(event.target.value as MerchantCatalogPhotoImportSourceType)}
+                  className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm"
+                >
+                  <option value="receipt">Ticket</option>
+                  <option value="shelf">Rayon</option>
+                  <option value="cash_register_export">Export caisse</option>
+                  <option value="paper_list">Liste papier</option>
+                </select>
+              </div>
+              <Button
+                size="md"
+                onClick={() => void handlePhotoPreview()}
+                disabled={!storeId || !photo || isPhotoSubmitting}
+              >
+                {isPhotoSubmitting ? 'Analyse…' : 'Analyser la photo'}
+              </Button>
+            </div>
+
+            {photoError && (
+              <div className="mt-3 rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+                {photoError}
+              </div>
+            )}
+
+            {photoPreview && (
+              <div className="mt-4 rounded-md border border-line bg-white p-3">
+                <p className="text-sm font-black">
+                  {photoPreview.detected_count} produits détectés · {photoPreview.matched_reference_count} match référentiel · {photoPreview.local_candidate_count} à créer localement
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {photoPreview.items.map((item) => (
+                    <li key={`${item.line}-${item.name_fr}`} className="text-sm text-muted">
+                      Ligne {item.line} · {photoStatusLabel(item.status)} · {item.name_fr}
+                      {item.suggested_price_tnd ? ` · ${item.suggested_price_tnd} TND` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+function photoStatusLabel(status: MerchantCatalogPhotoImportPreviewResult['items'][number]['status']) {
+  if (status === 'matched_reference') return 'Référentiel';
+  if (status === 'already_in_catalog') return 'Déjà au catalogue';
+
+  return 'À créer localement';
 }

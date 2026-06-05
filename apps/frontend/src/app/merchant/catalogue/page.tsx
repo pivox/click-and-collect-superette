@@ -386,6 +386,7 @@ export default function MerchantCatalogPage() {
 
       <MerchantCatalogWizard
         isOpen={isCatalogWizardOpen}
+        storeId={merchant?.store.id ?? null}
         onClose={() => setIsCatalogWizardOpen(false)}
         onOpenReferenceSearch={() => setIsAddProductDrawerOpen(true)}
         onOpenLocalProduct={() => setIsLocalProductDrawerOpen(true)}
