@@ -12,7 +12,6 @@ use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
-use App\Repository\MerchantProductRepository;
 
 final class MerchantCatalogCsvImportApiTest extends FunctionalApiTestCase
 {
@@ -49,9 +48,8 @@ final class MerchantCatalogCsvImportApiTest extends FunctionalApiTestCase
         self::assertSame('NAME_FR_REQUIRED', $payload['errors'][0]['code']);
         self::assertCount(3, $payload['items']);
 
-        $merchantProductRepository = $this->entityManager->getRepository(MerchantProduct::class);
-        self::assertInstanceOf(MerchantProductRepository::class, $merchantProductRepository);
-        $createdReferenceOffer = $merchantProductRepository->findOneForShopAndProductReference($shop, $referenceByBarcode);
+        $createdReferenceOffer = $this->entityManager->getRepository(MerchantProduct::class)
+            ->findOneForShopAndProductReference($shop, $referenceByBarcode);
         self::assertInstanceOf(MerchantProduct::class, $createdReferenceOffer);
         self::assertSame('1.650', $createdReferenceOffer->getPriceTnd());
         self::assertTrue($createdReferenceOffer->isAvailable());

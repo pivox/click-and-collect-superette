@@ -39,7 +39,7 @@ final readonly class MerchantCatalogCsvImportOutput
      * @param list<MerchantCatalogCsvImportErrorOutput> $errors
      */
     public function __construct(
-        #[ApiProperty(identifier: false)]
+        #[ApiProperty(identifier: true)]
         #[Groups(['merchant_catalog_import:read'])]
         public string $id,
         #[Groups(['merchant_catalog_import:read'])]
