@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MerchantCatalogPage from '@/app/merchant/catalogue/page';
 import {
   addMerchantCatalogProduct,
@@ -149,7 +149,27 @@ function productReference(overrides: Partial<{
   };
 }
 
+const originalMediaDevices = navigator.mediaDevices;
+const originalBarcodeDetector = (window as Window & { BarcodeDetector?: unknown }).BarcodeDetector;
+
 describe('MerchantCatalogPage', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: originalMediaDevices,
+    });
+    if (originalBarcodeDetector === undefined) {
+      delete (window as Window & { BarcodeDetector?: unknown }).BarcodeDetector;
+    } else {
+      Object.defineProperty(window, 'BarcodeDetector', {
+        configurable: true,
+        value: originalBarcodeDetector,
+      });
+    }
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(bulkUpdateMerchantProductAvailability).mockResolvedValue({
@@ -483,6 +503,47 @@ describe('MerchantCatalogPage', () => {
       }),
     );
     expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('attaches the camera stream to the mounted video before barcode detection', async () => {
+    const stream = new MediaStream();
+    Object.defineProperty(stream, 'getTracks', {
+      configurable: true,
+      value: vi.fn(() => [{ stop: vi.fn() } as unknown as MediaStreamTrack]),
+    });
+    const getUserMedia = vi.fn().mockResolvedValue(stream);
+    const detect = vi.fn().mockResolvedValue([{ rawValue: '6191234567890' }]);
+    let pendingFrame: FrameRequestCallback | null = null;
+
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia },
+    });
+    class FakeBarcodeDetector {
+      detect = detect;
+    }
+    Object.defineProperty(window, 'BarcodeDetector', {
+      configurable: true,
+      value: FakeBarcodeDetector,
+    });
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      pendingFrame = callback;
+      return 1;
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir caméra' }));
+
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
+    const video = await screen.findByText('Caméra ouverte. Cadre le code-barres ou utilise la saisie manuelle.')
+      .then(() => document.querySelector('video'));
+    expect(video?.srcObject).toBe(stream);
+    pendingFrame?.(0);
+    await waitFor(() => expect(detect).toHaveBeenCalledWith(video));
+    await waitFor(() => expect(screen.getByLabelText('Code-barres')).toHaveValue('6191234567890'));
   });
 
   it('keeps tab focus inside the guided assistant', async () => {

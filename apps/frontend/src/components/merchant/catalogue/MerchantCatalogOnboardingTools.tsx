@@ -95,6 +95,68 @@ export function MerchantCatalogOnboardingTools({
     return () => stopCamera();
   }, [stopCamera]);
 
+  useEffect(() => {
+    if (!isCameraActive) return;
+
+    const video = videoRef.current;
+    const stream = cameraStreamRef.current;
+
+    if (!video || !stream) return;
+
+    let isCancelled = false;
+    video.srcObject = stream;
+    void video.play().catch(() => undefined);
+
+    const BarcodeDetector = (window as Window & { BarcodeDetector?: BarcodeDetectorConstructor })
+      .BarcodeDetector;
+    if (!BarcodeDetector) {
+      return () => {
+        isCancelled = true;
+        if (video.srcObject === stream) {
+          video.srcObject = null;
+        }
+      };
+    }
+
+    const detector = new BarcodeDetector({
+      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'],
+    });
+
+    const scan = async () => {
+      if (isCancelled || !cameraStreamRef.current) return;
+
+      try {
+        const results = await detector.detect(video);
+        const detected = normalizeBarcode(results[0]?.rawValue ?? '');
+        if (detected.length >= 8) {
+          setBarcode(detected);
+          stopCamera();
+          setCameraMessage(`Code-barres détecté : ${detected}`);
+          return;
+        }
+      } catch {
+        setCameraMessage('Lecture automatique indisponible. Saisis le code-barres manuellement.');
+        stopCamera();
+        return;
+      }
+
+      animationFrameRef.current = window.requestAnimationFrame(scan);
+    };
+
+    animationFrameRef.current = window.requestAnimationFrame(scan);
+
+    return () => {
+      isCancelled = true;
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      if (video.srcObject === stream) {
+        video.srcObject = null;
+      }
+    };
+  }, [isCameraActive, stopCamera]);
+
   const handleCsvFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     setSelectedCsvFile(file);
@@ -215,44 +277,6 @@ export function MerchantCatalogOnboardingTools({
       cameraStreamRef.current = stream;
       setIsCameraActive(true);
       setCameraMessage('Caméra ouverte. Cadre le code-barres ou utilise la saisie manuelle.');
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => undefined);
-      }
-
-      const BarcodeDetector = (window as Window & { BarcodeDetector?: BarcodeDetectorConstructor })
-        .BarcodeDetector;
-      if (!BarcodeDetector || !videoRef.current) {
-        return;
-      }
-
-      const detector = new BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'],
-      });
-
-      const scan = async () => {
-        if (!videoRef.current || !cameraStreamRef.current) return;
-
-        try {
-          const results = await detector.detect(videoRef.current);
-          const detected = normalizeBarcode(results[0]?.rawValue ?? '');
-          if (detected.length >= 8) {
-            setBarcode(detected);
-            stopCamera();
-            setCameraMessage(`Code-barres détecté : ${detected}`);
-            return;
-          }
-        } catch {
-          setCameraMessage('Lecture automatique indisponible. Saisis le code-barres manuellement.');
-          stopCamera();
-          return;
-        }
-
-        animationFrameRef.current = window.requestAnimationFrame(scan);
-      };
-
-      animationFrameRef.current = window.requestAnimationFrame(scan);
     } catch {
       setCameraMessage('Impossible d’ouvrir la caméra. Saisis le code-barres manuellement.');
       stopCamera();
