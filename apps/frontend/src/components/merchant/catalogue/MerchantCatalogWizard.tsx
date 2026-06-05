@@ -385,8 +385,19 @@ export function MerchantCatalogWizard({
             )}
 
             {photoCommitResult && (
-              <div role="status" className="mt-3 rounded-md bg-status-ready-bg px-3 py-2 text-sm text-status-ready">
-                {photoCommitResult.created} créé, {photoCommitResult.updated} mis à jour, {photoCommitResult.ignored} ignoré
+              <div className="mt-3 space-y-2 rounded-md bg-status-ready-bg px-3 py-2 text-sm">
+                <p role="status" className="text-status-ready">
+                  {photoCommitResult.created} créé, {photoCommitResult.updated} mis à jour, {photoCommitResult.ignored} ignoré
+                </p>
+                {photoCommitResult.errors.length > 0 && (
+                  <ul className="space-y-1 text-status-cancel">
+                    {photoCommitResult.errors.map((error) => (
+                      <li key={`${error.line}-${error.code}`}>
+                        Ligne {error.line} · {error.field ?? error.code} · {error.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>

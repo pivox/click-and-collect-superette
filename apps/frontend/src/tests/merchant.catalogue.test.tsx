@@ -530,6 +530,42 @@ describe('MerchantCatalogPage', () => {
     await waitFor(() => expect(listMerchantCatalog).toHaveBeenCalledTimes(2));
   });
 
+  it('shows photo import commit errors line by line', async () => {
+    vi.mocked(commitMerchantCatalogPhotoImport).mockResolvedValueOnce({
+      id: 'store-1',
+      created: 0,
+      updated: 0,
+      ignored: 0,
+      items: [],
+      errors: [
+        {
+          line: 2,
+          code: 'LOCAL_PRODUCT_FIELDS_REQUIRED',
+          field: null,
+          message: "La marque, le volume et l'unité sont obligatoires.",
+        },
+      ],
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
+
+    const photo = new File(['fake'], 'ticket.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Photo ticket, rayon ou liste papier'), {
+      target: { files: [photo] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Analyser la photo' }));
+    await screen.findByText('2 produits détectés · 1 match référentiel · 1 à créer localement');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Valider l’import photo' }));
+
+    expect(await screen.findByText('0 créé, 0 mis à jour, 0 ignoré')).toBeInTheDocument();
+    expect(
+      screen.getByText("Ligne 2 · LOCAL_PRODUCT_FIELDS_REQUIRED · La marque, le volume et l'unité sont obligatoires."),
+    ).toBeInTheDocument();
+  });
+
   it('imports a CSV file and shows a line-by-line report', async () => {
     render(React.createElement(MerchantCatalogPage));
 
