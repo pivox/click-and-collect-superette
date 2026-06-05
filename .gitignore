@@ -9,6 +9,23 @@
 
 # Local isolated worktrees
 .worktrees/
+.claude/worktrees/
+
+# Agent/tool local artifacts
+.playwright-mcp/
+.superpowers/
+.junie/
+.codex/hooks.json
+pr-output/
+
+# Local prompt/prototype scratch files
+prompts/
+/Kadhia-maquettes*.html
+/Kadhia-spec-dev.html
+/Définir parcours utilisateur front.pdf
+
+# Accidental root npm lockfile; frontend lockfile lives in apps/frontend/
+/package-lock.json
 
 # Python
 __pycache__/
