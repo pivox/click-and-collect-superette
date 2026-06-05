@@ -93,6 +93,9 @@ final readonly class AdminMerchantOutput
         #[Groups(['admin_merchant:read', 'admin_merchant_list:read'])]
         #[SerializedName('stores_count')]
         public int $storesCount,
+        #[Groups(['admin_merchant:read', 'admin_merchant_list:read'])]
+        #[SerializedName('subscription_lifecycle')]
+        public ?string $subscriptionLifecycle = null,
         #[Groups(['admin_merchant:read'])]
         #[SerializedName('ops_journal')]
         public ?AdminMerchantOpsJournalOutput $opsJournal = null,

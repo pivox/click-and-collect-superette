@@ -17,6 +17,10 @@ const PAGE_SIZE = 20;
 
 type StatusFilter = '' | 'active' | 'suspended';
 
+function isSubscriptionSuspended(merchant: Merchant): boolean {
+  return merchant.subscription_lifecycle === 'suspended';
+}
+
 export default function MarchandsPage() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -141,6 +145,11 @@ export default function MarchandsPage() {
           <div className="font-medium">{merchantName(row)}</div>
           <div className="text-xs text-muted">{row.email}</div>
           {row.phone && <div className="text-xs text-muted">{row.phone}</div>}
+          {isSubscriptionSuspended(row) && (
+            <div className="mt-1 inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+              Abonnement suspendu
+            </div>
+          )}
         </div>
       ),
     },
@@ -157,12 +166,14 @@ export default function MarchandsPage() {
       render: (row) => (
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-            row.is_active
+            isSubscriptionSuspended(row)
+              ? 'bg-amber-100 text-amber-800'
+              : row.is_active
               ? 'bg-green-100 text-green-700'
               : 'bg-status-cancel-bg text-status-cancel'
           }`}
         >
-          {row.is_active ? 'Actif' : 'Suspendu'}
+          {isSubscriptionSuspended(row) ? 'Suspension douce' : row.is_active ? 'Actif' : 'Suspendu'}
         </span>
       ),
     },

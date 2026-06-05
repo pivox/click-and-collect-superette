@@ -108,7 +108,7 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
         return AdminMerchantItemProvider::toOutput(
             $merchant,
             $this->adminMerchantRepository->countStores($merchant),
-            $this->operationalJournalCalculator->calculate($merchant),
+            opsJournal: $this->operationalJournalCalculator->calculate($merchant),
         );
     }
 

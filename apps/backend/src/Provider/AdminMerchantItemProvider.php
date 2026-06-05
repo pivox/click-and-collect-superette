@@ -10,6 +10,7 @@ use App\ApiResource\AdminMerchantOpsJournalOutput;
 use App\ApiResource\AdminMerchantOutput;
 use App\Entity\User;
 use App\Repository\AdminMerchantRepository;
+use App\Repository\SubscriptionRepository;
 use App\Service\MerchantOperationalJournalCalculator;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -21,6 +22,7 @@ final readonly class AdminMerchantItemProvider implements ProviderInterface
 {
     public function __construct(
         private AdminMerchantRepository $adminMerchantRepository,
+        private SubscriptionRepository $subscriptionRepository,
         private MerchantOperationalJournalCalculator $operationalJournalCalculator,
     ) {
     }
@@ -44,13 +46,15 @@ final readonly class AdminMerchantItemProvider implements ProviderInterface
         return self::toOutput(
             $merchant,
             $this->adminMerchantRepository->countStores($merchant),
-            $this->operationalJournalCalculator->calculate($merchant),
+            subscriptionLifecycle: $this->subscriptionRepository->findOneByMerchant($merchant)?->getLifecycle()->value,
+            opsJournal: $this->operationalJournalCalculator->calculate($merchant),
         );
     }
 
     public static function toOutput(
         User $merchant,
         int $storesCount,
+        ?string $subscriptionLifecycle = null,
         ?AdminMerchantOpsJournalOutput $opsJournal = null,
     ): AdminMerchantOutput {
         return new AdminMerchantOutput(
@@ -62,6 +66,7 @@ final readonly class AdminMerchantItemProvider implements ProviderInterface
             isActive: $merchant->isActive(),
             createdAt: $merchant->getCreatedAt()->format(\DateTimeInterface::ATOM),
             storesCount: $storesCount,
+            subscriptionLifecycle: $subscriptionLifecycle,
             opsJournal: $opsJournal,
         );
     }

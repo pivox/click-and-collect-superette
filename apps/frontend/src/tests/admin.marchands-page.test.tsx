@@ -23,6 +23,7 @@ const MERCHANT: Merchant = {
   last_name: 'Ben Salah',
   phone: '+21600000001',
   is_active: true,
+  subscription_lifecycle: null,
   created_at: '2026-06-01T10:00:00+01:00',
   stores_count: 2,
 };
@@ -34,6 +35,7 @@ const SECOND_MERCHANT: Merchant = {
   last_name: 'Kacem',
   phone: '+21600000002',
   is_active: true,
+  subscription_lifecycle: null,
   created_at: '2026-06-02T10:00:00+01:00',
   stores_count: 1,
 };
@@ -87,6 +89,35 @@ describe('MarchandsPage', () => {
     expect(within(journal!).getByText('2')).toBeInTheDocument();
     expect(within(journal!).getByText('Dernière activité')).toBeInTheDocument();
     expect(within(journal!).getByText('Annulée')).toBeInTheDocument();
+  });
+
+  it('affiche le statut de suspension abonnement dans la fiche marchand admin', async () => {
+    vi.mocked(listMerchants).mockResolvedValue({
+      id: 'admin-merchants',
+      items: [{ ...MERCHANT, subscription_lifecycle: 'suspended' }],
+      page: 1,
+      limit: 20,
+      total: 1,
+    });
+    vi.mocked(getMerchant).mockResolvedValue({
+      ...MERCHANT,
+      subscription_lifecycle: 'suspended',
+      ops_journal: {
+        overdue_orders_count: 0,
+        cancelled_orders_count: 0,
+        last_activity_at: null,
+        last_activity_status: null,
+      },
+    });
+
+    render(<MarchandsPage />);
+
+    expect(await screen.findByText('Abonnement suspendu')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Modifier/i }));
+
+    expect(await screen.findByText('Suspension douce abonnement')).toBeInTheDocument();
+    expect(screen.getByText('Les nouvelles Kadhia sont bloquées, le catalogue et l’historique restent conservés.')).toBeInTheDocument();
   });
 
   it('ignore les réponses détail marchand obsolètes', async () => {

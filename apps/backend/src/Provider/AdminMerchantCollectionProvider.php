@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\AdminMerchantListOutput;
 use App\Repository\AdminMerchantRepository;
+use App\Repository\SubscriptionRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -22,6 +23,7 @@ final readonly class AdminMerchantCollectionProvider implements ProviderInterfac
 
     public function __construct(
         private AdminMerchantRepository $adminMerchantRepository,
+        private SubscriptionRepository $subscriptionRepository,
         private RequestStack $requestStack,
     ) {
     }
@@ -40,10 +42,12 @@ final readonly class AdminMerchantCollectionProvider implements ProviderInterfac
 
         $merchants = $this->adminMerchantRepository->findPaginated($limit, $offset);
         $storesCounts = $this->adminMerchantRepository->countStoresGrouped($merchants);
+        $subscriptions = $this->subscriptionRepository->findByMerchantsIndexed($merchants);
         $items = array_map(
             static fn ($merchant) => AdminMerchantItemProvider::toOutput(
                 $merchant,
                 $storesCounts[$merchant->getId()->toRfc4122()] ?? 0,
+                subscriptionLifecycle: ($subscriptions[$merchant->getId()->toRfc4122()] ?? null)?->getLifecycle()->value,
             ),
             $merchants,
         );

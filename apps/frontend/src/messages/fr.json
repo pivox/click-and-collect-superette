@@ -196,6 +196,7 @@
         "kadhiaEmpty": "Ta Kadhia est vide. Ajoute des produits avant d'envoyer.",
         "productUnavailable": "Un produit de ta Kadhia n'est plus disponible. Reviens à ta Kadhia pour le retirer.",
         "kadhiaNotFound": "Aucune Kadhia active trouvée. Retourne au catalogue pour en créer une.",
+        "storeSuspended": "Cette supérette ne prend temporairement plus de nouvelles Kadhia. Votre Kadhia reste disponible.",
         "generic": "La commande n'a pas pu être envoyée. Ta Kadhia est conservée, tu peux réessayer."
       }
     },
