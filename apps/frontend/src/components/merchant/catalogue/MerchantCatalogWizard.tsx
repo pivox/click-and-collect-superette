@@ -47,6 +47,8 @@ const steps = [
   },
 ];
 
+const normalizePhotoImportPrice = (value: string): string => value.trim().replace(',', '.');
+
 export function MerchantCatalogWizard({
   isOpen,
   storeId,
@@ -137,7 +139,7 @@ export function MerchantCatalogWizard({
           volume: item.volume,
           unit: item.unit,
           barcode: item.barcode,
-          price_tnd: item.price_tnd,
+          price_tnd: normalizePhotoImportPrice(item.price_tnd),
           is_available: item.is_available,
           is_visible: item.is_visible,
           merchant_note: null,

@@ -502,6 +502,7 @@ describe('MerchantCatalogPage', () => {
     expect(screen.getByText('Ligne 1 · Référentiel · Lait demi-écrémé · 1.650 TND')).toBeInTheDocument();
     expect(screen.getByText('Ligne 2 · À créer localement · Harissa maison · 4.500 TND')).toBeInTheDocument();
 
+    fireEvent.change(screen.getAllByLabelText('Prix TND')[0], { target: { value: '1,700' } });
     fireEvent.click(screen.getByRole('button', { name: 'Valider l’import photo' }));
 
     await waitFor(() =>
@@ -511,7 +512,7 @@ describe('MerchantCatalogPage', () => {
             line: 1,
             selected: true,
             product_reference_id: 'ref-photo-1',
-            price_tnd: '1.650',
+            price_tnd: '1.700',
             is_available: true,
             is_visible: true,
           }),
