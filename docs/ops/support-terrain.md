@@ -67,7 +67,7 @@ Ce runbook couvre les situations support liees aux Kadhia, au retrait, aux incid
 | Type incident | `customer_absent` |
 | Statut initial | `open`, puis `in_progress` pendant le contact. |
 | Action recommandee | Contacter le client, confirmer s'il souhaite un nouveau rendez-vous, puis demander au marchand de garder ou d'annuler selon faisabilite terrain. |
-| Statut commande | Garder `ready` si retrait replanifie rapidement ; passer a `cancelled` seulement si le marchand confirme l'annulation. |
+| Statut commande | Garder `ready` si retrait replanifie rapidement. Ne pas forcer `cancelled` sur `ready` ou `pickup_pending` : ces statuts ne sont pas annulables par les outils livres. Escalader si une correction exceptionnelle est necessaire. |
 | Canal | Telephone/WhatsApp manuel si disponible ; sinon email client si connu. |
 | Cloture | `closed` avec note : client contacte ou non, nouvelle heure de retrait ou annulation. |
 
@@ -91,7 +91,7 @@ Ce runbook couvre les situations support liees aux Kadhia, au retrait, aux incid
 | Type incident | `missing_product` |
 | Statut initial | `open` |
 | Action recommandee | Demander au marchand de proposer une acceptation partielle si le parcours le permet, ou de refuser la commande avec motif clair. |
-| Statut commande | `partially_accepted` si le client peut ajuster ; `rejected` si aucun remplacement acceptable ; `cancelled` seulement si la commande etait deja engagee puis abandonnee. |
+| Statut commande | `partially_accepted` si le client peut ajuster ; `rejected` si aucun remplacement acceptable avant preparation. Si la commande est deja `preparing`, `ready` ou `pickup_pending`, garder le statut courant et documenter le remplacement ou la decision support hors outil. |
 | Canal | Contact marchand d'abord, client ensuite si decision impacte la Kadhia. |
 | Cloture | `closed` apres acceptation partielle, refus motive ou annulation notee. |
 
@@ -115,7 +115,7 @@ Ce runbook couvre les situations support liees aux Kadhia, au retrait, aux incid
 | Type incident | `late_cancellation` |
 | Statut initial | `open` |
 | Action recommandee | Identifier qui annule et pourquoi. Confirmer avec l'autre partie si la Kadhia a deja ete preparee. |
-| Statut commande | `cancelled` si l'annulation est acceptee ; garder le statut courant tant que la decision n'est pas confirmee. |
+| Statut commande | `cancelled` uniquement si la commande est encore annulable par le parcours livre (`draft`, `submitted`, `accepted`). Pour `preparing`, `ready` ou `pickup_pending`, garder le statut courant, documenter l'incident et organiser le retrait, le remplacement ou une decision support hors outil. |
 | Canal | Telephone/WhatsApp pour eviter une attente en magasin ; note incident obligatoire. |
 | Cloture | `closed` avec cause : client indisponible, marchand indisponible, produit manquant, autre. |
 
