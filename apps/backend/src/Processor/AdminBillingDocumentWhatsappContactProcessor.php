@@ -52,9 +52,6 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
         }
 
         $document = $this->resolveDocument((string) ($uriVariables['billingDocumentId'] ?? ''));
-        if (!$this->isRelaunchable($document)) {
-            throw new ConflictHttpException('BILLING_DOCUMENT_NOT_RELAUNCHABLE');
-        }
 
         $committed = false;
         $phone = null;
@@ -63,6 +60,7 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
         $this->entityManager->beginTransaction();
         try {
             $this->entityManager->refresh($document, LockMode::PESSIMISTIC_WRITE);
+            $this->entityManager->refresh($document->getSubscription(), LockMode::PESSIMISTIC_WRITE);
             if (!$this->isRelaunchable($document)) {
                 throw new ConflictHttpException('BILLING_DOCUMENT_NOT_RELAUNCHABLE');
             }

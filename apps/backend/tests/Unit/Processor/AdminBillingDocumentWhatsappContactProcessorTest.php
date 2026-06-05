@@ -47,7 +47,7 @@ final class AdminBillingDocumentWhatsappContactProcessorTest extends TestCase
             ->method('findOneForDocumentStageChannel')
             ->with($document, 'j_plus_7', SubscriptionPaymentReminderChannel::WhatsappManual)
             ->willReturnCallback(static function () use (&$events): ?SubscriptionPaymentReminder {
-                self::assertContains('refresh', $events);
+                self::assertContains('subscription-refresh', $events);
                 $events[] = 'trace-read';
 
                 return null;
@@ -60,12 +60,20 @@ final class AdminBillingDocumentWhatsappContactProcessorTest extends TestCase
                 $events[] = 'begin';
             });
         $entityManager
-            ->expects(self::once())
+            ->expects(self::exactly(2))
             ->method('refresh')
-            ->with($document, LockMode::PESSIMISTIC_WRITE)
-            ->willReturnCallback(static function () use (&$events): void {
-                self::assertContains('begin', $events);
-                $events[] = 'refresh';
+            ->willReturnCallback(static function (object $entity, LockMode $lockMode) use ($document, &$events): void {
+                self::assertSame(LockMode::PESSIMISTIC_WRITE, $lockMode);
+                if ($entity === $document) {
+                    self::assertContains('begin', $events);
+                    $events[] = 'document-refresh';
+
+                    return;
+                }
+
+                self::assertSame($document->getSubscription(), $entity);
+                self::assertContains('document-refresh', $events);
+                $events[] = 'subscription-refresh';
             });
         $entityManager
             ->expects(self::exactly(2))
@@ -109,7 +117,7 @@ final class AdminBillingDocumentWhatsappContactProcessorTest extends TestCase
 
         self::assertSame($documentId, $output->billingDocumentId);
         self::assertSame('21620123456', $output->phone);
-        self::assertSame(['begin', 'refresh', 'trace-read', 'reminder-persist', 'audit-persist', 'flush', 'commit'], $events);
+        self::assertSame(['begin', 'document-refresh', 'subscription-refresh', 'trace-read', 'reminder-persist', 'audit-persist', 'flush', 'commit'], $events);
     }
 
     private function document(): BillingDocument

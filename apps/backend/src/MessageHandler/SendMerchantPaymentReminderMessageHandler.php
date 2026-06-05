@@ -61,6 +61,7 @@ final readonly class SendMerchantPaymentReminderMessageHandler
         $this->entityManager->beginTransaction();
         try {
             $this->entityManager->refresh($document, LockMode::PESSIMISTIC_WRITE);
+            $this->entityManager->refresh($document->getSubscription(), LockMode::PESSIMISTIC_WRITE);
             if (!$this->isRelaunchable($document)) {
                 $this->entityManager->commit();
                 $committed = true;

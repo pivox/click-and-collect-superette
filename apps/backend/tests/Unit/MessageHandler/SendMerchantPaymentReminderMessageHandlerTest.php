@@ -176,7 +176,13 @@ final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
         $reminderRepository->expects(self::never())->method('findOneForDocumentStageChannel');
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects(self::once())->method('beginTransaction');
-        $entityManager->expects(self::once())->method('refresh')->with($document, LockMode::PESSIMISTIC_WRITE);
+        $entityManager
+            ->expects(self::exactly(2))
+            ->method('refresh')
+            ->willReturnCallback(static function (object $entity, LockMode $lockMode) use ($document): void {
+                self::assertSame(LockMode::PESSIMISTIC_WRITE, $lockMode);
+                self::assertTrue($entity === $document || $entity === $document->getSubscription());
+            });
         $entityManager->expects(self::once())->method('commit');
         $entityManager->expects(self::never())->method('persist');
         $entityManager->expects(self::never())->method('flush');
@@ -226,7 +232,7 @@ final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
             ->expects(self::once())
             ->method('findOneForDocumentStageChannel')
             ->willReturnCallback(static function () use (&$events): ?SubscriptionPaymentReminder {
-                self::assertContains('refresh', $events);
+                self::assertContains('subscription-refresh', $events);
                 $events[] = 'trace-read';
 
                 return null;
@@ -239,12 +245,20 @@ final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
                 $events[] = 'begin';
             });
         $entityManager
-            ->expects(self::once())
+            ->expects(self::exactly(2))
             ->method('refresh')
-            ->with($document, LockMode::PESSIMISTIC_WRITE)
-            ->willReturnCallback(static function () use (&$events): void {
-                self::assertContains('begin', $events);
-                $events[] = 'refresh';
+            ->willReturnCallback(static function (object $entity, LockMode $lockMode) use ($document, &$events): void {
+                self::assertSame(LockMode::PESSIMISTIC_WRITE, $lockMode);
+                if ($entity === $document) {
+                    self::assertContains('begin', $events);
+                    $events[] = 'document-refresh';
+
+                    return;
+                }
+
+                self::assertSame($document->getSubscription(), $entity);
+                self::assertContains('document-refresh', $events);
+                $events[] = 'subscription-refresh';
             });
         $entityManager
             ->expects(self::once())
@@ -280,7 +294,7 @@ final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
             documentNumber: 'MS-2026-000401',
         ));
 
-        self::assertSame(['begin', 'refresh', 'trace-read', 'send', 'flush', 'commit'], $events);
+        self::assertSame(['begin', 'document-refresh', 'subscription-refresh', 'trace-read', 'send', 'flush', 'commit'], $events);
     }
 
     private function document(): BillingDocument
