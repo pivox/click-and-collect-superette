@@ -25,7 +25,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 final class AdminBillingDocumentWhatsappContactProcessorTest extends TestCase
 {
-    public function testProcessorLocksDocumentBeforeTracingWhatsappContactAndAuditLog(): void
+    public function testProcessorRefreshesDocumentBeforeTracingWhatsappContactAndAuditLog(): void
     {
         $events = [];
         $admin = (new User())
@@ -47,7 +47,7 @@ final class AdminBillingDocumentWhatsappContactProcessorTest extends TestCase
             ->method('findOneForDocumentStageChannel')
             ->with($document, 'j_plus_7', SubscriptionPaymentReminderChannel::WhatsappManual)
             ->willReturnCallback(static function () use (&$events): ?SubscriptionPaymentReminder {
-                self::assertContains('lock', $events);
+                self::assertContains('refresh', $events);
                 $events[] = 'trace-read';
 
                 return null;
@@ -61,11 +61,11 @@ final class AdminBillingDocumentWhatsappContactProcessorTest extends TestCase
             });
         $entityManager
             ->expects(self::once())
-            ->method('lock')
+            ->method('refresh')
             ->with($document, LockMode::PESSIMISTIC_WRITE)
             ->willReturnCallback(static function () use (&$events): void {
                 self::assertContains('begin', $events);
-                $events[] = 'lock';
+                $events[] = 'refresh';
             });
         $entityManager
             ->expects(self::exactly(2))
@@ -109,7 +109,7 @@ final class AdminBillingDocumentWhatsappContactProcessorTest extends TestCase
 
         self::assertSame($documentId, $output->billingDocumentId);
         self::assertSame('21620123456', $output->phone);
-        self::assertSame(['begin', 'lock', 'trace-read', 'reminder-persist', 'audit-persist', 'flush', 'commit'], $events);
+        self::assertSame(['begin', 'refresh', 'trace-read', 'reminder-persist', 'audit-persist', 'flush', 'commit'], $events);
     }
 
     private function document(): BillingDocument

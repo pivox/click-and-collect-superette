@@ -52,31 +52,30 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
         }
 
         $document = $this->resolveDocument((string) ($uriVariables['billingDocumentId'] ?? ''));
-        if (!\in_array($document->getStatus(), [BillingDocumentStatus::Issued, BillingDocumentStatus::Overdue], true)) {
+        if (!$this->isRelaunchable($document)) {
             throw new ConflictHttpException('BILLING_DOCUMENT_NOT_RELAUNCHABLE');
         }
-        if (!\in_array($document->getSubscription()->getLifecycle(), [
-            SubscriptionLifecycle::Active,
-            SubscriptionLifecycle::PaymentDue,
-            SubscriptionLifecycle::GracePeriod,
-        ], true)) {
-            throw new ConflictHttpException('BILLING_DOCUMENT_NOT_RELAUNCHABLE');
-        }
-
-        $phone = $this->normalizePhone($document->getMerchant()->getPhone());
-        if (null === $phone) {
-            throw new ConflictHttpException('BILLING_DOCUMENT_MERCHANT_PHONE_MISSING');
-        }
-
-        $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-        $stage = $this->stageForDocument($document, $now);
-        $message = $this->message($document);
-        $whatsappUrl = \sprintf('https://wa.me/%s?text=%s', $phone, rawurlencode($message));
 
         $committed = false;
+        $phone = null;
+        $message = null;
+        $whatsappUrl = null;
         $this->entityManager->beginTransaction();
         try {
-            $this->entityManager->lock($document, LockMode::PESSIMISTIC_WRITE);
+            $this->entityManager->refresh($document, LockMode::PESSIMISTIC_WRITE);
+            if (!$this->isRelaunchable($document)) {
+                throw new ConflictHttpException('BILLING_DOCUMENT_NOT_RELAUNCHABLE');
+            }
+
+            $phone = $this->normalizePhone($document->getMerchant()->getPhone());
+            if (null === $phone) {
+                throw new ConflictHttpException('BILLING_DOCUMENT_MERCHANT_PHONE_MISSING');
+            }
+
+            $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+            $stage = $this->stageForDocument($document, $now);
+            $message = $this->message($document);
+            $whatsappUrl = \sprintf('https://wa.me/%s?text=%s', $phone, rawurlencode($message));
             $reminder = $this->reminderRepository->findOneForDocumentStageChannel(
                 $document,
                 $stage,
@@ -127,6 +126,17 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
         }
 
         return $document;
+    }
+
+    private function isRelaunchable(BillingDocument $document): bool
+    {
+        return \in_array($document->getStatus(), [BillingDocumentStatus::Issued, BillingDocumentStatus::Overdue], true)
+            && bccomp($document->getAmountDueTnd(), '0.000', 3) > 0
+            && \in_array($document->getSubscription()->getLifecycle(), [
+                SubscriptionLifecycle::Active,
+                SubscriptionLifecycle::PaymentDue,
+                SubscriptionLifecycle::GracePeriod,
+            ], true);
     }
 
     private function normalizePhone(?string $phone): ?string
