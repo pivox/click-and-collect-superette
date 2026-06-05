@@ -13,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: SubscriptionPaymentRepository::class)]
 #[ORM\Table(name: 'subscription_payments')]
-#[ORM\Index(name: 'IDX_SUBSCRIPTION_PAYMENTS_DOCUMENT', columns: ['billing_document_id'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_SUBSCRIPTION_PAYMENTS_DOCUMENT', columns: ['billing_document_id'])]
 #[ORM\Index(name: 'IDX_SUBSCRIPTION_PAYMENTS_SUBSCRIPTION', columns: ['subscription_id'])]
 #[ORM\Index(name: 'IDX_SUBSCRIPTION_PAYMENTS_MERCHANT', columns: ['merchant_id'])]
 #[ORM\Index(name: 'IDX_SUBSCRIPTION_PAYMENTS_STATUS', columns: ['status'])]

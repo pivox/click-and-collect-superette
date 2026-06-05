@@ -102,6 +102,28 @@ final class AdminSubscriptionPaymentApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('SUBSCRIPTION_PAYMENT_DOCUMENT_ALREADY_PAID', (string) $response->getContent());
     }
 
+    public function testAdminPaymentOnCancelledDocumentReturns409(): void
+    {
+        $admin = $this->createUser('admin-payment-cancelled@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-payment-cancelled@example.test', ['ROLE_MERCHANT']);
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $document = $this->createBillingDocument($subscription, 'MS-2026-000104', '10.000');
+        $document->cancel('Erreur de période', new \DateTimeImmutable('2026-06-02T09:00:00+01:00'));
+        $this->entityManager->persist($subscription);
+        $this->entityManager->persist($document);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', '/api/admin/subscription-payments', [
+            'billing_document_id' => $document->getId()->toRfc4122(),
+            'amount_tnd' => '10.000',
+            'method' => 'cash',
+            'paid_at' => '2026-06-04T10:30:00+01:00',
+        ], $admin);
+
+        self::assertSame(409, $response->getStatusCode());
+        self::assertStringContainsString('SUBSCRIPTION_PAYMENT_DOCUMENT_CANCELLED', (string) $response->getContent());
+    }
+
     public function testAdminPaymentRejectsInvalidPayload(): void
     {
         $admin = $this->createUser('admin-payment-invalid@example.test', ['ROLE_ADMIN']);

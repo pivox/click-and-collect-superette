@@ -36,7 +36,7 @@ final class Version20260605130000 extends AbstractMigration
             updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL,
             PRIMARY KEY(id)
         )');
-        $this->addSql('CREATE INDEX IDX_SUBSCRIPTION_PAYMENTS_DOCUMENT ON subscription_payments (billing_document_id)');
+        $this->addSql('CREATE UNIQUE INDEX UNIQ_SUBSCRIPTION_PAYMENTS_DOCUMENT ON subscription_payments (billing_document_id)');
         $this->addSql('CREATE INDEX IDX_SUBSCRIPTION_PAYMENTS_SUBSCRIPTION ON subscription_payments (subscription_id)');
         $this->addSql('CREATE INDEX IDX_SUBSCRIPTION_PAYMENTS_MERCHANT ON subscription_payments (merchant_id)');
         $this->addSql('CREATE INDEX IDX_SUBSCRIPTION_PAYMENTS_STATUS ON subscription_payments (status)');

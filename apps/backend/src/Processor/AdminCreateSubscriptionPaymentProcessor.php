@@ -17,6 +17,7 @@ use App\Enum\SubscriptionPaymentMethod;
 use App\Provider\SubscriptionPaymentOutputFactory;
 use App\Repository\BillingDocumentRepository;
 use App\Service\AdminAuditLogger;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -63,6 +64,9 @@ final readonly class AdminCreateSubscriptionPaymentProcessor implements Processo
         if (BillingDocumentStatus::Paid === $document->getStatus()) {
             throw new ConflictHttpException('SUBSCRIPTION_PAYMENT_DOCUMENT_ALREADY_PAID');
         }
+        if (BillingDocumentStatus::Cancelled === $document->getStatus()) {
+            throw new ConflictHttpException('SUBSCRIPTION_PAYMENT_DOCUMENT_CANCELLED');
+        }
         if (SubscriptionLifecycle::Cancelled === $subscription->getLifecycle()) {
             throw new ConflictHttpException('SUBSCRIPTION_PAYMENT_SUBSCRIPTION_CANCELLED');
         }
@@ -91,20 +95,24 @@ final readonly class AdminCreateSubscriptionPaymentProcessor implements Processo
             $subscription->setLifecycle(SubscriptionLifecycle::Active);
         }
 
-        $this->entityManager->persist($payment);
-        $this->auditLogger->log(
-            action: 'subscription_payment.confirmed',
-            resourceType: 'subscription_payment',
-            resourceId: $payment->getId()->toRfc4122(),
-            summary: \sprintf('Paiement manuel %s TND confirmé pour %s.', $amountTnd, $document->getDocumentNumber()),
-            metadata: [
-                'billing_document_id' => $document->getId()->toRfc4122(),
-                'subscription_id' => $subscription->getId()->toRfc4122(),
-                'merchant_id' => $document->getMerchant()->getId()->toRfc4122(),
-                'method' => $method->value,
-            ],
-        );
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->persist($payment);
+            $this->auditLogger->log(
+                action: 'subscription_payment.confirmed',
+                resourceType: 'subscription_payment',
+                resourceId: $payment->getId()->toRfc4122(),
+                summary: \sprintf('Paiement manuel %s TND confirmé pour %s.', $amountTnd, $document->getDocumentNumber()),
+                metadata: [
+                    'billing_document_id' => $document->getId()->toRfc4122(),
+                    'subscription_id' => $subscription->getId()->toRfc4122(),
+                    'merchant_id' => $document->getMerchant()->getId()->toRfc4122(),
+                    'method' => $method->value,
+                ],
+            );
+            $this->entityManager->flush();
+        } catch (UniqueConstraintViolationException) {
+            throw new ConflictHttpException('SUBSCRIPTION_PAYMENT_DOCUMENT_ALREADY_PAID');
+        }
 
         return $this->outputFactory->fromSubscriptionPayment($payment);
     }
