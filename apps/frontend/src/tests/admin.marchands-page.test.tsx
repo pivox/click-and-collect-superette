@@ -147,6 +147,24 @@ describe('MarchandsPage', () => {
     expect(screen.queryByText('Noura Kacem')).not.toBeInTheDocument();
   });
 
+  it('priorise le statut marchand suspendu sur la suspension douce abonnement', async () => {
+    vi.mocked(listMerchants).mockResolvedValue({
+      id: 'admin-merchants',
+      items: [{ ...MERCHANT, is_active: false, subscription_lifecycle: 'suspended' }],
+      page: 1,
+      limit: 20,
+      total: 1,
+    });
+
+    render(<MarchandsPage />);
+
+    const row = (await screen.findByText('Ali Ben Salah')).closest('tr');
+    expect(row).not.toBeNull();
+    expect(within(row!).getByText('Abonnement suspendu')).toBeInTheDocument();
+    expect(within(row!).getByText('Suspendu')).toBeInTheDocument();
+    expect(within(row!).queryByText('Suspension douce')).not.toBeInTheDocument();
+  });
+
   it('ignore les réponses détail marchand obsolètes', async () => {
     const firstDetail = deferred<typeof MERCHANT>();
     const secondDetail = deferred<typeof SECOND_MERCHANT>();

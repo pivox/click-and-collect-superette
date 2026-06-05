@@ -172,14 +172,14 @@ export default function MarchandsPage() {
       render: (row) => (
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-            isSubscriptionSuspended(row)
+            !row.is_active
+              ? 'bg-status-cancel-bg text-status-cancel'
+              : isSubscriptionSuspended(row)
               ? 'bg-amber-100 text-amber-800'
-              : row.is_active
-              ? 'bg-green-100 text-green-700'
-              : 'bg-status-cancel-bg text-status-cancel'
+              : 'bg-green-100 text-green-700'
           }`}
         >
-          {isSubscriptionSuspended(row) ? 'Suspension douce' : row.is_active ? 'Actif' : 'Suspendu'}
+          {!row.is_active ? 'Suspendu' : isSubscriptionSuspended(row) ? 'Suspension douce' : 'Actif'}
         </span>
       ),
     },
