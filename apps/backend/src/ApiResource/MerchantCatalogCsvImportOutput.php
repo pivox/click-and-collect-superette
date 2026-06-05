@@ -13,6 +13,7 @@ use App\Processor\MerchantCatalogCsvImportProcessor;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ApiResource(
+    shortName: 'CsvImportOutput',
     operations: [
         new Post(
             uriTemplate: '/merchant/stores/{storeId}/catalog/import-csv',
