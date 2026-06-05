@@ -30,9 +30,14 @@ final readonly class MerchantCatalogPhotoImportCommitItemInput
         #[Assert\Length(max: 64)]
         #[Assert\Regex('/^[0-9]{8,14}$/')]
         public ?string $barcode = null,
-        #[Assert\NotBlank]
-        #[Assert\Regex('/^\d{1,7}(?:\.\d{1,3})?$/')]
-        #[Assert\Positive]
+        #[Assert\When(
+            expression: 'this.selected',
+            constraints: [
+                new Assert\NotBlank(),
+                new Assert\Regex('/^\d{1,7}(?:\.\d{1,3})?$/'),
+                new Assert\Positive(),
+            ],
+        )]
         #[SerializedName('price_tnd')]
         public string $priceTnd = '',
         #[SerializedName('is_available')]

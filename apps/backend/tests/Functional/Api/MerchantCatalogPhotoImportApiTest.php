@@ -35,7 +35,7 @@ final class MerchantCatalogPhotoImportApiTest extends FunctionalApiTestCase
 
         $response = $this->requestPhotoImportPreview($shop, $merchant);
 
-        self::assertSame(200, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode(), $response->getContent(false));
         $payload = $this->decodeJson($response);
         self::assertSame($shop->getId()->toRfc4122(), $payload['id']);
         self::assertSame('receipt', $payload['source_type']);
@@ -146,6 +146,12 @@ final class MerchantCatalogPhotoImportApiTest extends FunctionalApiTestCase
                         'is_visible' => false,
                         'category' => 'Epicerie',
                     ],
+                    [
+                        'line' => 3,
+                        'selected' => false,
+                        'product_reference_id' => null,
+                        'name_fr' => 'Produit ignoré',
+                    ],
                 ],
             ],
             $merchant,
@@ -156,7 +162,7 @@ final class MerchantCatalogPhotoImportApiTest extends FunctionalApiTestCase
         self::assertSame($shop->getId()->toRfc4122(), $payload['id']);
         self::assertSame(2, $payload['created']);
         self::assertSame(0, $payload['updated']);
-        self::assertSame(0, $payload['ignored']);
+        self::assertSame(1, $payload['ignored']);
         self::assertCount(2, $payload['items']);
         self::assertSame('created', $payload['items'][0]['status']);
         self::assertSame($reference->getId()->toRfc4122(), $payload['items'][0]['product_reference_id']);
