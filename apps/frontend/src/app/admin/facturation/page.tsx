@@ -58,6 +58,17 @@ function statusClass(status: BillingDocumentStatus): string {
   return 'bg-[var(--status-wait-bg)] text-[var(--status-wait)]';
 }
 
+function formatDateTimeWithOffset(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const offsetMinutes = -date.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? '+' : '-';
+  const absoluteOffset = Math.abs(offsetMinutes);
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+    + `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+    + `${sign}${pad(Math.floor(absoluteOffset / 60))}:${pad(absoluteOffset % 60)}`;
+}
+
 export default function AdminBillingDocumentsPage() {
   const [items, setItems] = useState<BillingDocument[]>([]);
   const [page, setPage] = useState(1);
@@ -127,7 +138,7 @@ export default function AdminBillingDocumentsPage() {
 
   const paidAtToAtom = (value: string): string => {
     if (!value) {
-      return new Date().toISOString();
+      return formatDateTimeWithOffset(new Date());
     }
 
     return `${value}:00+01:00`;

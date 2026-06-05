@@ -105,7 +105,6 @@ describe('AdminBillingDocumentsPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
     const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
     fireEvent.change(within(detail).getByLabelText('Moyen'), { target: { value: 'cash' } });
-    fireEvent.change(within(detail).getByLabelText('Date de paiement'), { target: { value: '2026-06-04T10:30' } });
     fireEvent.click(within(detail).getByRole('button', { name: 'Enregistrer paiement' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirmer le paiement manuel' }));
 
@@ -113,7 +112,7 @@ describe('AdminBillingDocumentsPage', () => {
       billing_document_id: 'doc-1',
       amount_tnd: '10.000',
       method: 'cash',
-      paid_at: '2026-06-04T10:30:00+01:00',
+      paid_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/),
       reference: '',
     }));
     expect(getAdminBillingDocument).toHaveBeenLastCalledWith('doc-1');
