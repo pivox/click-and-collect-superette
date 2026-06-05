@@ -5,6 +5,7 @@ import {
   ClipboardList,
   BadgeCheck,
   FileText,
+  LifeBuoy,
   LayoutDashboard,
   Package,
   Store,
@@ -26,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/admin/marchands', label: 'Marchands', icon: Users },
   { href: '/admin/abonnements', label: 'Abonnements', icon: BadgeCheck },
   { href: '/admin/facturation', label: 'Facturation', icon: FileText },
+  { href: '/admin/incidents', label: 'Incidents', icon: LifeBuoy },
   { href: '/admin/superettes', label: 'Supérettes', icon: Store },
   {
     href: '/admin/referentiel/produits',
