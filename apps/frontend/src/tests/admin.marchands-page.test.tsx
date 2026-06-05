@@ -5,6 +5,7 @@ import {
   getMerchant,
   listMerchants,
 } from '@/lib/services/admin/merchants.service';
+import type { Merchant } from '@/lib/types/admin/merchants.types';
 
 vi.mock('@/lib/services/admin/merchants.service', () => ({
   listMerchants: vi.fn(),
@@ -15,7 +16,7 @@ vi.mock('@/lib/services/admin/merchants.service', () => ({
   activateMerchant: vi.fn(),
 }));
 
-const MERCHANT = {
+const MERCHANT: Merchant = {
   id: 'merchant-1',
   email: 'ali@example.test',
   first_name: 'Ali',
@@ -26,7 +27,7 @@ const MERCHANT = {
   stores_count: 2,
 };
 
-const SECOND_MERCHANT = {
+const SECOND_MERCHANT: Merchant = {
   id: 'merchant-2',
   email: 'noura@example.test',
   first_name: 'Noura',
