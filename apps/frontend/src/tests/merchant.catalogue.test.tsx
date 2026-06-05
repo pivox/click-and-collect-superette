@@ -513,7 +513,7 @@ describe('MerchantCatalogPage', () => {
     });
     const getUserMedia = vi.fn().mockResolvedValue(stream);
     const detect = vi.fn().mockResolvedValue([{ rawValue: '6191234567890' }]);
-    let pendingFrame: FrameRequestCallback | null = null;
+    const frameCallbacks: FrameRequestCallback[] = [];
 
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
@@ -528,8 +528,8 @@ describe('MerchantCatalogPage', () => {
     });
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-      pendingFrame = callback;
-      return 1;
+      frameCallbacks.push(callback);
+      return frameCallbacks.length;
     });
 
     render(React.createElement(MerchantCatalogPage));
@@ -541,7 +541,8 @@ describe('MerchantCatalogPage', () => {
     const video = await screen.findByText('Caméra ouverte. Cadre le code-barres ou utilise la saisie manuelle.')
       .then(() => document.querySelector('video'));
     expect(video?.srcObject).toBe(stream);
-    pendingFrame?.(0);
+    expect(frameCallbacks).toHaveLength(1);
+    frameCallbacks[0](0);
     await waitFor(() => expect(detect).toHaveBeenCalledWith(video));
     await waitFor(() => expect(screen.getByLabelText('Code-barres')).toHaveValue('6191234567890'));
   });
