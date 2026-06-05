@@ -27,6 +27,7 @@ type BarcodeDetectorInstance = {
   detect: (source: HTMLVideoElement) => Promise<BarcodeDetectorResult[]>;
 };
 type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BarcodeDetectorInstance;
+const VIDEO_READY_STATE_HAS_CURRENT_DATA = 2;
 
 function normalizeBarcode(value: string): string {
   return value.replace(/\D/g, '').slice(0, 14);
@@ -124,6 +125,11 @@ export function MerchantCatalogOnboardingTools({
 
     const scan = async () => {
       if (isCancelled || !cameraStreamRef.current) return;
+
+      if (video.readyState < VIDEO_READY_STATE_HAS_CURRENT_DATA) {
+        animationFrameRef.current = window.requestAnimationFrame(scan);
+        return;
+      }
 
       try {
         const results = await detector.detect(video);

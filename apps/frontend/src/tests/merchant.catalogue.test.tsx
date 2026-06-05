@@ -541,8 +541,70 @@ describe('MerchantCatalogPage', () => {
     const video = await screen.findByText('Caméra ouverte. Cadre le code-barres ou utilise la saisie manuelle.')
       .then(() => document.querySelector('video'));
     expect(video?.srcObject).toBe(stream);
+    Object.defineProperty(video, 'readyState', {
+      configurable: true,
+      value: 2,
+    });
     expect(frameCallbacks).toHaveLength(1);
     frameCallbacks[0](0);
+    await waitFor(() => expect(detect).toHaveBeenCalledWith(video));
+    await waitFor(() => expect(screen.getByLabelText('Code-barres')).toHaveValue('6191234567890'));
+  });
+
+  it('waits for a camera video frame before detecting a barcode', async () => {
+    const stream = new MediaStream();
+    Object.defineProperty(stream, 'getTracks', {
+      configurable: true,
+      value: vi.fn(() => [{ stop: vi.fn() } as unknown as MediaStreamTrack]),
+    });
+    const getUserMedia = vi.fn().mockResolvedValue(stream);
+    const detect = vi.fn().mockResolvedValue([{ rawValue: '6191234567890' }]);
+    const frameCallbacks: FrameRequestCallback[] = [];
+
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia },
+    });
+    class FakeBarcodeDetector {
+      detect = detect;
+    }
+    Object.defineProperty(window, 'BarcodeDetector', {
+      configurable: true,
+      value: FakeBarcodeDetector,
+    });
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      frameCallbacks.push(callback);
+      return frameCallbacks.length;
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir caméra' }));
+
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
+    const video = await screen.findByText('Caméra ouverte. Cadre le code-barres ou utilise la saisie manuelle.')
+      .then(() => document.querySelector('video'));
+
+    expect(video).not.toBeNull();
+    Object.defineProperty(video, 'readyState', {
+      configurable: true,
+      value: 0,
+    });
+
+    expect(frameCallbacks).toHaveLength(1);
+    frameCallbacks[0](0);
+
+    expect(detect).not.toHaveBeenCalled();
+    expect(frameCallbacks).toHaveLength(2);
+
+    Object.defineProperty(video, 'readyState', {
+      configurable: true,
+      value: 2,
+    });
+    frameCallbacks[1](16);
+
     await waitFor(() => expect(detect).toHaveBeenCalledWith(video));
     await waitFor(() => expect(screen.getByLabelText('Code-barres')).toHaveValue('6191234567890'));
   });
