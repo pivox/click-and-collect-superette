@@ -1,0 +1,141 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Functional\Api;
+
+use App\Entity\BillingDocument;
+use App\Entity\Subscription;
+use App\Enum\BillingDocumentStatus;
+use App\Enum\SubscriptionPricingPhase;
+use Symfony\Component\Uid\Uuid;
+
+final class AdminBillingDocumentApiTest extends FunctionalApiTestCase
+{
+    public function testAdminCanListMonthlyBillingDocuments(): void
+    {
+        $admin = $this->createUser('admin-billing-list@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-billing-list@example.test', ['ROLE_MERCHANT']);
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $document = BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: 'MS-2026-000001',
+            billingPeriodStart: new \DateTimeImmutable('2026-06-01T00:00:00+01:00'),
+            billingPeriodEnd: new \DateTimeImmutable('2026-07-01T00:00:00+01:00'),
+            issuedAt: new \DateTimeImmutable('2026-06-01T09:00:00+01:00'),
+            dueAt: new \DateTimeImmutable('2026-06-08T23:59:59+01:00'),
+            pricingPhase: SubscriptionPricingPhase::Promo,
+            amountTnd: '10.000',
+        );
+
+        $this->entityManager->persist($subscription);
+        $this->entityManager->persist($document);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', '/api/admin/billing-documents', user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(1, $payload['total']);
+        self::assertSame(1, $payload['page']);
+        self::assertSame(20, $payload['limit']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($document->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertSame('MS-2026-000001', $payload['items'][0]['document_number']);
+        self::assertSame('monthly_statement', $payload['items'][0]['document_type']);
+        self::assertSame('Document mensuel interne non fiscal', $payload['items'][0]['document_nature_label']);
+        self::assertSame('issued', $payload['items'][0]['status']);
+        self::assertSame('promo', $payload['items'][0]['pricing_phase']);
+        self::assertSame('10.000', $payload['items'][0]['amount_tnd']);
+        self::assertSame('TND', $payload['items'][0]['currency']);
+        self::assertSame('merchant-billing-list@example.test', $payload['items'][0]['merchant_email']);
+    }
+
+    public function testAdminCanReadBillingDocumentDetail(): void
+    {
+        $admin = $this->createUser('admin-billing-detail@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-billing-detail@example.test', ['ROLE_MERCHANT']);
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-07-01T00:00:00+01:00'));
+        $document = BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: 'MS-2026-000002',
+            billingPeriodStart: new \DateTimeImmutable('2026-07-01T00:00:00+01:00'),
+            billingPeriodEnd: new \DateTimeImmutable('2026-08-01T00:00:00+01:00'),
+            issuedAt: new \DateTimeImmutable('2026-07-01T09:00:00+01:00'),
+            dueAt: new \DateTimeImmutable('2026-07-08T23:59:59+01:00'),
+            pricingPhase: SubscriptionPricingPhase::Standard,
+            amountTnd: '50.000',
+        );
+        $document->markPaid(new \DateTimeImmutable('2026-07-05T10:00:00+01:00'));
+
+        $this->entityManager->persist($subscription);
+        $this->entityManager->persist($document);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/billing-documents/%s', $document->getId()), user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame($document->getId()->toRfc4122(), $payload['id']);
+        self::assertSame($subscription->getId()->toRfc4122(), $payload['subscription_id']);
+        self::assertSame('MS-2026-000002', $payload['document_number']);
+        self::assertSame('paid', $payload['status']);
+        self::assertSame('50.000', $payload['amount_paid_tnd']);
+        self::assertSame('0.000', $payload['amount_due_tnd']);
+    }
+
+    public function testMerchantIsForbiddenFromAdminBillingDocumentEndpoints(): void
+    {
+        $merchant = $this->createUser('merchant-billing-admin-forbidden@example.test', ['ROLE_MERCHANT']);
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $document = BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: 'MS-2026-000003',
+            billingPeriodStart: new \DateTimeImmutable('2026-06-01T00:00:00+01:00'),
+            billingPeriodEnd: new \DateTimeImmutable('2026-07-01T00:00:00+01:00'),
+            issuedAt: new \DateTimeImmutable('2026-06-01T09:00:00+01:00'),
+            dueAt: new \DateTimeImmutable('2026-06-08T23:59:59+01:00'),
+            pricingPhase: SubscriptionPricingPhase::Promo,
+            amountTnd: '10.000',
+        );
+
+        $this->entityManager->persist($subscription);
+        $this->entityManager->persist($document);
+        $this->entityManager->flush();
+
+        $listResponse = $this->requestJson('GET', '/api/admin/billing-documents', user: $merchant);
+        $detailResponse = $this->requestJson('GET', \sprintf('/api/admin/billing-documents/%s', $document->getId()), user: $merchant);
+
+        self::assertSame(403, $listResponse->getStatusCode());
+        self::assertSame(403, $detailResponse->getStatusCode());
+    }
+
+    public function testAdminBillingDocumentDetailReturns404WhenMissing(): void
+    {
+        $admin = $this->createUser('admin-billing-missing@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/billing-documents/%s', Uuid::v4()), user: $admin);
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testBillingDocumentCanMoveToOverdue(): void
+    {
+        $merchant = $this->createUser('merchant-billing-overdue@example.test', ['ROLE_MERCHANT']);
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $document = BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: 'MS-2026-000004',
+            billingPeriodStart: new \DateTimeImmutable('2026-06-01T00:00:00+01:00'),
+            billingPeriodEnd: new \DateTimeImmutable('2026-07-01T00:00:00+01:00'),
+            issuedAt: new \DateTimeImmutable('2026-06-01T09:00:00+01:00'),
+            dueAt: new \DateTimeImmutable('2026-06-08T23:59:59+01:00'),
+            pricingPhase: SubscriptionPricingPhase::Promo,
+            amountTnd: '10.000',
+        );
+
+        $document->markOverdue(new \DateTimeImmutable('2026-06-09T00:00:00+01:00'));
+
+        self::assertSame(BillingDocumentStatus::Overdue, $document->getStatus());
+    }
+}

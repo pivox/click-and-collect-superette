@@ -5,7 +5,15 @@ import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useMerchantLocale, type MerchantLocale } from '@/lib/i18n/MerchantLocaleContext';
+import {
+  getMerchantBillingDocument,
+  listMerchantBillingDocuments,
+} from '@/lib/services/billing-documents.service';
 import { getMerchantSubscription } from '@/lib/services/subscriptions.service';
+import type {
+  BillingDocument,
+  BillingDocumentStatus,
+} from '@/lib/types/billing-documents.types';
 import type {
   MerchantSubscription,
   SubscriptionLifecycle,
@@ -42,6 +50,23 @@ const PHASE_LABELS: Record<MerchantLocale, Record<SubscriptionPricingPhase, stri
   },
 };
 
+const DOCUMENT_STATUS_LABELS: Record<MerchantLocale, Record<BillingDocumentStatus, string>> = {
+  fr: {
+    draft: 'Brouillon',
+    issued: 'Émis',
+    paid: 'Payé',
+    overdue: 'En retard',
+    cancelled: 'Annulé',
+  },
+  ar: {
+    draft: 'مسودة',
+    issued: 'صادر',
+    paid: 'مدفوع',
+    overdue: 'متأخر',
+    cancelled: 'ملغى',
+  },
+};
+
 function formatDate(value: string | null, locale: MerchantLocale): string {
   if (!value) return locale === 'ar' ? 'غير مخطط' : 'Non planifié';
 
@@ -68,13 +93,20 @@ function formatMoney(value: string, currency: string, locale: MerchantLocale): s
 export default function MerchantSubscriptionPage() {
   const { locale, t } = useMerchantLocale();
   const [subscription, setSubscription] = useState<MerchantSubscription | null>(null);
+  const [documents, setDocuments] = useState<BillingDocument[]>([]);
+  const [documentDetail, setDocumentDetail] = useState<BillingDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDocumentsLoading, setIsDocumentsLoading] = useState(true);
+  const [isDocumentDetailLoading, setIsDocumentDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [documentsError, setDocumentsError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     setIsLoading(true);
+    setIsDocumentsLoading(true);
     setError(null);
+    setDocumentsError(null);
 
     getMerchantSubscription()
       .then((data) => {
@@ -89,10 +121,40 @@ export default function MerchantSubscriptionPage() {
         if (active) setIsLoading(false);
       });
 
+    listMerchantBillingDocuments()
+      .then((data) => {
+        if (!active) return;
+        setDocuments(data.items);
+      })
+      .catch(() => {
+        if (!active) return;
+        setDocumentsError(locale === 'ar'
+          ? 'تعذر تحميل المستندات الشهرية.'
+          : 'Impossible de charger les documents mensuels.');
+      })
+      .finally(() => {
+        if (active) setIsDocumentsLoading(false);
+      });
+
     return () => {
       active = false;
     };
-  }, [t]);
+  }, [locale, t]);
+
+  const openDocumentDetail = async (documentId: string) => {
+    setIsDocumentDetailLoading(true);
+    setDocumentsError(null);
+    try {
+      const data = await getMerchantBillingDocument(documentId);
+      setDocumentDetail(data);
+    } catch {
+      setDocumentsError(locale === 'ar'
+        ? 'تعذر تحميل تفاصيل المستند.'
+        : 'Impossible de charger le détail du document.');
+    } finally {
+      setIsDocumentDetailLoading(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -143,6 +205,113 @@ export default function MerchantSubscriptionPage() {
             <Info label={t('merchant.settings.subscription.nextPhase')} value={formatDate(subscription.next_phase_change_at, locale)} />
           </dl>
         </Card>
+      )}
+
+      <Card as="section" className="space-y-4">
+        <div>
+          <h2 className="text-lg font-black text-ink">
+            {locale === 'ar' ? 'المستندات الشهرية' : 'Documents mensuels'}
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            {locale === 'ar'
+              ? 'هذه مستندات داخلية غير ضريبية تخص اشتراك التاجر.'
+              : 'Documents internes non fiscaux liés à votre abonnement marchand.'}
+          </p>
+        </div>
+
+        {isDocumentsLoading && (
+          <p className="text-sm text-muted">
+            {locale === 'ar' ? 'جار تحميل المستندات…' : 'Chargement des documents…'}
+          </p>
+        )}
+
+        {documentsError && (
+          <div role="alert" className="rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
+            {documentsError}
+          </div>
+        )}
+
+        {!isDocumentsLoading && !documentsError && documents.length === 0 && (
+          <p className="text-sm text-muted">
+            {locale === 'ar' ? 'لا يوجد مستند شهري لعرضه.' : 'Aucun document mensuel à afficher.'}
+          </p>
+        )}
+
+        {!isDocumentsLoading && documents.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] text-sm">
+              <thead className="border-b border-line text-left text-xs font-semibold uppercase text-muted">
+                <tr>
+                  <th className="py-2 pr-3">{locale === 'ar' ? 'المستند' : 'Document'}</th>
+                  <th className="py-2 pr-3">{locale === 'ar' ? 'الحالة' : 'Statut'}</th>
+                  <th className="py-2 pr-3">{locale === 'ar' ? 'الفترة' : 'Période'}</th>
+                  <th className="py-2 pr-3">{locale === 'ar' ? 'المبلغ' : 'Montant'}</th>
+                  <th className="py-2 pr-3">{locale === 'ar' ? 'الأجل' : 'Échéance'}</th>
+                  <th className="py-2 pr-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {documents.map((document) => (
+                  <tr key={document.id}>
+                    <td className="py-3 pr-3">
+                      <div className="font-bold text-ink">{document.document_number}</div>
+                      <div className="text-xs text-muted">{document.document_nature_label}</div>
+                    </td>
+                    <td className="py-3 pr-3">
+                      <span className="rounded-full bg-soft px-2 py-0.5 text-xs font-semibold text-muted">
+                        {DOCUMENT_STATUS_LABELS[locale][document.status]}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-3">
+                      {formatDate(document.billing_period_start, locale)} - {formatDate(document.billing_period_end, locale)}
+                    </td>
+                    <td className="py-3 pr-3 tabular-nums">
+                      {formatMoney(document.amount_tnd, document.currency, locale)}
+                    </td>
+                    <td className="py-3 pr-3">{formatDate(document.due_at, locale)}</td>
+                    <td className="py-3 pr-3">
+                      <button
+                        type="button"
+                        onClick={() => void openDocumentDetail(document.id)}
+                        disabled={isDocumentDetailLoading}
+                        className="text-xs font-semibold text-primary hover:underline disabled:text-muted"
+                      >
+                        {locale === 'ar' ? 'تفاصيل' : 'Détail'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {documentDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <section
+            role="dialog"
+            aria-label={locale === 'ar' ? 'تفاصيل المستند الشهري' : 'Détail document mensuel'}
+            className="w-full max-w-xl rounded-md bg-card p-5 shadow-xl"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black text-ink">{documentDetail.document_number}</h2>
+                <p className="mt-1 text-sm text-muted">{documentDetail.document_nature_label}</p>
+              </div>
+              <button type="button" className="text-sm font-bold text-muted" onClick={() => setDocumentDetail(null)}>
+                {locale === 'ar' ? 'إغلاق' : 'Fermer'}
+              </button>
+            </div>
+
+            <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Info label={locale === 'ar' ? 'الحالة' : 'Statut'} value={DOCUMENT_STATUS_LABELS[locale][documentDetail.status]} />
+              <Info label={locale === 'ar' ? 'الفترة' : 'Période'} value={`${formatDate(documentDetail.billing_period_start, locale)} - ${formatDate(documentDetail.billing_period_end, locale)}`} />
+              <Info label={locale === 'ar' ? 'المبلغ' : 'Montant'} value={formatMoney(documentDetail.amount_tnd, documentDetail.currency, locale)} />
+              <Info label={locale === 'ar' ? 'المتبقي' : 'Reste à payer'} value={formatMoney(documentDetail.amount_due_tnd, documentDetail.currency, locale)} />
+            </dl>
+          </section>
+        </div>
       )}
     </div>
   );
