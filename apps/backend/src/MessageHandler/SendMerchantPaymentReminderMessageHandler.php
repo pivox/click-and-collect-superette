@@ -9,6 +9,7 @@ use App\Billing\MerchantPaymentReminderEmailSenderInterface;
 use App\Billing\PaymentReminderStage;
 use App\Entity\SubscriptionPaymentReminder;
 use App\Enum\SubscriptionPaymentReminderChannel;
+use App\Enum\SubscriptionPaymentReminderStatus;
 use App\Message\SendMerchantPaymentReminderMessage;
 use App\Repository\BillingDocumentRepository;
 use App\Repository\SubscriptionPaymentReminderRepository;
@@ -58,6 +59,10 @@ final readonly class SendMerchantPaymentReminderMessageHandler
             $stage->value,
             SubscriptionPaymentReminderChannel::Email,
         );
+        if (SubscriptionPaymentReminderStatus::Sent === $trace?->getStatus()) {
+            return;
+        }
+
         try {
             $this->sender->send($context);
             if (null === $trace) {
