@@ -15,7 +15,7 @@ use App\Enum\BillingDocumentStatus;
 use App\Repository\BillingDocumentRepository;
 use App\Repository\SubscriptionPaymentReminderRepository;
 use App\Service\AdminAuditLogger;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Clock\ClockInterface;
@@ -65,13 +65,16 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
         $message = $this->message($document);
         $whatsappUrl = \sprintf('https://wa.me/%s?text=%s', $phone, rawurlencode($message));
 
-        $reminder = $this->reminderRepository->findOneForDocumentStageChannel(
-            $document,
-            $stage,
-            \App\Enum\SubscriptionPaymentReminderChannel::WhatsappManual,
-        ) ?? SubscriptionPaymentReminder::whatsappContacted($document, $stage, $admin, $now);
-
+        $committed = false;
+        $this->entityManager->beginTransaction();
         try {
+            $this->entityManager->lock($document, LockMode::PESSIMISTIC_WRITE);
+            $reminder = $this->reminderRepository->findOneForDocumentStageChannel(
+                $document,
+                $stage,
+                \App\Enum\SubscriptionPaymentReminderChannel::WhatsappManual,
+            ) ?? SubscriptionPaymentReminder::whatsappContacted($document, $stage, $admin, $now);
+
             $this->entityManager->persist($reminder);
             $this->auditLogger->log(
                 action: 'subscription_payment_reminder.whatsapp_contacted',
@@ -85,7 +88,14 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
                 ],
             );
             $this->entityManager->flush();
-        } catch (UniqueConstraintViolationException) {
+            $this->entityManager->commit();
+            $committed = true;
+        } catch (\Throwable $exception) {
+            if (!$committed) {
+                $this->entityManager->rollback();
+            }
+
+            throw $exception;
         }
 
         return new AdminBillingDocumentWhatsappContactOutput(
