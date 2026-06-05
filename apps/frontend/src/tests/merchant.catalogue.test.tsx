@@ -4,9 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MerchantCatalogPage from '@/app/merchant/catalogue/page';
 import {
   addMerchantCatalogProduct,
+  buildMerchantCatalogCsvTemplate,
   bulkUpdateMerchantProductAvailability,
   createMerchantCategory,
   createMerchantLocalProduct,
+  importMerchantCatalogCsv,
   listMerchantCategories,
   listMerchantCatalog,
   searchMerchantProductReferences,
@@ -36,9 +38,11 @@ vi.mock('@/lib/services/merchant-catalog.service', async () => {
   return {
     ...actual,
     addMerchantCatalogProduct: vi.fn(),
+    buildMerchantCatalogCsvTemplate: vi.fn(),
     bulkUpdateMerchantProductAvailability: vi.fn(),
     createMerchantCategory: vi.fn(),
     createMerchantLocalProduct: vi.fn(),
+    importMerchantCatalogCsv: vi.fn(),
     listMerchantCategories: vi.fn(),
     listMerchantCatalog: vi.fn(),
     searchMerchantProductReferences: vi.fn(),
@@ -155,6 +159,7 @@ describe('MerchantCatalogPage', () => {
       merchant_product_ids: ['mp-1', 'mp-2'],
     });
     vi.mocked(addMerchantCatalogProduct).mockResolvedValue(undefined);
+    vi.mocked(buildMerchantCatalogCsvTemplate).mockReturnValue('name_fr,brand,volume,unit,price_tnd,is_available,is_visible\n');
     vi.mocked(createMerchantLocalProduct).mockResolvedValue({
       merchant_product_id: 'mp-local-1',
       local_product_id: 'local-1',
@@ -188,6 +193,30 @@ describe('MerchantCatalogPage', () => {
       active: true,
       created_at: '2026-05-25T08:00:00+00:00',
       updated_at: '2026-05-25T08:00:00+00:00',
+    });
+    vi.mocked(importMerchantCatalogCsv).mockResolvedValue({
+      id: 'store-1',
+      created: 1,
+      updated: 1,
+      ignored: 0,
+      items: [
+        {
+          line: 2,
+          status: 'created',
+          merchant_product_id: 'mp-3',
+          product_reference_id: 'ref-3',
+          local_product_id: null,
+          name_fr: 'Lait demi-écrémé',
+        },
+      ],
+      errors: [
+        {
+          line: 4,
+          code: 'PRICE_REQUIRED',
+          field: 'price_tnd',
+          message: 'Le prix est obligatoire.',
+        },
+      ],
     });
     vi.mocked(updateMerchantCatalogProduct).mockResolvedValue(undefined);
   });
@@ -368,6 +397,92 @@ describe('MerchantCatalogPage', () => {
     expect(screen.getByText('1. Chercher')).toBeInTheDocument();
     expect(screen.getByText('2. Configurer')).toBeInTheDocument();
     expect(screen.getByText('3. Publier')).toBeInTheDocument();
+  });
+
+  it('imports a CSV file and shows a line-by-line report', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+
+    const csvFile = new File(
+      ['name_fr,brand,volume,unit,price_tnd,is_available,is_visible\nLait,Vitalait,1,litre,1.650,true,true\n'],
+      'catalogue.csv',
+      { type: 'text/csv' },
+    );
+    fireEvent.change(screen.getByLabelText('Fichier CSV catalogue'), {
+      target: { files: [csvFile] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Importer CSV' }));
+
+    await waitFor(() =>
+      expect(importMerchantCatalogCsv).toHaveBeenCalledWith(
+        'store-1',
+        'name_fr,brand,volume,unit,price_tnd,is_available,is_visible\nLait,Vitalait,1,litre,1.650,true,true\n',
+      ),
+    );
+    expect(await screen.findByText('1 créé, 1 mis à jour, 0 ignoré')).toBeInTheDocument();
+    expect(screen.getByText('Ligne 2 · created · Lait demi-écrémé')).toBeInTheDocument();
+    expect(screen.getByText('Ligne 4 · price_tnd · Le prix est obligatoire.')).toBeInTheDocument();
+    expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('searches a barcode manually and adds the matching product reference', async () => {
+    vi.mocked(searchMerchantProductReferences).mockResolvedValue({
+      items: [
+        {
+          id: 'ref-barcode-1',
+          name_fr: 'Eau minérale Safia',
+          name_ar: null,
+          brand_id: 'brand-1',
+          brand: 'Safia',
+          category_id: 'cat-1',
+          category: 'Eaux',
+          category_ar: null,
+          category_slug: 'eaux',
+          volume: '1.5',
+          unit: 'litre',
+          barcode: '6191234567890',
+          already_in_catalog: false,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 10,
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.change(screen.getByLabelText('Code-barres'), {
+      target: { value: '6191234567890' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Rechercher le code-barres' }));
+
+    await waitFor(() =>
+      expect(searchMerchantProductReferences).toHaveBeenCalledWith('store-1', {
+        barcode: '6191234567890',
+        page: 1,
+        limit: 10,
+      }),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Choisir Eau minérale Safia' }));
+    fireEvent.change(screen.getByLabelText('Prix TND pour le code-barres'), {
+      target: { value: '1,200' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter le produit scanné' }));
+
+    await waitFor(() =>
+      expect(addMerchantCatalogProduct).toHaveBeenCalledWith('store-1', {
+        product_reference_id: 'ref-barcode-1',
+        price_tnd: '1.200',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+        merchant_category_id: null,
+      }),
+    );
+    expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
   });
 
   it('keeps tab focus inside the guided assistant', async () => {

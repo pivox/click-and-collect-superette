@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { MerchantCatalogBulkActions } from '@/components/merchant/catalogue/MerchantCatalogBulkActions';
 import { MerchantCatalogEditDrawer } from '@/components/merchant/catalogue/MerchantCatalogEditDrawer';
 import { MerchantCatalogFilters } from '@/components/merchant/catalogue/MerchantCatalogFilters';
+import { MerchantCatalogOnboardingTools } from '@/components/merchant/catalogue/MerchantCatalogOnboardingTools';
 import { MerchantCatalogTable } from '@/components/merchant/catalogue/MerchantCatalogTable';
 import { MerchantCatalogWizard } from '@/components/merchant/catalogue/MerchantCatalogWizard';
 import { MerchantLocalProductDrawer } from '@/components/merchant/catalogue/MerchantLocalProductDrawer';
@@ -285,6 +286,12 @@ export default function MerchantCatalogPage() {
         filters={draftFilters}
         onFiltersChange={setDraftFilters}
         onSubmit={handleApplyFilters}
+      />
+
+      <MerchantCatalogOnboardingTools
+        storeId={merchant?.store.id ?? null}
+        disabled={isLoading}
+        onCatalogChanged={() => void loadCatalog()}
       />
 
       <MerchantCatalogBulkActions

@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '@/lib/api';
 import {
   addMerchantCatalogProduct,
+  buildMerchantCatalogCsvTemplate,
   bulkUpdateMerchantProductAvailability,
   createMerchantCategory,
   createMerchantLocalProduct,
   filterMerchantCatalogProducts,
+  importMerchantCatalogCsv,
   listMerchantCategories,
   listMerchantCatalog,
   searchMerchantProductReferences,
@@ -314,6 +316,78 @@ describe('merchant catalogue service', () => {
         },
       },
     );
+  });
+
+  it('searches product references by exact barcode in the store context', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { items: [], total: 0, page: 1, limit: 10 },
+    });
+
+    await searchMerchantProductReferences('store-1', {
+      barcode: '6191234567890',
+      page: 1,
+      limit: 10,
+    });
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/merchant/stores/store-1/product-references',
+      {
+        params: {
+          barcode: '6191234567890',
+          page: 1,
+          limit: 10,
+        },
+      },
+    );
+  });
+
+  it('builds the merchant catalogue CSV template with required onboarding columns', () => {
+    expect(buildMerchantCatalogCsvTemplate()).toBe(
+      [
+        'name_fr,brand,volume,unit,price_tnd,is_available,is_visible,barcode,category,name_ar,variant_fr,merchant_note,pack_quantity',
+        'Lait demi-écrémé,Vitalait,1,litre,1.650,true,true,6191234567890,Lait & produits laitiers,حليب نصف دسم,Demi-écrémé,,1',
+      ].join('\n'),
+    );
+  });
+
+  it('imports merchant catalogue CSV as text/csv', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        id: 'store-1',
+        created: 1,
+        updated: 0,
+        ignored: 0,
+        items: [
+          {
+            line: 2,
+            status: 'created',
+            merchant_product_id: 'mp-1',
+            product_reference_id: 'ref-1',
+            local_product_id: null,
+            name_fr: 'Lait demi-écrémé',
+          },
+        ],
+        errors: [],
+      },
+    });
+
+    const result = await importMerchantCatalogCsv(
+      'store-1',
+      'name_fr,brand,volume,unit,price_tnd,is_available,is_visible\nLait,Vitalait,1,litre,1.650,true,true\n',
+    );
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/merchant/stores/store-1/catalog/import-csv',
+      'name_fr,brand,volume,unit,price_tnd,is_available,is_visible\nLait,Vitalait,1,litre,1.650,true,true\n',
+      {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          Accept: 'application/json',
+        },
+      },
+    );
+    expect(result.created).toBe(1);
+    expect(result.items[0].name_fr).toBe('Lait demi-écrémé');
   });
 
   it('adds a product reference to the merchant catalogue', async () => {

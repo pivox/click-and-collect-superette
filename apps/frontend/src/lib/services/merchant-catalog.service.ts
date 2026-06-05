@@ -14,6 +14,7 @@ import type {
   MerchantCategory,
   MerchantCatalogListOptions,
   MerchantCatalogListResult,
+  MerchantCatalogCsvImportResult,
   MerchantCatalogProduct,
   MerchantLocalProductOutput,
   MerchantProductPriceHistoryResult,
@@ -190,11 +191,78 @@ export async function searchMerchantProductReferences(
     {
       params: cleanFilterParams({
         q: options.q,
+        barcode: options.barcode,
         brandId: options.brandId,
         categorySlug: options.categorySlug,
         page: options.page,
         limit: options.limit,
       }),
+    },
+  );
+
+  return data;
+}
+
+const CATALOG_CSV_TEMPLATE_HEADER = [
+  'name_fr',
+  'brand',
+  'volume',
+  'unit',
+  'price_tnd',
+  'is_available',
+  'is_visible',
+  'barcode',
+  'category',
+  'name_ar',
+  'variant_fr',
+  'merchant_note',
+  'pack_quantity',
+].join(',');
+
+const CATALOG_CSV_TEMPLATE_SAMPLE = [
+  'Lait demi-écrémé',
+  'Vitalait',
+  '1',
+  'litre',
+  '1.650',
+  'true',
+  'true',
+  '6191234567890',
+  'Lait & produits laitiers',
+  'حليب نصف دسم',
+  'Demi-écrémé',
+  '',
+  '1',
+].join(',');
+
+export function buildMerchantCatalogCsvTemplate(): string {
+  return [CATALOG_CSV_TEMPLATE_HEADER, CATALOG_CSV_TEMPLATE_SAMPLE].join('\n');
+}
+
+export function downloadMerchantCatalogCsvTemplate(): void {
+  const blob = new Blob([buildMerchantCatalogCsvTemplate()], {
+    type: 'text/csv;charset=utf-8',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'modele-catalogue-kadhia.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function importMerchantCatalogCsv(
+  storeId: string,
+  csv: string,
+): Promise<MerchantCatalogCsvImportResult> {
+  const { data } = await apiClient.post<MerchantCatalogCsvImportResult>(
+    `/api/merchant/stores/${storeId}/catalog/import-csv`,
+    csv,
+    {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        Accept: 'application/json',
+      },
     },
   );
 
