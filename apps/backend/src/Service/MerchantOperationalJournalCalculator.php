@@ -18,12 +18,13 @@ final readonly class MerchantOperationalJournalCalculator
     ) {
     }
 
-    public function calculate(User $merchant): AdminMerchantOpsJournalOutput
+    public function calculate(User $merchant, ?\DateTimeImmutable $now = null): AdminMerchantOpsJournalOutput
     {
+        $overdueCutoff = PickupSlotDisplayTime::fromPayloadInstant($now ?? new \DateTimeImmutable());
         $lastActivity = $this->findLastActivity($merchant);
 
         return new AdminMerchantOpsJournalOutput(
-            overdueOrdersCount: $this->countOverdueOrders($merchant, new \DateTimeImmutable()),
+            overdueOrdersCount: $this->countOverdueOrders($merchant, $overdueCutoff),
             cancelledOrdersCount: $this->countCancelledOrders($merchant),
             lastActivityAt: $lastActivity['created_at']?->format(\DateTimeInterface::ATOM),
             lastActivityStatus: $lastActivity['status'],

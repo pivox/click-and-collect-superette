@@ -10,6 +10,7 @@ use App\Entity\PickupSlot;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Enum\OrderStatus;
+use App\Service\MerchantOperationalJournalCalculator;
 use Symfony\Component\Uid\Uuid;
 
 final class MerchantAdminApiTest extends FunctionalApiTestCase
@@ -137,6 +138,24 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertSame(0, $journal['cancelled_orders_count']);
         self::assertNull($journal['last_activity_at']);
         self::assertNull($journal['last_activity_status']);
+    }
+
+    public function testOperationalJournalNormalizesOverdueCutoffToTunisiaLocalClock(): void
+    {
+        $merchant = $this->createMerchant('merchant-ops-local-cutoff@example.test', new \DateTimeImmutable('2026-05-18T09:00:00+00:00'));
+        $customer = $this->createUser('customer-ops-local-cutoff@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('2026-06-05T09:00:00+01:00'),
+            new \DateTimeImmutable('2026-06-05T10:00:00+01:00'),
+        );
+        $this->createOrder($shop, $customer, OrderStatus::Submitted, $slot);
+
+        $calculator = static::getContainer()->get(MerchantOperationalJournalCalculator::class);
+        $journal = $calculator->calculate($merchant, new \DateTimeImmutable('2026-06-05T09:30:00+00:00'));
+
+        self::assertSame(1, $journal->overdueOrdersCount);
     }
 
     public function testMerchantListPaginationAndDescendingSort(): void
@@ -314,6 +333,14 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
             lastName: 'OldLast',
             phone: '+21600000000',
         );
+        $customer = $this->createUser('customer-update-merchant-ops@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('2026-06-01T09:00:00+00:00'),
+            new \DateTimeImmutable('2026-06-01T10:00:00+00:00'),
+        );
+        $this->createOrder($shop, $customer, OrderStatus::Cancelled, $slot);
 
         $response = $this->requestJson(
             'PATCH',
@@ -333,6 +360,7 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertSame('NewLast', $payload['last_name']);
         self::assertSame('+21699887766', $payload['phone']);
         self::assertSame('merchant-to-update@example.test', $payload['email']);
+        self::assertSame(1, $payload['ops_journal']['cancelled_orders_count']);
         self::assertArrayNotHasKey('password', $payload);
     }
 
@@ -353,6 +381,7 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertFalse($payload['is_active']);
         self::assertSame($merchant->getId()->toRfc4122(), $payload['id']);
+        self::assertIsArray($payload['ops_journal']);
     }
 
     public function testAdminActivatesMerchant(): void
@@ -373,6 +402,7 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         $payload = $this->decodeJson($response);
         self::assertTrue($payload['is_active']);
         self::assertSame($merchant->getId()->toRfc4122(), $payload['id']);
+        self::assertIsArray($payload['ops_journal']);
     }
 
     public function testCustomerForbiddenOnPost(): void
