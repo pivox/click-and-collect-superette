@@ -464,9 +464,9 @@ Transformer l'application en produit monétisable. Modèle : 3 mois gratuits →
 
 ### Fonctionnalités
 
-- **US-074** ([#359](https://github.com/pivox/click-and-collect-superette/issues/359)) · EPIC-017 · *Must* — Module abonnement marchand (entité `Subscription`).
-- **US-075** ([#360](https://github.com/pivox/click-and-collect-superette/issues/360)) · EPIC-017 · *Must* — Statuts : séparer **lifecycle** (`active`/`payment_due`/`grace_period`/`suspended`/`cancelled`) et **phase tarifaire** (`trial`/`promo`/`standard`).
-- **US-076** ([#361](https://github.com/pivox/click-and-collect-superette/issues/361)) · EPIC-017 · *Must* — Reçu / facture mensuelle — **à cadrer fiscalement** (matricule, TVA, timbre) avant le modèle de données.
+- **US-074** ([#359](https://github.com/pivox/click-and-collect-superette/issues/359)) · EPIC-017 · *Must* · Fondation backend livrée — Module abonnement marchand (entité `Subscription`) avec lecture admin/marchand.
+- **US-075** ([#360](https://github.com/pivox/click-and-collect-superette/issues/360)) · EPIC-017 · *Must* · Fondation backend livrée — Statuts séparés : **lifecycle** (`active`/`payment_due`/`grace_period`/`suspended`/`cancelled`) et **phase tarifaire** (`trial`/`promo`/`standard`).
+- **US-076** ([#361](https://github.com/pivox/click-and-collect-superette/issues/361)) · EPIC-017 · *Must* — Reçu / facture mensuelle — **cadrage fiscal préalable** documenté dans `docs/Sprint11/US-076-recu-facture-mensuelle-marchand.md` (matricule, TVA, timbre) avant le modèle de données.
 - **US-077** ([#362](https://github.com/pivox/click-and-collect-superette/issues/362)) · EPIC-017 · *Must* — Paiement manuel (espèces / virement) + validation admin.
 - **US-078** ([#363](https://github.com/pivox/click-and-collect-superette/issues/363)) · EPIC-018 · *Must* — Relances paiement par email — **inclut l'infra email** (`symfony/mailer` à installer ; l'envoi actuel est `@mail()` natif).
 - **US-079** ([#364](https://github.com/pivox/click-and-collect-superette/issues/364)) · EPIC-018 · *Should* — Suspension douce et réactivation (conserve catalogue/historique/images, bloque les nouvelles commandes).
@@ -474,7 +474,7 @@ Transformer l'application en produit monétisable. Modèle : 3 mois gratuits →
 
 ### Critère de sortie
 
-Un marchand passe automatiquement de gratuit → promo → payant, est relancé par un canal qu'il consulte, suspendu en douceur puis réactivé après paiement.
+Fondation US-074/US-075 livrée : un marchand peut porter un abonnement lisible avec phase tarifaire calculée gratuit → promo → standard et lifecycle séparé. Le critère complet Sprint 11 reste ouvert tant que facturation, paiement manuel, relances et suspension douce ne sont pas livrés.
 
 ---
 
@@ -688,7 +688,7 @@ Les apps natives reprennent les parcours validés par la PWA, sans réinventer l
 | Sprint 6 | US-010, US-011, US-012 | P1 | ✅ Complet |
 | Sprint 7 | US-008, US-058, US-059, US-060, US-061, US-062, US-063 | P2 | ✅ Backend livré ; PWA/WCAG reportées Sprint 14 ; i18n client livrée S14-004 |
 | Sprint 10 | US-067 à US-073 (EPIC-015, EPIC-016) | P0 | ✅ Clôturable : #352-#356 livrées ; #357 à reporter, #358 à fermer comme non nécessaire |
-| Sprint 11 | US-074 à US-080 (EPIC-017, EPIC-018, EPIC-019) | P0 | 🔵 Planifié (monétisation) |
+| Sprint 11 | US-074 à US-080 (EPIC-017, EPIC-018, EPIC-019) | P0 | 🟡 Partiel : fondation US-074/US-075 livrée |
 | Sprint 12 | US-085 à US-088 (EPIC-021) | P1 | 🔵 Planifié (support) |
 | Sprint 13 | US-041 (#391 / S13-005), US-081 à US-084 (EPIC-011, EPIC-019, EPIC-020) | P1 | 🟢 Partiel : US-041 livrée, reste catalogue scalable planifié |
 | Sprint 14 | US-089 à US-094 (EPIC-022, EPIC-008, EPIC-018) | P1 | 🟡 Partiel : US-093 livrée ; PWA/push/WCAG ouverts |

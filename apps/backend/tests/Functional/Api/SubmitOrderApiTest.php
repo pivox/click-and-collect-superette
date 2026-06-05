@@ -15,10 +15,12 @@ use App\Entity\OrderStatusLog;
 use App\Entity\PickupSlot;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
+use App\Entity\Subscription;
 use App\Entity\User;
 use App\Enum\KadhiaStatus;
 use App\Enum\OrderStatus;
 use App\Enum\ProductReferenceStatus;
+use App\Enum\SubscriptionLifecycle;
 use App\Message\ExpireMerchantResponseMessage;
 use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -172,6 +174,89 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
 
         self::assertNotEmpty($messages);
         self::assertInstanceOf(ExpireMerchantResponseMessage::class, $messages[0]);
+    }
+
+    public function testSuspendedMerchantKeepsCatalogVisibleButBlocksNewOrderSubmission(): void
+    {
+        $merchant = $this->createUser('merchant-subscription-suspended@example.test', ['ROLE_MERCHANT']);
+        $merchant->setActive(false);
+        $customer = $this->createUser('customer-subscription-suspended@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop, capacity: 5);
+        $product = $this->createMerchantProduct($shop, '2.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
+        $this->entityManager->flush();
+
+        $catalogResponse = $this->requestJson('GET', \sprintf('/api/stores/%s/catalog', $shop->getId()));
+
+        self::assertSame(200, $catalogResponse->getStatusCode());
+        self::assertCount(1, $this->decodeJson($catalogResponse)['items']);
+
+        $submitResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(422, $submitResponse->getStatusCode());
+        self::assertStringContainsString('STORE_SUSPENDED_FOR_SUBSCRIPTION', (string) $submitResponse->getContent());
+
+        $this->entityManager->clear();
+
+        $storedShop = $this->entityManager->getRepository(Shop::class)->find($shop->getId());
+        self::assertNotNull($storedShop);
+        self::assertTrue($storedShop->isActive());
+        self::assertNull($storedShop->getArchivedAt());
+        self::assertSame(0, $this->entityManager->getRepository(Order::class)->count([]));
+
+        $updatedKadhia = $this->entityManager->getRepository(Kadhia::class)->find($kadhia->getId());
+        self::assertNotNull($updatedKadhia);
+        self::assertSame(KadhiaStatus::Draft, $updatedKadhia->getStatus());
+    }
+
+    public function testSuspendedSubscriptionKeepsCatalogVisibleButBlocksNewOrderSubmission(): void
+    {
+        $merchant = $this->createUser('merchant-subscription-lifecycle-suspended@example.test', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('customer-subscription-lifecycle-suspended@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop($merchant);
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $subscription->setLifecycle(SubscriptionLifecycle::Suspended);
+        $this->entityManager->persist($subscription);
+        $slot = $this->createPickupSlot($shop, capacity: 5);
+        $product = $this->createMerchantProduct($shop, '2.000');
+        $kadhia = $this->createKadhiaWithLine($customer, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
+        $this->entityManager->flush();
+
+        $catalogResponse = $this->requestJson('GET', \sprintf('/api/stores/%s/catalog', $shop->getId()));
+
+        self::assertSame(200, $catalogResponse->getStatusCode());
+        self::assertCount(1, $this->decodeJson($catalogResponse)['items']);
+
+        $submitResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(422, $submitResponse->getStatusCode());
+        self::assertStringContainsString('STORE_SUSPENDED_FOR_SUBSCRIPTION', (string) $submitResponse->getContent());
+
+        $storedSubscription = $this->entityManager->getRepository(Subscription::class)->find($subscription->getId());
+        self::assertNotNull($storedSubscription);
+        $storedSubscription->setLifecycle(SubscriptionLifecycle::Active);
+        $this->entityManager->flush();
+
+        $reactivatedSubmitResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $customer,
+        );
+
+        self::assertSame(201, $reactivatedSubmitResponse->getStatusCode());
+        self::assertSame('submitted', $this->decodeJson($reactivatedSubmitResponse)['status']);
     }
 
     public function testSubmitOrderSlotFullReturns422(): void
