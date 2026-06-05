@@ -195,7 +195,10 @@ final readonly class OpenAiMerchantCatalogPhotoImportExtractor implements Mercha
             return null;
         }
 
-        $value = trim((string) $value);
+        $value = str_replace(',', '.', trim((string) $value));
+        if (!preg_match('/^\d+(?:\.\d+)?$/', $value)) {
+            return null;
+        }
 
         return '' === $value ? null : bcadd($value, '0', 3);
     }

@@ -6,6 +6,8 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\MerchantLocalProduct;
+use App\Entity\MerchantProduct;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
@@ -68,6 +70,36 @@ final class MerchantCatalogPhotoImportApiTest extends FunctionalApiTestCase
         self::assertSame(403, $response->getStatusCode());
     }
 
+    public function testPhotoImportPreviewDetectsExistingLocalProducts(): void
+    {
+        $merchant = $this->createUser('merchant-photo-local-existing@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $this->createProductReference(
+            brandName: 'Vitalait',
+            categoryName: 'Lait & produits laitiers',
+            nameFr: 'Lait demi-écrémé',
+            volume: '1.000',
+            unit: ProductUnit::Litre,
+            barcode: '6191234567890',
+        );
+        $this->createLocalMerchantProduct(
+            shop: $shop,
+            nameFr: 'Harissa maison',
+            brandName: 'Jouda',
+            volume: '350.000',
+            unit: ProductUnit::Gramme,
+            barcode: null,
+        );
+
+        $response = $this->requestPhotoImportPreview($shop, $merchant);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(0, $payload['local_candidate_count']);
+        self::assertSame('already_in_catalog', $payload['items'][1]['status']);
+        self::assertTrue($payload['items'][1]['already_in_catalog']);
+    }
+
     private function requestPhotoImportPreview(Shop $shop, User $user): Response
     {
         $photoPath = tempnam(sys_get_temp_dir(), 'catalog-photo-import-');
@@ -120,5 +152,33 @@ final class MerchantCatalogPhotoImportApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $productReference;
+    }
+
+    private function createLocalMerchantProduct(
+        Shop $shop,
+        string $nameFr,
+        ?string $brandName,
+        string $volume,
+        ProductUnit $unit,
+        ?string $barcode,
+    ): MerchantProduct {
+        $localProduct = (new MerchantLocalProduct())
+            ->setShop($shop)
+            ->setNameFr($nameFr)
+            ->setBrandName($brandName)
+            ->setVolume($volume)
+            ->setUnit($unit)
+            ->setBarcode($barcode)
+            ->setPackQuantity(1);
+        $merchantProduct = (new MerchantProduct())
+            ->setShop($shop)
+            ->setLocalProduct($localProduct)
+            ->setPriceTnd('4.500');
+
+        $this->entityManager->persist($localProduct);
+        $this->entityManager->persist($merchantProduct);
+        $this->entityManager->flush();
+
+        return $merchantProduct;
     }
 }

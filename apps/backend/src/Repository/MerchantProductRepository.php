@@ -110,15 +110,18 @@ class MerchantProductRepository extends ServiceEntityRepository
 
     public function findOneLocalForShopAndBarcode(Shop $shop, string $barcode): ?MerchantProduct
     {
-        return $this->createQueryBuilder('mp')
-            ->join('mp.localProduct', 'lp')
-            ->where('mp.shop = :shop')
-            ->andWhere('lp.barcode = :barcode')
-            ->setParameter('shop', $shop)
-            ->setParameter('barcode', trim($barcode))
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
+        $barcode = trim($barcode);
+        if ('' === $barcode) {
+            return null;
+        }
+
+        foreach ($this->findCatalogForShop($shop) as $candidate) {
+            if ($barcode === trim((string) $candidate->getLocalProduct()?->getBarcode())) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     public function findOneLocalForShopAndIdentity(
@@ -128,21 +131,23 @@ class MerchantProductRepository extends ServiceEntityRepository
         string $volume,
         ProductUnit $unit,
     ): ?MerchantProduct {
-        return $this->createQueryBuilder('mp')
-            ->join('mp.localProduct', 'lp')
-            ->where('mp.shop = :shop')
-            ->andWhere('LOWER(lp.brandName) = LOWER(:brandName)')
-            ->andWhere('LOWER(lp.nameFr) = LOWER(:nameFr)')
-            ->andWhere('lp.volume = :volume')
-            ->andWhere('lp.unit = :unit')
-            ->setParameter('shop', $shop)
-            ->setParameter('brandName', trim($brandName))
-            ->setParameter('nameFr', trim($nameFr))
-            ->setParameter('volume', $volume)
-            ->setParameter('unit', $unit)
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
+        $normalizedBrandName = $this->normalizeSearchValue($brandName);
+        $normalizedNameFr = $this->normalizeSearchValue($nameFr);
+
+        foreach ($this->findCatalogForShop($shop) as $candidate) {
+            $localProduct = $candidate->getLocalProduct();
+            if (
+                null !== $localProduct?->getVolume()
+                && $normalizedBrandName === $this->normalizeSearchValue($localProduct->getBrandName())
+                && $normalizedNameFr === $this->normalizeSearchValue($localProduct->getNameFr())
+                && $unit === $localProduct->getUnit()
+                && 0 === bccomp($localProduct->getVolume(), $volume, 3)
+            ) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /**
