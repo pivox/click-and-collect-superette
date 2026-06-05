@@ -87,6 +87,16 @@ final readonly class AdminIncidentOutputFactory
             );
         }
 
+        usort(
+            $history,
+            static fn (AdminIncidentHistoryEntryOutput $left, AdminIncidentHistoryEntryOutput $right): int => self::historyTimestamp($left) <=> self::historyTimestamp($right),
+        );
+
         return $history;
+    }
+
+    private static function historyTimestamp(AdminIncidentHistoryEntryOutput $entry): int
+    {
+        return (new \DateTimeImmutable($entry->occurredAt))->getTimestamp();
     }
 }

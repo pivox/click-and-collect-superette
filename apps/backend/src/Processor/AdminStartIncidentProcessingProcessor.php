@@ -10,6 +10,7 @@ use App\ApiResource\AdminIncidentOutput;
 use App\Provider\AdminIncidentItemProvider;
 use App\Provider\AdminIncidentOutputFactory;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * @implements ProcessorInterface<mixed, AdminIncidentOutput>
@@ -30,7 +31,11 @@ final readonly class AdminStartIncidentProcessingProcessor implements ProcessorI
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AdminIncidentOutput
     {
         $incident = $this->incidentProvider->resolveIncident((string) ($uriVariables['incidentId'] ?? ''));
-        $incident->startProcessing(new \DateTimeImmutable());
+        try {
+            $incident->startProcessing(new \DateTimeImmutable());
+        } catch (\LogicException $exception) {
+            throw new ConflictHttpException($exception->getMessage());
+        }
         $this->entityManager->flush();
 
         return $this->outputFactory->fromIncident($incident);

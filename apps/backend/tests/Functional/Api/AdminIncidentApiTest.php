@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Api;
 
 use App\Entity\Incident;
+use App\Entity\IncidentNote;
 use App\Entity\Order;
 use App\Entity\Shop;
 use App\Enum\IncidentType;
@@ -95,6 +96,49 @@ final class AdminIncidentApiTest extends FunctionalApiTestCase
         self::assertSame('closed', $closePayload['status']);
         self::assertNotNull($closePayload['closed_at']);
         self::assertSame('incident.closed', $closePayload['history'][3]['event']);
+    }
+
+    public function testStartingClosedIncidentReturnsConflict(): void
+    {
+        $admin = $this->createUser('admin-incident-start-closed@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-incident-start-closed@example.test', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('customer-incident-start-closed@example.test', ['ROLE_CUSTOMER']);
+        $incident = $this->createIncident($merchant, $customer, IncidentType::Other);
+        $incident->startProcessing(new \DateTimeImmutable('2026-06-05T14:00:00+01:00'));
+        $incident->close(new \DateTimeImmutable('2026-06-05T15:00:00+01:00'));
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('PATCH', \sprintf('/api/admin/incidents/%s/start-processing', $incident->getId()), [], $admin);
+
+        self::assertSame(409, $response->getStatusCode());
+    }
+
+    public function testIncidentHistoryIsChronological(): void
+    {
+        $admin = $this->createUser('admin-incident-history-order@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-incident-history-order@example.test', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('customer-incident-history-order@example.test', ['ROLE_CUSTOMER']);
+        $incident = $this->createIncident($merchant, $customer, IncidentType::OrderNotPrepared);
+        $incident->startProcessing(new \DateTimeImmutable('2026-06-05T14:00:00+01:00'));
+        $incident->close(new \DateTimeImmutable('2026-06-05T15:00:00+01:00'));
+        $this->entityManager->persist(new IncidentNote(
+            $incident,
+            $admin,
+            'Note interne après clôture.',
+            new \DateTimeImmutable('2026-06-05T16:00:00+01:00'),
+        ));
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/incidents/%s', $incident->getId()), user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $events = array_column($this->decodeJson($response)['history'], 'event');
+        self::assertSame([
+            'incident.opened',
+            'incident.processing_started',
+            'incident.closed',
+            'incident.note_added',
+        ], $events);
     }
 
     public function testInvalidIncidentFiltersReturn400(): void
