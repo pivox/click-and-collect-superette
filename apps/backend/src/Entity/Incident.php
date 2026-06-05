@@ -47,6 +47,9 @@ class Incident
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $closedAt = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $processingStartedAt = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -115,6 +118,11 @@ class Incident
         return $this->closedAt;
     }
 
+    public function getProcessingStartedAt(): ?\DateTimeImmutable
+    {
+        return $this->processingStartedAt;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
@@ -130,8 +138,12 @@ class Incident
         if (IncidentStatus::Closed === $this->status) {
             throw new \LogicException('INCIDENT_ALREADY_CLOSED');
         }
+        if (IncidentStatus::InProgress === $this->status) {
+            return;
+        }
 
         $this->status = IncidentStatus::InProgress;
+        $this->processingStartedAt = $startedAt;
         $this->updatedAt = $startedAt;
     }
 
