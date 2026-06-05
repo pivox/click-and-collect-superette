@@ -83,10 +83,12 @@ flowchart LR
 
 Après validation du marché, le projet pourra évoluer vers :
 
-- une PWA installable ;
-- un wrapper Android ;
-- une application mobile native ;
+- une PWA installable client et marchand dans `apps/frontend/` ;
 - une application dédiée préparateur/magasin ;
 - des intégrations fournisseurs ou grossistes.
+
+La trajectoire mobile suit l'ADR `docs/adr/0005-mobile-channel-strategy.md` : PWA d'abord dans le monorepo actuel, puis applications natives seulement après preuve terrain et limites PWA constatées.
+
+Si des applications natives iOS ou Android sont lancées, elles doivent être cadrées comme des applications séparées, avec repos dédiés sous le groupe ou l'organisation Git du produit, tout en réutilisant l'API backend existante.
 
 Ces évolutions ne doivent pas être créées dans la structure initiale tant qu'elles ne sont pas décidées.
