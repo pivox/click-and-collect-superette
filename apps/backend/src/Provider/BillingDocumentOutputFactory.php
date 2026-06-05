@@ -48,6 +48,7 @@ final readonly class BillingDocumentOutputFactory
             amountTnd: $document->getAmountTnd(),
             amountPaidTnd: $document->getAmountPaidTnd(),
             amountDueTnd: $document->getAmountDueTnd(),
+            isPaymentReminderContactable: $this->isPaymentReminderContactable($document),
             reminderSchedule: $this->reminderSchedule($document, $reminderTraces),
             whatsappManualContactedAt: $this->whatsappManualContactedAt($reminderTraces),
             createdAt: $document->getCreatedAt()->format(\DateTimeInterface::ATOM),
@@ -124,18 +125,21 @@ final readonly class BillingDocumentOutputFactory
             return $trace->getStatus()->value;
         }
 
-        if (\in_array($document->getStatus(), [BillingDocumentStatus::Paid, BillingDocumentStatus::Cancelled], true)) {
-            return 'not_applicable';
-        }
-
-        if (!\in_array($document->getSubscription()->getLifecycle(), [
-            SubscriptionLifecycle::Active,
-            SubscriptionLifecycle::PaymentDue,
-            SubscriptionLifecycle::GracePeriod,
-        ], true)) {
+        if (!$this->isPaymentReminderContactable($document)) {
             return 'not_applicable';
         }
 
         return 'planned';
+    }
+
+    private function isPaymentReminderContactable(BillingDocument $document): bool
+    {
+        return \in_array($document->getStatus(), [BillingDocumentStatus::Issued, BillingDocumentStatus::Overdue], true)
+            && bccomp($document->getAmountDueTnd(), '0.000', 3) > 0
+            && \in_array($document->getSubscription()->getLifecycle(), [
+                SubscriptionLifecycle::Active,
+                SubscriptionLifecycle::PaymentDue,
+                SubscriptionLifecycle::GracePeriod,
+            ], true);
     }
 }

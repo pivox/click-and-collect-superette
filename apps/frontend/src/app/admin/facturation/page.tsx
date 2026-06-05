@@ -67,8 +67,8 @@ function statusClass(status: BillingDocumentStatus): string {
   return 'bg-[var(--status-wait-bg)] text-[var(--status-wait)]';
 }
 
-function canPreparePaymentReminderContact(status: BillingDocumentStatus): boolean {
-  return status === 'issued' || status === 'overdue';
+function canPreparePaymentReminderContact(document: BillingDocument): boolean {
+  return document.is_payment_reminder_contactable;
 }
 
 function formatDateTimeWithOffset(date: Date): string {
@@ -329,7 +329,7 @@ export default function AdminBillingDocumentsPage() {
             <section className="mt-5 space-y-3 rounded-md border border-line bg-soft p-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-sm font-black text-ink">Relances paiement</h3>
-                {canPreparePaymentReminderContact(detail.status) && (
+                {canPreparePaymentReminderContact(detail) && (
                   <Button
                     type="button"
                     variant="ghost"

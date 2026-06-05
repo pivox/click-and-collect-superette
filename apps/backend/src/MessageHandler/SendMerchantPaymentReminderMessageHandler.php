@@ -7,7 +7,10 @@ namespace App\MessageHandler;
 use App\Billing\MerchantPaymentReminderContext;
 use App\Billing\MerchantPaymentReminderEmailSenderInterface;
 use App\Billing\PaymentReminderStage;
+use App\Entity\BillingDocument;
 use App\Entity\SubscriptionPaymentReminder;
+use App\Enum\BillingDocumentStatus;
+use App\Enum\SubscriptionLifecycle;
 use App\Enum\SubscriptionPaymentReminderChannel;
 use App\Enum\SubscriptionPaymentReminderStatus;
 use App\Message\SendMerchantPaymentReminderMessage;
@@ -58,6 +61,12 @@ final readonly class SendMerchantPaymentReminderMessageHandler
         $this->entityManager->beginTransaction();
         try {
             $this->entityManager->lock($document, LockMode::PESSIMISTIC_WRITE);
+            if (!$this->isRelaunchable($document)) {
+                $this->entityManager->commit();
+                $committed = true;
+
+                return;
+            }
 
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
             $trace = $this->reminderRepository->findOneForDocumentStageChannel(
@@ -103,5 +112,16 @@ final readonly class SendMerchantPaymentReminderMessageHandler
 
             throw $exception;
         }
+    }
+
+    private function isRelaunchable(BillingDocument $document): bool
+    {
+        return \in_array($document->getStatus(), [BillingDocumentStatus::Issued, BillingDocumentStatus::Overdue], true)
+            && bccomp($document->getAmountDueTnd(), '0.000', 3) > 0
+            && \in_array($document->getSubscription()->getLifecycle(), [
+                SubscriptionLifecycle::Active,
+                SubscriptionLifecycle::PaymentDue,
+                SubscriptionLifecycle::GracePeriod,
+            ], true);
     }
 }

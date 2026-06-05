@@ -11,6 +11,7 @@ use App\Entity\BillingDocument;
 use App\Entity\Subscription;
 use App\Entity\SubscriptionPaymentReminder;
 use App\Entity\User;
+use App\Enum\SubscriptionLifecycle;
 use App\Enum\SubscriptionPaymentReminderChannel;
 use App\Enum\SubscriptionPaymentReminderStatus;
 use App\Enum\SubscriptionPricingPhase;
@@ -158,6 +159,48 @@ final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
         self::assertCount(0, $sender->sent);
         self::assertSame(SubscriptionPaymentReminderStatus::Sent, $sentTrace->getStatus());
         self::assertSame('2026-06-18T09:00:00+01:00', $sentTrace->getSentAt()?->format(\DateTimeInterface::ATOM));
+    }
+
+    public function testHandlerDoesNotSendWhenSubscriptionIsNoLongerRelaunchable(): void
+    {
+        $document = $this->document();
+        $document->getSubscription()->setLifecycle(SubscriptionLifecycle::Suspended);
+        $sender = new CapturingMerchantPaymentReminderEmailSender();
+        $documentRepository = $this->createMock(BillingDocumentRepository::class);
+        $documentRepository
+            ->expects(self::once())
+            ->method('find')
+            ->with($document->getId()->toRfc4122())
+            ->willReturn($document);
+        $reminderRepository = $this->createMock(SubscriptionPaymentReminderRepository::class);
+        $reminderRepository->expects(self::never())->method('findOneForDocumentStageChannel');
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())->method('beginTransaction');
+        $entityManager->expects(self::once())->method('lock')->with($document, LockMode::PESSIMISTIC_WRITE);
+        $entityManager->expects(self::once())->method('commit');
+        $entityManager->expects(self::never())->method('persist');
+        $entityManager->expects(self::never())->method('flush');
+
+        $handler = new SendMerchantPaymentReminderMessageHandler(
+            $sender,
+            $documentRepository,
+            $reminderRepository,
+            $entityManager,
+            new MockClock(new \DateTimeImmutable('2026-06-18T10:00:00+01:00')),
+        );
+
+        $handler(new SendMerchantPaymentReminderMessage(
+            merchantEmail: 'marchand@example.test',
+            merchantName: 'Sami',
+            shopName: 'Supérette El Amal',
+            dueDate: '2026-06-11',
+            amountTnd: '50.000',
+            stage: 'j_plus_7',
+            billingDocumentId: $document->getId()->toRfc4122(),
+            documentNumber: 'MS-2026-000401',
+        ));
+
+        self::assertCount(0, $sender->sent);
     }
 
     public function testHandlerLocksDocumentBeforeReadingTraceAndSendingEmail(): void

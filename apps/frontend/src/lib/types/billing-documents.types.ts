@@ -37,6 +37,7 @@ export interface BillingDocument {
   amount_tnd: string;
   amount_paid_tnd: string;
   amount_due_tnd: string;
+  is_payment_reminder_contactable: boolean;
   reminder_schedule: BillingDocumentReminderScheduleItem[];
   whatsapp_manual_contacted_at: string | null;
   created_at: string;

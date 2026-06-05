@@ -40,6 +40,7 @@ const DOCUMENT: BillingDocument = {
   amount_tnd: '10.000',
   amount_paid_tnd: '0.000',
   amount_due_tnd: '10.000',
+  is_payment_reminder_contactable: true,
   reminder_schedule: [
     {
       stage: 'j_minus_7',
@@ -153,7 +154,13 @@ describe('AdminBillingDocumentsPage', () => {
   });
 
   it('hides WhatsApp contact on paid billing document detail', async () => {
-    const paidDocument = { ...DOCUMENT, status: 'paid' as const, amount_paid_tnd: '10.000', amount_due_tnd: '0.000' };
+    const paidDocument = {
+      ...DOCUMENT,
+      status: 'paid' as const,
+      amount_paid_tnd: '10.000',
+      amount_due_tnd: '0.000',
+      is_payment_reminder_contactable: false,
+    };
     vi.mocked(getAdminBillingDocument).mockResolvedValue(paidDocument);
 
     render(<AdminBillingDocumentsPage />);
@@ -165,8 +172,32 @@ describe('AdminBillingDocumentsPage', () => {
     expect(openAdminBillingDocumentWhatsappContact).not.toHaveBeenCalled();
   });
 
+  it('hides WhatsApp contact when backend marks issued document as not relaunchable', async () => {
+    vi.mocked(getAdminBillingDocument).mockResolvedValue({
+      ...DOCUMENT,
+      is_payment_reminder_contactable: false,
+      reminder_schedule: DOCUMENT.reminder_schedule.map((reminder) => ({
+        ...reminder,
+        email_status: 'not_applicable' as const,
+      })),
+    });
+
+    render(<AdminBillingDocumentsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
+    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+
+    expect(within(detail).queryByRole('button', { name: 'Contacter sur WhatsApp' })).not.toBeInTheDocument();
+  });
+
   it('records a manual cash payment from billing document detail', async () => {
-    const paidDocument = { ...DOCUMENT, status: 'paid' as const, amount_paid_tnd: '10.000', amount_due_tnd: '0.000' };
+    const paidDocument = {
+      ...DOCUMENT,
+      status: 'paid' as const,
+      amount_paid_tnd: '10.000',
+      amount_due_tnd: '0.000',
+      is_payment_reminder_contactable: false,
+    };
     vi.mocked(getAdminBillingDocument)
       .mockResolvedValueOnce(DOCUMENT)
       .mockResolvedValueOnce(paidDocument);

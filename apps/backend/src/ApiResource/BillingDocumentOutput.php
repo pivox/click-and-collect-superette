@@ -98,6 +98,9 @@ final readonly class BillingDocumentOutput
         #[Groups(['billing_document:read', 'billing_document_list:read'])]
         #[SerializedName('amount_due_tnd')]
         public string $amountDueTnd,
+        #[Groups(['billing_document:read', 'billing_document_list:read'])]
+        #[SerializedName('is_payment_reminder_contactable')]
+        public bool $isPaymentReminderContactable,
         /** @var list<BillingDocumentReminderScheduleItemOutput> */
         #[Groups(['billing_document:read', 'billing_document_list:read'])]
         #[SerializedName('reminder_schedule')]

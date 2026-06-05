@@ -62,6 +62,7 @@ const DOCUMENT: BillingDocument = {
   amount_tnd: '50.000',
   amount_paid_tnd: '0.000',
   amount_due_tnd: '50.000',
+  is_payment_reminder_contactable: true,
   reminder_schedule: [
     {
       stage: 'j_plus_3',

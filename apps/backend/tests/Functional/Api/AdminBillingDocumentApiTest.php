@@ -51,6 +51,7 @@ final class AdminBillingDocumentApiTest extends FunctionalApiTestCase
         self::assertSame('10.000', $payload['items'][0]['amount_tnd']);
         self::assertSame('TND', $payload['items'][0]['currency']);
         self::assertSame('merchant-billing-list@example.test', $payload['items'][0]['merchant_email']);
+        self::assertTrue($payload['items'][0]['is_payment_reminder_contactable']);
     }
 
     public function testAdminCanReadBillingDocumentDetail(): void
@@ -84,6 +85,7 @@ final class AdminBillingDocumentApiTest extends FunctionalApiTestCase
         self::assertSame('paid', $payload['status']);
         self::assertSame('50.000', $payload['amount_paid_tnd']);
         self::assertSame('0.000', $payload['amount_due_tnd']);
+        self::assertFalse($payload['is_payment_reminder_contactable']);
         self::assertCount(7, $payload['reminder_schedule']);
         self::assertSame('j_minus_7', $payload['reminder_schedule'][0]['stage']);
         self::assertSame('not_applicable', $payload['reminder_schedule'][0]['email_status']);
