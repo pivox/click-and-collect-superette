@@ -35,7 +35,9 @@ final class MerchantPaymentReminderEmailFactory
     {
         return match ($stage) {
             PaymentReminderStage::BeforeDueDate => '[Kadhia] Rappel abonnement Kadhia',
+            PaymentReminderStage::BeforeDueDate3 => '[Kadhia] Rappel abonnement Kadhia - J-3',
             PaymentReminderStage::DueDate => "[Kadhia] Abonnement Kadhia à régler aujourd'hui",
+            PaymentReminderStage::GracePeriod3 => '[Kadhia] Relance abonnement Kadhia - J+3',
             PaymentReminderStage::GracePeriod7 => '[Kadhia] Relance abonnement Kadhia - J+7',
             PaymentReminderStage::GracePeriod14 => '[Kadhia] Relance abonnement Kadhia - J+14',
             PaymentReminderStage::SuspensionWarning21 => '[Kadhia] Dernière relance abonnement Kadhia',
@@ -46,7 +48,9 @@ final class MerchantPaymentReminderEmailFactory
     {
         return match ($stage) {
             PaymentReminderStage::BeforeDueDate => 'Votre prochaine échéance arrive dans 7 jours.',
+            PaymentReminderStage::BeforeDueDate3 => 'Votre prochaine échéance arrive dans 3 jours.',
             PaymentReminderStage::DueDate => "Votre échéance d'abonnement arrive aujourd'hui.",
+            PaymentReminderStage::GracePeriod3 => "Votre échéance d'abonnement est dépassée depuis 3 jours.",
             PaymentReminderStage::GracePeriod7 => "Votre échéance d'abonnement est dépassée depuis 7 jours.",
             PaymentReminderStage::GracePeriod14 => "Votre échéance d'abonnement est dépassée depuis 14 jours.",
             PaymentReminderStage::SuspensionWarning21 => 'Dernière relance : votre échéance est dépassée depuis 21 jours après échéance. Une suspension douce pourra être appliquée si le règlement reste absent.',

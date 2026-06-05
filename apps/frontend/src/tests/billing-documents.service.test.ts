@@ -5,11 +5,13 @@ import {
   getMerchantBillingDocument,
   listAdminBillingDocuments,
   listMerchantBillingDocuments,
+  openAdminBillingDocumentWhatsappContact,
 } from '@/lib/services/billing-documents.service';
 
 vi.mock('@/lib/api', () => ({
   apiClient: {
     get: vi.fn(),
+    post: vi.fn(),
   },
 }));
 
@@ -69,6 +71,23 @@ describe('billing documents service', () => {
 
     await expect(getMerchantBillingDocument('doc-1')).resolves.toEqual(DOCUMENT);
     expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/billing-documents/doc-1');
+  });
+
+  it('opens an admin WhatsApp contact for a billing document', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        id: 'doc-1-whatsapp',
+        billing_document_id: 'doc-1',
+        phone: '21620123456',
+        message: 'Bonjour document MS-2026-000001',
+        whatsapp_url: 'https://wa.me/21620123456?text=Bonjour',
+      },
+    });
+
+    const result = await openAdminBillingDocumentWhatsappContact('doc-1');
+
+    expect(apiClient.post).toHaveBeenCalledWith('/api/admin/billing-documents/doc-1/whatsapp-contact');
+    expect(result.whatsapp_url).toBe('https://wa.me/21620123456?text=Bonjour');
   });
 
   it('lists merchant billing documents', async () => {

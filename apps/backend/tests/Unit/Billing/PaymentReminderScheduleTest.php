@@ -19,8 +19,16 @@ final class PaymentReminderScheduleTest extends TestCase
             PaymentReminderSchedule::resolveStage($dueDate, new \DateTimeImmutable('2026-06-04 10:00:00')),
         );
         self::assertSame(
+            PaymentReminderStage::BeforeDueDate3,
+            PaymentReminderSchedule::resolveStage($dueDate, new \DateTimeImmutable('2026-06-08 10:00:00')),
+        );
+        self::assertSame(
             PaymentReminderStage::DueDate,
             PaymentReminderSchedule::resolveStage($dueDate, new \DateTimeImmutable('2026-06-11 08:00:00')),
+        );
+        self::assertSame(
+            PaymentReminderStage::GracePeriod3,
+            PaymentReminderSchedule::resolveStage($dueDate, new \DateTimeImmutable('2026-06-14 12:00:00')),
         );
         self::assertSame(
             PaymentReminderStage::GracePeriod7,
@@ -40,8 +48,8 @@ final class PaymentReminderScheduleTest extends TestCase
     {
         $dueDate = new \DateTimeImmutable('2026-06-11 09:00:00');
 
-        self::assertNull(PaymentReminderSchedule::resolveStage($dueDate, new \DateTimeImmutable('2026-06-08 09:00:00')));
-        self::assertNull(PaymentReminderSchedule::resolveStage($dueDate, new \DateTimeImmutable('2026-06-14 09:00:00')));
+        self::assertNull(PaymentReminderSchedule::resolveStage($dueDate, new \DateTimeImmutable('2026-06-09 09:00:00')));
+        self::assertNull(PaymentReminderSchedule::resolveStage($dueDate, new \DateTimeImmutable('2026-06-15 09:00:00')));
         self::assertNull(PaymentReminderSchedule::resolveStage($dueDate, new \DateTimeImmutable('2026-07-03 09:00:00')));
     }
 }

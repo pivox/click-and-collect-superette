@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Billing;
 
+use App\Enum\SubscriptionPaymentReminderChannel;
 use App\Message\SendMerchantPaymentReminderMessage;
-use App\Repository\SubscriptionRepository;
+use App\Repository\BillingDocumentRepository;
+use App\Repository\SubscriptionPaymentReminderRepository;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final readonly class SubscriptionPaymentReminderDispatcher
 {
     public function __construct(
-        private SubscriptionRepository $subscriptionRepository,
+        private BillingDocumentRepository $billingDocumentRepository,
+        private SubscriptionPaymentReminderRepository $reminderRepository,
         private MessageBusInterface $bus,
         private ClockInterface $clock,
     ) {
@@ -23,23 +26,34 @@ final readonly class SubscriptionPaymentReminderDispatcher
         $now = $referenceDate ?? \DateTimeImmutable::createFromInterface($this->clock->now());
         $dispatched = 0;
 
-        foreach ($this->subscriptionRepository->findPaymentReminderCandidates() as $subscription) {
-            if (bccomp($subscription->getMonthlyPriceTnd(), '0.000', 3) <= 0) {
+        foreach ($this->billingDocumentRepository->findPaymentReminderCandidates() as $document) {
+            $dueAt = $document->getDueAt();
+            if (null === $dueAt) {
                 continue;
             }
 
-            $stage = PaymentReminderSchedule::resolveStage($subscription->getCurrentPeriodEndsAt(), $now);
+            $stage = PaymentReminderSchedule::resolveStage($dueAt, $now);
             if (null === $stage) {
                 continue;
             }
 
-            $merchant = $subscription->getMerchant();
+            if (null !== $this->reminderRepository->findOneForDocumentStageChannel(
+                $document,
+                $stage->value,
+                SubscriptionPaymentReminderChannel::Email,
+            )) {
+                continue;
+            }
+
+            $merchant = $document->getMerchant();
             $this->bus->dispatch(new SendMerchantPaymentReminderMessage(
+                billingDocumentId: $document->getId()->toRfc4122(),
+                documentNumber: $document->getDocumentNumber(),
                 merchantEmail: $merchant->getEmail(),
                 merchantName: $merchant->getName(),
                 shopName: $merchant->getName(),
-                dueDate: $subscription->getCurrentPeriodEndsAt()->format('Y-m-d'),
-                amountTnd: $subscription->getMonthlyPriceTnd(),
+                dueDate: $dueAt->format('Y-m-d'),
+                amountTnd: $document->getAmountDueTnd(),
                 stage: $stage->value,
             ));
             ++$dispatched;

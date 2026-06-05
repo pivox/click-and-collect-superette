@@ -9,16 +9,32 @@ use App\Billing\MerchantPaymentReminderEmailSenderInterface;
 use App\Billing\PaymentReminderStage;
 use App\Message\SendMerchantPaymentReminderMessage;
 use App\MessageHandler\SendMerchantPaymentReminderMessageHandler;
+use App\Repository\BillingDocumentRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
 
 final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
 {
     public function testHandlerBuildsReminderContextAndSendsEmail(): void
     {
         $sender = new CapturingMerchantPaymentReminderEmailSender();
-        $handler = new SendMerchantPaymentReminderMessageHandler($sender);
+        $documentRepository = $this->createMock(BillingDocumentRepository::class);
+        $documentRepository->expects(self::never())->method('find');
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::never())->method('persist');
+        $entityManager->expects(self::never())->method('flush');
+
+        $handler = new SendMerchantPaymentReminderMessageHandler(
+            $sender,
+            $documentRepository,
+            $entityManager,
+            new MockClock(new \DateTimeImmutable('2026-06-18T10:00:00+01:00')),
+        );
 
         $handler(new SendMerchantPaymentReminderMessage(
+            billingDocumentId: 'not-a-uuid',
+            documentNumber: 'MS-2026-000401',
             merchantEmail: 'marchand@example.test',
             merchantName: 'Sami',
             shopName: 'Supérette El Amal',

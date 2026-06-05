@@ -7,6 +7,8 @@ namespace App\Message;
 final readonly class SendMerchantPaymentReminderMessage
 {
     public function __construct(
+        public string $billingDocumentId,
+        public string $documentNumber,
         public string $merchantEmail,
         public string $merchantName,
         public string $shopName,
