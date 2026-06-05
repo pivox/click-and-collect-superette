@@ -39,6 +39,7 @@ export default function AdminBetaMetricsPage() {
         if (metricsRequestSeq.current !== requestSeq) return;
         console.error('[admin-beta-metrics] metrics failed', err);
         setError('Impossible de charger les métriques bêta.');
+        setMetrics(null);
       })
       .finally(() => {
         if (metricsRequestSeq.current === requestSeq) {

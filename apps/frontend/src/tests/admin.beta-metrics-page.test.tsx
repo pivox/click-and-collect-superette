@@ -282,6 +282,31 @@ describe('AdminBetaMetricsPage', () => {
     expect((await screen.findAllByText('Supérette El Amen')).length).toBeGreaterThanOrEqual(1);
   });
 
+  it('efface les anciennes métriques quand un reload filtré échoue', async () => {
+    vi.mocked(getAdminBetaMetrics)
+      .mockResolvedValueOnce(METRICS)
+      .mockRejectedValueOnce(new Error('filtered api down'));
+
+    render(<AdminBetaMetricsPage />);
+
+    await screen.findByText('12');
+
+    fireEvent.change(screen.getByLabelText('Début de période'), {
+      target: { value: '2026-06-01' },
+    });
+    fireEvent.change(screen.getByLabelText('Fin de période'), {
+      target: { value: '2026-06-30' },
+    });
+    fireEvent.change(screen.getByLabelText('Filtrer par supérette'), {
+      target: { value: 'store-2' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Appliquer' }));
+
+    expect(await screen.findByText('Impossible de charger les métriques bêta.')).toBeInTheDocument();
+    expect(screen.queryByText('12')).not.toBeInTheDocument();
+    expect(screen.queryByText('store-1')).not.toBeInTheDocument();
+  });
+
   it('affiche un empty state quand aucune supérette n’a d’activité', async () => {
     vi.mocked(getAdminBetaMetrics).mockResolvedValue(EMPTY_METRICS);
 
