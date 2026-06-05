@@ -283,7 +283,7 @@ export async function previewMerchantCatalogPhotoImport(
   const { data } = await apiClient.post<MerchantCatalogPhotoImportPreviewResult>(
     `/api/merchant/stores/${storeId}/catalog/photo-import/preview`,
     formData,
-    { headers: { Accept: 'application/json' } },
+    { headers: { Accept: 'application/json', 'Content-Type': undefined } },
   );
 
   return data;

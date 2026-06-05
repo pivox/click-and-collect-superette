@@ -409,11 +409,16 @@ describe('merchant catalogue service', () => {
     expect(apiClient.post).toHaveBeenCalledWith(
       '/api/merchant/stores/store-1/catalog/photo-import/preview',
       expect.any(FormData),
-      { headers: { Accept: 'application/json' } },
+      { headers: { Accept: 'application/json', 'Content-Type': undefined } },
     );
     const formData = vi.mocked(apiClient.post).mock.calls[0][1] as FormData;
+    const requestConfig = vi.mocked(apiClient.post).mock.calls[0][2] as {
+      headers: Record<string, unknown>;
+    };
     expect(formData.get('photo')).toBe(photo);
     expect(formData.get('source_type')).toBe('receipt');
+    expect(Object.prototype.hasOwnProperty.call(requestConfig.headers, 'Content-Type')).toBe(true);
+    expect(requestConfig.headers['Content-Type']).toBeUndefined();
     expect(result.detected_count).toBe(2);
   });
 
