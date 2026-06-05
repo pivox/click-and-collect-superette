@@ -11,6 +11,7 @@ use App\Billing\PaymentReminderSchedule;
 use App\Entity\BillingDocument;
 use App\Entity\SubscriptionPaymentReminder;
 use App\Entity\User;
+use App\Enum\BillingDocumentStatus;
 use App\Repository\BillingDocumentRepository;
 use App\Repository\SubscriptionPaymentReminderRepository;
 use App\Service\AdminAuditLogger;
@@ -50,6 +51,10 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
         }
 
         $document = $this->resolveDocument((string) ($uriVariables['billingDocumentId'] ?? ''));
+        if (!\in_array($document->getStatus(), [BillingDocumentStatus::Issued, BillingDocumentStatus::Overdue], true)) {
+            throw new ConflictHttpException('BILLING_DOCUMENT_NOT_RELAUNCHABLE');
+        }
+
         $phone = $this->normalizePhone($document->getMerchant()->getPhone());
         if (null === $phone) {
             throw new ConflictHttpException('BILLING_DOCUMENT_MERCHANT_PHONE_MISSING');

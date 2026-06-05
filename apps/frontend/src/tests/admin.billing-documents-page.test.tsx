@@ -152,6 +152,19 @@ describe('AdminBillingDocumentsPage', () => {
     openSpy.mockRestore();
   });
 
+  it('hides WhatsApp contact on paid billing document detail', async () => {
+    const paidDocument = { ...DOCUMENT, status: 'paid' as const, amount_paid_tnd: '10.000', amount_due_tnd: '0.000' };
+    vi.mocked(getAdminBillingDocument).mockResolvedValue(paidDocument);
+
+    render(<AdminBillingDocumentsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
+    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+
+    expect(within(detail).queryByRole('button', { name: 'Contacter sur WhatsApp' })).not.toBeInTheDocument();
+    expect(openAdminBillingDocumentWhatsappContact).not.toHaveBeenCalled();
+  });
+
   it('records a manual cash payment from billing document detail', async () => {
     const paidDocument = { ...DOCUMENT, status: 'paid' as const, amount_paid_tnd: '10.000', amount_due_tnd: '0.000' };
     vi.mocked(getAdminBillingDocument)

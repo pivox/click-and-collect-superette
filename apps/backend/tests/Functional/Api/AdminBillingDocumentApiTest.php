@@ -165,6 +165,40 @@ final class AdminBillingDocumentApiTest extends FunctionalApiTestCase
         self::assertNotNull($auditLog);
     }
 
+    public function testAdminCannotOpenWhatsappContactForPaidBillingDocument(): void
+    {
+        $admin = $this->createUser('admin-billing-whatsapp-paid@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-billing-whatsapp-paid@example.test', ['ROLE_MERCHANT']);
+        $merchant->setPhone('+216 20 123 456');
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $document = BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: 'MS-2026-000006',
+            billingPeriodStart: new \DateTimeImmutable('2026-06-01T00:00:00+01:00'),
+            billingPeriodEnd: new \DateTimeImmutable('2026-07-01T00:00:00+01:00'),
+            issuedAt: new \DateTimeImmutable('2026-06-01T09:00:00+01:00'),
+            dueAt: new \DateTimeImmutable('2026-06-08T23:59:59+01:00'),
+            pricingPhase: SubscriptionPricingPhase::Promo,
+            amountTnd: '10.000',
+        );
+        $document->markPaid(new \DateTimeImmutable('2026-06-04T10:00:00+01:00'));
+
+        $this->entityManager->persist($subscription);
+        $this->entityManager->persist($document);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', \sprintf('/api/admin/billing-documents/%s/whatsapp-contact', $document->getId()), user: $admin);
+
+        self::assertSame(409, $response->getStatusCode());
+
+        $auditLog = $this->entityManager->getRepository(AdminAuditLog::class)->findOneBy([
+            'action' => 'subscription_payment_reminder.whatsapp_contacted',
+            'resourceType' => 'billing_document',
+            'resourceId' => $document->getId()->toRfc4122(),
+        ]);
+        self::assertNull($auditLog);
+    }
+
     public function testBillingDocumentCanMoveToOverdue(): void
     {
         $merchant = $this->createUser('merchant-billing-overdue@example.test', ['ROLE_MERCHANT']);

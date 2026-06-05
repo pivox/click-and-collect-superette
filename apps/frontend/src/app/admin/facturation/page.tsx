@@ -67,6 +67,10 @@ function statusClass(status: BillingDocumentStatus): string {
   return 'bg-[var(--status-wait-bg)] text-[var(--status-wait)]';
 }
 
+function canPreparePaymentReminderContact(status: BillingDocumentStatus): boolean {
+  return status === 'issued' || status === 'overdue';
+}
+
 function formatDateTimeWithOffset(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   const offsetMinutes = -date.getTimezoneOffset();
@@ -325,15 +329,17 @@ export default function AdminBillingDocumentsPage() {
             <section className="mt-5 space-y-3 rounded-md border border-line bg-soft p-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-sm font-black text-ink">Relances paiement</h3>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="md"
-                  onClick={() => void contactOnWhatsapp()}
-                  disabled={isWhatsappOpening}
-                >
-                  Contacter sur WhatsApp
-                </Button>
+                {canPreparePaymentReminderContact(detail.status) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="md"
+                    onClick={() => void contactOnWhatsapp()}
+                    disabled={isWhatsappOpening}
+                  >
+                    Contacter sur WhatsApp
+                  </Button>
+                )}
               </div>
               {whatsappError && (
                 <div role="alert" className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
