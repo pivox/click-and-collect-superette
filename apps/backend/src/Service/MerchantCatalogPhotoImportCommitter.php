@@ -37,6 +37,9 @@ final readonly class MerchantCatalogPhotoImportCommitter
         $errors = [];
 
         $this->entityManager->wrapInTransaction(function () use ($shop, $input, $changedByUser, &$created, &$updated, &$ignored, &$items, &$errors): void {
+            /** @var array<string, MerchantProduct> $batchProducts */
+            $batchProducts = [];
+
             foreach ($input->items as $item) {
                 if (!$item instanceof MerchantCatalogPhotoImportCommitItemInput) {
                     throw new \InvalidArgumentException('MerchantCatalogPhotoImportCommitItemInput expected.');
@@ -68,9 +71,22 @@ final readonly class MerchantCatalogPhotoImportCommitter
                     continue;
                 }
 
-                [$merchantProduct, $status] = null !== $productReference
-                    ? $this->upsertReferenceProduct($shop, $productReference, $item, $changedByUser)
-                    : $this->upsertLocalProduct($shop, $item, $changedByUser);
+                $batchKey = null !== $productReference
+                    ? 'reference:'.$productReference->getId()->toRfc4122()
+                    : $this->localBatchKey($item);
+
+                if (isset($batchProducts[$batchKey])) {
+                    $merchantProduct = $batchProducts[$batchKey];
+                    null !== $productReference
+                        ? $this->updateMerchantProduct($merchantProduct, $item, $changedByUser)
+                        : $this->updateBatchLocalProduct($merchantProduct, $item, $changedByUser);
+                    $status = 'updated';
+                } else {
+                    [$merchantProduct, $status] = null !== $productReference
+                        ? $this->upsertReferenceProduct($shop, $productReference, $item, $changedByUser)
+                        : $this->upsertLocalProduct($shop, $item, $changedByUser);
+                    $batchProducts[$batchKey] = $merchantProduct;
+                }
 
                 'created' === $status ? ++$created : ++$updated;
                 $items[] = new MerchantCatalogCsvImportItem(
@@ -115,6 +131,28 @@ final readonly class MerchantCatalogPhotoImportCommitter
         return null !== $this->normalizeOptionalText($item->brand)
             && null !== $this->normalizeDecimalText($item->volume)
             && null !== $item->unit;
+    }
+
+    private function localBatchKey(MerchantCatalogPhotoImportCommitItemInput $item): string
+    {
+        $barcode = $this->normalizeOptionalText($item->barcode);
+        if (null !== $barcode) {
+            return 'local:barcode:'.$barcode;
+        }
+
+        $brand = $this->normalizeOptionalText($item->brand);
+        $volume = $this->normalizeDecimalText($item->volume);
+        if (null === $brand || null === $volume || null === $item->unit) {
+            throw new \LogicException('Local product fields must be validated before building a batch key.');
+        }
+
+        return \sprintf(
+            'local:identity:%s|%s|%s|%s',
+            mb_strtolower($brand),
+            mb_strtolower(trim($item->nameFr)),
+            $volume,
+            $item->unit->value,
+        );
     }
 
     /**
@@ -203,6 +241,26 @@ final readonly class MerchantCatalogPhotoImportCommitter
         );
 
         return [$merchantProduct, 'created'];
+    }
+
+    private function updateBatchLocalProduct(
+        MerchantProduct $merchantProduct,
+        MerchantCatalogPhotoImportCommitItemInput $item,
+        ?User $changedByUser,
+    ): void {
+        $localProduct = $merchantProduct->getLocalProduct();
+        if (null === $localProduct) {
+            throw new \LogicException('Expected a local merchant product.');
+        }
+
+        $brand = $this->normalizeOptionalText($item->brand);
+        $volume = $this->normalizeDecimalText($item->volume);
+        if (null === $brand || null === $volume || null === $item->unit) {
+            throw new \LogicException('Local product fields must be validated before batch update.');
+        }
+
+        $this->updateLocalProduct($localProduct, $item, $brand, $volume, $this->normalizeOptionalText($item->barcode));
+        $this->updateMerchantProduct($merchantProduct, $item, $changedByUser);
     }
 
     private function updateLocalProduct(

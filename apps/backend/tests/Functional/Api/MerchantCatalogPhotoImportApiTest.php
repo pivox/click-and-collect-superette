@@ -204,6 +204,108 @@ final class MerchantCatalogPhotoImportApiTest extends FunctionalApiTestCase
         self::assertSame(403, $response->getStatusCode());
     }
 
+    public function testPhotoImportCommitDeduplicatesReferenceRowsWithinBatch(): void
+    {
+        $merchant = $this->createUser('merchant-photo-commit-duplicate-ref@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $reference = $this->createProductReference(
+            brandName: 'Vitalait',
+            categoryName: 'Lait & produits laitiers',
+            nameFr: 'Lait demi-écrémé',
+            volume: '1.000',
+            unit: ProductUnit::Litre,
+            barcode: '6191234567890',
+        );
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/catalog/photo-import/commit', $shop->getId()),
+            ['items' => [
+                [
+                    'line' => 1,
+                    'selected' => true,
+                    'product_reference_id' => $reference->getId()->toRfc4122(),
+                    'name_fr' => 'Lait demi-écrémé',
+                    'price_tnd' => '1.650',
+                    'is_available' => true,
+                    'is_visible' => true,
+                ],
+                [
+                    'line' => 2,
+                    'selected' => true,
+                    'product_reference_id' => $reference->getId()->toRfc4122(),
+                    'name_fr' => 'Lait demi-écrémé',
+                    'price_tnd' => '1.700',
+                    'is_available' => false,
+                    'is_visible' => true,
+                ],
+            ]],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode(), $response->getContent(false));
+        $payload = $this->decodeJson($response);
+        self::assertSame(1, $payload['created']);
+        self::assertSame(1, $payload['updated']);
+        self::assertSame('created', $payload['items'][0]['status']);
+        self::assertSame('updated', $payload['items'][1]['status']);
+
+        $merchantProducts = $this->entityManager->getRepository(MerchantProduct::class)->findCatalogForShop($shop);
+        self::assertCount(1, $merchantProducts);
+        self::assertSame('1.700', $merchantProducts[0]->getPriceTnd());
+        self::assertFalse($merchantProducts[0]->isAvailable());
+    }
+
+    public function testPhotoImportCommitDeduplicatesLocalRowsWithinBatch(): void
+    {
+        $merchant = $this->createUser('merchant-photo-commit-duplicate-local@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/catalog/photo-import/commit', $shop->getId()),
+            ['items' => [
+                [
+                    'line' => 1,
+                    'selected' => true,
+                    'name_fr' => 'Harissa maison',
+                    'brand' => 'Jouda',
+                    'volume' => '350.000',
+                    'unit' => 'gramme',
+                    'barcode' => '6191111111111',
+                    'price_tnd' => '4.500',
+                    'is_available' => true,
+                    'is_visible' => true,
+                ],
+                [
+                    'line' => 2,
+                    'selected' => true,
+                    'name_fr' => 'Harissa maison',
+                    'brand' => 'Jouda',
+                    'volume' => '350.000',
+                    'unit' => 'gramme',
+                    'barcode' => '6191111111111',
+                    'price_tnd' => '4.750',
+                    'is_available' => true,
+                    'is_visible' => false,
+                ],
+            ]],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode(), $response->getContent(false));
+        $payload = $this->decodeJson($response);
+        self::assertSame(1, $payload['created']);
+        self::assertSame(1, $payload['updated']);
+        self::assertSame('created', $payload['items'][0]['status']);
+        self::assertSame('updated', $payload['items'][1]['status']);
+
+        $merchantProducts = $this->entityManager->getRepository(MerchantProduct::class)->findCatalogForShop($shop);
+        self::assertCount(1, $merchantProducts);
+        self::assertSame('4.750', $merchantProducts[0]->getPriceTnd());
+        self::assertFalse($merchantProducts[0]->isVisible());
+    }
+
     public function testPhotoImportCommitIgnoresAlreadyInCatalogAndUnselectedRows(): void
     {
         $merchant = $this->createUser('merchant-photo-commit-ignore@example.test', ['ROLE_MERCHANT']);
