@@ -309,16 +309,20 @@ Objectif : préparer un futur levier de monétisation via visibilité sponsoris�
 
 Objectif : préparer le canal mobile client et marchand.
 
+Stratégie : PWA d'abord dans `apps/frontend/` du monorepo actuel. Les applications natives iOS / Android restent post-MVP et doivent être lancées en repos séparés seulement après preuve terrain et limites PWA documentées.
+
 ### US
 
 - [ ] US-APP-001 / US-059 — Rendre la PWA installable et prévoir un mode offline minimal.
-- [ ] US-APP-002 — Préparer l'application iOS client.
+- [ ] US-APP-002 — Préparer l'application Android marchand.
 - [ ] US-APP-003 — Préparer l'application Android client.
+- [ ] US-APP-010 — Préparer l'application iOS client.
+- [ ] US-APP-011 — Préparer l'application iOS marchand si besoin confirmé.
 - [ ] US-APP-004 — Ajouter les notifications push client.
 - [ ] US-APP-005 — Ajouter les notifications push marchand.
 - [ ] US-APP-006 — Prévoir un mode offline minimal catalogue / panier.
 - [ ] US-APP-007 — Créer un écran d'installation application.
-- [ ] US-APP-008 — Documenter ce qui reste web, PWA, iOS ou Android.
+- [ ] US-APP-008 — Documenter ce qui reste web/PWA dans le monorepo et ce qui devient repo natif séparé.
 - [ ] US-APP-009 — Prévoir le suivi des versions mobiles.
 
 ---

@@ -523,6 +523,8 @@ Un marchand crée un catalogue exploitable sans saisir produit par produit ; le 
 
 Transformer le web responsive en vraie expérience mobile installable. PWA (US-059), WCAG (US-060) et i18n AR (US-008) étaient reportés post-Sprint 7.
 
+Les PWA client et marchand seront livrées dans le repo actuel, via `apps/frontend/`. Elles ne créent pas de nouveau dépôt et réutilisent l'API backend existante.
+
 ### Fonctionnalités
 
 - **US-089** ([#374](https://github.com/pivox/click-and-collect-superette/issues/374)) · EPIC-022 · *Must* — PWA client (installable, mobile-first). **Ouvert.**
@@ -564,6 +566,8 @@ La plateforme aide les marchands à vendre plus et l'équipe à les retenir.
 
 Industrialiser **après preuve terrain** (clients commandent, marchands utilisent, catalogue gérable, facturation OK, limites PWA constatées). Ordre : Android marchand → Android client → iOS client → iOS marchand (conditionnel).
 
+Les apps natives sont post-MVP. Si elles sont déclenchées, elles doivent reprendre les parcours validés par la PWA et être cadrées dans des repos séparés sous le groupe ou l'organisation Git du produit, sans dupliquer la logique métier du backend.
+
 ### Fonctionnalités
 
 - **US-100** ([#386](https://github.com/pivox/click-and-collect-superette/issues/386)) · EPIC-024 · *Should* — App native Android marchand.
@@ -573,7 +577,7 @@ Industrialiser **après preuve terrain** (clients commandent, marchands utilisen
 
 ### Critère de sortie
 
-Les apps natives reprennent les parcours validés par la PWA, sans réinventer le produit, une fois la traction terrain prouvée.
+Les apps natives reprennent les parcours validés par la PWA, sans réinventer le produit, une fois la traction terrain prouvée. Elles réutilisent l'API backend existante ; tout nouveau contrat API doit être justifié par un besoin mobile réel.
 
 ---
 

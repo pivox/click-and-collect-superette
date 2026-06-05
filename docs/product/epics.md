@@ -374,7 +374,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Objectif** : Transformer le web responsive en PWA installable, mobile-first, avec notifications push et accessibilité de base.
 
-**Valeur produit** : Une vraie expérience mobile terrain pour client et marchand (PWA/WCAG reportés post-Sprint 7).
+**Valeur produit** : Une vraie expérience mobile terrain pour client et marchand (PWA/WCAG reportés post-Sprint 7), sans multiplier les dépôts avant validation terrain.
 
 **Sprint** : Sprint 14 — PWA & notifications
 
@@ -384,7 +384,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 - US-091 — Push notifications (client + marchand) *(#376 ouverte)*
 - US-092 — Accessibilité minimum (WCAG de base) *(#379 ouverte)*
 
-**Critère de sortie** : Client et marchand installent l'app sur mobile et reçoivent des notifications push. *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée.* L'arabe/RTL client n'est plus le bloc principal de cet epic : US-093 a été livrée via #401.
+**Critère de sortie** : Client et marchand installent l'app sur mobile depuis `apps/frontend/` et reçoivent des notifications push. *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée.* L'arabe/RTL client n'est plus le bloc principal de cet epic : US-093 a été livrée via #401.
 
 ---
 
@@ -411,7 +411,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Objectif** : Industrialiser les parcours validés par la PWA en apps natives, après preuve terrain.
 
-**Valeur produit** : Performance et notifications fiables une fois la traction prouvée, sans réinventer le produit.
+**Valeur produit** : Performance et notifications fiables une fois la traction prouvée, sans réinventer le produit ni dupliquer la logique métier.
 
 **Sprint** : Sprint 16 — Apps natives
 
@@ -421,4 +421,4 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 - US-102 — App native iOS client
 - US-103 — App native iOS marchand *(si besoin confirmé)*
 
-**Critère de sortie** : Les apps natives reprennent les parcours validés par la PWA, dans l'ordre Android marchand → Android client → iOS client → iOS marchand.
+**Critère de sortie** : Les apps natives reprennent les parcours validés par la PWA, dans l'ordre Android marchand → Android client → iOS client → iOS marchand. Elles sont cadrées dans des repos séparés sous le groupe ou l'organisation Git du produit et réutilisent l'API backend existante.

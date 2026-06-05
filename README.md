@@ -256,7 +256,9 @@ click-and-collect-superette/
 └── README.md
 ```
 
-Aucune application mobile native n'est prévue dans le MVP. La décision est documentée dans `docs/adr/0001-front-back-only-mvp.md`.
+Aucune application mobile native n'est prévue dans le MVP. La décision front/back est documentée dans `docs/adr/0001-front-back-only-mvp.md`.
+
+La trajectoire mobile est **PWA d'abord** : les expériences client et marchand installables restent dans `apps/frontend/` et réutilisent l'API backend existante. Les applications natives iOS / Android ne seront cadrées qu'après preuve terrain et limites PWA constatées ; si elles démarrent, elles devront vivre dans des repos séparés sous le groupe ou l'organisation Git du produit. Cette stratégie est documentée dans `docs/adr/0005-mobile-channel-strategy.md`.
 
 ## Documentation produit et technique
 
@@ -273,6 +275,7 @@ La documentation technique est organisée dans :
 - `docs/architecture/api-contract.md` : contrat API ;
 - `docs/architecture/front-back-structure.md` : structure frontend / backend du MVP ;
 - `docs/adr/0001-front-back-only-mvp.md` : décision de ne garder que frontend + backend pour le MVP ;
+- `docs/adr/0005-mobile-channel-strategy.md` : stratégie PWA, organisation Git et apps natives post-MVP ;
 - `docs/SprintFrontend/README.md` : état courant des interfaces client, marchand et admin.
 
 ## Références utiles
