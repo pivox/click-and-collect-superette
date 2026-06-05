@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\Order;
+use App\Entity\OrderStatusLog;
+use App\Entity\PickupSlot;
+use App\Entity\Shop;
 use App\Entity\User;
+use App\Enum\OrderStatus;
 use Symfony\Component\Uid\Uuid;
 
 final class MerchantAdminApiTest extends FunctionalApiTestCase
@@ -69,9 +74,69 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertSame('+21600000002', $payload['phone']);
         self::assertFalse($payload['is_active']);
         self::assertSame(1, $payload['stores_count']);
+        self::assertArrayHasKey('ops_journal', $payload);
         self::assertArrayNotHasKey('password', $payload);
         self::assertArrayNotHasKey('password_hash', $payload);
         self::assertArrayNotHasKey('token', $payload);
+    }
+
+    public function testAdminSeesMerchantOperationalJournalOnDetail(): void
+    {
+        $admin = $this->createUser('admin-merchant-ops@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-ops@example.test', new \DateTimeImmutable('2026-05-18T09:00:00+00:00'));
+        $customer = $this->createUser('customer-merchant-ops@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop($merchant);
+        $otherMerchant = $this->createMerchant('merchant-ops-other@example.test', new \DateTimeImmutable('2026-05-18T09:30:00+00:00'));
+        $otherShop = $this->createShop($otherMerchant);
+
+        $pastSlot = $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('2026-06-01T09:00:00+00:00'),
+            new \DateTimeImmutable('2026-06-01T10:00:00+00:00'),
+        );
+        $futureSlot = $this->createPickupSlot(
+            $shop,
+            new \DateTimeImmutable('+1 day 09:00:00'),
+            new \DateTimeImmutable('+1 day 10:00:00'),
+        );
+        $otherPastSlot = $this->createPickupSlot(
+            $otherShop,
+            new \DateTimeImmutable('2026-06-01T09:00:00+00:00'),
+            new \DateTimeImmutable('2026-06-01T10:00:00+00:00'),
+        );
+
+        $overdueOrder = $this->createOrder($shop, $customer, OrderStatus::Submitted, $pastSlot);
+        $cancelledOrder = $this->createOrder($shop, $customer, OrderStatus::Cancelled, $pastSlot);
+        $this->createOrder($shop, $customer, OrderStatus::Completed, $pastSlot);
+        $this->createOrder($shop, $customer, OrderStatus::Ready, $futureSlot);
+        $this->createOrder($otherShop, $customer, OrderStatus::Cancelled, $otherPastSlot);
+
+        $this->createStatusLog($overdueOrder, OrderStatus::Submitted, new \DateTimeImmutable('2026-06-01T08:55:00+00:00'));
+        $this->createStatusLog($cancelledOrder, OrderStatus::Cancelled, new \DateTimeImmutable('2026-06-01T11:15:00+00:00'));
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/merchants/%s', $merchant->getId()), user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $journal = $this->decodeJson($response)['ops_journal'];
+        self::assertSame(1, $journal['overdue_orders_count']);
+        self::assertSame(1, $journal['cancelled_orders_count']);
+        self::assertSame('2026-06-01T11:15:00+00:00', $journal['last_activity_at']);
+        self::assertSame('cancelled', $journal['last_activity_status']);
+    }
+
+    public function testAdminSeesEmptyMerchantOperationalJournalWhenMerchantHasNoActivity(): void
+    {
+        $admin = $this->createUser('admin-merchant-empty-ops@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-empty-ops@example.test', new \DateTimeImmutable('2026-05-18T09:00:00+00:00'));
+
+        $response = $this->requestJson('GET', \sprintf('/api/admin/merchants/%s', $merchant->getId()), user: $admin);
+
+        self::assertSame(200, $response->getStatusCode());
+        $journal = $this->decodeJson($response)['ops_journal'];
+        self::assertSame(0, $journal['overdue_orders_count']);
+        self::assertSame(0, $journal['cancelled_orders_count']);
+        self::assertNull($journal['last_activity_at']);
+        self::assertNull($journal['last_activity_status']);
     }
 
     public function testMerchantListPaginationAndDescendingSort(): void
@@ -490,5 +555,45 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $merchant;
+    }
+
+    private function createPickupSlot(Shop $shop, \DateTimeImmutable $startsAt, \DateTimeImmutable $endsAt): PickupSlot
+    {
+        $slot = (new PickupSlot())
+            ->setShop($shop)
+            ->setStartsAt($startsAt)
+            ->setEndsAt($endsAt)
+            ->setCapacity(5)
+            ->setActive(true);
+
+        $this->entityManager->persist($slot);
+        $this->entityManager->flush();
+
+        return $slot;
+    }
+
+    private function createOrder(Shop $shop, User $customer, OrderStatus $status, ?PickupSlot $pickupSlot = null): Order
+    {
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop)
+            ->setPickupSlot($pickupSlot);
+        $this->setPrivateProperty($order, 'status', $status);
+
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
+    private function createStatusLog(Order $order, OrderStatus $status, \DateTimeImmutable $createdAt): OrderStatusLog
+    {
+        $log = new OrderStatusLog($order, $status);
+        $this->setPrivateProperty($log, 'createdAt', $createdAt);
+
+        $this->entityManager->persist($log);
+        $this->entityManager->flush();
+
+        return $log;
     }
 }

@@ -36,10 +36,9 @@ Limites ouvertes :
 - PWA client et marchand non livrée ;
 - push notifications non livrées ;
 - accessibilité WCAG de base non auditée ;
-- journal opérationnel marchand minimal (#357) à reporter vers un sprint support/exploitation terrain ;
 - décision bêta FR-only vs FR+AR (#358) à fermer comme non nécessaire, la bêta pouvant partir en FR+AR sur les parcours livrés.
 
-Priorité recommandée : clôturer administrativement le Sprint 10, reporter #357 et fermer #358 comme décision absorbée par les livraisons FR/AR.
+Priorité recommandée : clôturer administrativement le Sprint 10 et fermer #358 comme décision absorbée par les livraisons FR/AR.
 
 Issue documentaire courante : [#405](https://github.com/pivox/click-and-collect-superette/issues/405).
 
