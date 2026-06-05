@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Billing;
 
 use App\Enum\SubscriptionPaymentReminderChannel;
+use App\Enum\SubscriptionPaymentReminderStatus;
 use App\Message\SendMerchantPaymentReminderMessage;
 use App\Repository\BillingDocumentRepository;
 use App\Repository\SubscriptionPaymentReminderRepository;
@@ -37,11 +38,12 @@ final readonly class SubscriptionPaymentReminderDispatcher
                 continue;
             }
 
-            if (null !== $this->reminderRepository->findOneForDocumentStageChannel(
+            $existingTrace = $this->reminderRepository->findOneForDocumentStageChannel(
                 $document,
                 $stage->value,
                 SubscriptionPaymentReminderChannel::Email,
-            )) {
+            );
+            if (SubscriptionPaymentReminderStatus::Sent === $existingTrace?->getStatus()) {
                 continue;
             }
 

@@ -7,9 +7,17 @@ namespace App\Tests\Unit\MessageHandler;
 use App\Billing\MerchantPaymentReminderContext;
 use App\Billing\MerchantPaymentReminderEmailSenderInterface;
 use App\Billing\PaymentReminderStage;
+use App\Entity\BillingDocument;
+use App\Entity\Subscription;
+use App\Entity\SubscriptionPaymentReminder;
+use App\Entity\User;
+use App\Enum\SubscriptionPaymentReminderChannel;
+use App\Enum\SubscriptionPaymentReminderStatus;
+use App\Enum\SubscriptionPricingPhase;
 use App\Message\SendMerchantPaymentReminderMessage;
 use App\MessageHandler\SendMerchantPaymentReminderMessageHandler;
 use App\Repository\BillingDocumentRepository;
+use App\Repository\SubscriptionPaymentReminderRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
@@ -24,17 +32,18 @@ final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects(self::never())->method('persist');
         $entityManager->expects(self::never())->method('flush');
+        $reminderRepository = $this->createMock(SubscriptionPaymentReminderRepository::class);
+        $reminderRepository->expects(self::never())->method('findOneForDocumentStageChannel');
 
         $handler = new SendMerchantPaymentReminderMessageHandler(
             $sender,
             $documentRepository,
+            $reminderRepository,
             $entityManager,
             new MockClock(new \DateTimeImmutable('2026-06-18T10:00:00+01:00')),
         );
 
         $handler(new SendMerchantPaymentReminderMessage(
-            billingDocumentId: 'not-a-uuid',
-            documentNumber: 'MS-2026-000401',
             merchantEmail: 'marchand@example.test',
             merchantName: 'Sami',
             shopName: 'Supérette El Amal',
@@ -49,6 +58,77 @@ final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
         self::assertSame('50.000', $sender->sent[0]->amountTnd);
         self::assertEquals(new \DateTimeImmutable('2026-06-11'), $sender->sent[0]->dueDate);
         self::assertSame(PaymentReminderStage::GracePeriod7, $sender->sent[0]->stage);
+    }
+
+    public function testHandlerUpdatesFailedReminderTraceOnRetrySuccess(): void
+    {
+        $document = $this->document();
+        $failedTrace = SubscriptionPaymentReminder::emailFailed(
+            $document,
+            PaymentReminderStage::GracePeriod7,
+            new \DateTimeImmutable('2026-06-18T09:00:00+01:00'),
+            'SMTP temporary failure',
+        );
+        $sender = new CapturingMerchantPaymentReminderEmailSender();
+        $documentRepository = $this->createMock(BillingDocumentRepository::class);
+        $documentRepository
+            ->expects(self::once())
+            ->method('find')
+            ->with($document->getId()->toRfc4122())
+            ->willReturn($document);
+        $reminderRepository = $this->createMock(SubscriptionPaymentReminderRepository::class);
+        $reminderRepository
+            ->expects(self::once())
+            ->method('findOneForDocumentStageChannel')
+            ->with($document, 'j_plus_7', SubscriptionPaymentReminderChannel::Email)
+            ->willReturn($failedTrace);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::once())->method('flush');
+
+        $handler = new SendMerchantPaymentReminderMessageHandler(
+            $sender,
+            $documentRepository,
+            $reminderRepository,
+            $entityManager,
+            new MockClock(new \DateTimeImmutable('2026-06-18T10:00:00+01:00')),
+        );
+
+        $handler(new SendMerchantPaymentReminderMessage(
+            merchantEmail: 'marchand@example.test',
+            merchantName: 'Sami',
+            shopName: 'Supérette El Amal',
+            dueDate: '2026-06-11',
+            amountTnd: '50.000',
+            stage: 'j_plus_7',
+            billingDocumentId: $document->getId()->toRfc4122(),
+            documentNumber: 'MS-2026-000401',
+        ));
+
+        self::assertSame(SubscriptionPaymentReminderStatus::Sent, $failedTrace->getStatus());
+        self::assertSame('2026-06-18T10:00:00+01:00', $failedTrace->getSentAt()?->format(\DateTimeInterface::ATOM));
+        self::assertNull($failedTrace->getFailedAt());
+        self::assertNull($failedTrace->getFailureReason());
+    }
+
+    private function document(): BillingDocument
+    {
+        $merchant = (new User())
+            ->setEmail('marchand@example.test')
+            ->setRoles(['ROLE_MERCHANT'])
+            ->setPassword('test-password')
+            ->setName('Sami');
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+
+        return BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: 'MS-2026-000401',
+            billingPeriodStart: new \DateTimeImmutable('2026-06-01T00:00:00+01:00'),
+            billingPeriodEnd: new \DateTimeImmutable('2026-07-01T00:00:00+01:00'),
+            issuedAt: new \DateTimeImmutable('2026-06-01T09:00:00+01:00'),
+            dueAt: new \DateTimeImmutable('2026-06-11T23:59:59+01:00'),
+            pricingPhase: SubscriptionPricingPhase::Promo,
+            amountTnd: '50.000',
+        );
     }
 }
 

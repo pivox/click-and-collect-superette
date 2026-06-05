@@ -8,8 +8,10 @@ use App\Billing\MerchantPaymentReminderContext;
 use App\Billing\MerchantPaymentReminderEmailSenderInterface;
 use App\Billing\PaymentReminderStage;
 use App\Entity\SubscriptionPaymentReminder;
+use App\Enum\SubscriptionPaymentReminderChannel;
 use App\Message\SendMerchantPaymentReminderMessage;
 use App\Repository\BillingDocumentRepository;
+use App\Repository\SubscriptionPaymentReminderRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -21,6 +23,7 @@ final readonly class SendMerchantPaymentReminderMessageHandler
     public function __construct(
         private MerchantPaymentReminderEmailSenderInterface $sender,
         private BillingDocumentRepository $billingDocumentRepository,
+        private SubscriptionPaymentReminderRepository $reminderRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
     ) {
@@ -38,7 +41,7 @@ final readonly class SendMerchantPaymentReminderMessageHandler
             stage: $stage,
         );
 
-        if (!Uuid::isValid($message->billingDocumentId)) {
+        if (null === $message->billingDocumentId || !Uuid::isValid($message->billingDocumentId)) {
             $this->sender->send($context);
 
             return;
@@ -50,12 +53,27 @@ final readonly class SendMerchantPaymentReminderMessageHandler
         }
 
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+        $trace = $this->reminderRepository->findOneForDocumentStageChannel(
+            $document,
+            $stage->value,
+            SubscriptionPaymentReminderChannel::Email,
+        );
         try {
             $this->sender->send($context);
-            $this->entityManager->persist(SubscriptionPaymentReminder::emailSent($document, $stage, $now));
+            if (null === $trace) {
+                $trace = SubscriptionPaymentReminder::emailSent($document, $stage, $now);
+                $this->entityManager->persist($trace);
+            } else {
+                $trace->markEmailSent($now);
+            }
             $this->entityManager->flush();
         } catch (\Throwable $exception) {
-            $this->entityManager->persist(SubscriptionPaymentReminder::emailFailed($document, $stage, $now, $exception->getMessage()));
+            if (null === $trace) {
+                $trace = SubscriptionPaymentReminder::emailFailed($document, $stage, $now, $exception->getMessage());
+                $this->entityManager->persist($trace);
+            } else {
+                $trace->markEmailFailed($now, $exception->getMessage());
+            }
             $this->entityManager->flush();
 
             throw $exception;

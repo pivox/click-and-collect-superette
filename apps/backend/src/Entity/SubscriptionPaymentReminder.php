@@ -122,6 +122,25 @@ class SubscriptionPaymentReminder
         return $reminder;
     }
 
+    public function markEmailSent(\DateTimeImmutable $sentAt): static
+    {
+        $this->status = SubscriptionPaymentReminderStatus::Sent;
+        $this->sentAt = $sentAt;
+        $this->failedAt = null;
+        $this->failureReason = null;
+
+        return $this;
+    }
+
+    public function markEmailFailed(\DateTimeImmutable $failedAt, string $reason): static
+    {
+        $this->status = SubscriptionPaymentReminderStatus::Failed;
+        $this->failedAt = $failedAt;
+        $this->failureReason = mb_substr($reason, 0, 500);
+
+        return $this;
+    }
+
     #[ORM\PreUpdate]
     public function onPreUpdate(): void
     {
