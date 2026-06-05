@@ -448,11 +448,11 @@ Rendre l'application fiable pour une bêta avec 3 à 5 supérettes réelles.
 - **US-070** ([#355](https://github.com/pivox/click-and-collect-superette/issues/355)) · EPIC-016 · *Must* · Livré — QR magasin imprimable livré côté marchand : aperçu, téléchargement PNG et PDF.
 - **US-071** ([#356](https://github.com/pivox/click-and-collect-superette/issues/356)) · EPIC-016 · *Must* · Livré — Checklist d'activation supérette livrée via PR #412 : endpoint admin `GET /api/admin/stores/{storeId}/activation-checklist` et badge admin `Prête` / `Incomplète`.
 - **US-072** ([#357](https://github.com/pivox/click-and-collect-superette/issues/357)) · EPIC-016 · *Could* · À reporter — Journal opérationnel marchand (vue minimale), non bloquant pour Sprint 10 ; à rattacher au sprint support/exploitation terrain où il complète incidents, notes internes et vue santé.
-- **US-073** ([#358](https://github.com/pivox/click-and-collect-superette/issues/358)) · EPIC-016 · *Must initial* · À fermer comme non nécessaire — La décision bêta est tranchée par les livraisons FR/AR : i18n client + RTL (#401) et préférence langue marchand FR/AR (#395). La bêta peut partir en FR+AR sur les parcours livrés ; aucun développement Sprint 10 supplémentaire n'est requis.
+- **US-073** ([#358](https://github.com/pivox/click-and-collect-superette/issues/358)) · EPIC-016 · *Must initial* · À fermer comme non nécessaire — La décision bêta est tranchée par les livraisons FR/AR : i18n client + RTL (#401) et préférence langue marchand FR/AR (#395). La bêta peut partir en FR+AR sur les parcours livrés ; aucun développement Sprint 10 supplémentaire n'est requis. Décision consignée : [`docs/decisions/2026-06-05-beta-fr-ar.md`](../decisions/2026-06-05-beta-fr-ar.md).
 
 ### Critère de sortie
 
-Sprint 10 est clôturable : worker async supervisé et monitoré, KPI mesurés, QR imprimable livré, supérettes validées par checklist avant activation. Les tickets encore ouverts ne bloquent pas la clôture : #357 relève du support terrain ultérieur ; #358 doit être fermé comme décision devenue obsolète.
+Sprint 10 est clôturable : worker async supervisé et monitoré, KPI mesurés, QR imprimable livré, supérettes validées par checklist avant activation. Les tickets encore ouverts ne bloquent pas la clôture : #357 relève du support terrain ultérieur ; #358 doit être fermé comme décision devenue obsolète par la livraison FR+AR.
 
 ---
 
