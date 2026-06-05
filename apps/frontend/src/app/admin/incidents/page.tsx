@@ -57,9 +57,12 @@ export default function AdminIncidentsPage() {
   const [note, setNote] = useState('');
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const listRequestSeq = useRef(0);
   const detailRequestSeq = useRef(0);
 
   const load = useCallback(async () => {
+    const requestSeq = listRequestSeq.current + 1;
+    listRequestSeq.current = requestSeq;
     setIsLoading(true);
     setError(null);
     try {
@@ -70,13 +73,17 @@ export default function AdminIncidentsPage() {
         client: clientFilter.trim(),
         status: statusFilter,
       });
+      if (listRequestSeq.current !== requestSeq) return;
       setItems(data.items);
       setTotal(data.total);
     } catch (err) {
+      if (listRequestSeq.current !== requestSeq) return;
       console.error('[admin-incidents] list failed', err);
       setError('Impossible de charger les incidents.');
     } finally {
-      setIsLoading(false);
+      if (listRequestSeq.current === requestSeq) {
+        setIsLoading(false);
+      }
     }
   }, [page, merchantFilter, clientFilter, statusFilter]);
 
@@ -84,9 +91,20 @@ export default function AdminIncidentsPage() {
     void load();
   }, [load]);
 
-  useEffect(() => {
+  const updateMerchantFilter = (value: string) => {
     setPage(1);
-  }, [merchantFilter, clientFilter, statusFilter]);
+    setMerchantFilter(value);
+  };
+
+  const updateClientFilter = (value: string) => {
+    setPage(1);
+    setClientFilter(value);
+  };
+
+  const updateStatusFilter = (value: IncidentStatus | '') => {
+    setPage(1);
+    setStatusFilter(value);
+  };
 
   const openDetail = async (id: string) => {
     const requestSeq = detailRequestSeq.current + 1;
@@ -236,20 +254,20 @@ export default function AdminIncidentsPage() {
           type="text"
           placeholder="ID marchand"
           value={merchantFilter}
-          onChange={(event) => setMerchantFilter(event.target.value)}
+          onChange={(event) => updateMerchantFilter(event.target.value)}
           className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
         <input
           type="text"
           placeholder="ID client"
           value={clientFilter}
-          onChange={(event) => setClientFilter(event.target.value)}
+          onChange={(event) => updateClientFilter(event.target.value)}
           className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
         <select
           aria-label="Filtrer par statut"
           value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value as IncidentStatus | '')}
+          onChange={(event) => updateStatusFilter(event.target.value as IncidentStatus | '')}
           className="rounded-md border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         >
           <option value="">Tous</option>

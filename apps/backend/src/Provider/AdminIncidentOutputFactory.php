@@ -30,6 +30,28 @@ final readonly class AdminIncidentOutputFactory
             $this->incidentNoteRepository->findByIncidentOrdered($incident),
         );
 
+        return $this->buildOutput(
+            incident: $incident,
+            notes: $notes,
+            history: $this->buildHistory($incident, $notes),
+        );
+    }
+
+    public function fromIncidentSummary(Incident $incident): AdminIncidentOutput
+    {
+        return $this->buildOutput(
+            incident: $incident,
+            notes: [],
+            history: [],
+        );
+    }
+
+    /**
+     * @param list<AdminIncidentNoteOutput>         $notes
+     * @param list<AdminIncidentHistoryEntryOutput> $history
+     */
+    private function buildOutput(Incident $incident, array $notes, array $history): AdminIncidentOutput
+    {
         return new AdminIncidentOutput(
             id: $incident->getId()->toRfc4122(),
             orderId: $incident->getOrder()->getId()->toRfc4122(),
@@ -44,7 +66,7 @@ final readonly class AdminIncidentOutputFactory
             updatedAt: $incident->getUpdatedAt()->format(\DateTimeInterface::ATOM),
             closedAt: $incident->getClosedAt()?->format(\DateTimeInterface::ATOM),
             notes: $notes,
-            history: $this->buildHistory($incident, $notes),
+            history: $history,
         );
     }
 

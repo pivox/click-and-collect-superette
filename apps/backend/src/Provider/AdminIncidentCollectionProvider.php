@@ -46,7 +46,7 @@ final readonly class AdminIncidentCollectionProvider implements ProviderInterfac
         $offset = ($page - 1) * $limit;
 
         $items = array_map(
-            fn ($incident) => $this->outputFactory->fromIncident($incident),
+            fn ($incident) => $this->outputFactory->fromIncidentSummary($incident),
             $this->incidentRepository->findAdminPaginated($limit, $offset, $merchant, $customer, $status),
         );
 

@@ -128,6 +128,52 @@ describe('AdminIncidentsPage', () => {
     });
   });
 
+  it('resets to the first page before applying a status filter', async () => {
+    vi.mocked(listAdminIncidents).mockResolvedValue({
+      id: 'admin-incidents',
+      items: [INCIDENT],
+      page: 1,
+      limit: 20,
+      total: 40,
+    });
+
+    render(<AdminIncidentsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Suivant →' }));
+    await waitFor(() => {
+      expect(listAdminIncidents).toHaveBeenCalledWith({
+        page: 2,
+        limit: 20,
+        merchant: '',
+        client: '',
+        status: '',
+      });
+    });
+
+    fireEvent.change(screen.getByLabelText('Filtrer par statut'), {
+      target: { value: 'closed' },
+    });
+
+    await waitFor(() => {
+      expect(listAdminIncidents).toHaveBeenLastCalledWith({
+        page: 1,
+        limit: 20,
+        merchant: '',
+        client: '',
+        status: 'closed',
+      });
+    });
+    expect(vi.mocked(listAdminIncidents).mock.calls).not.toContainEqual([
+      {
+        page: 2,
+        limit: 20,
+        merchant: '',
+        client: '',
+        status: 'closed',
+      },
+    ]);
+  });
+
   it('opens incident detail, adds an internal note and updates the status', async () => {
     render(<AdminIncidentsPage />);
 
