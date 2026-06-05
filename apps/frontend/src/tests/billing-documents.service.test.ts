@@ -36,6 +36,8 @@ const DOCUMENT = {
   amount_tnd: '10.000',
   amount_paid_tnd: '0.000',
   amount_due_tnd: '10.000',
+  reminder_schedule: [],
+  whatsapp_manual_contacted_at: null,
   created_at: '2026-06-01T09:00:00+01:00',
 };
 

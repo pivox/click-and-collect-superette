@@ -333,6 +333,11 @@ export default function AdminBillingDocumentsPage() {
                   {whatsappError}
                 </div>
               )}
+              {detail.whatsapp_manual_contacted_at && (
+                <div className="rounded-md bg-card px-3 py-2 text-xs font-semibold text-primary">
+                  WhatsApp manuel préparé le {formatDate(detail.whatsapp_manual_contacted_at)}
+                </div>
+              )}
               <div className="grid gap-2 sm:grid-cols-2">
                 {detail.reminder_schedule.map((reminder) => (
                   <div key={reminder.stage} className="rounded-md border border-line bg-card px-3 py-2">

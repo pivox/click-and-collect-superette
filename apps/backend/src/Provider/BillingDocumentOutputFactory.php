@@ -23,6 +23,8 @@ final readonly class BillingDocumentOutputFactory
         $merchant = $document->getMerchant();
         $subscription = $document->getSubscription();
 
+        $reminderTraces = $this->reminderRepository->findForDocument($document);
+
         return new BillingDocumentOutput(
             id: $document->getId()->toRfc4122(),
             subscriptionId: $subscription->getId()->toRfc4122(),
@@ -44,31 +46,32 @@ final readonly class BillingDocumentOutputFactory
             amountTnd: $document->getAmountTnd(),
             amountPaidTnd: $document->getAmountPaidTnd(),
             amountDueTnd: $document->getAmountDueTnd(),
-            reminderSchedule: $this->reminderSchedule($document),
+            reminderSchedule: $this->reminderSchedule($document, $reminderTraces),
+            whatsappManualContactedAt: $this->whatsappManualContactedAt($reminderTraces),
             createdAt: $document->getCreatedAt()->format(\DateTimeInterface::ATOM),
         );
     }
 
     /**
+     * @param list<SubscriptionPaymentReminder> $reminderTraces
+     *
      * @return list<BillingDocumentReminderScheduleItemOutput>
      */
-    private function reminderSchedule(BillingDocument $document): array
+    private function reminderSchedule(BillingDocument $document, array $reminderTraces): array
     {
         $dueAt = $document->getDueAt();
         if (null === $dueAt) {
             return [];
         }
 
-        $traces = $this->indexTraces($this->reminderRepository->findForDocument($document));
+        $traces = $this->indexTraces($reminderTraces);
 
         return array_map(
             function (array $item) use ($traces): BillingDocumentReminderScheduleItemOutput {
                 $stage = $item['stage'];
                 $stageValue = $stage->value;
                 $emailTrace = $traces[$stageValue][SubscriptionPaymentReminderChannel::Email->value] ?? null;
-                $whatsappTrace = $traces[$stageValue][SubscriptionPaymentReminderChannel::WhatsappManual->value]
-                    ?? $traces['manual'][SubscriptionPaymentReminderChannel::WhatsappManual->value]
-                    ?? null;
+                $whatsappTrace = $traces[$stageValue][SubscriptionPaymentReminderChannel::WhatsappManual->value] ?? null;
 
                 return new BillingDocumentReminderScheduleItemOutput(
                     stage: $stageValue,
@@ -82,6 +85,20 @@ final readonly class BillingDocumentOutputFactory
             },
             PaymentReminderSchedule::stagesForDueDate($dueAt),
         );
+    }
+
+    /**
+     * @param list<SubscriptionPaymentReminder> $traces
+     */
+    private function whatsappManualContactedAt(array $traces): ?string
+    {
+        foreach ($traces as $trace) {
+            if ('manual' === $trace->getStage() && SubscriptionPaymentReminderChannel::WhatsappManual === $trace->getChannel()) {
+                return $trace->getSentAt()?->format(\DateTimeInterface::ATOM);
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -102,6 +102,9 @@ final readonly class BillingDocumentOutput
         #[Groups(['billing_document:read', 'billing_document_list:read'])]
         #[SerializedName('reminder_schedule')]
         public array $reminderSchedule,
+        #[Groups(['billing_document:read', 'billing_document_list:read'])]
+        #[SerializedName('whatsapp_manual_contacted_at')]
+        public ?string $whatsappManualContactedAt,
         #[Groups(['billing_document:read'])]
         #[SerializedName('created_at')]
         public string $createdAt,

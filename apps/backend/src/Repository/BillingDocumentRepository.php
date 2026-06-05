@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\BillingDocument;
 use App\Entity\User;
 use App\Enum\BillingDocumentStatus;
+use App\Enum\SubscriptionLifecycle;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
@@ -91,12 +92,19 @@ class BillingDocumentRepository extends ServiceEntityRepository
     {
         /* @var list<BillingDocument> */
         return $this->createQueryBuilder('d')
+            ->join('d.subscription', 's')
             ->andWhere('d.status IN (:statuses)')
+            ->andWhere('s.lifecycle IN (:lifecycles)')
             ->andWhere('d.dueAt IS NOT NULL')
             ->andWhere('d.amountDueTnd > :zero')
             ->setParameter('statuses', [
                 BillingDocumentStatus::Issued,
                 BillingDocumentStatus::Overdue,
+            ])
+            ->setParameter('lifecycles', [
+                SubscriptionLifecycle::Active,
+                SubscriptionLifecycle::PaymentDue,
+                SubscriptionLifecycle::GracePeriod,
             ])
             ->setParameter('zero', '0.000')
             ->addOrderBy('d.dueAt', 'ASC')

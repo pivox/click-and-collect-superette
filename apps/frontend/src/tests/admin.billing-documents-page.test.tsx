@@ -60,6 +60,7 @@ const DOCUMENT: BillingDocument = {
       whatsapp_contacted_at: null,
     },
   ],
+  whatsapp_manual_contacted_at: null,
   created_at: '2026-06-01T09:00:00+01:00',
 };
 
