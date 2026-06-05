@@ -32,6 +32,13 @@ const PHASE_LABELS: Record<SubscriptionPricingPhase, string> = {
 function formatDate(value: string | null): string {
   if (!value) return 'Non planifié';
 
+  const calendarDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (calendarDate) {
+    const [, year, month, day] = calendarDate;
+
+    return `${day}/${month}/${year}`;
+  }
+
   return new Date(value).toLocaleDateString('fr-TN');
 }
 

@@ -45,6 +45,16 @@ const PHASE_LABELS: Record<MerchantLocale, Record<SubscriptionPricingPhase, stri
 function formatDate(value: string | null, locale: MerchantLocale): string {
   if (!value) return locale === 'ar' ? 'غير مخطط' : 'Non planifié';
 
+  const calendarDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (calendarDate) {
+    const [, year, month, day] = calendarDate;
+    const utcDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+
+    return utcDate.toLocaleDateString(locale === 'ar' ? 'ar-TN' : 'fr-TN', {
+      timeZone: 'UTC',
+    });
+  }
+
   return new Date(value).toLocaleDateString(locale === 'ar' ? 'ar-TN' : 'fr-TN');
 }
 
