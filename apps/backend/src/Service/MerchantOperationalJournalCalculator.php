@@ -200,17 +200,18 @@ final readonly class MerchantOperationalJournalCalculator
             ->getQuery()
             ->getResult();
 
-        $submittedAtByOrder = [];
+        $pendingSubmittedAtByOrder = [];
         $durations = [];
         foreach ($rows as $row) {
             $orderId = (string) $row['order_id'];
             $status = $row['status'] instanceof OrderStatus ? $row['status'] : OrderStatus::from((string) $row['status']);
             if (OrderStatus::Submitted === $status) {
-                $submittedAtByOrder[$orderId] ??= $row['created_at'];
+                $pendingSubmittedAtByOrder[$orderId] = $row['created_at'];
                 continue;
             }
-            if (!isset($submittedAtByOrder[$orderId], $durations[$orderId])) {
-                $durations[$orderId] = max(0, (int) floor(($row['created_at']->getTimestamp() - $submittedAtByOrder[$orderId]->getTimestamp()) / 60));
+            if (isset($pendingSubmittedAtByOrder[$orderId])) {
+                $durations[] = max(0, (int) floor(($row['created_at']->getTimestamp() - $pendingSubmittedAtByOrder[$orderId]->getTimestamp()) / 60));
+                unset($pendingSubmittedAtByOrder[$orderId]);
             }
         }
 

@@ -128,7 +128,9 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         $this->createStatusLog($overdueOrder, OrderStatus::Submitted, new \DateTimeImmutable('2026-06-01T08:55:00+00:00'));
         $this->createStatusLog($cancelledOrder, OrderStatus::Cancelled, new \DateTimeImmutable('2026-06-01T11:15:00+00:00'));
         $this->createStatusLog($acceptedOrder, OrderStatus::Submitted, new \DateTimeImmutable('2026-06-01T09:00:00+00:00'));
-        $this->createStatusLog($acceptedOrder, OrderStatus::Accepted, new \DateTimeImmutable('2026-06-01T09:20:00+00:00'));
+        $this->createStatusLog($acceptedOrder, OrderStatus::PartiallyAccepted, new \DateTimeImmutable('2026-06-01T09:20:00+00:00'));
+        $this->createStatusLog($acceptedOrder, OrderStatus::Submitted, new \DateTimeImmutable('2026-06-01T10:00:00+00:00'));
+        $this->createStatusLog($acceptedOrder, OrderStatus::Accepted, new \DateTimeImmutable('2026-06-01T10:50:00+00:00'));
         $this->createStatusLog($rejectedOrder, OrderStatus::Submitted, new \DateTimeImmutable('2026-06-01T10:00:00+00:00'));
         $this->createStatusLog($rejectedOrder, OrderStatus::Rejected, new \DateTimeImmutable('2026-06-01T10:40:00+00:00'));
 
@@ -176,7 +178,7 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertSame(6, $journal['received_orders_count']);
         self::assertSame(3, $journal['accepted_orders_count']);
         self::assertSame(1, $journal['rejected_orders_count']);
-        self::assertSame(30, $journal['average_response_minutes']);
+        self::assertSame(37, $journal['average_response_minutes']);
         self::assertSame(1, $journal['overdue_orders_count']);
         self::assertSame(1, $journal['cancelled_orders_count']);
         self::assertSame(2, $journal['incidents_count']);
