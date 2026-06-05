@@ -41,7 +41,13 @@ export default function MarchandsPage() {
 
   const sorted = statusFilter === ''
     ? sortedAll
-    : sortedAll.filter((m) => statusFilter === 'active' ? m.is_active : !m.is_active);
+    : sortedAll.filter((m) => {
+      const subscriptionSuspended = isSubscriptionSuspended(m);
+
+      return statusFilter === 'active'
+        ? m.is_active && !subscriptionSuspended
+        : !m.is_active || subscriptionSuspended;
+    });
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 400);

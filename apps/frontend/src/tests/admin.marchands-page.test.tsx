@@ -120,6 +120,33 @@ describe('MarchandsPage', () => {
     expect(screen.getByText('Les nouvelles Kadhia sont bloquées, le catalogue et l’historique restent conservés.')).toBeInTheDocument();
   });
 
+  it('classe une suspension douce abonnement dans le filtre suspendus', async () => {
+    vi.mocked(listMerchants).mockResolvedValue({
+      id: 'admin-merchants',
+      items: [
+        { ...MERCHANT, subscription_lifecycle: 'suspended' },
+        SECOND_MERCHANT,
+      ],
+      page: 1,
+      limit: 20,
+      total: 2,
+    });
+
+    render(<MarchandsPage />);
+
+    expect(await screen.findByText('Ali Ben Salah')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actifs' }));
+
+    expect(screen.queryByText('Ali Ben Salah')).not.toBeInTheDocument();
+    expect(screen.getByText('Noura Kacem')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Suspendus' }));
+
+    expect(screen.getByText('Ali Ben Salah')).toBeInTheDocument();
+    expect(screen.queryByText('Noura Kacem')).not.toBeInTheDocument();
+  });
+
   it('ignore les réponses détail marchand obsolètes', async () => {
     const firstDetail = deferred<typeof MERCHANT>();
     const secondDetail = deferred<typeof SECOND_MERCHANT>();
