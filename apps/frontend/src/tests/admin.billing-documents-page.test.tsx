@@ -153,6 +153,22 @@ describe('AdminBillingDocumentsPage', () => {
     openSpy.mockRestore();
   });
 
+  it('does not audit WhatsApp contact when popup cannot be opened synchronously', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(<AdminBillingDocumentsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
+    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+    fireEvent.click(within(detail).getByRole('button', { name: 'Contacter sur WhatsApp' }));
+
+    expect(openSpy).toHaveBeenCalledWith('', '_blank');
+    expect(openAdminBillingDocumentWhatsappContact).not.toHaveBeenCalled();
+    expect(await within(detail).findByText('Impossible d’ouvrir WhatsApp.')).toBeInTheDocument();
+
+    openSpy.mockRestore();
+  });
+
   it('hides WhatsApp contact on paid billing document detail', async () => {
     const paidDocument = {
       ...DOCUMENT,
