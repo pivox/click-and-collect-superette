@@ -148,6 +148,36 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertSame('suspended', $this->decodeJson($detailResponse)['subscription_lifecycle']);
     }
 
+    public function testAdminMerchantMutationResponsesPreserveSubscriptionLifecycle(): void
+    {
+        $admin = $this->createUser('admin-merchant-mutation-lifecycle@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant(
+            'merchant-mutation-lifecycle@example.test',
+            new \DateTimeImmutable('2026-05-18T09:00:00+00:00'),
+            firstName: 'Ali',
+            lastName: 'Lifecycle',
+        );
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $subscription->setLifecycle(SubscriptionLifecycle::Suspended);
+        $this->entityManager->persist($subscription);
+        $this->entityManager->flush();
+
+        $updateResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s', $merchant->getId()), [
+            'first_name' => 'Meriem',
+            'last_name' => 'Lifecycle',
+            'phone' => '+21600000022',
+        ], $admin);
+        $suspendResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s/suspend', $merchant->getId()), [], $admin);
+        $activateResponse = $this->requestJson('PATCH', \sprintf('/api/admin/merchants/%s/activate', $merchant->getId()), [], $admin);
+
+        self::assertSame(200, $updateResponse->getStatusCode());
+        self::assertSame('suspended', $this->decodeJson($updateResponse)['subscription_lifecycle']);
+        self::assertSame(200, $suspendResponse->getStatusCode());
+        self::assertSame('suspended', $this->decodeJson($suspendResponse)['subscription_lifecycle']);
+        self::assertSame(200, $activateResponse->getStatusCode());
+        self::assertSame('suspended', $this->decodeJson($activateResponse)['subscription_lifecycle']);
+    }
+
     public function testAdminSeesEmptyMerchantOperationalJournalWhenMerchantHasNoActivity(): void
     {
         $admin = $this->createUser('admin-merchant-empty-ops@example.test', ['ROLE_ADMIN']);
