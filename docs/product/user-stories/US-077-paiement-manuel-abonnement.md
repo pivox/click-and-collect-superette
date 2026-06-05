@@ -3,7 +3,7 @@
 **Epic** : EPIC-017 — Abonnement & monétisation
 **Sprint** : Sprint 11 — Activation commerciale
 **Priorité** : Must Have
-**État au 2026-06-04** : cadrée, implémentation backend à faire après validation US-076
+**État au 2026-06-05** : cadrée, implémentation backend à faire après validation US-076
 
 ---
 
@@ -19,7 +19,7 @@ afin de **réactiver ou maintenir l'abonnement d'un marchand sans paiement en li
 
 L'implémentation de US-077 ne doit pas créer une fondation abonnement concurrente.
 
-La fondation US-074 / US-075 livre l'entité `Subscription`, ses statuts de lifecycle et sa phase tarifaire. US-077 ne doit donc pas recréer ces concepts : elle doit s'y brancher et ajouter uniquement la traçabilité du paiement manuel.
+La fondation US-074 / US-075 est livrée côté backend avec l'entité `Subscription`, ses statuts de lifecycle et sa phase tarifaire. US-077 ne doit donc pas recréer ces concepts : elle doit s'y brancher et ajouter uniquement la traçabilité du paiement manuel.
 
 L'implémentation reste à faire après le cadrage US-076, car le paiement manuel doit pouvoir être rapproché d'un document mensuel ou d'une période facturée clairement définie.
 
@@ -78,7 +78,7 @@ Effets attendus :
 
 ---
 
-## Modèle `SubscriptionPayment` attendu après déblocage
+## Modèle `SubscriptionPayment` attendu après cadrage US-076
 
 ### Champs
 
@@ -115,7 +115,7 @@ Effets attendus :
 
 ---
 
-## Endpoints admin attendus après déblocage
+## Endpoints admin attendus après cadrage US-076
 
 Tous les endpoints sont strictement réservés à `ROLE_ADMIN`.
 
@@ -194,7 +194,7 @@ Ne pas exposer :
 
 ---
 
-## Tests attendus après déblocage
+## Tests attendus après cadrage US-076
 
 ### Tests métier
 
@@ -218,7 +218,7 @@ Ne pas exposer :
 
 ## Critères d'acceptation
 
-- [ ] US-074 et US-075 livrent une entité `Subscription` et les statuts attendus.
+- [ ] US-077 s'appuie sur l'entité `Subscription` livrée par US-074 / US-075 sans créer de modèle concurrent.
 - [ ] Une entité `SubscriptionPayment` trace montant TND, période, moyen, référence, date de paiement et validateur admin.
 - [ ] Les endpoints admin permettent de créer, confirmer, refuser et consulter les paiements manuels.
 - [ ] La confirmation applique l'effet sur l'abonnement via un service domaine.
@@ -226,3 +226,14 @@ Ne pas exposer :
 - [ ] Une entrée `AdminAuditLog` est créée à la confirmation et au refus.
 - [ ] Aucun paiement en ligne n'est introduit.
 - [ ] Aucune relance email n'est introduite.
+
+---
+
+## Instructions d'intégration avec la fondation abonnement
+
+- Réutiliser `App\Entity\Subscription`, `SubscriptionLifecycle` et `SubscriptionPricingPhase` livrés par US-074 / US-075.
+- Ne pas ajouter de champs de lifecycle ou de phase tarifaire dans `SubscriptionPayment`.
+- Rattacher le paiement manuel à la `Subscription` existante et, après US-076, au document mensuel retenu.
+- Utiliser les périodes `current_period_started_at` / `current_period_ends_at` comme valeurs par défaut de la période payée, tout en permettant une période explicite si le document US-076 le demande.
+- Appliquer la réactivation via un service domaine dédié, en conservant les règles de suspension douce de US-079 hors de cette US.
+- Journaliser `subscription_payment.confirmed` et `subscription_payment.refused` via `AdminAuditLog`.
