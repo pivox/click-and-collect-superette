@@ -6,6 +6,7 @@ import { MerchantDrawer } from '@/components/admin/marchands/MerchantDrawer';
 import { Button } from '@/components/ui/Button';
 import { useSort } from '@/lib/hooks/useSort';
 import {
+  getMerchant,
   listMerchants,
   suspendMerchant,
   activateMerchant,
@@ -29,6 +30,7 @@ export default function MarchandsPage() {
   const [editTarget, setEditTarget] = useState<Merchant | null>(null);
   const [suspendTarget, setSuspendTarget] = useState<Merchant | null>(null);
   const [activateTarget, setActivateTarget] = useState<Merchant | null>(null);
+  const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
 
   const { sorted: sortedAll, sortKey, sortDir, toggleSort } = useSort(merchants);
 
@@ -85,6 +87,21 @@ export default function MarchandsPage() {
     }
   };
 
+  const handleOpenEdit = async (merchant: Merchant) => {
+    setError(null);
+    setLoadingDetailId(merchant.id);
+    try {
+      const detail = await getMerchant(merchant.id);
+      setEditTarget(detail);
+      setDrawerOpen(true);
+    } catch (err) {
+      console.error('[marchands] getMerchant failed', err);
+      setError('Impossible de charger la fiche marchand.');
+    } finally {
+      setLoadingDetailId(null);
+    }
+  };
+
   const merchantName = (m: Merchant) =>
     [m.first_name, m.last_name].filter(Boolean).join(' ') || m.email;
 
@@ -135,10 +152,11 @@ export default function MarchandsPage() {
       render: (row) => (
         <div className="flex justify-end gap-2">
           <button
-            onClick={() => { setEditTarget(row); setDrawerOpen(true); }}
+            onClick={() => { void handleOpenEdit(row); }}
+            disabled={loadingDetailId === row.id}
             className="text-xs text-muted hover:text-ink"
           >
-            ✏ Modifier
+            {loadingDetailId === row.id ? 'Chargement…' : '✏ Modifier'}
           </button>
           {row.is_active ? (
             <button

@@ -10,6 +10,14 @@ export interface Merchant {
   is_active: boolean;
   created_at: string;
   stores_count: number;
+  ops_journal?: MerchantOpsJournal | null;
+}
+
+export interface MerchantOpsJournal {
+  overdue_orders_count: number;
+  cancelled_orders_count: number;
+  last_activity_at: string | null;
+  last_activity_status: string | null;
 }
 
 export interface MerchantListResponse {

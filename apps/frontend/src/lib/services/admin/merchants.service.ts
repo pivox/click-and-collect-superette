@@ -21,6 +21,11 @@ export async function listMerchants(
   return data;
 }
 
+export async function getMerchant(id: string): Promise<Merchant> {
+  const { data } = await apiClient.get<Merchant>(`/api/admin/merchants/${id}`);
+  return data;
+}
+
 export async function createMerchant(payload: CreateMerchantPayload): Promise<Merchant> {
   const { data } = await apiClient.post<Merchant>('/api/admin/merchants', payload);
   return data;
