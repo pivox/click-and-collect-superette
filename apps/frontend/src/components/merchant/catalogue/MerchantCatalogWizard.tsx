@@ -143,22 +143,24 @@ export function MerchantCatalogWizard({
 
     try {
       const result = await commitMerchantCatalogPhotoImport(storeId, {
-        items: photoDraftItems.map((item) => ({
-          line: item.line,
-          selected: item.selected,
-          status: item.status,
-          product_reference_id: item.product_reference_id,
-          name_fr: item.name_fr,
-          brand: item.brand,
-          volume: item.volume,
-          unit: item.unit,
-          barcode: item.barcode,
-          price_tnd: normalizePhotoImportPrice(item.price_tnd),
-          is_available: item.is_available,
-          is_visible: item.is_visible,
-          merchant_note: null,
-          pack_quantity: 1,
-        })),
+        items: photoDraftItems
+          .filter((item) => item.selected)
+          .map((item) => ({
+            line: item.line,
+            selected: item.selected,
+            status: item.status,
+            product_reference_id: item.product_reference_id,
+            name_fr: item.name_fr,
+            brand: item.brand,
+            volume: item.volume,
+            unit: item.unit,
+            barcode: item.barcode,
+            price_tnd: normalizePhotoImportPrice(item.price_tnd),
+            is_available: item.is_available,
+            is_visible: item.is_visible,
+            merchant_note: null,
+            pack_quantity: 1,
+          })),
       });
       setPhotoCommitResult(result);
       onCatalogChanged();

@@ -666,6 +666,34 @@ describe('MerchantCatalogPage', () => {
     );
   });
 
+  it('commits only selected photo import rows', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
+
+    const photo = new File(['fake'], 'ticket.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Photo ticket, rayon ou liste papier'), {
+      target: { files: [photo] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Analyser la photo' }));
+
+    await screen.findByText('2 produits détectés · 1 match référentiel · 1 à créer localement');
+    fireEvent.click(screen.getByLabelText('Ligne 2 · Harissa maison'));
+    fireEvent.click(screen.getByRole('button', { name: 'Valider l’import photo' }));
+
+    await waitFor(() =>
+      expect(commitMerchantCatalogPhotoImport).toHaveBeenCalledWith('store-1', {
+        items: [
+          expect.objectContaining({
+            line: 1,
+            selected: true,
+            product_reference_id: 'ref-photo-1',
+          }),
+        ],
+      }),
+    );
+  });
+
   it('imports a CSV file and shows a line-by-line report', async () => {
     render(React.createElement(MerchantCatalogPage));
 
