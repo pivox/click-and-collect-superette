@@ -609,6 +609,63 @@ describe('MerchantCatalogPage', () => {
     expect(commitButton).toBeEnabled();
   });
 
+  it('lets merchants correct required local photo import fields before commit', async () => {
+    vi.mocked(previewMerchantCatalogPhotoImport).mockResolvedValueOnce({
+      id: 'store-1',
+      source_type: 'receipt',
+      detected_count: 1,
+      matched_reference_count: 0,
+      local_candidate_count: 1,
+      items: [
+        {
+          line: 1,
+          status: 'local_candidate',
+          product_reference_id: null,
+          name_fr: 'Harissa',
+          brand: null,
+          volume: null,
+          unit: null,
+          barcode: null,
+          suggested_price_tnd: '4.500',
+          confidence: '0.820',
+          already_in_catalog: false,
+        },
+      ],
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
+
+    const photo = new File(['fake'], 'ticket.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Photo ticket, rayon ou liste papier'), {
+      target: { files: [photo] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Analyser la photo' }));
+
+    fireEvent.change(await screen.findByLabelText('Nom produit'), { target: { value: 'Harissa maison' } });
+    fireEvent.change(screen.getByLabelText('Marque'), { target: { value: 'Jouda' } });
+    fireEvent.change(screen.getByLabelText('Volume'), { target: { value: '350' } });
+    fireEvent.change(screen.getByLabelText('Unité'), { target: { value: 'gramme' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Valider l’import photo' }));
+
+    await waitFor(() =>
+      expect(commitMerchantCatalogPhotoImport).toHaveBeenCalledWith('store-1', {
+        items: [
+          expect.objectContaining({
+            line: 1,
+            product_reference_id: null,
+            name_fr: 'Harissa maison',
+            brand: 'Jouda',
+            volume: '350',
+            unit: 'gramme',
+            price_tnd: '4.500',
+          }),
+        ],
+      }),
+    );
+  });
+
   it('imports a CSV file and shows a line-by-line report', async () => {
     render(React.createElement(MerchantCatalogPage));
 

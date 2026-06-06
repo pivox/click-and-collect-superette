@@ -47,6 +47,15 @@ const steps = [
   },
 ];
 
+const productUnits = [
+  { value: 'piece', label: 'Pièce' },
+  { value: 'paquet', label: 'Paquet' },
+  { value: 'gramme', label: 'Gramme' },
+  { value: 'kilogramme', label: 'Kilogramme' },
+  { value: 'millilitre', label: 'Millilitre' },
+  { value: 'litre', label: 'Litre' },
+];
+
 const normalizePhotoImportPrice = (value: string): string => value.trim().replace(',', '.');
 
 export function MerchantCatalogWizard({
@@ -113,7 +122,12 @@ export function MerchantCatalogWizard({
 
   const updatePhotoDraftItem = (
     line: number,
-    patch: Partial<Pick<PhotoImportDraftItem, 'selected' | 'price_tnd' | 'is_available' | 'is_visible'>>,
+    patch: Partial<
+      Pick<
+        PhotoImportDraftItem,
+        'selected' | 'name_fr' | 'brand' | 'volume' | 'unit' | 'price_tnd' | 'is_available' | 'is_visible'
+      >
+    >,
   ) => {
     setPhotoDraftItems((currentItems) =>
       currentItems.map((item) => (item.line === line ? { ...item, ...patch } : item)),
@@ -347,6 +361,57 @@ export function MerchantCatalogWizard({
                         />
                         Ligne {item.line} · {item.name_fr}
                       </label>
+                      {item.status === 'local_candidate' && (
+                        <div className="grid gap-3 md:col-span-4 md:grid-cols-[minmax(160px,1fr)_minmax(120px,160px)_110px_130px]">
+                          <label className="text-xs font-bold text-muted">
+                            Nom produit
+                            <input
+                              type="text"
+                              value={item.name_fr}
+                              disabled={!item.selected}
+                              onChange={(event) => updatePhotoDraftItem(item.line, { name_fr: event.target.value })}
+                              className="mt-1 h-10 w-full rounded-md border border-line bg-white px-2 text-sm font-normal text-ink"
+                            />
+                          </label>
+                          <label className="text-xs font-bold text-muted">
+                            Marque
+                            <input
+                              type="text"
+                              value={item.brand ?? ''}
+                              disabled={!item.selected}
+                              onChange={(event) => updatePhotoDraftItem(item.line, { brand: event.target.value })}
+                              className="mt-1 h-10 w-full rounded-md border border-line bg-white px-2 text-sm font-normal text-ink"
+                            />
+                          </label>
+                          <label className="text-xs font-bold text-muted">
+                            Volume
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={item.volume ?? ''}
+                              disabled={!item.selected}
+                              onChange={(event) => updatePhotoDraftItem(item.line, { volume: event.target.value })}
+                              className="mt-1 h-10 w-full rounded-md border border-line bg-white px-2 text-sm font-normal text-ink"
+                            />
+                          </label>
+                          <label className="text-xs font-bold text-muted">
+                            Unité
+                            <select
+                              value={item.unit ?? ''}
+                              disabled={!item.selected}
+                              onChange={(event) => updatePhotoDraftItem(item.line, { unit: event.target.value || null })}
+                              className="mt-1 h-10 w-full rounded-md border border-line bg-white px-2 text-sm font-normal text-ink"
+                            >
+                              <option value="">Choisir</option>
+                              {productUnits.map((unit) => (
+                                <option key={unit.value} value={unit.value}>
+                                  {unit.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      )}
                       <label className="text-xs font-bold text-muted">
                         Prix TND
                         <input
