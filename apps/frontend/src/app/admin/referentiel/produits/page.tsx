@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { GitMerge, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowUpDown, GitMerge, RefreshCw, Sparkles } from 'lucide-react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
 import { ProductReferenceDrawer } from '@/components/admin/referentiel/produits/ProductReferenceDrawer';
@@ -44,6 +44,32 @@ const STATUS_STYLES: Record<string, string> = {
   archived: 'bg-gray-50 text-gray-400',
 };
 
+const QUALITY_STYLES: Record<string, string> = {
+  good: 'bg-green-100 text-green-700',
+  medium: 'bg-yellow-100 text-yellow-700',
+  low: 'bg-red-100 text-red-700',
+};
+
+type QualityFilter = '' | 'low' | 'medium' | 'good';
+type QualitySortDirection = '' | 'asc' | 'desc';
+
+function qualityBounds(filter: QualityFilter): {
+  qualityScoreMin?: number;
+  qualityScoreMax?: number;
+} {
+  if (filter === 'good') {
+    return { qualityScoreMin: 80 };
+  }
+  if (filter === 'medium') {
+    return { qualityScoreMin: 60, qualityScoreMax: 79 };
+  }
+  if (filter === 'low') {
+    return { qualityScoreMax: 59 };
+  }
+
+  return {};
+}
+
 export default function ProduitsPage() {
   const [products, setProducts] = useState<ProductReference[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,6 +81,8 @@ export default function ProduitsPage() {
   const [brandFilter, setBrandFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [qualityFilter, setQualityFilter] = useState<QualityFilter>('');
+  const [qualitySortDir, setQualitySortDir] = useState<QualitySortDirection>('');
   const [filterBrands, setFilterBrands] = useState<Brand[]>([]);
   const [filterCategories, setFilterCategories] = useState<Category[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -95,11 +123,15 @@ export default function ProduitsPage() {
     setIsLoading(true);
     setError(null);
     try {
+      const quality = qualityBounds(qualityFilter);
       const data = await listProductReferences({
         q: debouncedQ || undefined,
         brand: brandFilter || undefined,
         category: categoryFilter || undefined,
         status: statusFilter || undefined,
+        ...quality,
+        sort: qualitySortDir ? 'quality_score' : undefined,
+        direction: qualitySortDir || undefined,
         page,
         limit: 20,
       });
@@ -111,7 +143,7 @@ export default function ProduitsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedQ, brandFilter, categoryFilter, statusFilter]);
+  }, [page, debouncedQ, brandFilter, categoryFilter, statusFilter, qualityFilter, qualitySortDir]);
 
   const loadDuplicateCandidates = useCallback(async () => {
     setIsDuplicateLoading(true);
@@ -130,7 +162,17 @@ export default function ProduitsPage() {
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { void loadDuplicateCandidates(); }, [loadDuplicateCandidates]);
-  useEffect(() => { setPage(1); }, [debouncedQ, brandFilter, categoryFilter, statusFilter]);
+  useEffect(() => { setPage(1); }, [debouncedQ, brandFilter, categoryFilter, statusFilter, qualityFilter, qualitySortDir]);
+
+  const handleTableSort = (key: string) => {
+    if (key === 'quality_score') {
+      setQualitySortDir((current) => (current === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    setQualitySortDir('');
+    toggleSort(key as keyof ProductReference);
+  };
 
   const handleArchive = async () => {
     if (!archiveTarget) return;
@@ -220,6 +262,21 @@ export default function ProduitsPage() {
     },
     { key: 'brand_name', label: 'Marque', sortable: true },
     { key: 'category_name_fr', label: 'Catégorie', sortable: true },
+    {
+      key: 'quality_score',
+      label: 'Qualité',
+      sortable: true,
+      render: (row) => (
+        <span
+          className={cn(
+            'inline-flex min-w-12 items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold',
+            QUALITY_STYLES[row.quality_level] ?? QUALITY_STYLES.low,
+          )}
+        >
+          {row.quality_score}
+        </span>
+      ),
+    },
     { key: 'unit', label: 'Unité' },
     {
       key: 'status',
@@ -474,6 +531,24 @@ export default function ProduitsPage() {
           <option value="rejected">Rejeté</option>
           <option value="archived">Archivé</option>
         </select>
+        <select
+          value={qualityFilter}
+          onChange={(e) => setQualityFilter(e.target.value as QualityFilter)}
+          className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary sm:w-auto"
+        >
+          <option value="">Tous les scores</option>
+          <option value="low">À compléter (&lt; 60)</option>
+          <option value="medium">Moyen (60-79)</option>
+          <option value="good">Bon (80-100)</option>
+        </select>
+        <Button
+          size="md"
+          variant="ghost"
+          onClick={() => setQualitySortDir((current) => (current === 'asc' ? 'desc' : 'asc'))}
+        >
+          <ArrowUpDown aria-hidden="true" size={16} />
+          Qualité {qualitySortDir === 'asc' ? '↑' : qualitySortDir === 'desc' ? '↓' : ''}
+        </Button>
       </div>
       {error && (
         <div className="mb-4 flex items-center gap-3 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
@@ -485,7 +560,7 @@ export default function ProduitsPage() {
       )}
       <AdminTable
         columns={columns}
-        data={sorted}
+        data={qualitySortDir ? products : sorted}
         isLoading={isLoading}
         emptyMessage="Aucun produit trouvé."
         emptyAction={{
@@ -493,9 +568,9 @@ export default function ProduitsPage() {
           onClick: () => { setEditTarget(null); setDrawerOpen(true); },
         }}
         pagination={{ page, total, limit: 20, onPageChange: setPage }}
-        sortKey={sortKey as string | null}
-        sortDir={sortDir}
-        onSort={(key) => toggleSort(key as keyof ProductReference)}
+        sortKey={qualitySortDir ? 'quality_score' : (sortKey as string | null)}
+        sortDir={qualitySortDir || sortDir}
+        onSort={handleTableSort}
       />
       {drawerOpen && (
         <ProductReferenceDrawer

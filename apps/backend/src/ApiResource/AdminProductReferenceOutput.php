@@ -107,6 +107,12 @@ final readonly class AdminProductReferenceOutput
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         #[SerializedName('updated_at')]
         public string $updatedAt,
+        #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[SerializedName('quality_score')]
+        public int $qualityScore,
+        #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[SerializedName('quality_level')]
+        public string $qualityLevel,
         // Official (verified) image of the product reference, or null when none.
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         public ?ProductImageOutput $image = null,

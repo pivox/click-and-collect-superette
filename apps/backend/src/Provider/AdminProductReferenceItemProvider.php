@@ -12,6 +12,7 @@ use App\Entity\ProductReference;
 use App\Repository\AdminProductReferenceRepository;
 use App\Repository\ProductImageRepository;
 use App\Service\ProductImage\ProductImageUrlBuilder;
+use App\Service\ProductReferenceQualityScorer;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -24,6 +25,7 @@ final readonly class AdminProductReferenceItemProvider implements ProviderInterf
         private AdminProductReferenceRepository $adminProductReferenceRepository,
         private ProductImageRepository $productImageRepository,
         private ProductImageUrlBuilder $productImageUrlBuilder,
+        private ProductReferenceQualityScorer $qualityScorer,
     ) {
     }
 
@@ -47,11 +49,17 @@ final readonly class AdminProductReferenceItemProvider implements ProviderInterf
             $this->productImageRepository->findOfficialForProductReference($productReference),
         );
 
-        return self::toOutput($productReference, $image);
+        return self::toOutput($productReference, $image, $this->qualityScorer);
     }
 
-    public static function toOutput(ProductReference $productReference, ?ProductImageOutput $image = null): AdminProductReferenceOutput
-    {
+    public static function toOutput(
+        ProductReference $productReference,
+        ?ProductImageOutput $image = null,
+        ?ProductReferenceQualityScorer $qualityScorer = null,
+    ): AdminProductReferenceOutput {
+        $qualityScorer ??= new ProductReferenceQualityScorer();
+        $qualityScore = $qualityScorer->score($productReference, null !== $image);
+
         return new AdminProductReferenceOutput(
             id: $productReference->getId()->toRfc4122(),
             nameFr: $productReference->getNameFr(),
@@ -71,6 +79,8 @@ final readonly class AdminProductReferenceItemProvider implements ProviderInterf
             status: $productReference->getStatus()->value,
             createdAt: $productReference->getCreatedAt()->format(\DateTimeInterface::ATOM),
             updatedAt: $productReference->getUpdatedAt()->format(\DateTimeInterface::ATOM),
+            qualityScore: $qualityScore,
+            qualityLevel: $qualityScorer->level($qualityScore),
             image: $image,
         );
     }

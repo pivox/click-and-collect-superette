@@ -11,6 +11,7 @@ use App\Enum\ProductReferenceStatus;
 use App\Repository\AdminProductReferenceRepository;
 use App\Repository\ProductImageRepository;
 use App\Service\ProductImage\ProductImageUrlBuilder;
+use App\Service\ProductReferenceQualityScorer;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -28,6 +29,7 @@ final readonly class AdminProductReferenceCollectionProvider implements Provider
         private AdminProductReferenceRepository $adminProductReferenceRepository,
         private ProductImageRepository $productImageRepository,
         private ProductImageUrlBuilder $productImageUrlBuilder,
+        private ProductReferenceQualityScorer $qualityScorer,
         private RequestStack $requestStack,
     ) {
     }
@@ -48,6 +50,10 @@ final readonly class AdminProductReferenceCollectionProvider implements Provider
         $categoryId = $request?->query->getString('category') ?: null;
         $brandId = $request?->query->getString('brand') ?: null;
         $status = $request?->query->getString('status') ?: null;
+        $qualityMin = $this->parseScore($request?->query->get('quality_min'), 'ADMIN_PRODUCT_REFERENCE_INVALID_QUALITY_FILTER');
+        $qualityMax = $this->parseScore($request?->query->get('quality_max'), 'ADMIN_PRODUCT_REFERENCE_INVALID_QUALITY_FILTER');
+        $sort = $request?->query->getString('sort') ?: null;
+        $direction = strtolower($request?->query->getString('direction') ?: 'asc');
 
         if (null !== $brandId && !Uuid::isValid($brandId)) {
             throw new BadRequestHttpException('ADMIN_PRODUCT_REFERENCE_INVALID_BRAND_FILTER');
@@ -58,13 +64,34 @@ final readonly class AdminProductReferenceCollectionProvider implements Provider
         if (null !== $status && null === ProductReferenceStatus::tryFrom($status)) {
             throw new BadRequestHttpException('ADMIN_PRODUCT_REFERENCE_INVALID_STATUS_FILTER');
         }
+        if (null !== $qualityMin && null !== $qualityMax && $qualityMin > $qualityMax) {
+            throw new BadRequestHttpException('ADMIN_PRODUCT_REFERENCE_INVALID_QUALITY_FILTER');
+        }
+        if (null !== $sort && 'quality_score' !== $sort) {
+            throw new BadRequestHttpException('ADMIN_PRODUCT_REFERENCE_INVALID_SORT');
+        }
+        if (!\in_array($direction, ['asc', 'desc'], true)) {
+            throw new BadRequestHttpException('ADMIN_PRODUCT_REFERENCE_INVALID_DIRECTION');
+        }
 
-        $productReferences = $this->adminProductReferenceRepository->findPaginated($limit, $offset, $q, $categoryId, $brandId, $status);
+        $productReferences = $this->adminProductReferenceRepository->findPaginated(
+            $limit,
+            $offset,
+            $q,
+            $categoryId,
+            $brandId,
+            $status,
+            $qualityMin,
+            $qualityMax,
+            $sort,
+            strtoupper($direction),
+        );
         $officialImages = $this->productImageRepository->findOfficialByProductReferences($productReferences);
         $items = array_map(
             fn ($ref) => AdminProductReferenceItemProvider::toOutput(
                 $ref,
                 $this->productImageUrlBuilder->build($officialImages[$ref->getId()->toRfc4122()] ?? null),
+                $this->qualityScorer,
             ),
             $productReferences,
         );
@@ -74,7 +101,7 @@ final readonly class AdminProductReferenceCollectionProvider implements Provider
             items: $items,
             page: $page,
             limit: $limit,
-            total: $this->adminProductReferenceRepository->countFiltered($q, $categoryId, $brandId, $status),
+            total: $this->adminProductReferenceRepository->countFiltered($q, $categoryId, $brandId, $status, $qualityMin, $qualityMax),
         );
     }
 
@@ -90,6 +117,24 @@ final readonly class AdminProductReferenceCollectionProvider implements Provider
 
         $value = (int) $raw;
         if ($value < 1) {
+            throw new BadRequestHttpException($errorCode);
+        }
+
+        return $value;
+    }
+
+    private function parseScore(mixed $raw, string $errorCode): ?int
+    {
+        if (null === $raw || '' === $raw) {
+            return null;
+        }
+
+        if (false === filter_var($raw, \FILTER_VALIDATE_INT)) {
+            throw new BadRequestHttpException($errorCode);
+        }
+
+        $value = (int) $raw;
+        if ($value < 0 || $value > 100) {
             throw new BadRequestHttpException($errorCode);
         }
 

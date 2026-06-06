@@ -6,7 +6,10 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\ProductImage;
 use App\Entity\ProductReference;
+use App\Enum\ProductImageSource;
+use App\Enum\ProductImageStatus;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 
@@ -136,6 +139,47 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         self::assertSame('approved', $payload['items'][0]['status']);
     }
 
+    public function testListSortsAndFiltersByQualityScore(): void
+    {
+        $admin = $this->createUser('admin-pr-quality-list@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Qualité', 'marque-qualite');
+        $category = $this->createCategory('Catégorie Qualité', 'categorie-qualite');
+        $low = $this->createProductReference($brand, $category, 'Produit incomplet');
+        $high = $this->createProductReference(
+            $brand,
+            $category,
+            'Produit complet',
+            barcode: '6195000000011',
+            status: ProductReferenceStatus::Approved,
+            volume: '1.000',
+            unit: ProductUnit::Litre,
+        );
+        $this->createVerifiedImage($high);
+
+        $sortedResponse = $this->requestJson(
+            'GET',
+            '/api/admin/product-references?sort=quality_score&direction=desc',
+            user: $admin,
+        );
+        $filteredResponse = $this->requestJson(
+            'GET',
+            '/api/admin/product-references?quality_min=80',
+            user: $admin,
+        );
+
+        self::assertSame(200, $sortedResponse->getStatusCode(), (string) $sortedResponse->getContent());
+        self::assertSame(200, $filteredResponse->getStatusCode(), (string) $filteredResponse->getContent());
+        $sortedPayload = $this->decodeJson($sortedResponse);
+        $filteredPayload = $this->decodeJson($filteredResponse);
+
+        self::assertSame($high->getId()->toRfc4122(), $sortedPayload['items'][0]['id']);
+        self::assertSame(100, $sortedPayload['items'][0]['quality_score']);
+        self::assertSame($low->getId()->toRfc4122(), $sortedPayload['items'][1]['id']);
+        self::assertSame(50, $sortedPayload['items'][1]['quality_score']);
+        self::assertSame(1, $filteredPayload['total']);
+        self::assertSame($high->getId()->toRfc4122(), $filteredPayload['items'][0]['id']);
+    }
+
     // ── GET ITEM ──────────────────────────────────────────────────────────────
 
     public function testAdminGetsProductReferenceDetail(): void
@@ -158,6 +202,7 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         self::assertSame('piece', $payload['unit']);
         self::assertSame('TN', $payload['country']);
         self::assertSame('draft', $payload['status']);
+        self::assertSame(65, $payload['quality_score']);
     }
 
     public function testGetProductReferenceReturns404WhenAbsent(): void
@@ -534,6 +579,18 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         self::assertSame(400, $this->requestJson('GET', '/api/admin/product-references?status=invalid_value', user: $admin)->getStatusCode());
     }
 
+    public function testListFilterByInvalidQualityParamsReturns400(): void
+    {
+        $admin = $this->createUser('admin-pr-filter-bad-quality@example.test', ['ROLE_ADMIN']);
+
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/product-references?quality_min=abc', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/product-references?quality_min=-1', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/product-references?quality_max=101', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/product-references?quality_min=80&quality_max=60', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/product-references?sort=name', user: $admin)->getStatusCode());
+        self::assertSame(400, $this->requestJson('GET', '/api/admin/product-references?direction=sideways', user: $admin)->getStatusCode());
+    }
+
     public function testPatchCountryNullDefaultsToTN(): void
     {
         $admin = $this->createUser('admin-pr-patch-country-null@example.test', ['ROLE_ADMIN']);
@@ -651,12 +708,15 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         ?string $barcode = null,
         ProductReferenceStatus $status = ProductReferenceStatus::Draft,
         array $aliases = [],
+        ?string $volume = null,
+        ProductUnit $unit = ProductUnit::Piece,
     ): ProductReference {
         $ref = (new ProductReference())
             ->setBrand($brand)
             ->setCategory($category)
             ->setNameFr($nameFr)
-            ->setUnit(ProductUnit::Piece)
+            ->setUnit($unit)
+            ->setVolume($volume)
             ->setBarcode($barcode)
             ->setAliases($aliases)
             ->setStatus($status);
@@ -665,5 +725,24 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $ref;
+    }
+
+    private function createVerifiedImage(ProductReference $productReference): ProductImage
+    {
+        $image = (new ProductImage())
+            ->setProductReference($productReference)
+            ->setOriginalPath('/uploads/products/original.webp')
+            ->setMimeType('image/webp')
+            ->setWidth(800)
+            ->setHeight(800)
+            ->setVariants(['400' => '/uploads/products/400.webp'])
+            ->setSource(ProductImageSource::AdminUpload)
+            ->setStatus(ProductImageStatus::Verified)
+            ->setAltText($productReference->getNameFr());
+
+        $this->entityManager->persist($image);
+        $this->entityManager->flush();
+
+        return $image;
     }
 }
