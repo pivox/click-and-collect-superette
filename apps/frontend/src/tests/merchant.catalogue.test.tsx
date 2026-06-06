@@ -567,6 +567,48 @@ describe('MerchantCatalogPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('disables photo import commit while a selected row has no price', async () => {
+    vi.mocked(previewMerchantCatalogPhotoImport).mockResolvedValueOnce({
+      id: 'store-1',
+      source_type: 'receipt',
+      detected_count: 1,
+      matched_reference_count: 1,
+      local_candidate_count: 0,
+      items: [
+        {
+          line: 1,
+          status: 'matched_reference',
+          product_reference_id: 'ref-photo-1',
+          name_fr: 'Lait demi-écrémé',
+          brand: 'Vitalait',
+          volume: '1.000',
+          unit: 'litre',
+          barcode: '6191234567890',
+          suggested_price_tnd: null,
+          confidence: '0.940',
+          already_in_catalog: false,
+        },
+      ],
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
+
+    const photo = new File(['fake'], 'ticket.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Photo ticket, rayon ou liste papier'), {
+      target: { files: [photo] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Analyser la photo' }));
+
+    const commitButton = await screen.findByRole('button', { name: 'Valider l’import photo' });
+    expect(commitButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '1,650' } });
+
+    expect(commitButton).toBeEnabled();
+  });
+
   it('imports a CSV file and shows a line-by-line report', async () => {
     render(React.createElement(MerchantCatalogPage));
 

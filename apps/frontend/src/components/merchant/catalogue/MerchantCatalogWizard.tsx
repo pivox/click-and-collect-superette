@@ -221,6 +221,11 @@ export function MerchantCatalogWizard({
     return () => document.removeEventListener('keydown', handler);
   }, [handleClose, isOpen]);
 
+  const hasSelectedPhotoDraftItems = photoDraftItems.some((item) => item.selected);
+  const hasSelectedPhotoDraftItemWithoutPrice = photoDraftItems.some(
+    (item) => item.selected && normalizePhotoImportPrice(item.price_tnd) === '',
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -378,7 +383,7 @@ export function MerchantCatalogWizard({
                   <Button
                     size="md"
                     onClick={() => void handlePhotoCommit()}
-                    disabled={isPhotoCommitting || photoDraftItems.every((item) => !item.selected)}
+                    disabled={isPhotoCommitting || !hasSelectedPhotoDraftItems || hasSelectedPhotoDraftItemWithoutPrice}
                   >
                     {isPhotoCommitting ? 'Validation…' : 'Valider l’import photo'}
                   </Button>
