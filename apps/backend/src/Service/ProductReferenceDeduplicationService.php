@@ -196,7 +196,7 @@ final readonly class ProductReferenceDeduplicationService
                 );
                 $duplicate
                     ->setQuantity($mergedQuantity)
-                    ->setUnitPriceTnd(bcdiv($mergedSubtotal, (string) $mergedQuantity, 3));
+                    ->setUnitPriceTnd($this->divideMoneyCeilingToMillime($mergedSubtotal, $mergedQuantity));
                 $line->getKadhia()->removeLine($line);
                 $this->entityManager->remove($line);
                 continue;
@@ -262,6 +262,16 @@ final readonly class ProductReferenceDeduplicationService
         $value = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value) ?: $value;
 
         return trim((string) preg_replace('/[^a-z0-9]+/', ' ', $value));
+    }
+
+    private function divideMoneyCeilingToMillime(string $amountTnd, int $quantity): string
+    {
+        $unitPriceTnd = bcdiv($amountTnd, (string) $quantity, 3);
+        if (bccomp(bcmul($unitPriceTnd, (string) $quantity, 3), $amountTnd, 3) >= 0) {
+            return $unitPriceTnd;
+        }
+
+        return bcadd($unitPriceTnd, '0.001', 3);
     }
 
     /**

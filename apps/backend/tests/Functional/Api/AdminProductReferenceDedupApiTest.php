@@ -174,6 +174,47 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         self::assertSame(0, bccomp('6.000', $updatedOrder->getTotalTnd(), 3));
     }
 
+    public function testMergeRoundsKadhiaWeightedUnitPriceUpWhenSubtotalCannotBeRepresented(): void
+    {
+        $admin = $this->createUser('admin-pr-dedup-kadhia-rounding@example.test', ['ROLE_ADMIN']);
+        $customer = $this->createUser('customer-pr-dedup-kadhia-rounding@example.test', ['ROLE_CUSTOMER']);
+        $brand = $this->createBrand('Saida', 'saida-dedup-kadhia-rounding');
+        $category = $this->createCategory('Biscuits', 'biscuits-dedup-kadhia-rounding');
+        $kept = $this->createProductReference($brand, $category, 'Biscuit chocolat', barcode: '6193100000011');
+        $absorbed = $this->createProductReference($brand, $category, 'Biscuit chocolat', barcode: '6193100000011');
+        $shop = $this->createShop();
+        $keptOffer = $this->createMerchantProduct($shop, $kept, '1.000');
+        $absorbedOffer = $this->createMerchantProduct($shop, $absorbed, '2.501');
+        $kadhia = $this->createKadhiaWithLines(
+            $customer,
+            $shop,
+            $keptOffer,
+            $absorbedOffer,
+            absorbedUnitPriceTnd: '2.501',
+        );
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/merge', $absorbed->getId()),
+            ['keptProductReferenceId' => $kept->getId()->toRfc4122()],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $this->entityManager->clear();
+        $updatedKadhiaLines = $this->entityManager->getRepository(KadhiaLine::class)->findBy(['kadhia' => $kadhia]);
+
+        self::assertCount(1, $updatedKadhiaLines);
+        self::assertSame(3, $updatedKadhiaLines[0]->getQuantity());
+        self::assertSame(0, bccomp('2.001', $updatedKadhiaLines[0]->getUnitPriceTnd(), 3));
+        self::assertGreaterThanOrEqual(0, bccomp(
+            bcmul($updatedKadhiaLines[0]->getUnitPriceTnd(), (string) $updatedKadhiaLines[0]->getQuantity(), 3),
+            '6.002',
+            3,
+        ));
+    }
+
     public function testMergeArchivedReferenceReturns422(): void
     {
         $admin = $this->createUser('admin-pr-dedup-archived@example.test', ['ROLE_ADMIN']);
@@ -284,6 +325,8 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         Shop $shop,
         MerchantProduct $keptOffer,
         MerchantProduct $absorbedOffer,
+        string $keptUnitPriceTnd = '1.000',
+        string $absorbedUnitPriceTnd = '2.500',
     ): Kadhia {
         $kadhia = (new Kadhia())
             ->setCustomer($customer)
@@ -292,12 +335,12 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
             ->setKadhia($kadhia)
             ->setMerchantProduct($keptOffer)
             ->setQuantity(1)
-            ->setUnitPriceTnd('1.000');
+            ->setUnitPriceTnd($keptUnitPriceTnd);
         $absorbedLine = (new KadhiaLine())
             ->setKadhia($kadhia)
             ->setMerchantProduct($absorbedOffer)
             ->setQuantity(2)
-            ->setUnitPriceTnd('2.500');
+            ->setUnitPriceTnd($absorbedUnitPriceTnd);
 
         $this->entityManager->persist($kadhia);
         $this->entityManager->persist($keptLine);
