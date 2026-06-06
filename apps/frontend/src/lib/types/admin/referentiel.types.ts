@@ -109,11 +109,51 @@ export interface ProductReferenceListResponse {
   total: number;
 }
 
+export interface ProductReferenceDuplicateCandidate {
+  left: ProductReference;
+  right: ProductReference;
+  reason: 'barcode' | 'identity' | 'manual' | string;
+  barcode: string | null;
+  left_offer_count: number;
+  right_offer_count: number;
+}
+
+export interface ProductReferenceDuplicateCandidateListResponse {
+  id: string;
+  items: ProductReferenceDuplicateCandidate[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface ProductReferenceComparison {
+  id: string;
+  left: ProductReference;
+  right: ProductReference;
+  left_offer_count: number;
+  right_offer_count: number;
+  reason: 'barcode' | 'identity' | 'manual' | string;
+}
+
+export interface ProductReferenceMergeResult {
+  id: string;
+  kept: ProductReference;
+  absorbed: ProductReference;
+  moved_offer_count: number;
+  removed_conflicting_offer_count: number;
+  history_id: string;
+}
+
 export interface ProductReferenceFilters {
   q?: string;
   brand?: string;
   category?: string;
   status?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ProductReferenceDuplicateFilters {
   page?: number;
   limit?: number;
 }

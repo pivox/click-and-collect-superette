@@ -3,6 +3,10 @@ import type {
   ProductReferenceListResponse,
   ProductReference,
   ProductReferenceFilters,
+  ProductReferenceDuplicateFilters,
+  ProductReferenceDuplicateCandidateListResponse,
+  ProductReferenceComparison,
+  ProductReferenceMergeResult,
   ProductReferenceImage,
   CreateProductReferencePayload,
   UpdateProductReferencePayload,
@@ -81,6 +85,43 @@ export async function archiveProductReference(id: string): Promise<ProductRefere
   const { data } = await apiClient.patch<ProductReference>(
     `/api/admin/product-references/${id}/archive`,
     {},
+  );
+  return data;
+}
+
+export async function listProductReferenceDuplicateCandidates(
+  filters: ProductReferenceDuplicateFilters = {},
+): Promise<ProductReferenceDuplicateCandidateListResponse> {
+  const { data } = await apiClient.get<ProductReferenceDuplicateCandidateListResponse>(
+    '/api/admin/product-references/duplicates',
+    {
+      params: {
+        page: filters.page ?? 1,
+        limit: filters.limit ?? 20,
+      },
+    },
+  );
+  return data;
+}
+
+export async function compareProductReferences(
+  left: string,
+  right: string,
+): Promise<ProductReferenceComparison> {
+  const { data } = await apiClient.get<ProductReferenceComparison>(
+    '/api/admin/product-references/compare',
+    { params: { left, right } },
+  );
+  return data;
+}
+
+export async function mergeProductReference(
+  absorbedId: string,
+  keptProductReferenceId: string,
+): Promise<ProductReferenceMergeResult> {
+  const { data } = await apiClient.patch<ProductReferenceMergeResult>(
+    `/api/admin/product-references/${absorbedId}/merge`,
+    { keptProductReferenceId },
   );
   return data;
 }

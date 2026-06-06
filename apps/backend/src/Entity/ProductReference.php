@@ -49,7 +49,7 @@ class ProductReference
     #[ORM\Column(length: 32, enumType: ProductUnit::class)]
     private ProductUnit $unit = ProductUnit::Piece;
 
-    #[ORM\Column(length: 64, nullable: true, unique: true)]
+    #[ORM\Column(length: 64, nullable: true)]
     private ?string $barcode = null;
 
     /** @var list<string> */
