@@ -134,7 +134,7 @@ final class ProductReferenceDoctrineTest extends FunctionalApiTestCase
         self::assertSame(ProductReferenceStatus::Draft, $found->getStatus());
     }
 
-    public function testSameProductReferenceCannotBeUpsertedWithDuplicateBarcode(): void
+    public function testProductReferencesCanPersistDuplicateBarcodeForHistoricalCleanup(): void
     {
         $brand = (new Brand())->setCanonicalName('TestBrand')->setSlug('test-brand-dup');
         $category = (new Category())->setNameFr('TestCat')->setSlug('test-cat-dup');
@@ -155,8 +155,11 @@ final class ProductReferenceDoctrineTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         $this->entityManager->persist($ref2);
-
-        $this->expectException(\Exception::class);
         $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $matches = $this->entityManager->getRepository(ProductReference::class)->findBy(['barcode' => '0000000000001']);
+
+        self::assertCount(2, $matches);
     }
 }
