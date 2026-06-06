@@ -215,6 +215,51 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         ));
     }
 
+    public function testMergeRoundsOrderWeightedUnitPriceUpWhenLineTotalCannotBeRepresented(): void
+    {
+        $admin = $this->createUser('admin-pr-dedup-order-rounding@example.test', ['ROLE_ADMIN']);
+        $customer = $this->createUser('customer-pr-dedup-order-rounding@example.test', ['ROLE_CUSTOMER']);
+        $brand = $this->createBrand('Tom', 'tom-dedup-order-rounding');
+        $category = $this->createCategory('Snacks', 'snacks-dedup-order-rounding');
+        $kept = $this->createProductReference($brand, $category, 'Chips paprika', barcode: '6193200000011');
+        $absorbed = $this->createProductReference($brand, $category, 'Chips paprika', barcode: '6193200000011');
+        $shop = $this->createShop();
+        $keptOffer = $this->createMerchantProduct($shop, $kept, '1.000');
+        $absorbedOffer = $this->createMerchantProduct($shop, $absorbed, '2.501');
+        $order = $this->createOrderWithLines(
+            $customer,
+            $shop,
+            $keptOffer,
+            $absorbedOffer,
+            absorbedUnitPriceTnd: '2.501',
+        );
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/merge', $absorbed->getId()),
+            ['keptProductReferenceId' => $kept->getId()->toRfc4122()],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $this->entityManager->clear();
+        $updatedOrder = $this->entityManager->find(Order::class, $order->getId());
+        $updatedOrderLines = $this->entityManager->getRepository(OrderLine::class)->findBy(['order' => $order]);
+
+        self::assertCount(1, $updatedOrderLines);
+        self::assertSame(3, $updatedOrderLines[0]->getQuantity());
+        self::assertSame(0, bccomp('2.001', $updatedOrderLines[0]->getUnitPriceTnd(), 3));
+        self::assertSame(0, bccomp('6.002', $updatedOrderLines[0]->getLineTotalTnd(), 3));
+        self::assertGreaterThanOrEqual(0, bccomp(
+            bcmul($updatedOrderLines[0]->getUnitPriceTnd(), (string) $updatedOrderLines[0]->getQuantity(), 3),
+            '6.002',
+            3,
+        ));
+        self::assertInstanceOf(Order::class, $updatedOrder);
+        self::assertSame(0, bccomp('6.002', $updatedOrder->getTotalTnd(), 3));
+    }
+
     public function testMergeArchivedReferenceReturns422(): void
     {
         $admin = $this->createUser('admin-pr-dedup-archived@example.test', ['ROLE_ADMIN']);
@@ -355,6 +400,8 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         Shop $shop,
         MerchantProduct $keptOffer,
         MerchantProduct $absorbedOffer,
+        string $keptUnitPriceTnd = '1.000',
+        string $absorbedUnitPriceTnd = '2.500',
     ): Order {
         $order = (new Order())
             ->setCustomer($customer)
@@ -363,15 +410,15 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
             ->setOrder($order)
             ->setMerchantProduct($keptOffer)
             ->setQuantity(1)
-            ->setUnitPriceTnd('1.000')
-            ->setLineTotalTnd('1.000')
+            ->setUnitPriceTnd($keptUnitPriceTnd)
+            ->setLineTotalTnd(bcmul('1', $keptUnitPriceTnd, 3))
             ->markPrepared(true);
         $absorbedLine = (new OrderLine())
             ->setOrder($order)
             ->setMerchantProduct($absorbedOffer)
             ->setQuantity(2)
-            ->setUnitPriceTnd('2.500')
-            ->setLineTotalTnd('5.000');
+            ->setUnitPriceTnd($absorbedUnitPriceTnd)
+            ->setLineTotalTnd(bcmul('2', $absorbedUnitPriceTnd, 3));
         $order->addLine($keptLine);
         $order->addLine($absorbedLine);
         $order->recomputeTotal();

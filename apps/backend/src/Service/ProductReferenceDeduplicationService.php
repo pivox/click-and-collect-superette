@@ -219,7 +219,7 @@ final readonly class ProductReferenceDeduplicationService
                 $mergedLineTotal = bcadd($duplicate->getLineTotalTnd(), $line->getLineTotalTnd(), 3);
                 $duplicate
                     ->setQuantity($mergedQuantity)
-                    ->setUnitPriceTnd(bcdiv($mergedLineTotal, (string) $mergedQuantity, 3))
+                    ->setUnitPriceTnd($this->divideMoneyCeilingToMillime($mergedLineTotal, $mergedQuantity))
                     ->setLineTotalTnd($mergedLineTotal)
                     ->markPrepared($duplicate->isPrepared() && $line->isPrepared());
                 $order->removeLine($line);
