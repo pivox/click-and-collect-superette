@@ -7,10 +7,15 @@ namespace App\Tests\Functional\Api;
 use App\Entity\AdminAuditLog;
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\Kadhia;
+use App\Entity\KadhiaLine;
 use App\Entity\MerchantProduct;
+use App\Entity\Order;
+use App\Entity\OrderLine;
 use App\Entity\ProductReference;
 use App\Entity\ProductReferenceMergeHistory;
 use App\Entity\Shop;
+use App\Entity\User;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 
@@ -90,6 +95,49 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         self::assertSame(ProductReferenceStatus::Archived, $updatedAbsorbed->getStatus());
         self::assertSame(1, $this->entityManager->getRepository(ProductReferenceMergeHistory::class)->count([]));
         self::assertSame(1, $this->entityManager->getRepository(AdminAuditLog::class)->count(['action' => 'product_reference.merge']));
+    }
+
+    public function testMergePreservesKadhiaAndOrderLinePriceContributionsWhenShopHasBothOffers(): void
+    {
+        $admin = $this->createUser('admin-pr-dedup-conflict@example.test', ['ROLE_ADMIN']);
+        $customer = $this->createUser('customer-pr-dedup-conflict@example.test', ['ROLE_CUSTOMER']);
+        $brand = $this->createBrand('Céréal', 'cereal-dedup-conflict');
+        $category = $this->createCategory('Petit déjeuner', 'petit-dejeuner-dedup-conflict');
+        $kept = $this->createProductReference($brand, $category, 'Corn flakes', barcode: '6193000000011');
+        $absorbed = $this->createProductReference($brand, $category, 'Corn flakes', barcode: '6193000000011');
+        $shop = $this->createShop();
+        $keptOffer = $this->createMerchantProduct($shop, $kept, '1.000');
+        $absorbedOffer = $this->createMerchantProduct($shop, $absorbed, '2.500');
+        $kadhia = $this->createKadhiaWithLines($customer, $shop, $keptOffer, $absorbedOffer);
+        $order = $this->createOrderWithLines($customer, $shop, $keptOffer, $absorbedOffer);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/merge', $absorbed->getId()),
+            ['keptProductReferenceId' => $kept->getId()->toRfc4122()],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(0, $payload['moved_offer_count']);
+        self::assertSame(1, $payload['removed_conflicting_offer_count']);
+
+        $this->entityManager->clear();
+        $updatedKadhiaLines = $this->entityManager->getRepository(KadhiaLine::class)->findBy(['kadhia' => $kadhia]);
+        $updatedOrder = $this->entityManager->find(Order::class, $order->getId());
+        $updatedOrderLines = $this->entityManager->getRepository(OrderLine::class)->findBy(['order' => $order]);
+
+        self::assertCount(1, $updatedKadhiaLines);
+        self::assertSame(3, $updatedKadhiaLines[0]->getQuantity());
+        self::assertSame(0, bccomp('2.000', $updatedKadhiaLines[0]->getUnitPriceTnd(), 3));
+        self::assertSame($keptOffer->getId()->toRfc4122(), $updatedKadhiaLines[0]->getMerchantProduct()->getId()->toRfc4122());
+        self::assertCount(1, $updatedOrderLines);
+        self::assertSame(3, $updatedOrderLines[0]->getQuantity());
+        self::assertSame(0, bccomp('2.000', $updatedOrderLines[0]->getUnitPriceTnd(), 3));
+        self::assertSame(0, bccomp('6.000', $updatedOrderLines[0]->getLineTotalTnd(), 3));
+        self::assertInstanceOf(Order::class, $updatedOrder);
+        self::assertSame(0, bccomp('6.000', $updatedOrder->getTotalTnd(), 3));
     }
 
     public function testMergeArchivedReferenceReturns422(): void
@@ -182,12 +230,12 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         return $ref;
     }
 
-    private function createMerchantProduct(Shop $shop, ProductReference $productReference): MerchantProduct
+    private function createMerchantProduct(Shop $shop, ProductReference $productReference, string $priceTnd = '1.500'): MerchantProduct
     {
         $merchantProduct = (new MerchantProduct())
             ->setShop($shop)
             ->setProductReference($productReference)
-            ->setPriceTnd('1.500')
+            ->setPriceTnd($priceTnd)
             ->setAvailable(true)
             ->setVisible(true);
 
@@ -195,5 +243,64 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $merchantProduct;
+    }
+
+    private function createKadhiaWithLines(
+        User $customer,
+        Shop $shop,
+        MerchantProduct $keptOffer,
+        MerchantProduct $absorbedOffer,
+    ): Kadhia {
+        $kadhia = (new Kadhia())
+            ->setCustomer($customer)
+            ->setShop($shop);
+        $keptLine = (new KadhiaLine())
+            ->setKadhia($kadhia)
+            ->setMerchantProduct($keptOffer)
+            ->setQuantity(1)
+            ->setUnitPriceTnd('1.000');
+        $absorbedLine = (new KadhiaLine())
+            ->setKadhia($kadhia)
+            ->setMerchantProduct($absorbedOffer)
+            ->setQuantity(2)
+            ->setUnitPriceTnd('2.500');
+
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->persist($keptLine);
+        $this->entityManager->persist($absorbedLine);
+        $this->entityManager->flush();
+
+        return $kadhia;
+    }
+
+    private function createOrderWithLines(
+        User $customer,
+        Shop $shop,
+        MerchantProduct $keptOffer,
+        MerchantProduct $absorbedOffer,
+    ): Order {
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop);
+        $keptLine = (new OrderLine())
+            ->setOrder($order)
+            ->setMerchantProduct($keptOffer)
+            ->setQuantity(1)
+            ->setUnitPriceTnd('1.000')
+            ->setLineTotalTnd('1.000');
+        $absorbedLine = (new OrderLine())
+            ->setOrder($order)
+            ->setMerchantProduct($absorbedOffer)
+            ->setQuantity(2)
+            ->setUnitPriceTnd('2.500')
+            ->setLineTotalTnd('5.000');
+        $order->addLine($keptLine);
+        $order->addLine($absorbedLine);
+        $order->recomputeTotal();
+
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+
+        return $order;
     }
 }

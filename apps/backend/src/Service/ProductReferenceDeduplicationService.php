@@ -188,7 +188,16 @@ final readonly class ProductReferenceDeduplicationService
                 'merchantProduct' => $keptOffer,
             ]);
             if ($duplicate instanceof KadhiaLine) {
-                $duplicate->setQuantity($duplicate->getQuantity() + $line->getQuantity());
+                $mergedQuantity = $duplicate->getQuantity() + $line->getQuantity();
+                $mergedSubtotal = bcadd(
+                    bcmul($duplicate->getUnitPriceTnd(), (string) $duplicate->getQuantity(), 3),
+                    bcmul($line->getUnitPriceTnd(), (string) $line->getQuantity(), 3),
+                    3,
+                );
+                $duplicate
+                    ->setQuantity($mergedQuantity)
+                    ->setUnitPriceTnd(bcdiv($mergedSubtotal, (string) $mergedQuantity, 3));
+                $line->getKadhia()->removeLine($line);
                 $this->entityManager->remove($line);
                 continue;
             }
@@ -205,9 +214,16 @@ final readonly class ProductReferenceDeduplicationService
                 'merchantProduct' => $keptOffer,
             ]);
             if ($duplicate instanceof OrderLine) {
-                $duplicate->setQuantity($duplicate->getQuantity() + $line->getQuantity());
-                $duplicate->setLineTotalTnd(bcmul((string) $duplicate->getQuantity(), $duplicate->getUnitPriceTnd(), 3));
+                $order = $duplicate->getOrder();
+                $mergedQuantity = $duplicate->getQuantity() + $line->getQuantity();
+                $mergedLineTotal = bcadd($duplicate->getLineTotalTnd(), $line->getLineTotalTnd(), 3);
+                $duplicate
+                    ->setQuantity($mergedQuantity)
+                    ->setUnitPriceTnd(bcdiv($mergedLineTotal, (string) $mergedQuantity, 3))
+                    ->setLineTotalTnd($mergedLineTotal);
+                $order->removeLine($line);
                 $this->entityManager->remove($line);
+                $order->recomputeTotal();
                 continue;
             }
             $line->setMerchantProduct($keptOffer);
