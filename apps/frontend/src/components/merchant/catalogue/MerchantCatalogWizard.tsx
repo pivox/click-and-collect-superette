@@ -2,8 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { previewMerchantCatalogPhotoImport } from '@/lib/services/merchant-catalog.service';
+import {
+  commitMerchantCatalogPhotoImport,
+  previewMerchantCatalogPhotoImport,
+} from '@/lib/services/merchant-catalog.service';
 import type {
+  MerchantCatalogCsvImportResult,
+  MerchantCatalogPhotoImportPreviewItem,
   MerchantCatalogPhotoImportPreviewResult,
   MerchantCatalogPhotoImportSourceType,
 } from '@/lib/types/merchant-catalog.types';
@@ -14,6 +19,14 @@ interface MerchantCatalogWizardProps {
   onClose: () => void;
   onOpenLocalProduct: () => void;
   onOpenReferenceSearch: () => void;
+  onCatalogChanged: () => void;
+}
+
+interface PhotoImportDraftItem extends MerchantCatalogPhotoImportPreviewItem {
+  selected: boolean;
+  price_tnd: string;
+  is_available: boolean;
+  is_visible: boolean;
 }
 
 const steps = [
@@ -34,12 +47,24 @@ const steps = [
   },
 ];
 
+const productUnits = [
+  { value: 'piece', label: 'Pièce' },
+  { value: 'paquet', label: 'Paquet' },
+  { value: 'gramme', label: 'Gramme' },
+  { value: 'kilogramme', label: 'Kilogramme' },
+  { value: 'millilitre', label: 'Millilitre' },
+  { value: 'litre', label: 'Litre' },
+];
+
+const normalizePhotoImportPrice = (value: string): string => value.trim().replace(',', '.');
+
 export function MerchantCatalogWizard({
   isOpen,
   storeId,
   onClose,
   onOpenLocalProduct,
   onOpenReferenceSearch,
+  onCatalogChanged,
 }: MerchantCatalogWizardProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -47,8 +72,11 @@ export function MerchantCatalogWizard({
   const [photo, setPhoto] = useState<File | null>(null);
   const [sourceType, setSourceType] = useState<MerchantCatalogPhotoImportSourceType>('receipt');
   const [photoPreview, setPhotoPreview] = useState<MerchantCatalogPhotoImportPreviewResult | null>(null);
+  const [photoDraftItems, setPhotoDraftItems] = useState<PhotoImportDraftItem[]>([]);
+  const [photoCommitResult, setPhotoCommitResult] = useState<MerchantCatalogCsvImportResult | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [isPhotoSubmitting, setIsPhotoSubmitting] = useState(false);
+  const [isPhotoCommitting, setIsPhotoCommitting] = useState(false);
 
   const handleOpenReferenceSearch = () => {
     onClose();
@@ -70,13 +98,76 @@ export function MerchantCatalogWizard({
     setIsPhotoSubmitting(true);
     setPhotoError(null);
     setPhotoPreview(null);
+    setPhotoDraftItems([]);
+    setPhotoCommitResult(null);
 
     try {
-      setPhotoPreview(await previewMerchantCatalogPhotoImport(storeId, photo, sourceType));
+      const preview = await previewMerchantCatalogPhotoImport(storeId, photo, sourceType);
+      setPhotoPreview(preview);
+      setPhotoDraftItems(
+        preview.items.map((item) => ({
+          ...item,
+          selected: !item.already_in_catalog,
+          price_tnd: item.suggested_price_tnd ?? '',
+          is_available: true,
+          is_visible: true,
+        })),
+      );
     } catch {
       setPhotoError("Impossible d'analyser cette photo.");
     } finally {
       setIsPhotoSubmitting(false);
+    }
+  };
+
+  const updatePhotoDraftItem = (
+    line: number,
+    patch: Partial<
+      Pick<
+        PhotoImportDraftItem,
+        'selected' | 'name_fr' | 'brand' | 'volume' | 'unit' | 'price_tnd' | 'is_available' | 'is_visible'
+      >
+    >,
+  ) => {
+    setPhotoDraftItems((currentItems) =>
+      currentItems.map((item) => (item.line === line ? { ...item, ...patch } : item)),
+    );
+  };
+
+  const handlePhotoCommit = async () => {
+    if (!storeId || photoDraftItems.length === 0) return;
+
+    setIsPhotoCommitting(true);
+    setPhotoError(null);
+    setPhotoCommitResult(null);
+
+    try {
+      const result = await commitMerchantCatalogPhotoImport(storeId, {
+        items: photoDraftItems
+          .filter((item) => item.selected)
+          .map((item) => ({
+            line: item.line,
+            selected: item.selected,
+            status: item.status,
+            product_reference_id: item.product_reference_id,
+            name_fr: item.name_fr,
+            brand: item.brand,
+            volume: item.volume,
+            unit: item.unit,
+            barcode: item.barcode,
+            price_tnd: normalizePhotoImportPrice(item.price_tnd),
+            is_available: item.is_available,
+            is_visible: item.is_visible,
+            merchant_note: null,
+            pack_quantity: 1,
+          })),
+      });
+      setPhotoCommitResult(result);
+      onCatalogChanged();
+    } catch {
+      setPhotoError("Impossible de valider l'import photo.");
+    } finally {
+      setIsPhotoCommitting(false);
     }
   };
 
@@ -146,6 +237,11 @@ export function MerchantCatalogWizard({
     return () => document.removeEventListener('keydown', handler);
   }, [handleClose, isOpen]);
 
+  const hasSelectedPhotoDraftItems = photoDraftItems.some((item) => item.selected);
+  const hasSelectedPhotoDraftItemWithoutPrice = photoDraftItems.some(
+    (item) => item.selected && normalizePhotoImportPrice(item.price_tnd) === '',
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -202,6 +298,8 @@ export function MerchantCatalogWizard({
                   onChange={(event) => {
                     setPhoto(event.target.files?.[0] ?? null);
                     setPhotoPreview(null);
+                    setPhotoDraftItems([]);
+                    setPhotoCommitResult(null);
                     setPhotoError(null);
                   }}
                 />
@@ -250,6 +348,130 @@ export function MerchantCatalogWizard({
                     </li>
                   ))}
                 </ul>
+                <div className="mt-4 space-y-3">
+                  {photoDraftItems.map((item) => (
+                    <div
+                      key={`draft-${item.line}-${item.name_fr}`}
+                      className="grid gap-3 rounded-md border border-line bg-soft p-3 md:grid-cols-[1fr_120px_auto_auto]"
+                    >
+                      <label className="flex items-center gap-2 text-sm font-bold">
+                        <input
+                          type="checkbox"
+                          checked={item.selected}
+                          disabled={item.already_in_catalog}
+                          onChange={(event) => updatePhotoDraftItem(item.line, { selected: event.target.checked })}
+                        />
+                        Ligne {item.line} · {item.name_fr}
+                      </label>
+                      {item.status === 'local_candidate' && (
+                        <div className="grid gap-3 md:col-span-4 md:grid-cols-[minmax(160px,1fr)_minmax(120px,160px)_110px_130px]">
+                          <label className="text-xs font-bold text-muted">
+                            Nom produit
+                            <input
+                              type="text"
+                              value={item.name_fr}
+                              disabled={!item.selected}
+                              onChange={(event) => updatePhotoDraftItem(item.line, { name_fr: event.target.value })}
+                              className="mt-1 h-10 w-full rounded-md border border-line bg-white px-2 text-sm font-normal text-ink"
+                            />
+                          </label>
+                          <label className="text-xs font-bold text-muted">
+                            Marque
+                            <input
+                              type="text"
+                              value={item.brand ?? ''}
+                              disabled={!item.selected}
+                              onChange={(event) => updatePhotoDraftItem(item.line, { brand: event.target.value })}
+                              className="mt-1 h-10 w-full rounded-md border border-line bg-white px-2 text-sm font-normal text-ink"
+                            />
+                          </label>
+                          <label className="text-xs font-bold text-muted">
+                            Volume
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={item.volume ?? ''}
+                              disabled={!item.selected}
+                              onChange={(event) => updatePhotoDraftItem(item.line, { volume: event.target.value })}
+                              className="mt-1 h-10 w-full rounded-md border border-line bg-white px-2 text-sm font-normal text-ink"
+                            />
+                          </label>
+                          <label className="text-xs font-bold text-muted">
+                            Unité
+                            <select
+                              value={item.unit ?? ''}
+                              disabled={!item.selected}
+                              onChange={(event) => updatePhotoDraftItem(item.line, { unit: event.target.value || null })}
+                              className="mt-1 h-10 w-full rounded-md border border-line bg-white px-2 text-sm font-normal text-ink"
+                            >
+                              <option value="">Choisir</option>
+                              {productUnits.map((unit) => (
+                                <option key={unit.value} value={unit.value}>
+                                  {unit.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      )}
+                      <label className="text-xs font-bold text-muted">
+                        Prix TND
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={item.price_tnd}
+                          disabled={!item.selected}
+                          onChange={(event) => updatePhotoDraftItem(item.line, { price_tnd: event.target.value })}
+                          className="mt-1 h-10 w-full rounded-md border border-line bg-white px-2 text-sm font-normal text-ink"
+                        />
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-bold">
+                        <input
+                          type="checkbox"
+                          checked={item.is_available}
+                          disabled={!item.selected}
+                          onChange={(event) => updatePhotoDraftItem(item.line, { is_available: event.target.checked })}
+                        />
+                        Disponible
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-bold">
+                        <input
+                          type="checkbox"
+                          checked={item.is_visible}
+                          disabled={!item.selected}
+                          onChange={(event) => updatePhotoDraftItem(item.line, { is_visible: event.target.checked })}
+                        />
+                        Visible
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    size="md"
+                    onClick={() => void handlePhotoCommit()}
+                    disabled={isPhotoCommitting || !hasSelectedPhotoDraftItems || hasSelectedPhotoDraftItemWithoutPrice}
+                  >
+                    {isPhotoCommitting ? 'Validation…' : 'Valider l’import photo'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {photoCommitResult && (
+              <div className="mt-3 space-y-2 rounded-md bg-status-ready-bg px-3 py-2 text-sm">
+                <p role="status" className="text-status-ready">
+                  {photoCommitResult.created} créé, {photoCommitResult.updated} mis à jour, {photoCommitResult.ignored} ignoré
+                </p>
+                {photoCommitResult.errors.length > 0 && (
+                  <ul className="space-y-1 text-status-cancel">
+                    {photoCommitResult.errors.map((error) => (
+                      <li key={`${error.line}-${error.code}`}>
+                        Ligne {error.line} · {error.field ?? error.code} · {error.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>

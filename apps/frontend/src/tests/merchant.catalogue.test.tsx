@@ -6,6 +6,7 @@ import {
   addMerchantCatalogProduct,
   buildMerchantCatalogCsvTemplate,
   bulkUpdateMerchantProductAvailability,
+  commitMerchantCatalogPhotoImport,
   createMerchantCategory,
   createMerchantLocalProduct,
   importMerchantCatalogCsv,
@@ -41,6 +42,7 @@ vi.mock('@/lib/services/merchant-catalog.service', async () => {
     addMerchantCatalogProduct: vi.fn(),
     buildMerchantCatalogCsvTemplate: vi.fn(),
     bulkUpdateMerchantProductAvailability: vi.fn(),
+    commitMerchantCatalogPhotoImport: vi.fn(),
     createMerchantCategory: vi.fn(),
     createMerchantLocalProduct: vi.fn(),
     importMerchantCatalogCsv: vi.fn(),
@@ -179,6 +181,31 @@ describe('MerchantCatalogPage', () => {
       is_available: false,
       merchant_note: 'Rupture temporaire',
       merchant_product_ids: ['mp-1', 'mp-2'],
+    });
+    vi.mocked(commitMerchantCatalogPhotoImport).mockResolvedValue({
+      id: 'store-1',
+      created: 2,
+      updated: 0,
+      ignored: 0,
+      items: [
+        {
+          line: 1,
+          status: 'created',
+          merchant_product_id: 'mp-photo-1',
+          product_reference_id: 'ref-photo-1',
+          local_product_id: null,
+          name_fr: 'Lait demi-écrémé',
+        },
+        {
+          line: 2,
+          status: 'created',
+          merchant_product_id: 'mp-photo-2',
+          product_reference_id: null,
+          local_product_id: 'local-photo-2',
+          name_fr: 'Harissa maison',
+        },
+      ],
+      errors: [],
     });
     vi.mocked(addMerchantCatalogProduct).mockResolvedValue(undefined);
     vi.mocked(buildMerchantCatalogCsvTemplate).mockReturnValue('name_fr,brand,volume,unit,price_tnd,is_available,is_visible\n');
@@ -456,7 +483,7 @@ describe('MerchantCatalogPage', () => {
     expect(screen.getByText('3. Publier')).toBeInTheDocument();
   });
 
-  it('previews catalogue import from a photo in the guided assistant', async () => {
+  it('previews and commits catalogue import from a photo in the guided assistant', async () => {
     render(React.createElement(MerchantCatalogPage));
 
     fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
@@ -474,6 +501,197 @@ describe('MerchantCatalogPage', () => {
     expect(await screen.findByText('2 produits détectés · 1 match référentiel · 1 à créer localement')).toBeInTheDocument();
     expect(screen.getByText('Ligne 1 · Référentiel · Lait demi-écrémé · 1.650 TND')).toBeInTheDocument();
     expect(screen.getByText('Ligne 2 · À créer localement · Harissa maison · 4.500 TND')).toBeInTheDocument();
+
+    fireEvent.change(screen.getAllByLabelText('Prix TND')[0], { target: { value: '1,700' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Valider l’import photo' }));
+
+    await waitFor(() =>
+      expect(commitMerchantCatalogPhotoImport).toHaveBeenCalledWith('store-1', {
+        items: [
+          expect.objectContaining({
+            line: 1,
+            selected: true,
+            product_reference_id: 'ref-photo-1',
+            price_tnd: '1.700',
+            is_available: true,
+            is_visible: true,
+          }),
+          expect.objectContaining({
+            line: 2,
+            selected: true,
+            product_reference_id: null,
+            price_tnd: '4.500',
+            is_available: true,
+            is_visible: true,
+          }),
+        ],
+      }),
+    );
+    expect(await screen.findByText('2 créé, 0 mis à jour, 0 ignoré')).toBeInTheDocument();
+    await waitFor(() => expect(listMerchantCatalog).toHaveBeenCalledTimes(2));
+  });
+
+  it('shows photo import commit errors line by line', async () => {
+    vi.mocked(commitMerchantCatalogPhotoImport).mockResolvedValueOnce({
+      id: 'store-1',
+      created: 0,
+      updated: 0,
+      ignored: 0,
+      items: [],
+      errors: [
+        {
+          line: 2,
+          code: 'LOCAL_PRODUCT_FIELDS_REQUIRED',
+          field: null,
+          message: "La marque, le volume et l'unité sont obligatoires.",
+        },
+      ],
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
+
+    const photo = new File(['fake'], 'ticket.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Photo ticket, rayon ou liste papier'), {
+      target: { files: [photo] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Analyser la photo' }));
+    await screen.findByText('2 produits détectés · 1 match référentiel · 1 à créer localement');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Valider l’import photo' }));
+
+    expect(await screen.findByText('0 créé, 0 mis à jour, 0 ignoré')).toBeInTheDocument();
+    expect(
+      screen.getByText("Ligne 2 · LOCAL_PRODUCT_FIELDS_REQUIRED · La marque, le volume et l'unité sont obligatoires."),
+    ).toBeInTheDocument();
+  });
+
+  it('disables photo import commit while a selected row has no price', async () => {
+    vi.mocked(previewMerchantCatalogPhotoImport).mockResolvedValueOnce({
+      id: 'store-1',
+      source_type: 'receipt',
+      detected_count: 1,
+      matched_reference_count: 1,
+      local_candidate_count: 0,
+      items: [
+        {
+          line: 1,
+          status: 'matched_reference',
+          product_reference_id: 'ref-photo-1',
+          name_fr: 'Lait demi-écrémé',
+          brand: 'Vitalait',
+          volume: '1.000',
+          unit: 'litre',
+          barcode: '6191234567890',
+          suggested_price_tnd: null,
+          confidence: '0.940',
+          already_in_catalog: false,
+        },
+      ],
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
+
+    const photo = new File(['fake'], 'ticket.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Photo ticket, rayon ou liste papier'), {
+      target: { files: [photo] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Analyser la photo' }));
+
+    const commitButton = await screen.findByRole('button', { name: 'Valider l’import photo' });
+    expect(commitButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '1,650' } });
+
+    expect(commitButton).toBeEnabled();
+  });
+
+  it('lets merchants correct required local photo import fields before commit', async () => {
+    vi.mocked(previewMerchantCatalogPhotoImport).mockResolvedValueOnce({
+      id: 'store-1',
+      source_type: 'receipt',
+      detected_count: 1,
+      matched_reference_count: 0,
+      local_candidate_count: 1,
+      items: [
+        {
+          line: 1,
+          status: 'local_candidate',
+          product_reference_id: null,
+          name_fr: 'Harissa',
+          brand: null,
+          volume: null,
+          unit: null,
+          barcode: null,
+          suggested_price_tnd: '4.500',
+          confidence: '0.820',
+          already_in_catalog: false,
+        },
+      ],
+    });
+
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
+
+    const photo = new File(['fake'], 'ticket.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Photo ticket, rayon ou liste papier'), {
+      target: { files: [photo] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Analyser la photo' }));
+
+    fireEvent.change(await screen.findByLabelText('Nom produit'), { target: { value: 'Harissa maison' } });
+    fireEvent.change(screen.getByLabelText('Marque'), { target: { value: 'Jouda' } });
+    fireEvent.change(screen.getByLabelText('Volume'), { target: { value: '350' } });
+    fireEvent.change(screen.getByLabelText('Unité'), { target: { value: 'gramme' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Valider l’import photo' }));
+
+    await waitFor(() =>
+      expect(commitMerchantCatalogPhotoImport).toHaveBeenCalledWith('store-1', {
+        items: [
+          expect.objectContaining({
+            line: 1,
+            product_reference_id: null,
+            name_fr: 'Harissa maison',
+            brand: 'Jouda',
+            volume: '350',
+            unit: 'gramme',
+            price_tnd: '4.500',
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('commits only selected photo import rows', async () => {
+    render(React.createElement(MerchantCatalogPage));
+
+    fireEvent.click(await screen.findByRole('button', { name: "M'aider à ajouter des produits" }));
+
+    const photo = new File(['fake'], 'ticket.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Photo ticket, rayon ou liste papier'), {
+      target: { files: [photo] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Analyser la photo' }));
+
+    await screen.findByText('2 produits détectés · 1 match référentiel · 1 à créer localement');
+    fireEvent.click(screen.getByLabelText('Ligne 2 · Harissa maison'));
+    fireEvent.click(screen.getByRole('button', { name: 'Valider l’import photo' }));
+
+    await waitFor(() =>
+      expect(commitMerchantCatalogPhotoImport).toHaveBeenCalledWith('store-1', {
+        items: [
+          expect.objectContaining({
+            line: 1,
+            selected: true,
+            product_reference_id: 'ref-photo-1',
+          }),
+        ],
+      }),
+    );
   });
 
   it('imports a CSV file and shows a line-by-line report', async () => {

@@ -7,6 +7,7 @@ import {
   createMerchantCategory,
   createMerchantLocalProduct,
   filterMerchantCatalogProducts,
+  commitMerchantCatalogPhotoImport,
   importMerchantCatalogCsv,
   listMerchantCategories,
   listMerchantCatalog,
@@ -420,6 +421,55 @@ describe('merchant catalogue service', () => {
     expect(Object.prototype.hasOwnProperty.call(requestConfig.headers, 'Content-Type')).toBe(true);
     expect(requestConfig.headers['Content-Type']).toBeUndefined();
     expect(result.detected_count).toBe(2);
+  });
+
+  it('commits merchant catalogue photo import preview rows', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        id: 'store-1',
+        created: 2,
+        updated: 0,
+        ignored: 0,
+        items: [
+          {
+            line: 1,
+            status: 'created',
+            merchant_product_id: 'mp-1',
+            product_reference_id: 'ref-photo-1',
+            local_product_id: null,
+            name_fr: 'Lait demi-écrémé',
+          },
+        ],
+        errors: [],
+      },
+    });
+    const payload = {
+      items: [
+        {
+          line: 1,
+          selected: true,
+          status: 'matched_reference' as const,
+          product_reference_id: 'ref-photo-1',
+          name_fr: 'Lait demi-écrémé',
+          brand: 'Vitalait',
+          volume: '1.000',
+          unit: 'litre',
+          barcode: '6191234567890',
+          price_tnd: '1.650',
+          is_available: true,
+          is_visible: true,
+          merchant_note: null,
+        },
+      ],
+    };
+
+    const result = await commitMerchantCatalogPhotoImport('store-1', payload);
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/merchant/stores/store-1/catalog/photo-import/commit',
+      payload,
+    );
+    expect(result.created).toBe(2);
   });
 
   it('adds a product reference to the merchant catalogue', async () => {
