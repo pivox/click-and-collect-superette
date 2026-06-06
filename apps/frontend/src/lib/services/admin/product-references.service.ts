@@ -54,6 +54,10 @@ export async function listProductReferences(
         ...(filters.brand ? { brand: filters.brand } : {}),
         ...(filters.category ? { category: filters.category } : {}),
         ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.qualityScoreMin !== undefined ? { quality_min: filters.qualityScoreMin } : {}),
+        ...(filters.qualityScoreMax !== undefined ? { quality_max: filters.qualityScoreMax } : {}),
+        ...(filters.sort ? { sort: filters.sort } : {}),
+        ...(filters.direction ? { direction: filters.direction } : {}),
       },
     },
   );

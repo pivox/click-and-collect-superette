@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   compareProductReferences,
+  listProductReferences,
   listProductReferenceDuplicateCandidates,
   mergeProductReference,
 } from '@/lib/services/admin/product-references.service';
@@ -9,6 +10,7 @@ import type {
   ProductReferenceDuplicateCandidateListResponse,
   ProductReferenceMergeResult,
   ProductReferenceComparison,
+  ProductReferenceListResponse,
 } from '@/lib/types/admin/referentiel.types';
 
 vi.mock('@/lib/api', () => ({
@@ -26,6 +28,38 @@ beforeEach(() => {
 });
 
 describe('product reference dedup admin service', () => {
+  it('lists product references with quality filters and server sort params', async () => {
+    const response: ProductReferenceListResponse = {
+      id: 'admin-product-references',
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+    };
+    mockGet.mockResolvedValue({ data: response });
+
+    const result = await listProductReferences({
+      qualityScoreMin: 60,
+      qualityScoreMax: 79,
+      sort: 'quality_score',
+      direction: 'desc',
+      page: 2,
+      limit: 10,
+    });
+
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/product-references', {
+      params: {
+        page: 2,
+        limit: 10,
+        quality_min: 60,
+        quality_max: 79,
+        sort: 'quality_score',
+        direction: 'desc',
+      },
+    });
+    expect(result).toEqual(response);
+  });
+
   it('lists duplicate candidates with pagination params', async () => {
     const response: ProductReferenceDuplicateCandidateListResponse = {
       id: 'admin-product-reference-duplicates',

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\ProductImage;
 use App\Entity\ProductReference;
+use App\Enum\ProductImageStatus;
 use App\Enum\ProductReferenceStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -56,15 +58,33 @@ final readonly class AdminProductReferenceRepository
         ?string $categoryId = null,
         ?string $brandId = null,
         ?string $status = null,
+        ?int $qualityMin = null,
+        ?int $qualityMax = null,
+        ?string $sort = null,
+        string $direction = 'asc',
     ): array {
         $qb = $this->productReferenceRepository->createQueryBuilder('pr')
             ->join('pr.brand', 'b')
-            ->join('pr.category', 'c')
-            ->orderBy('pr.nameFr', 'ASC')
-            ->setMaxResults($limit)
-            ->setFirstResult($offset);
+            ->join('pr.category', 'c');
 
         $this->applyFilters($qb, $q, $categoryId, $brandId, $status);
+        $usesQualityScore = null !== $qualityMin || null !== $qualityMax || 'quality_score' === $sort;
+        if ($usesQualityScore) {
+            $qb->setParameter('verifiedImageStatus', ProductImageStatus::Verified)
+                ->setParameter('approvedReferenceStatus', ProductReferenceStatus::Approved);
+            $this->applyQualityFilters($qb, $qualityMin, $qualityMax);
+        }
+
+        if ('quality_score' === $sort) {
+            $qb->addSelect($this->qualityScoreExpression('piQualitySort').' AS HIDDEN qualityScore');
+            $qb->orderBy('qualityScore', $direction);
+        } else {
+            $qb->orderBy('pr.nameFr', 'ASC');
+        }
+
+        $qb->addOrderBy('pr.nameFr', 'ASC')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset);
 
         /* @var list<ProductReference> */
         return $qb->getQuery()->getResult();
@@ -75,6 +95,8 @@ final readonly class AdminProductReferenceRepository
         ?string $categoryId = null,
         ?string $brandId = null,
         ?string $status = null,
+        ?int $qualityMin = null,
+        ?int $qualityMax = null,
     ): int {
         $qb = $this->productReferenceRepository->createQueryBuilder('pr')
             ->select('COUNT(pr.id)')
@@ -82,6 +104,11 @@ final readonly class AdminProductReferenceRepository
             ->join('pr.category', 'c');
 
         $this->applyFilters($qb, $q, $categoryId, $brandId, $status);
+        if (null !== $qualityMin || null !== $qualityMax) {
+            $qb->setParameter('verifiedImageStatus', ProductImageStatus::Verified)
+                ->setParameter('approvedReferenceStatus', ProductReferenceStatus::Approved);
+            $this->applyQualityFilters($qb, $qualityMin, $qualityMax);
+        }
 
         return (int) $qb->getQuery()->getSingleScalarResult();
     }
@@ -115,6 +142,38 @@ final readonly class AdminProductReferenceRepository
                 $qb->andWhere('pr.status = :status')
                     ->setParameter('status', $statusEnum);
             }
+        }
+    }
+
+    private function qualityScoreExpression(string $imageAlias): string
+    {
+        $imageClass = ProductImage::class;
+
+        return "(CASE WHEN TRIM(pr.nameFr) <> '' THEN 20 ELSE 0 END"
+            ." + CASE WHEN TRIM(b.canonicalName) <> '' THEN 10 ELSE 0 END"
+            ." + CASE WHEN TRIM(c.nameFr) <> '' THEN 10 ELSE 0 END"
+            .' + CASE WHEN pr.volume IS NOT NULL THEN 10 ELSE 0 END'
+            .' + 10'
+            ." + CASE WHEN pr.barcode IS NOT NULL AND TRIM(pr.barcode) <> '' THEN 15 ELSE 0 END"
+            ." + CASE WHEN EXISTS (SELECT 1 FROM {$imageClass} {$imageAlias}"
+            ." WHERE {$imageAlias}.productReference = pr"
+            ." AND {$imageAlias}.status = :verifiedImageStatus) THEN 15 ELSE 0 END"
+            .' + CASE WHEN pr.status = :approvedReferenceStatus THEN 10 ELSE 0 END)';
+    }
+
+    private function applyQualityFilters(
+        QueryBuilder $qb,
+        ?int $qualityMin,
+        ?int $qualityMax,
+    ): void {
+        if (null !== $qualityMin) {
+            $qb->andWhere($this->qualityScoreExpression('piQualityMin').' >= :qualityMin')
+                ->setParameter('qualityMin', $qualityMin);
+        }
+
+        if (null !== $qualityMax) {
+            $qb->andWhere($this->qualityScoreExpression('piQualityMax').' <= :qualityMax')
+                ->setParameter('qualityMax', $qualityMax);
         }
     }
 

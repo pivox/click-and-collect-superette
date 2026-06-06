@@ -39,6 +39,22 @@ use Symfony\Component\Serializer\Attribute\Groups;
                     schema: ['type' => 'string'],
                     description: 'Statut (draft, pending_review, approved, rejected, archived).',
                 ),
+                'quality_min' => new QueryParameter(
+                    schema: ['type' => 'string'],
+                    description: 'Score qualité minimal inclus.',
+                ),
+                'quality_max' => new QueryParameter(
+                    schema: ['type' => 'string'],
+                    description: 'Score qualité maximal inclus.',
+                ),
+                'sort' => new QueryParameter(
+                    schema: ['type' => 'string'],
+                    description: 'Tri serveur. Seul quality_score est supporté.',
+                ),
+                'direction' => new QueryParameter(
+                    schema: ['type' => 'string', 'default' => 'asc'],
+                    description: 'Direction du tri serveur.',
+                ),
                 'page' => new QueryParameter(
                     schema: ['type' => 'integer', 'default' => 1],
                     description: 'Numéro de page (défaut : 1).',

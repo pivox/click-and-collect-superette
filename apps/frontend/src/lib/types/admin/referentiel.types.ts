@@ -97,6 +97,8 @@ export interface ProductReference {
   status: string;
   created_at: string;
   updated_at: string;
+  quality_score: number;
+  quality_level: 'low' | 'medium' | 'good' | string;
   /** Official image (responsive URLs), absent when none has been uploaded. */
   image?: ProductReferenceImage | null;
 }
@@ -149,6 +151,10 @@ export interface ProductReferenceFilters {
   brand?: string;
   category?: string;
   status?: string;
+  qualityScoreMin?: number;
+  qualityScoreMax?: number;
+  sort?: 'quality_score';
+  direction?: 'asc' | 'desc';
   page?: number;
   limit?: number;
 }
