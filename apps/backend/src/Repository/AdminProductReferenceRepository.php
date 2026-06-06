@@ -32,7 +32,18 @@ final readonly class AdminProductReferenceRepository
 
     public function findOneByBarcode(string $barcode): ?ProductReference
     {
-        return $this->productReferenceRepository->findOneBy(['barcode' => $barcode]);
+        /** @var ProductReference|null $ref */
+        $ref = $this->productReferenceRepository->createQueryBuilder('pr')
+            ->andWhere('pr.barcode = :barcode')
+            ->andWhere('pr.status != :archived')
+            ->setParameter('barcode', trim($barcode))
+            ->setParameter('archived', ProductReferenceStatus::Archived)
+            ->orderBy('pr.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $ref;
     }
 
     /**

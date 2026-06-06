@@ -220,7 +220,8 @@ final readonly class ProductReferenceDeduplicationService
                 $duplicate
                     ->setQuantity($mergedQuantity)
                     ->setUnitPriceTnd(bcdiv($mergedLineTotal, (string) $mergedQuantity, 3))
-                    ->setLineTotalTnd($mergedLineTotal);
+                    ->setLineTotalTnd($mergedLineTotal)
+                    ->markPrepared($duplicate->isPrepared() && $line->isPrepared());
                 $order->removeLine($line);
                 $this->entityManager->remove($line);
                 $order->recomputeTotal();

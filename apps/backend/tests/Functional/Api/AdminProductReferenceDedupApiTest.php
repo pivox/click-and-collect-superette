@@ -97,6 +97,39 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         self::assertSame(1, $this->entityManager->getRepository(AdminAuditLog::class)->count(['action' => 'product_reference.merge']));
     }
 
+    public function testAdminCanUpdateKeptReferenceAfterMergingOlderBarcodeDuplicate(): void
+    {
+        $admin = $this->createUser('admin-pr-dedup-update-kept@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Jadida', 'jadida-dedup-update-kept');
+        $category = $this->createCategory('Fromages', 'fromages-dedup-update-kept');
+        $absorbed = $this->createProductReference($brand, $category, 'Fromage tranche', barcode: '6192500000011');
+        $kept = $this->createProductReference($brand, $category, 'Fromage tranches', barcode: '6192500000011');
+
+        self::assertSame(200, $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/merge', $absorbed->getId()),
+            ['keptProductReferenceId' => $kept->getId()->toRfc4122()],
+            $admin,
+        )->getStatusCode());
+
+        $this->entityManager->clear();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s', $kept->getId()),
+            [
+                'nameFr' => 'Fromage tranches corrigé',
+                'barcode' => '6192500000011',
+            ],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('6192500000011', $payload['barcode']);
+        self::assertSame('Fromage tranches corrigé', $payload['name_fr']);
+    }
+
     public function testMergePreservesKadhiaAndOrderLinePriceContributionsWhenShopHasBothOffers(): void
     {
         $admin = $this->createUser('admin-pr-dedup-conflict@example.test', ['ROLE_ADMIN']);
@@ -136,6 +169,7 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         self::assertSame(3, $updatedOrderLines[0]->getQuantity());
         self::assertSame(0, bccomp('2.000', $updatedOrderLines[0]->getUnitPriceTnd(), 3));
         self::assertSame(0, bccomp('6.000', $updatedOrderLines[0]->getLineTotalTnd(), 3));
+        self::assertFalse($updatedOrderLines[0]->isPrepared());
         self::assertInstanceOf(Order::class, $updatedOrder);
         self::assertSame(0, bccomp('6.000', $updatedOrder->getTotalTnd(), 3));
     }
@@ -287,7 +321,8 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
             ->setMerchantProduct($keptOffer)
             ->setQuantity(1)
             ->setUnitPriceTnd('1.000')
-            ->setLineTotalTnd('1.000');
+            ->setLineTotalTnd('1.000')
+            ->markPrepared(true);
         $absorbedLine = (new OrderLine())
             ->setOrder($order)
             ->setMerchantProduct($absorbedOffer)
