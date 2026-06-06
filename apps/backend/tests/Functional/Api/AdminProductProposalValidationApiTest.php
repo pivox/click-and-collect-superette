@@ -139,6 +139,26 @@ final class AdminProductProposalValidationApiTest extends FunctionalApiTestCase
         self::assertSame(ProductReferenceStatus::Approved, $updated->getCreatedProductReference()->getStatus());
     }
 
+    public function testApproveProposalWithActiveBarcodeDuplicateReturns422(): void
+    {
+        $admin = $this->createUser('admin-approve-dup-barcode@test.dev', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-approve-dup-barcode@test.dev', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $category = $this->makeCategory('Biscuits duplicate barcode');
+        $brand = $this->makeBrand('Saida duplicate barcode');
+        $this->makeProductReference('Saida existing barcode', $category, 'Biscuit existant', barcode: '6194100000011');
+        $proposal = $this->makeProposal($shop, $merchant, $category, 'Biscuit proposé', brand: $brand, barcode: '6194100000011');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-proposals/%s/approve', $proposal->getId()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     // --- approve with canonicalData ---
 
     public function testApproveWithCanonicalDataOverridesProposalFields(): void
@@ -177,6 +197,34 @@ final class AdminProductProposalValidationApiTest extends FunctionalApiTestCase
         self::assertSame('Harissa Doux 200g', $ref->getNameFr());
         self::assertSame('هريسة', $ref->getNameAr());
         self::assertSame('6194003415963', $ref->getBarcode());
+    }
+
+    public function testApproveCanonicalDataWithActiveBarcodeDuplicateReturns422(): void
+    {
+        $admin = $this->createUser('admin-approve-canonical-dup-barcode@test.dev', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-approve-canonical-dup-barcode@test.dev', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $category = $this->makeCategory('Conserves duplicate barcode');
+        $brand = $this->makeBrand('Unilever duplicate barcode');
+        $this->makeProductReference('Unilever existing barcode', $category, 'Harissa existante', barcode: '6194200000011');
+        $proposal = $this->makeProposal($shop, $merchant, $category, 'Harissa proposée');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-proposals/%s/approve', $proposal->getId()),
+            [
+                'canonicalData' => [
+                    'nameFr' => 'Harissa Doux 200g',
+                    'brandId' => $brand->getId()->toRfc4122(),
+                    'categoryId' => $category->getId()->toRfc4122(),
+                    'unit' => 'piece',
+                    'barcode' => '6194200000011',
+                ],
+            ],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
     }
 
     // --- approve: link to existing ProductReference ---
@@ -575,6 +623,7 @@ final class AdminProductProposalValidationApiTest extends FunctionalApiTestCase
         Category $category,
         string $nameFr,
         ?Brand $brand = null,
+        ?string $barcode = null,
     ): ProductReferenceProposal {
         $proposal = (new ProductReferenceProposal())
             ->setShop($shop)
@@ -582,7 +631,8 @@ final class AdminProductProposalValidationApiTest extends FunctionalApiTestCase
             ->setCategory($category)
             ->setNameFr($nameFr)
             ->setUnit(ProductUnit::Piece)
-            ->setBrand($brand);
+            ->setBrand($brand)
+            ->setBarcode($barcode);
 
         $this->entityManager->persist($proposal);
         $this->entityManager->flush();
@@ -595,6 +645,7 @@ final class AdminProductProposalValidationApiTest extends FunctionalApiTestCase
         Category $category,
         string $nameFr,
         ProductReferenceStatus $status = ProductReferenceStatus::Approved,
+        ?string $barcode = null,
     ): ProductReference {
         $suffix = uniqid('', true);
         $brand = (new Brand())
@@ -605,7 +656,8 @@ final class AdminProductProposalValidationApiTest extends FunctionalApiTestCase
             ->setCategory($category)
             ->setNameFr($nameFr)
             ->setUnit(ProductUnit::Piece)
-            ->setStatus($status);
+            ->setStatus($status)
+            ->setBarcode($barcode);
 
         $this->entityManager->persist($brand);
         $this->entityManager->persist($ref);

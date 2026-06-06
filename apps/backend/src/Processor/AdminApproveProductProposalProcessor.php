@@ -123,6 +123,8 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
             $productReference = $this->buildFromProposal($proposal);
         }
 
+        $this->assertBarcodeAvailable($productReference->getBarcode());
+
         $this->entityManager->persist($productReference);
 
         $proposal->setStatus(ProductReferenceProposalStatus::Approved);
@@ -190,5 +192,16 @@ final readonly class AdminApproveProductProposalProcessor implements ProcessorIn
             ->setUnit($proposal->getUnit())
             ->setBarcode($proposal->getBarcode())
             ->setStatus(ProductReferenceStatus::Approved);
+    }
+
+    private function assertBarcodeAvailable(?string $barcode): void
+    {
+        if (null === $barcode || '' === trim($barcode)) {
+            return;
+        }
+
+        if (null !== $this->productReferenceRepository->findOneByBarcode(trim($barcode))) {
+            throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BARCODE_DUPLICATE');
+        }
     }
 }
