@@ -8,7 +8,10 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\AdminProductReferenceDuplicateCandidateOutput;
 use App\ApiResource\AdminProductReferenceDuplicateListOutput;
+use App\Repository\ProductImageRepository;
+use App\Service\ProductImage\ProductImageUrlBuilder;
 use App\Service\ProductReferenceDeduplicationService;
+use App\Service\ProductReferenceQualityScorer;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -23,6 +26,9 @@ final readonly class AdminProductReferenceDuplicateCollectionProvider implements
 
     public function __construct(
         private ProductReferenceDeduplicationService $deduplicationService,
+        private ProductImageRepository $productImageRepository,
+        private ProductImageUrlBuilder $productImageUrlBuilder,
+        private ProductReferenceQualityScorer $qualityScorer,
         private RequestStack $requestStack,
     ) {
     }
@@ -39,16 +45,31 @@ final readonly class AdminProductReferenceDuplicateCollectionProvider implements
         $offset = ($page - 1) * $limit;
 
         $candidates = $this->deduplicationService->findDuplicateCandidates();
+        $pagedCandidates = \array_slice($candidates, $offset, $limit);
+        $candidateReferences = [];
+        foreach ($pagedCandidates as $candidate) {
+            $candidateReferences[] = $candidate['left'];
+            $candidateReferences[] = $candidate['right'];
+        }
+        $officialImages = $this->productImageRepository->findOfficialByProductReferences($candidateReferences);
         $items = array_map(
-            static fn (array $candidate): AdminProductReferenceDuplicateCandidateOutput => new AdminProductReferenceDuplicateCandidateOutput(
-                left: AdminProductReferenceItemProvider::toOutput($candidate['left']),
-                right: AdminProductReferenceItemProvider::toOutput($candidate['right']),
+            fn (array $candidate): AdminProductReferenceDuplicateCandidateOutput => new AdminProductReferenceDuplicateCandidateOutput(
+                left: AdminProductReferenceItemProvider::toOutput(
+                    $candidate['left'],
+                    $this->productImageUrlBuilder->build($officialImages[$candidate['left']->getId()->toRfc4122()] ?? null),
+                    $this->qualityScorer,
+                ),
+                right: AdminProductReferenceItemProvider::toOutput(
+                    $candidate['right'],
+                    $this->productImageUrlBuilder->build($officialImages[$candidate['right']->getId()->toRfc4122()] ?? null),
+                    $this->qualityScorer,
+                ),
                 reason: $candidate['reason'],
                 barcode: $candidate['barcode'],
                 leftOfferCount: $candidate['leftOfferCount'],
                 rightOfferCount: $candidate['rightOfferCount'],
             ),
-            \array_slice($candidates, $offset, $limit),
+            $pagedCandidates,
         );
 
         return new AdminProductReferenceDuplicateListOutput(

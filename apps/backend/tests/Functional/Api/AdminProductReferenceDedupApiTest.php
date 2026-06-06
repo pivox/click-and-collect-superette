@@ -12,10 +12,13 @@ use App\Entity\KadhiaLine;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
+use App\Entity\ProductImage;
 use App\Entity\ProductReference;
 use App\Entity\ProductReferenceMergeHistory;
 use App\Entity\Shop;
 use App\Entity\User;
+use App\Enum\ProductImageSource;
+use App\Enum\ProductImageStatus;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 
@@ -45,8 +48,9 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         $admin = $this->createUser('admin-pr-dedup-compare@example.test', ['ROLE_ADMIN']);
         $brand = $this->createBrand('Délice', 'delice-dedup-compare');
         $category = $this->createCategory('Yaourts', 'yaourts-dedup-compare');
-        $left = $this->createProductReference($brand, $category, 'Yaourt nature', volume: '110', unit: ProductUnit::Gramme);
+        $left = $this->createProductReference($brand, $category, 'Yaourt nature', barcode: '6194000000011', volume: '110', unit: ProductUnit::Gramme);
         $right = $this->createProductReference($brand, $category, 'Yaourt nature', volume: '110', unit: ProductUnit::Gramme);
+        $this->createVerifiedImage($left);
         $this->createMerchantProduct($this->createShop(), $right);
 
         $response = $this->requestJson(
@@ -58,6 +62,7 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         self::assertSame(200, $response->getStatusCode());
         $payload = $this->decodeJson($response);
         self::assertSame($left->getId()->toRfc4122(), $payload['left']['id']);
+        self::assertSame(100, $payload['left']['quality_score']);
         self::assertSame($right->getId()->toRfc4122(), $payload['right']['id']);
         self::assertSame(0, $payload['left_offer_count']);
         self::assertSame(1, $payload['right_offer_count']);
@@ -390,6 +395,25 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $merchantProduct;
+    }
+
+    private function createVerifiedImage(ProductReference $productReference): ProductImage
+    {
+        $image = (new ProductImage())
+            ->setProductReference($productReference)
+            ->setOriginalPath('/uploads/products/original.webp')
+            ->setMimeType('image/webp')
+            ->setWidth(800)
+            ->setHeight(800)
+            ->setVariants(['400' => '/uploads/products/400.webp'])
+            ->setSource(ProductImageSource::AdminUpload)
+            ->setStatus(ProductImageStatus::Verified)
+            ->setAltText($productReference->getNameFr());
+
+        $this->entityManager->persist($image);
+        $this->entityManager->flush();
+
+        return $image;
     }
 
     private function createKadhiaWithLines(

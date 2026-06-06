@@ -11,8 +11,11 @@ use App\Dto\AdminMergeProductReferenceInput;
 use App\Entity\User;
 use App\Provider\AdminProductReferenceItemProvider;
 use App\Repository\AdminProductReferenceRepository;
+use App\Repository\ProductImageRepository;
 use App\Service\AdminAuditLogger;
+use App\Service\ProductImage\ProductImageUrlBuilder;
 use App\Service\ProductReferenceDeduplicationService;
+use App\Service\ProductReferenceQualityScorer;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -29,6 +32,9 @@ final readonly class AdminMergeProductReferenceProcessor implements ProcessorInt
         private AdminProductReferenceRepository $productReferenceRepository,
         private ProductReferenceDeduplicationService $deduplicationService,
         private EntityManagerInterface $entityManager,
+        private ProductImageRepository $productImageRepository,
+        private ProductImageUrlBuilder $productImageUrlBuilder,
+        private ProductReferenceQualityScorer $qualityScorer,
         private Security $security,
         private AdminAuditLogger $auditLogger,
         #[Autowire(service: 'monolog.logger.admin')]
@@ -86,6 +92,7 @@ final readonly class AdminMergeProductReferenceProcessor implements ProcessorInt
         );
 
         $this->entityManager->flush();
+        $officialImages = $this->productImageRepository->findOfficialByProductReferences([$kept, $absorbed]);
 
         $this->logger->info('admin.product_reference.merged', [
             'absorbed_product_reference_id' => $absorbedId,
@@ -95,8 +102,16 @@ final readonly class AdminMergeProductReferenceProcessor implements ProcessorInt
 
         return new AdminProductReferenceMergeOutput(
             id: $history->getId()->toRfc4122(),
-            kept: AdminProductReferenceItemProvider::toOutput($kept),
-            absorbed: AdminProductReferenceItemProvider::toOutput($absorbed),
+            kept: AdminProductReferenceItemProvider::toOutput(
+                $kept,
+                $this->productImageUrlBuilder->build($officialImages[$kept->getId()->toRfc4122()] ?? null),
+                $this->qualityScorer,
+            ),
+            absorbed: AdminProductReferenceItemProvider::toOutput(
+                $absorbed,
+                $this->productImageUrlBuilder->build($officialImages[$absorbed->getId()->toRfc4122()] ?? null),
+                $this->qualityScorer,
+            ),
             movedOfferCount: $result['movedOfferCount'],
             removedConflictingOfferCount: $result['removedConflictingOfferCount'],
             historyId: $history->getId()->toRfc4122(),
