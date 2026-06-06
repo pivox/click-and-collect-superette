@@ -501,7 +501,7 @@ L'équipe gère les problèmes terrain (incidents, retards, suspensions) avec de
 
 ### Objectif
 
-Accélérer l'onboarding produit au-delà du CSV/scan (livré en Sprint 11) et garder un référentiel illustré, propre et gouverné. Socle déjà présent : images produits web/mobile (S13-005 / #391), bulk multi-format (Sprint 8), infra IA `ProductAiEnrichment*`, merge proposition→référence (PR #203).
+Accélérer l'onboarding produit au-delà du CSV/scan (livré en Sprint 11) et garder un référentiel illustré, propre, gouverné et traitable rapidement par l'admin. Socle déjà présent : images produits web/mobile (S13-005 / #391), bulk multi-format (Sprint 8), infra IA `ProductAiEnrichment*`, merge proposition→référence (PR #203), backoffice admin référentiel existant.
 
 ### Fonctionnalités
 
@@ -510,10 +510,13 @@ Accélérer l'onboarding produit au-delà du CSV/scan (livré en Sprint 11) et g
 - **US-082** ([#371](https://github.com/pivox/click-and-collect-superette/issues/371)) · EPIC-020 · *Should* — Déduplication du référentiel (workflow admin, priorité code-barres).
 - **US-083** ([#372](https://github.com/pivox/click-and-collect-superette/issues/372)) · EPIC-020 · *Could* — Score de qualité des références produit.
 - **US-084** ([#373](https://github.com/pivox/click-and-collect-superette/issues/373)) · EPIC-020 · *Should* — Gouvernance du référentiel (rôles, workflow, droits).
+- **S13-006** ([#444](https://github.com/pivox/click-and-collect-superette/issues/444)) · UX référentiel admin · *Should* — Traitement rapide depuis la liste : grille éditable, édition inline, validation ligne, rejet rapide avec raison, erreurs affichées sur la ligne, drawer réservé aux cas complexes, pagination et filtres conservés.
+- **S13-007** ([#445](https://github.com/pivox/click-and-collect-superette/issues/445)) · UX référentiel admin · *Should* — Création inline marque/catégorie depuis le flux de validation produit : recherche, création si absente, sélection automatique, prévention doublon exact, suggestion nom proche, erreurs sans perte de saisie, réservé `ROLE_ADMIN`.
+- **S13-008** ([#446](https://github.com/pivox/click-and-collect-superette/issues/446)) · UX référentiel admin · *Should* — File `À traiter` et actions en masse sécurisées : sélection multiple, validation/rejet/marquer à revoir/archiver si applicable, résumé avant exécution, résultat succès/erreurs/ignorés, lignes non éligibles expliquées.
 
 ### Critère de sortie
 
-Un marchand crée un catalogue exploitable sans saisir produit par produit ; le référentiel reste propre, gouverné et illustré avec des images produit optimisées pour le web/mobile.
+Un marchand crée un catalogue exploitable sans saisir produit par produit ; le référentiel reste propre, gouverné et illustré avec des images produit optimisées pour le web/mobile. L'admin peut traiter les corrections courantes depuis une liste responsive sans ouvrir un drawer pour chaque produit.
 
 ---
 
@@ -694,7 +697,7 @@ Les apps natives reprennent les parcours validés par la PWA, sans réinventer l
 | Sprint 10 | US-067 à US-073 (EPIC-015, EPIC-016) | P0 | ✅ Clôturable : #352-#356 livrées ; #357 à reporter, #358 à fermer comme non nécessaire |
 | Sprint 11 | US-074 à US-080 (EPIC-017, EPIC-018, EPIC-019) | P0 | 🟡 Partiel : fondation US-074/US-075 livrée |
 | Sprint 12 | US-085 à US-088 (EPIC-021) | P1 | 🔵 Planifié (support) |
-| Sprint 13 | US-041 (#391 / S13-005), US-081 à US-084 (EPIC-011, EPIC-019, EPIC-020) | P1 | 🟢 Partiel : US-041 livrée, reste catalogue scalable planifié |
+| Sprint 13 | US-041 (#391 / S13-005), US-081 à US-084 (EPIC-011, EPIC-019, EPIC-020), S13-006 à S13-008 (#444 à #446) | P1 | 🟢 Partiel : US-041 livrée, reste catalogue scalable et UX référentiel admin planifiés |
 | Sprint 14 | US-089 à US-094 (EPIC-022, EPIC-008, EPIC-018) | P1 | 🟡 Partiel : US-093 livrée ; PWA/push/WCAG ouverts |
 | Sprint 15 | US-095 à US-099 (EPIC-023) | P2 | 🔵 Planifié (croissance) |
 | Sprint 16 | US-100 à US-103 (EPIC-024) | P2 | 🔵 Planifié (natif) |
@@ -708,3 +711,14 @@ Les apps natives reprennent les parcours validés par la PWA, sans réinventer l
   réutilisable (`ProductImageApplicationService`) appelable par l'enrichissement IA
   comme image `candidate` / `needs_review` sans jamais devenir officielle automatiquement.
   Détails : `docs/roadmap/product-images-web-mobile.md`.
+- **#444 / S13-006 — UX de traitement rapide du référentiel admin** : grille éditable,
+  édition inline, validation/rejet depuis la ligne, erreurs visibles au niveau ligne,
+  conservation pagination/filtres, drawer limité aux cas complexes. PR recommandée en
+  premier pour poser le flux principal.
+- **#445 / S13-007 — Création inline marques et catégories depuis le référentiel admin** :
+  recherche et création rapide depuis le champ marque/catégorie, sélection automatique,
+  prévention doublon exact et suggestion proche. PR recommandée après S13-006.
+- **#446 / S13-008 — Actions en masse et file de priorisation du référentiel admin** :
+  vue `À traiter`, sélection multiple, actions bulk contrôlées, confirmation avant rejet
+  ou archivage, résumé avant exécution, résultat succès/erreurs/ignorés. PR recommandée
+  après S13-006 et S13-007.
