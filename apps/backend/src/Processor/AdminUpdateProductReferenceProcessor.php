@@ -140,7 +140,15 @@ final readonly class AdminUpdateProductReferenceProcessor implements ProcessorIn
         }
 
         if (\array_key_exists('status', $payload) && null !== $data->status) {
-            $productReference->setStatus(ProductReferenceStatus::from($data->status));
+            $status = ProductReferenceStatus::from($data->status);
+            $barcode = $productReference->getBarcode();
+            if (ProductReferenceStatus::Archived !== $status && null !== $barcode) {
+                $existing = $this->adminProductReferenceRepository->findOneByBarcode($barcode);
+                if (null !== $existing && !$existing->getId()->equals($productReference->getId())) {
+                    throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BARCODE_DUPLICATE');
+                }
+            }
+            $productReference->setStatus($status);
         }
 
         $this->auditLogger->log(

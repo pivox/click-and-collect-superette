@@ -130,6 +130,33 @@ final class AdminProductReferenceDedupApiTest extends FunctionalApiTestCase
         self::assertSame('Fromage tranches corrigé', $payload['name_fr']);
     }
 
+    public function testAdminCannotReactivateAbsorbedBarcodeDuplicateWithoutResolvingBarcode(): void
+    {
+        $admin = $this->createUser('admin-pr-dedup-reactivate-absorbed@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Mami', 'mami-dedup-reactivate-absorbed');
+        $category = $this->createCategory('Couscous', 'couscous-dedup-reactivate-absorbed');
+        $absorbed = $this->createProductReference($brand, $category, 'Couscous moyen', barcode: '6192600000011');
+        $kept = $this->createProductReference($brand, $category, 'Couscous moyen premium', barcode: '6192600000011');
+
+        self::assertSame(200, $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/merge', $absorbed->getId()),
+            ['keptProductReferenceId' => $kept->getId()->toRfc4122()],
+            $admin,
+        )->getStatusCode());
+
+        $this->entityManager->clear();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s', $absorbed->getId()),
+            ['status' => 'approved'],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     public function testMergePreservesKadhiaAndOrderLinePriceContributionsWhenShopHasBothOffers(): void
     {
         $admin = $this->createUser('admin-pr-dedup-conflict@example.test', ['ROLE_ADMIN']);
