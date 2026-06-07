@@ -2,7 +2,7 @@
 
 Date de cadrage : 2026-06-07  
 Rôles de cadrage : PO + Tech Lead  
-Point de départ : **S13-003 livré** ; Sprint 13 reste le sprint catalogue/référentiel.
+Point de départ : Sprint 13 reste le sprint catalogue/référentiel. La redéfinition stratégique commence ici, à Sprint 14.
 
 ## 1. Décision PO / Tech Lead
 
@@ -18,7 +18,7 @@ Règle de structure :
 
 ```text
 Sprints 10 à 13 : ne pas les renommer dans cette passe.
-Sprint 13 : finir le référentiel restant.
+Sprint 13 : finir le référentiel restant, sans replanifier les items déjà livrés.
 À partir de Sprint 14 : redéfinir l'ordre et l'intention des sprints restants.
 ```
 
@@ -44,7 +44,8 @@ Le Tech Lead impose :
 - ne pas complexifier le push si PWA + WhatsApp + notifications in-app suffisent au lancement ;
 - documenter toute nouvelle route API ;
 - garder des PR atomiques ;
-- ne pas construire de recommandations avancées sans données réelles.
+- ne pas construire de recommandations avancées sans données réelles ;
+- ne pas replanifier les issues déjà livrées.
 
 ## 4. Nouveau découpage à partir de Sprint 14
 
@@ -65,7 +66,15 @@ Cette redéfinition garde les anciens numéros d'issues pour l'historique, mais 
 
 Transformer l'expérience web responsive en expérience mobile installable et utilisable en conditions terrain.
 
-## Issues incluses
+## Acquis déjà livrés
+
+```text
+S14-004 — #377 — Arabe / RTL câblé dans l'application
+```
+
+Cet item reste une dépendance de qualité mobile, mais ne doit pas être replanifié comme travail restant.
+
+## Issues actives
 
 ```text
 S14-001 — #374 — PWA client
@@ -76,7 +85,6 @@ S14-post — #402 — Server Components i18n restants
 S14-post — #403 — Dates localisées selon langue active
 S14-post — #404 — aria-label notifications client
 S14-003 — #376 — Push notifications
-S14-004 — #377 — Arabe / RTL, déjà livré si fermé
 ```
 
 ## Ordre recommandé
@@ -123,20 +131,25 @@ Le client et le marchand peuvent installer la PWA, commander, traiter une comman
 
 Regrouper les capacités nécessaires pour lancer officiellement sans perdre le contrôle opérationnel et commercial.
 
-## Issues à remonter / intégrer
-
-### Monétisation
+## Acquis déjà livrés / prérequis à ne pas replanifier
 
 ```text
 #359 — Module abonnement marchand
 #360 — Statuts abonnement lifecycle / phase tarifaire
+```
+
+Ces éléments servent de fondation au Sprint 15 redéfini, mais ne doivent pas être replanifiés comme travail actif si les sources courantes les marquent livrés.
+
+## Issues actives — Monétisation
+
+```text
 #361 — Reçu / facture mensuelle à cadrer fiscalement
 #362 — Paiement manuel espèces / virement
 #363 — Relances paiement email + WhatsApp manuel
 #364 — Suspension douce et réactivation
 ```
 
-### Support / exploitation
+## Issues actives — Support / exploitation
 
 ```text
 #366 — Incidents commande
@@ -152,7 +165,6 @@ Regrouper les capacités nécessaires pour lancer officiellement sans perdre le 
 
 Avant lancement officiel, il faut pouvoir :
 
-- rattacher un marchand à un abonnement ;
 - enregistrer un paiement manuel ;
 - relancer un marchand ;
 - suspendre doucement ;
@@ -172,11 +184,12 @@ Les écrans support doivent exploiter les entités existantes autant que possibl
 - Paiement carte marchand.
 - Facturation fiscale complète non cadrée.
 - Support omnicanal avancé.
+- Rebuild des fondations abonnement déjà livrées.
 
 ## Critère de sortie
 
 ```text
-Le produit est monétisable et supportable : abonnement, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels.
+Le produit est monétisable et supportable : paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur la base abonnement déjà livrée.
 ```
 
 ---
@@ -277,7 +290,7 @@ Les apps natives devront réutiliser l'API backend existante et ne pas dupliquer
 
 ## Gate business
 
-- Abonnement marchand créé.
+- Abonnement marchand existant.
 - Phase tarifaire claire.
 - Paiement manuel enregistrable.
 - Relance possible.
