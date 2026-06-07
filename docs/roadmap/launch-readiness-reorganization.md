@@ -2,7 +2,7 @@
 
 Date de cadrage : 2026-06-07  
 Rôles de cadrage : PO + Tech Lead  
-Point de départ technique : **S13-003 livré** ; Sprint 13 reste centré sur le catalogue et le référentiel.
+Point de départ technique : Sprint 13 reste centré sur le catalogue et le référentiel. Les éléments déjà livrés ne doivent pas être replanifiés.
 
 ## 1. Décision
 
@@ -30,10 +30,11 @@ Redéfinir les sprints à partir de 14 pour préparer une V1 de lancement offici
 ## 2. Règle de gouvernance documentaire
 
 ```text
-Sprint 13 = catalogue / référentiel restant après S13-003.
+Sprint 13 = catalogue / référentiel restant, sans replanifier les acquis livrés.
 À partir de Sprint 14 = redéfinition stratégique de lancement officiel.
 Aucun dossier SprintLaunchReadiness séparé ne doit être utilisé.
 Les anciens numéros d'issues restent conservés pour l'historique.
+Les issues déjà livrées sont listées comme acquis, pas comme backlog actif.
 ```
 
 ## 3. Lecture PO
@@ -56,13 +57,16 @@ Le Tech Lead valide :
 - push Web non bloquant si PWA + notifications in-app + WhatsApp sont stables ;
 - pas de paiement carte ni facture fiscale complète sans cadrage ;
 - pas d'algorithme de suggestion avancé sans données réelles ;
-- apps natives post-lancement uniquement.
+- apps natives post-lancement uniquement ;
+- aucune issue déjà livrée ne doit être remise dans une liste d'exécution.
 
 ## 5. Nouveau découpage à partir de Sprint 14
 
 ### Sprint 14 — Mobile Launch Readiness
 
-Issues : #374, #375, #379, #378, #402, #403, #404, #376, #377.
+Acquis : #377 — Arabe / RTL câblé dans l'application.
+
+Issues actives : #374, #375, #379, #378, #402, #403, #404, #376.
 
 Priorité :
 
@@ -83,13 +87,15 @@ Client et marchand peuvent installer et utiliser l'application mobile web en con
 
 ### Sprint 15 — Monétisation, support et exploitation avant lancement
 
-Issues monétisation : #359, #360, #361, #362, #363, #364.  
-Issues support/exploitation : #366, #367, #368, #369, #420, #421, #422.
+Acquis / fondations à ne pas replanifier : #359, #360.
+
+Issues actives monétisation : #361, #362, #363, #364.  
+Issues actives support/exploitation : #366, #367, #368, #369, #420, #421, #422.
 
 Critère de sortie :
 
 ```text
-Le produit est monétisable et supportable : abonnement, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels.
+Le produit est monétisable et supportable : paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur la base abonnement déjà livrée.
 ```
 
 ### Sprint 16 — Valeur commerciale minimale avant lancement
@@ -127,7 +133,7 @@ Usage réel prouvé, limites PWA constatées, facturation opérationnelle, suppo
 
 ### Gate business
 
-- Abonnement marchand créé.
+- Abonnement marchand existant.
 - Phase tarifaire claire.
 - Paiement manuel enregistrable.
 - Relance possible.
