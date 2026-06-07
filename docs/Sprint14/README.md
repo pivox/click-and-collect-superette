@@ -137,6 +137,9 @@ Regrouper les capacités nécessaires pour lancer officiellement sans perdre le 
 ```text
 #359 — Module abonnement marchand
 #360 — Statuts abonnement lifecycle / phase tarifaire
+#420 — Écran santé jobs async
+#421 — Écran métriques pré-lancement
+#422 — Détail checklist activation supérette
 ```
 
 Ces éléments servent de fondation au Sprint 15 redéfini, mais ne doivent pas être replanifiés comme travail actif si les sources courantes les marquent livrés.
@@ -165,9 +168,6 @@ Décision PO : #365 reste un prérequis de lancement, car le marchand doit pouvo
 #367 — Backoffice support
 #368 — Journal opérationnel marchand complet + vue santé
 #369 — Runbook support terrain
-#420 — Écran santé jobs async
-#421 — Écran métriques pré-lancement
-#422 — Détail checklist activation supérette
 ```
 
 ## Décision PO
@@ -195,11 +195,12 @@ Les écrans support doivent exploiter les entités existantes autant que possibl
 - Facturation fiscale complète non cadrée.
 - Support omnicanal avancé.
 - Rebuild des fondations abonnement déjà livrées.
+- Rebuild des écrans admin déjà livrés pour santé jobs, métriques et checklist activation.
 
 ## Critère de sortie
 
 ```text
-Le produit est monétisable et supportable : import catalogue minimum, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur la base abonnement déjà livrée.
+Le produit est monétisable et supportable : import catalogue minimum, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur les fondations admin déjà livrées.
 ```
 
 ---
@@ -314,7 +315,7 @@ Les apps natives devront réutiliser l'API backend existante et ne pas dupliquer
 - Journal marchand consultable.
 - Runbook support disponible.
 - Vue santé marchand disponible.
-- Santé jobs async visible dans l'admin.
+- Santé jobs async, métriques et checklist activation déjà visibles dans l'admin.
 
 ## Gate go / no-go
 
