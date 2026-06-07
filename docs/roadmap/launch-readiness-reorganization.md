@@ -1,35 +1,39 @@
-# Réorganisation stratégique — depuis Sprint 13
+# Réorganisation stratégique — à partir de Sprint 14
 
 Date de cadrage : 2026-06-07  
 Rôles de cadrage : PO + Tech Lead  
-Point de départ technique : **dernier item livré = S13-003 — Score de qualité des références produit**.
+Point de départ technique : **S13-003 livré** ; Sprint 13 reste centré sur le catalogue et le référentiel.
 
 ## 1. Décision
 
-Cette réorganisation ne crée pas un nouveau sprint.
+Cette réorganisation commence à partir de **Sprint 14**.
 
 Le document sprint de référence est :
+
+```text
+docs/Sprint14/README.md
+```
+
+Sprint 13 conserve son propre cadrage dans :
 
 ```text
 docs/Sprint13/README.md
 ```
 
-La roadmap ne vise plus une bêta publique rapide. À partir de S13-003, les sprints restants préparent une **V1 de lancement officiel**.
-
 Décision :
 
 ```text
 Ne pas lancer de bêta publique.
-Préparer une V1 complète, monétisable, exploitable, mobile-first et supportable.
+Redéfinir les sprints à partir de 14 pour préparer une V1 de lancement officiel.
 ```
 
 ## 2. Règle de gouvernance documentaire
 
 ```text
-Les anciens numéros de sprint restent conservés.
-Le Sprint 13 porte la réorganisation stratégique.
+Sprint 13 = catalogue / référentiel restant après S13-003.
+À partir de Sprint 14 = redéfinition stratégique de lancement officiel.
 Aucun dossier SprintLaunchReadiness séparé ne doit être utilisé.
-Les issues gardent leur titre historique, mais leur priorité suit la logique de lancement officiel.
+Les anciens numéros d'issues restent conservés pour l'historique.
 ```
 
 ## 3. Lecture PO
@@ -37,87 +41,28 @@ Les issues gardent leur titre historique, mais leur priorité suit la logique de
 Le PO valide :
 
 - ne pas exposer clients et marchands à une bêta fragile ;
-- terminer les capacités d'exploitation avant ouverture ;
-- rendre le produit facturable avant lancement ;
-- sécuriser le référentiel produit avant acquisition marchand large ;
-- garder le natif après lancement ;
-- limiter la growth avant lancement aux modules simples et utiles.
+- commencer la redéfinition à Sprint 14 ;
+- rendre l'expérience mobile installable avant lancement ;
+- regrouper monétisation, support et exploitation avant ouverture ;
+- limiter les modules growth avant lancement à ce qui apporte une valeur immédiate ;
+- repousser le natif après usage réel.
 
 ## 4. Lecture Tech Lead
 
 Le Tech Lead valide :
 
-- aucune nouvelle fonctionnalité ne doit contourner les règles de commande/retrait ;
-- workers async, logs, healthchecks et runbooks sont des prérequis de lancement ;
-- PWA client/marchand réutilisent `apps/frontend/` et l'API existante ;
-- le natif reste post-lancement tant que les limites PWA ne sont pas prouvées ;
-- les modules IA et référentiel doivent être gouvernés avant actions en masse ;
-- toute nouvelle route bulk ou push doit être documentée dans le contrat API.
+- PWA client/marchand dans `apps/frontend/` ;
+- API backend existante réutilisée ;
+- push Web non bloquant si PWA + notifications in-app + WhatsApp sont stables ;
+- pas de paiement carte ni facture fiscale complète sans cadrage ;
+- pas d'algorithme de suggestion avancé sans données réelles ;
+- apps natives post-lancement uniquement.
 
-## 5. Nouvelle lecture des sprints restants
-
-### Sprint 13 — Catalogue & référentiel, pivot de réorganisation
-
-Point de départ : S13-003 livré.
-
-Restant :
-
-- #373 — S13-004 Gouvernance du référentiel.
-- #391 — S13-005 Images produits web/mobile.
-- #444 — S13-006 Traitement rapide admin.
-- #445 — S13-007 Création inline marques/catégories.
-- #446 — S13-008 Actions en masse.
-
-Ordre :
-
-```text
-S13-004 → S13-005 → S13-006 → S13-007 → S13-008
-```
-
-Critère de sortie :
-
-```text
-Référentiel gouverné, illustré, contrôlable et traitable rapidement par l'admin.
-```
-
-### Sprint 10 — Préproduction technique & activation
-
-Ancienne intention : bêta terrain.  
-Nouvelle intention : prérequis de lancement officiel.
-
-Issues : #352, #353, #354, #355, #356, #357, #358.
-
-Critère de sortie :
-
-```text
-Worker async, monitoring, KPI, QR imprimable, checklist activation et journal minimal prêts.
-```
-
-### Sprint 11 — Monétisation & facturation avant lancement
-
-Issues : #359, #360, #361, #362, #363, #364, #365.
-
-Critère de sortie :
-
-```text
-Abonnement, phase tarifaire, paiement manuel, relance, suspension douce et réactivation opérationnels.
-```
-
-Décision Tech Lead : le cadrage fiscal doit précéder toute facture conforme.
-
-### Sprint 12 — Support & exploitation avant lancement
-
-Issues : #366, #367, #368, #369, #420, #421, #422.
-
-Critère de sortie :
-
-```text
-Support capable de diagnostiquer incidents, santé marchand, jobs async et activation supérette depuis l'admin.
-```
+## 5. Nouveau découpage à partir de Sprint 14
 
 ### Sprint 14 — Mobile Launch Readiness
 
-Issues : #374, #375, #376, #377, #378, #379, #402, #403, #404.
+Issues : #374, #375, #379, #378, #402, #403, #404, #376, #377.
 
 Priorité :
 
@@ -130,24 +75,38 @@ Priorité :
 6. Push notifications
 ```
 
-Décision Tech Lead : le push ne bloque pas tout le lancement si PWA + notifications in-app + WhatsApp sont stables.
+Critère de sortie :
 
-### Sprint 15 — Valeur commerciale minimale avant lancement
+```text
+Client et marchand peuvent installer et utiliser l'application mobile web en conditions terrain.
+```
 
-Avant lancement :
+### Sprint 15 — Monétisation, support et exploitation avant lancement
 
-- #380 — S15-001 Statistiques marchand simples.
-- #384 — S15-004 Promotions simples.
-- #385 — S15-005 CRM léger marchand.
+Issues monétisation : #359, #360, #361, #362, #363, #364.  
+Issues support/exploitation : #366, #367, #368, #369, #420, #421, #422.
 
-Après lancement :
+Critère de sortie :
 
-- #382 — S15-002 Packs produits.
-- #383 — S15-003 Suggestions de Kadhia.
+```text
+Le produit est monétisable et supportable : abonnement, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels.
+```
 
-### Sprint 16 — Post-lancement uniquement
+### Sprint 16 — Valeur commerciale minimale avant lancement
 
-Issues : #386, #387, #388, #389.
+Avant lancement : #380, #384, #385.
+
+Après lancement : #382, #383.
+
+Critère de sortie :
+
+```text
+Le marchand voit une valeur de pilotage minimale et l'équipe commerciale peut suivre la relation marchand.
+```
+
+### Post-lancement — Apps natives et growth avancée
+
+Issues : #386, #387, #388, #389, #382, #383.
 
 Critère de déclenchement :
 
@@ -157,31 +116,14 @@ Usage réel prouvé, limites PWA constatées, facturation opérationnelle, suppo
 
 ## 6. Gates CTO avant lancement officiel
 
-### Gate technique
-
-- Worker async actif et supervisé.
-- Monitoring jobs disponible.
-- Healthcheck OK.
-- Logs exploitables.
-- Aucun message critique bloqué.
-
-### Gate marchand
-
-- Checklist activation complète.
-- QR imprimable.
-- Horaires et créneaux configurés.
-- Catalogue minimum prêt.
-- Commande test passée.
-- Retrait test validé.
-
-### Gate client
+### Gate mobile
 
 - PWA client installable.
-- Catalogue mobile utilisable.
-- Kadhia fluide.
-- Suivi commande OK.
-- Retrait QR/code OK.
-- FR/AR propre sur les écrans visibles.
+- PWA marchand installable.
+- Parcours commande mobile OK.
+- Parcours retrait mobile OK.
+- WhatsApp fallback OK.
+- i18n/accessibilité visible OK.
 
 ### Gate business
 
@@ -198,3 +140,14 @@ Usage réel prouvé, limites PWA constatées, facturation opérationnelle, suppo
 - Journal marchand consultable.
 - Runbook support disponible.
 - Vue santé marchand disponible.
+- Santé jobs async visible dans l'admin.
+
+### Gate go / no-go
+
+```text
+Aucun bug bloquant sur commande.
+Aucun bug bloquant sur retrait.
+Aucun bug bloquant sur activation supérette.
+Aucun bug bloquant sur abonnement/paiement manuel.
+Aucun risque opérationnel non couvert par runbook.
+```
