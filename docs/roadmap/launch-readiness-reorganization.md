@@ -44,7 +44,7 @@ Le PO valide :
 - ne pas exposer clients et marchands à une bêta fragile ;
 - commencer la redéfinition à Sprint 14 ;
 - rendre l'expérience mobile installable avant lancement ;
-- regrouper monétisation, support et exploitation avant ouverture ;
+- regrouper monétisation, support, exploitation et onboarding catalogue avant ouverture ;
 - limiter les modules growth avant lancement à ce qui apporte une valeur immédiate ;
 - repousser le natif après usage réel.
 
@@ -90,12 +90,13 @@ Client et marchand peuvent installer et utiliser l'application mobile web en con
 Acquis / fondations à ne pas replanifier : #359, #360.
 
 Issues actives monétisation : #361, #362, #363, #364.  
+Issue active onboarding catalogue : #365.  
 Issues actives support/exploitation : #366, #367, #368, #369, #420, #421, #422.
 
 Critère de sortie :
 
 ```text
-Le produit est monétisable et supportable : paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur la base abonnement déjà livrée.
+Le produit est monétisable et supportable : import catalogue minimum, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur la base abonnement déjà livrée.
 ```
 
 ### Sprint 16 — Valeur commerciale minimale avant lancement
@@ -135,6 +136,7 @@ Usage réel prouvé, limites PWA constatées, facturation opérationnelle, suppo
 
 - Abonnement marchand existant.
 - Phase tarifaire claire.
+- Import catalogue minimum disponible.
 - Paiement manuel enregistrable.
 - Relance possible.
 - Suspension douce possible.
@@ -154,6 +156,7 @@ Usage réel prouvé, limites PWA constatées, facturation opérationnelle, suppo
 Aucun bug bloquant sur commande.
 Aucun bug bloquant sur retrait.
 Aucun bug bloquant sur activation supérette.
+Aucun bug bloquant sur import catalogue minimum.
 Aucun bug bloquant sur abonnement/paiement manuel.
 Aucun risque opérationnel non couvert par runbook.
 ```
