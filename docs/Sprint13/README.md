@@ -1,4 +1,4 @@
-# Sprint 13 — Catalogue intelligent & réorganisation Launch Readiness
+# Sprint 13 — Catalogue intelligent & qualité référentiel
 
 Date de cadrage : 2026-06-07  
 Rôles de cadrage : PO + Tech Lead  
@@ -6,15 +6,14 @@ Point de départ : **dernier item livré = S13-003 — Score de qualité des ré
 
 ## 1. Décision PO / Tech Lead
 
-On ne crée pas un nouveau sprint transverse.
+Sprint 13 ne porte pas la redéfinition globale des sprints suivants.
 
-Le Sprint 13 devient le **point de bascule stratégique** : à partir de S13-003, les sprints restants ne préparent plus une bêta publique, mais une **V1 de lancement officiel**.
+Sprint 13 reste centré sur le **référentiel produit** et le **traitement catalogue admin**.
 
-Décision :
+La redéfinition stratégique des sprints futurs commence à partir de **Sprint 14** et doit être documentée dans :
 
 ```text
-Pas de bêta publique.
-Préparer une V1 complète, monétisable, exploitable, mobile-first et supportable.
+docs/Sprint14/README.md
 ```
 
 ## 2. État Sprint 13
@@ -169,135 +168,10 @@ Aucune action sensible sans résumé, confirmation et explication des lignes non
 - Résultat après action.
 - Succès / erreurs / ignorés distingués.
 
-## 10. Réorganisation des sprints suivants depuis Sprint 13
-
-À partir de ce Sprint 13, les sprints restants gardent leur numéro historique, mais changent d'intention.
-
-### Sprint 10 — Préproduction technique & activation
-
-Ancienne intention : bêta terrain.
-
-Nouvelle intention : prérequis de lancement officiel.
-
-Issues : #352, #353, #354, #355, #356, #357, #358.
-
-Critère de sortie :
+## 10. Règle finale Sprint 13
 
 ```text
-Worker async, monitoring, KPI, QR imprimable, checklist activation et journal minimal prêts.
-```
-
-### Sprint 11 — Monétisation & facturation avant lancement
-
-Issues : #359, #360, #361, #362, #363, #364, #365.
-
-Critère de sortie :
-
-```text
-Abonnement, phase tarifaire, paiement manuel, relance, suspension douce et réactivation opérationnels.
-```
-
-Décision Tech Lead : le cadrage fiscal doit précéder toute facture conforme.
-
-### Sprint 12 — Support & exploitation avant lancement
-
-Issues : #366, #367, #368, #369, #420, #421, #422.
-
-Critère de sortie :
-
-```text
-Support capable de diagnostiquer incidents, santé marchand, jobs async et activation supérette depuis l'admin.
-```
-
-### Sprint 14 — Mobile Launch Readiness
-
-Issues : #374, #375, #376, #377, #378, #379, #402, #403, #404.
-
-Priorité :
-
-```text
-1. PWA client
-2. PWA marchand
-3. Accessibilité minimum
-4. WhatsApp semi-manuel
-5. Finitions i18n/accessibilité
-6. Push notifications
-```
-
-Décision Tech Lead : le push ne doit pas bloquer tout le lancement si PWA + notifications in-app + WhatsApp sont stables.
-
-### Sprint 15 — Valeur commerciale minimale avant lancement
-
-Avant lancement :
-
-```text
-S15-001 — Statistiques marchand simples
-S15-004 — Promotions simples
-S15-005 — CRM léger marchand
-```
-
-Après lancement :
-
-```text
-S15-002 — Packs produits
-S15-003 — Suggestions de Kadhia
-```
-
-### Sprint 16 — Post-lancement uniquement
-
-Issues : #386, #387, #388, #389.
-
-Décision PO / Tech Lead : pas d'app native avant usage réel, limites PWA constatées et besoin terrain confirmé.
-
-## 11. Gates CTO avant lancement officiel
-
-### Gate technique
-
-- Worker async actif et supervisé.
-- Monitoring jobs disponible.
-- Healthcheck OK.
-- Logs exploitables.
-- Aucun message critique bloqué.
-
-### Gate marchand
-
-- Checklist activation complète.
-- QR imprimable.
-- Horaires et créneaux configurés.
-- Catalogue minimum prêt.
-- Commande test passée.
-- Retrait test validé.
-
-### Gate client
-
-- PWA client installable.
-- Catalogue mobile utilisable.
-- Kadhia fluide.
-- Suivi commande OK.
-- Retrait QR/code OK.
-- FR/AR propre sur les écrans visibles.
-
-### Gate business
-
-- Abonnement marchand créé.
-- Phase tarifaire claire.
-- Paiement manuel enregistrable.
-- Relance possible.
-- Suspension douce possible.
-- Réactivation possible.
-
-### Gate support
-
-- Incident commande traçable.
-- Journal marchand consultable.
-- Runbook support disponible.
-- Vue santé marchand disponible.
-
-## 12. Règle finale
-
-```text
-Les anciens numéros de sprint restent.
-Le Sprint 13 porte la réorganisation stratégique.
-Les sprints suivants sont exécutés en Launch Readiness avant lancement officiel.
+Sprint 13 reste catalogue / référentiel.
+La redéfinition des sprints futurs commence à Sprint 14.
 Aucun dossier SprintLaunchReadiness séparé ne doit être créé.
 ```
