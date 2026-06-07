@@ -31,6 +31,7 @@ Avant lancement officiel, il faut :
 - une expérience mobile installable ;
 - un support minimum ;
 - une monétisation prête ;
+- un onboarding catalogue minimum ;
 - des outils admin suffisants ;
 - un catalogue fiable ;
 - une valeur commerciale minimale pour le marchand.
@@ -129,7 +130,7 @@ Le client et le marchand peuvent installer la PWA, commander, traiter une comman
 
 ## Objectif
 
-Regrouper les capacités nécessaires pour lancer officiellement sans perdre le contrôle opérationnel et commercial.
+Regrouper les capacités nécessaires pour lancer officiellement sans perdre le contrôle opérationnel, commercial et onboarding marchand.
 
 ## Acquis déjà livrés / prérequis à ne pas replanifier
 
@@ -149,6 +150,14 @@ Ces éléments servent de fondation au Sprint 15 redéfini, mais ne doivent pas 
 #364 — Suspension douce et réactivation
 ```
 
+## Issues actives — Onboarding catalogue marchand
+
+```text
+#365 — Import CSV + scan code-barres
+```
+
+Décision PO : #365 reste un prérequis de lancement, car le marchand doit pouvoir remplir son catalogue sans saisie produit par produit.
+
 ## Issues actives — Support / exploitation
 
 ```text
@@ -165,6 +174,7 @@ Ces éléments servent de fondation au Sprint 15 redéfini, mais ne doivent pas 
 
 Avant lancement officiel, il faut pouvoir :
 
+- importer rapidement un catalogue marchand minimum ;
 - enregistrer un paiement manuel ;
 - relancer un marchand ;
 - suspendre doucement ;
@@ -189,7 +199,7 @@ Les écrans support doivent exploiter les entités existantes autant que possibl
 ## Critère de sortie
 
 ```text
-Le produit est monétisable et supportable : paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur la base abonnement déjà livrée.
+Le produit est monétisable et supportable : import catalogue minimum, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur la base abonnement déjà livrée.
 ```
 
 ---
@@ -292,6 +302,7 @@ Les apps natives devront réutiliser l'API backend existante et ne pas dupliquer
 
 - Abonnement marchand existant.
 - Phase tarifaire claire.
+- Import catalogue minimum disponible.
 - Paiement manuel enregistrable.
 - Relance possible.
 - Suspension douce possible.
@@ -311,6 +322,7 @@ Les apps natives devront réutiliser l'API backend existante et ne pas dupliquer
 Aucun bug bloquant sur commande.
 Aucun bug bloquant sur retrait.
 Aucun bug bloquant sur activation supérette.
+Aucun bug bloquant sur import catalogue minimum.
 Aucun bug bloquant sur abonnement/paiement manuel.
 Aucun risque opérationnel non couvert par runbook.
 ```
