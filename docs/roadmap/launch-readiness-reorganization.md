@@ -87,16 +87,16 @@ Client et marchand peuvent installer et utiliser l'application mobile web en con
 
 ### Sprint 15 — Monétisation, support et exploitation avant lancement
 
-Acquis / fondations à ne pas replanifier : #359, #360.
+Acquis / fondations à ne pas replanifier : #359, #360, #420, #421, #422.
 
 Issues actives monétisation : #361, #362, #363, #364.  
 Issue active onboarding catalogue : #365.  
-Issues actives support/exploitation : #366, #367, #368, #369, #420, #421, #422.
+Issues actives support/exploitation : #366, #367, #368, #369.
 
 Critère de sortie :
 
 ```text
-Le produit est monétisable et supportable : import catalogue minimum, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur la base abonnement déjà livrée.
+Le produit est monétisable et supportable : import catalogue minimum, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur les fondations admin déjà livrées.
 ```
 
 ### Sprint 16 — Valeur commerciale minimale avant lancement
@@ -148,7 +148,7 @@ Usage réel prouvé, limites PWA constatées, facturation opérationnelle, suppo
 - Journal marchand consultable.
 - Runbook support disponible.
 - Vue santé marchand disponible.
-- Santé jobs async visible dans l'admin.
+- Santé jobs async, métriques et checklist activation déjà visibles dans l'admin.
 
 ### Gate go / no-go
 
