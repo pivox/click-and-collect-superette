@@ -2,7 +2,8 @@
 
 Date de cadrage : 2026-06-07  
 Rôles de cadrage : PO + Tech Lead  
-Point de départ : **dernier item livré = S13-003 — Score de qualité des références produit**.
+Point de départ de la redéfinition : **S13-003 — Score de qualité des références produit**.  
+Correction suite review PR : **S13-005 / #391 est déjà livré dans l'état courant du dépôt**, donc il ne doit pas être replanifié.
 
 ## 1. Décision PO / Tech Lead
 
@@ -18,44 +19,44 @@ docs/Sprint14/README.md
 
 ## 2. État Sprint 13
 
-### Déjà livré
+### Déjà livré / acquis
 
 ```text
 S13-001 — Import catalogue par photo assisté IA
 S13-002 — Déduplication du référentiel produit
 S13-003 — Score de qualité des références produit
+S13-005 — Gestion optimisée des images produits web/mobile (#391)
 ```
 
 ### Restant Sprint 13
 
 ```text
 S13-004 — Gouvernance du référentiel
-S13-005 — Gestion optimisée des images produits web/mobile
 S13-006 — UX de traitement rapide du référentiel admin
 S13-007 — Création inline marques et catégories depuis le référentiel admin
 S13-008 — Actions en masse et file de priorisation du référentiel admin
 ```
 
-## 3. Objectif Sprint 13 après S13-003
+## 3. Objectif Sprint 13 restant
 
 Objectif PO : rendre le référentiel produit assez fiable pour soutenir le lancement officiel.
 
-Objectif Tech Lead : finaliser les règles, les images et l'outillage admin avant d'autoriser les actions rapides et les actions en masse.
+Objectif Tech Lead : finaliser les règles et l'outillage admin avant d'autoriser les actions rapides et les actions en masse.
 
 Critère de sortie :
 
 ```text
-Le référentiel est gouverné, illustré, contrôlable et traitable rapidement par l'admin.
+Le référentiel est gouverné, contrôlable et traitable rapidement par l'admin.
+Les images produits sont considérées comme un acquis déjà livré, pas comme un reste à planifier.
 ```
 
 ## 4. Ordre d'exécution Sprint 13 restant
 
 ```text
 1. S13-004 — Gouvernance du référentiel
-2. S13-005 — Images produits web/mobile
-3. S13-006 — Traitement rapide admin
-4. S13-007 — Création inline marques/catégories
-5. S13-008 — Actions en masse
+2. S13-006 — Traitement rapide admin
+3. S13-007 — Création inline marques/catégories
+4. S13-008 — Actions en masse
 ```
 
 Règle Tech Lead : **S13-008 ne doit pas être lancé avant S13-004**, car les actions en masse doivent respecter une gouvernance claire.
@@ -92,22 +93,19 @@ Le document doit cadrer :
 
 Issue : #391
 
+### Statut
+
+```text
+Livré / acquis dans l'état courant du dépôt.
+```
+
 ### Décision PO
 
-Les images produits sont nécessaires pour crédibiliser le catalogue avant lancement.
+Ne pas replanifier cette issue comme travail restant. Elle reste mentionnée comme dépendance qualité du catalogue.
 
 ### Décision Tech Lead
 
-L'image officielle appartient à `ProductReference`. Le marchand ne remplace pas librement l'image partagée.
-
-### Sortie attendue
-
-- Upload admin.
-- Original conservé.
-- Variantes WebP.
-- Fallback JPEG.
-- Placeholder catégorie.
-- URLs exposées dans le catalogue public et l'admin.
+Vérifier uniquement que les écrans et contrats qui dépendent des images utilisent bien les URLs/variants existants. Pas de nouveau lot image dans Sprint 13 restant.
 
 ## 7. S13-006 — Traitement rapide admin
 
@@ -172,6 +170,7 @@ Aucune action sensible sans résumé, confirmation et explication des lignes non
 
 ```text
 Sprint 13 reste catalogue / référentiel.
+S13-005 est un acquis livré, pas une tâche restante.
 La redéfinition des sprints futurs commence à Sprint 14.
 Aucun dossier SprintLaunchReadiness séparé ne doit être créé.
 ```
