@@ -87,16 +87,16 @@ Client et marchand peuvent installer et utiliser l'application mobile web en con
 
 ### Sprint 15 — Monétisation, support et exploitation avant lancement
 
-Acquis / fondations à ne pas replanifier : #359, #360, #420, #421, #422.
+Acquis / fondations à ne pas replanifier : #359, #360, #362, #363, #366, #367, #368, #369, #420, #421, #422.
 
-Issues actives monétisation : #361, #362, #363, #364.  
-Issue active onboarding catalogue : #365.  
-Issues actives support/exploitation : #366, #367, #368, #369.
+Issues actives monétisation : #361, #364.  
+Issue active onboarding catalogue : #365.
 
 Critère de sortie :
 
 ```text
-Le produit est monétisable et supportable : import catalogue minimum, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur les fondations admin déjà livrées.
+Le Sprint 15 actif se limite aux vrais gaps avant lancement : cadrage reçu/facture, suspension douce/réactivation et import catalogue minimum.
+Les fondations billing, support et ops déjà livrées restent des acquis de lancement à vérifier, pas des chantiers à refaire.
 ```
 
 ### Sprint 16 — Valeur commerciale minimale avant lancement
@@ -137,17 +137,17 @@ Usage réel prouvé, limites PWA constatées, facturation opérationnelle, suppo
 - Abonnement marchand existant.
 - Phase tarifaire claire.
 - Import catalogue minimum disponible.
-- Paiement manuel enregistrable.
-- Relance possible.
+- Paiement manuel disponible comme fondation acquise.
+- Relance disponible comme fondation acquise.
 - Suspension douce possible.
 - Réactivation possible.
 
 ### Gate support
 
-- Incident commande traçable.
-- Journal marchand consultable.
-- Runbook support disponible.
-- Vue santé marchand disponible.
+- Incident commande traçable via fondation acquise.
+- Journal marchand consultable via fondation acquise.
+- Runbook support disponible via fondation acquise.
+- Vue santé marchand disponible via fondation acquise.
 - Santé jobs async, métriques et checklist activation déjà visibles dans l'admin.
 
 ### Gate go / no-go
