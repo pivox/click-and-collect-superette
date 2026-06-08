@@ -42,6 +42,22 @@ Priorité recommandée : clôturer administrativement le Sprint 10 et fermer #35
 
 Issue documentaire courante : [#405](https://github.com/pivox/click-and-collect-superette/issues/405).
 
+## Roadmap active
+
+La roadmap d'exécution à partir de Sprint 14 est maintenant :
+
+```text
+docs/Sprint14/README.md
+```
+
+La synthèse stratégique est :
+
+```text
+docs/roadmap/launch-readiness-reorganization.md
+```
+
+L'ancienne roadmap `docs/roadmap/mvp-roadmap.md` a été supprimée pour éviter deux sources de vérité.
+
 ## Développement frontend avec Docker
 
 Le frontend Next.js peut être lancé, buildé et linté sans installer Node.js localement.
@@ -257,29 +273,3 @@ click-and-collect-superette/
 ```
 
 Aucune application mobile native n'est prévue dans le MVP. La décision front/back est documentée dans `docs/adr/0001-front-back-only-mvp.md`.
-
-La trajectoire mobile est **PWA d'abord** : les expériences client et marchand installables restent dans `apps/frontend/` et réutilisent l'API backend existante. Les applications natives iOS / Android ne seront cadrées qu'après preuve terrain et limites PWA constatées ; si elles démarrent, elles devront vivre dans des repos séparés sous le groupe ou l'organisation Git du produit. Cette stratégie est documentée dans `docs/adr/0005-mobile-channel-strategy.md`.
-
-## Documentation produit et technique
-
-La documentation produit est organisée dans `docs/product/` :
-
-- `docs/product/epics.md` : vision PO, epics et découpage fonctionnel ;
-- `docs/roadmap/mvp-roadmap.md` : roadmap sprint par sprint et go-to-market ;
-- `docs/product/mvp-functional-audit.md` : audit fonctionnel courant ;
-- `docs/product/user-stories/` : une user story par fichier.
-
-La documentation technique est organisée dans :
-
-- `AI_CONTEXT.md` : contexte court de référence pour les agents IA ;
-- `docs/architecture/api-contract.md` : contrat API ;
-- `docs/architecture/front-back-structure.md` : structure frontend / backend du MVP ;
-- `docs/adr/0001-front-back-only-mvp.md` : décision de ne garder que frontend + backend pour le MVP ;
-- `docs/adr/0005-mobile-channel-strategy.md` : stratégie PWA, organisation Git et apps natives post-MVP ;
-- `docs/SprintFrontend/README.md` : état courant des interfaces client, marchand et admin.
-
-## Références utiles
-
-- ISO 4217 — code devise du dinar tunisien : https://www.iso.org/iso-4217-currency-codes.html
-- Documentation GitHub Markdown : https://docs.github.com/en/get-started/writing-on-github
-- Documentation Mermaid : https://mermaid.js.org/
