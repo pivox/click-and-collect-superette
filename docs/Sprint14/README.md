@@ -137,6 +137,12 @@ Regrouper les capacités nécessaires pour lancer officiellement sans perdre le 
 ```text
 #359 — Module abonnement marchand
 #360 — Statuts abonnement lifecycle / phase tarifaire
+#362 — Paiement manuel espèces / virement
+#363 — Relances paiement email + WhatsApp manuel
+#366 — Incidents commande
+#367 — Backoffice support
+#368 — Journal opérationnel marchand complet + vue santé
+#369 — Runbook support terrain
 #420 — Écran santé jobs async
 #421 — Écran métriques pré-lancement
 #422 — Détail checklist activation supérette
@@ -148,8 +154,6 @@ Ces éléments servent de fondation au Sprint 15 redéfini, mais ne doivent pas 
 
 ```text
 #361 — Reçu / facture mensuelle à cadrer fiscalement
-#362 — Paiement manuel espèces / virement
-#363 — Relances paiement email + WhatsApp manuel
 #364 — Suspension douce et réactivation
 ```
 
@@ -161,32 +165,20 @@ Ces éléments servent de fondation au Sprint 15 redéfini, mais ne doivent pas 
 
 Décision PO : #365 reste un prérequis de lancement, car le marchand doit pouvoir remplir son catalogue sans saisie produit par produit.
 
-## Issues actives — Support / exploitation
-
-```text
-#366 — Incidents commande
-#367 — Backoffice support
-#368 — Journal opérationnel marchand complet + vue santé
-#369 — Runbook support terrain
-```
-
 ## Décision PO
 
 Avant lancement officiel, il faut pouvoir :
 
+- cadrer proprement reçu / facture avant toute promesse fiscale ;
+- suspendre doucement et réactiver vite un marchand ;
 - importer rapidement un catalogue marchand minimum ;
-- enregistrer un paiement manuel ;
-- relancer un marchand ;
-- suspendre doucement ;
-- réactiver vite ;
-- traiter un incident commande ;
-- diagnostiquer la santé marchand et plateforme.
+- s'appuyer sur les fondations acquises pour paiement manuel, relances, incidents, support, journal santé et métriques.
 
 ## Décision Tech Lead
 
 Le paiement carte, les factures fiscales complètes et les automatisations complexes restent hors périmètre tant que le cadrage fiscal et opérationnel n'est pas validé.
 
-Les écrans support doivent exploiter les entités existantes autant que possible : `Order`, `OrderStatusLog`, `AdminAuditLog`, incidents, abonnement.
+Les écrans support et billing déjà présents doivent être réutilisés. Le Sprint 15 ne doit pas reconstruire les flux déjà livrés : paiement manuel, relances, incidents, backoffice support, journal santé, runbook et écrans ops.
 
 ## Hors périmètre
 
@@ -195,12 +187,15 @@ Les écrans support doivent exploiter les entités existantes autant que possibl
 - Facturation fiscale complète non cadrée.
 - Support omnicanal avancé.
 - Rebuild des fondations abonnement déjà livrées.
+- Rebuild des flux paiement manuel / relance déjà livrés.
+- Rebuild des écrans support déjà livrés pour incidents, journal santé et runbook.
 - Rebuild des écrans admin déjà livrés pour santé jobs, métriques et checklist activation.
 
 ## Critère de sortie
 
 ```text
-Le produit est monétisable et supportable : import catalogue minimum, paiement manuel, relance, suspension douce, incidents et diagnostic admin sont opérationnels sur les fondations admin déjà livrées.
+Le Sprint 15 actif se limite aux vrais gaps avant lancement : cadrage reçu/facture, suspension douce/réactivation et import catalogue minimum.
+Les fondations billing, support et ops déjà livrées restent des acquis de lancement à vérifier, pas des chantiers à refaire.
 ```
 
 ---
@@ -304,17 +299,17 @@ Les apps natives devront réutiliser l'API backend existante et ne pas dupliquer
 - Abonnement marchand existant.
 - Phase tarifaire claire.
 - Import catalogue minimum disponible.
-- Paiement manuel enregistrable.
-- Relance possible.
+- Paiement manuel disponible comme fondation acquise.
+- Relance disponible comme fondation acquise.
 - Suspension douce possible.
 - Réactivation possible.
 
 ## Gate support
 
-- Incident commande traçable.
-- Journal marchand consultable.
-- Runbook support disponible.
-- Vue santé marchand disponible.
+- Incident commande traçable via fondation acquise.
+- Journal marchand consultable via fondation acquise.
+- Runbook support disponible via fondation acquise.
+- Vue santé marchand disponible via fondation acquise.
 - Santé jobs async, métriques et checklist activation déjà visibles dans l'admin.
 
 ## Gate go / no-go
