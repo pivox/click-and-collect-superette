@@ -7,6 +7,8 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 > **Synthèse stratégique** : utiliser `docs/roadmap/launch-readiness-reorganization.md`.
 >
 > L'ancienne roadmap détaillée `docs/roadmap/mvp-roadmap.md` a été supprimée pour éviter deux sources de vérité.
+>
+> Les epics ci-dessous restent conservés comme mapping fonctionnel et historique des user stories.
 
 ---
 
@@ -249,7 +251,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 # Epics post-MVP — Mise sur le marché (Sprints 10-16)
 
 > Ces epics couvrent la phase go-to-market au-delà du cœur MVP (Sprints 0-9 livrés sur `main`).
-> Mapping actif à partir de Sprint 14 : `docs/Sprint14/README.md`.
+> Roadmap active à partir de Sprint 14 : `docs/Sprint14/README.md`.
 > Synthèse stratégique : `docs/roadmap/launch-readiness-reorganization.md`.
 >
 > État au 5 juin 2026 : **EPIC-015 — Fiabilité & observabilité production** est livré. Dans EPIC-016, le QR magasin imprimable, la checklist d'activation supérette (#356 via PR #412) et le journal opérationnel marchand minimal (#357) sont livrés. Sprint 10 est clôturable ; #358 est à fermer comme non nécessaire.
@@ -265,3 +267,167 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 **User stories** :
 - US-067 — Livré : valider en production le worker async (runbook + checklist d'exploitation)
 - US-068 — Livré : monitoring des jobs asynchrones (santé worker + file)
+- US-069 — Livré : métriques bêta (KPI terrain)
+
+**Critère de sortie** : atteint — worker async supervisé et monitoré, KPI terrain mesurés (commandes, taux d'acceptation, activation supérette).
+
+**Livraison** : #352, #353 et #354 fermées.
+
+---
+
+## EPIC-016 — Activation terrain des supérettes
+
+**Objectif** : Outiller l'activation d'une supérette pilote : QR physique, vérification de complétude, suivi opérationnel.
+
+**Valeur produit** : On n'active en bêta que des supérettes réellement opérationnelles.
+
+**Sprint** : Sprint 10 — Durcissement bêta
+
+**User stories** :
+- US-070 — Livré : QR magasin imprimable (PNG / PDF)
+- US-071 — Livré : checklist d'activation supérette (gate de mise en bêta)
+- US-072 — Livré : journal opérationnel marchand (vue minimale) sur la fiche marchand admin
+- US-073 — À fermer comme non nécessaire : décision bêta FR-only vs FR+AR absorbée par les livraisons FR/AR client (#401) et préférence langue marchand (#395)
+
+**Critère de sortie** : atteint pour Sprint 10 — le marchand affiche un QR imprimé en magasin, l'admin dispose d'une checklist d'activation avant bêta et la fiche marchand expose un journal opérationnel minimal. Le journal support complet relève du support terrain ultérieur.
+
+---
+
+## EPIC-017 — Abonnement & monétisation
+
+**Objectif** : Transformer l'application en produit monétisable par abonnement marchand (gratuit → promo → standard).
+
+**Valeur produit** : La plateforme génère du revenu récurrent. La règle « pas de paiement en ligne » du MVP concerne le paiement *client de la commande*, pas l'abonnement *plateforme marchand*.
+
+**Sprint** : Historique Sprint 11 ; exécution active des gaps en Sprint 15 selon `docs/Sprint14/README.md`.
+
+**User stories** :
+- US-074 — Module abonnement marchand (`Subscription`) *(fondation backend livrée)*
+- US-075 — Statuts : séparer lifecycle et phase tarifaire *(fondation backend livrée)*
+- US-076 — Reçu / facture mensuelle *(à cadrer fiscalement)*
+- [US-077 — Paiement manuel (espèces / virement) + validation admin](user-stories/US-077-paiement-manuel-abonnement.md) *(fondation livrée / acquise, à ne pas replanifier comme chantier actif)*
+
+**Critère de sortie** : Un marchand a un abonnement avec cycle de vie clair, des factures et un encaissement manuel tracé. Les gaps actifs sont cadrés dans le Sprint 15 redéfini.
+
+---
+
+## EPIC-018 — Recouvrement & communication sortante
+
+**Objectif** : Relancer les marchands en retard via un canal qu'ils consultent, suspendre en douceur, et offrir un contact WhatsApp contextualisé.
+
+**Valeur produit** : Réduire le churn de paiement sans casser la relation ; un canal sortant fiable (l'email n'existe pas encore au-delà de `@mail()` natif).
+
+**Sprint** : Historique Sprint 11 (recouvrement) · Sprint 14 (WhatsApp) ; exécution active des gaps selon `docs/Sprint14/README.md`.
+
+**User stories** :
+- US-078 — Infra email + relances de paiement (échéancier J-7 → J+21) *(fondation livrée / acquise, à ne pas replanifier comme chantier actif)*
+- US-079 — Suspension douce et réactivation *(gap actif Sprint 15 redéfini)*
+- US-094 — WhatsApp semi-manuel (client + marchand) *(Sprint 14)*
+
+**Critère de sortie** : Un marchand est relancé par email, suspendu en douceur (catalogue conservé) puis réactivé après paiement ; le contact WhatsApp est contextualisé et tracé.
+
+---
+
+## EPIC-019 — Onboarding catalogue rapide
+
+**Objectif** : Permettre au marchand de constituer son catalogue vite, sans saisie produit par produit.
+
+**Valeur produit** : Levier de conversion essai → payant : un catalogue rapide à monter retient le marchand.
+
+**Sprint** : Historique Sprint 11 (CSV / scan) · Sprint 13 (photo IA) ; #365 reste actif en Sprint 15 redéfini.
+
+**User stories** :
+- US-080 — Import CSV + scan code-barres (onboarding minimum) *(actif Sprint 15 redéfini)*
+- US-081 — Import catalogue par photo assisté IA *(Sprint 13)*
+
+**Critère de sortie** : Un marchand crée un catalogue exploitable par fichier, scan ou photo, en réutilisant le bulk multi-format et l'infra IA existants.
+
+---
+
+## EPIC-020 — Qualité & gouvernance du référentiel
+
+**Objectif** : Garder un référentiel produit propre et gouverné à mesure que les imports massifs l'alimentent.
+
+**Valeur produit** : Un référentiel fiable est la base partagée par tous les marchands.
+
+**Sprint** : Sprint 13 — Catalogue intelligent
+
+**User stories** :
+- US-082 — Déduplication du référentiel (workflow admin)
+- US-083 — Score de qualité des références produit
+- US-084 — Gouvernance du référentiel (rôles, workflow, droits)
+
+**Critère de sortie** : Les doublons sont fusionnés (priorité code-barres), chaque référence porte un score qualité, et la gouvernance est documentée.
+
+---
+
+## EPIC-021 — Support & exploitation terrain
+
+**Objectif** : Donner à l'admin les outils pour gérer les problèmes réels sans toucher à la base.
+
+**Valeur produit** : L'équipe traite incidents et cas limites de façon homogène et traçable.
+
+**Sprint** : Historique Sprint 12 ; fondations support acquises et à vérifier en Sprint 15 redéfini.
+
+**User stories** :
+- US-085 — Incidents commande (module structuré) *(fondation livrée / acquise)*
+- US-086 — Backoffice support (consultation / traitement) *(fondation livrée / acquise)*
+- US-087 — Journal opérationnel marchand complet + vue santé *(fondation livrée / acquise)*
+- US-088 — Process manuel d'exploitation terrain (runbook) *(fondation livrée / acquise)*
+
+**Critère de sortie** : L'admin consulte, filtre, annote et clôture des incidents ; la santé de chaque marchand est visible ; les procédures sont écrites.
+
+---
+
+## EPIC-022 — Expérience mobile PWA
+
+**Objectif** : Transformer le web responsive en PWA installable, mobile-first, avec notifications push et accessibilité de base.
+
+**Valeur produit** : Une vraie expérience mobile terrain pour client et marchand (PWA/WCAG reportés post-Sprint 7), sans multiplier les dépôts avant validation terrain.
+
+**Sprint** : Sprint 14 — Mobile Launch Readiness
+
+**User stories** :
+- US-089 — PWA client (installable, mobile-first) *(#374 ouverte)*
+- US-090 — PWA marchand (installable, terrain) *(#375 ouverte)*
+- US-091 — Push notifications (client + marchand) *(#376 ouverte)*
+- US-092 — Accessibilité minimum (WCAG de base) *(#379 ouverte)*
+
+**Critère de sortie** : Client et marchand installent l'app sur mobile depuis `apps/frontend/` et reçoivent des notifications push. *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée.* L'arabe/RTL client n'est plus le bloc principal de cet epic : US-093 a été livrée via #401.
+
+---
+
+## EPIC-023 — Croissance commerciale
+
+**Objectif** : Augmenter usage, panier moyen, rétention et valeur perçue de l'abonnement.
+
+**Valeur produit** : Aider les marchands à vendre plus et l'équipe à les retenir.
+
+**Sprint** : Historique Sprint 15 ; exécution active scindée entre Sprint 16 light et post-lancement selon `docs/Sprint14/README.md`.
+
+**User stories** :
+- US-095 — Statistiques marchand avancées *(version simple avant lancement)*
+- US-096 — Packs produits *(post-lancement)*
+- US-097 — Suggestions de Kadhia (souvent achetés / récents / favoris) *(post-lancement)*
+- US-098 — Promotions simples *(avant lancement si modèle stable)*
+- US-099 — Suivi commercial (CRM léger des marchands) *(avant lancement)*
+
+**Critère de sortie** : Le marchand pilote ses ventes, propose packs et promotions ; l'équipe suit la relation commerciale. La version pré-lancement reste volontairement légère.
+
+---
+
+## EPIC-024 — Applications natives
+
+**Objectif** : Industrialiser les parcours validés par la PWA en apps natives, après preuve terrain.
+
+**Valeur produit** : Performance et notifications fiables une fois la traction prouvée, sans réinventer le produit ni dupliquer la logique métier.
+
+**Sprint** : Post-lancement — applications natives sous condition.
+
+**User stories** :
+- US-100 — App native Android marchand
+- US-101 — App native Android client
+- US-102 — App native iOS client
+- US-103 — App native iOS marchand *(si besoin confirmé)*
+
+**Critère de sortie** : Les apps natives reprennent les parcours validés par la PWA, dans l'ordre Android marchand → Android client → iOS client → iOS marchand. Elles sont cadrées dans des repos séparés sous le groupe ou l'organisation Git du produit et réutilisent l'API backend existante.
