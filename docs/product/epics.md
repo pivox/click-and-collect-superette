@@ -2,6 +2,14 @@
 
 Ce document liste les epics du MVP et leur mapping avec les sprints de développement.
 
+> **Roadmap active à partir de Sprint 14** : utiliser `docs/Sprint14/README.md`.
+>
+> **Synthèse stratégique** : utiliser `docs/roadmap/launch-readiness-reorganization.md`.
+>
+> L'ancienne roadmap détaillée `docs/roadmap/mvp-roadmap.md` a été supprimée pour éviter deux sources de vérité.
+>
+> Les epics ci-dessous restent conservés comme mapping fonctionnel et historique des user stories.
+
 ---
 
 ## EPIC-001 — Onboarding par QR code
@@ -243,7 +251,8 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 # Epics post-MVP — Mise sur le marché (Sprints 10-16)
 
 > Ces epics couvrent la phase go-to-market au-delà du cœur MVP (Sprints 0-9 livrés sur `main`).
-> Mapping détaillé dans `docs/roadmap/mvp-roadmap.md`. Chaque US est suivie sur GitHub (tickets #352-#380 et #382-#389).
+> Roadmap active à partir de Sprint 14 : `docs/Sprint14/README.md`.
+> Synthèse stratégique : `docs/roadmap/launch-readiness-reorganization.md`.
 >
 > État au 5 juin 2026 : **EPIC-015 — Fiabilité & observabilité production** est livré. Dans EPIC-016, le QR magasin imprimable, la checklist d'activation supérette (#356 via PR #412) et le journal opérationnel marchand minimal (#357) sont livrés. Sprint 10 est clôturable ; #358 est à fermer comme non nécessaire.
 
@@ -290,15 +299,15 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Valeur produit** : La plateforme génère du revenu récurrent. La règle « pas de paiement en ligne » du MVP concerne le paiement *client de la commande*, pas l'abonnement *plateforme marchand*.
 
-**Sprint** : Sprint 11 — Activation commerciale
+**Sprint** : Historique Sprint 11 ; exécution active des gaps en Sprint 15 selon `docs/Sprint14/README.md`.
 
 **User stories** :
 - US-074 — Module abonnement marchand (`Subscription`) *(fondation backend livrée)*
 - US-075 — Statuts : séparer lifecycle et phase tarifaire *(fondation backend livrée)*
 - US-076 — Reçu / facture mensuelle *(à cadrer fiscalement)*
-- [US-077 — Paiement manuel (espèces / virement) + validation admin](user-stories/US-077-paiement-manuel-abonnement.md) *(à cadrer après US-076)*
+- [US-077 — Paiement manuel (espèces / virement) + validation admin](user-stories/US-077-paiement-manuel-abonnement.md) *(fondation livrée / acquise, à ne pas replanifier comme chantier actif)*
 
-**Critère de sortie** : Un marchand a un abonnement avec cycle de vie clair, des factures et un encaissement manuel tracé.
+**Critère de sortie** : Un marchand a un abonnement avec cycle de vie clair, des factures et un encaissement manuel tracé. Les gaps actifs sont cadrés dans le Sprint 15 redéfini.
 
 ---
 
@@ -308,11 +317,11 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Valeur produit** : Réduire le churn de paiement sans casser la relation ; un canal sortant fiable (l'email n'existe pas encore au-delà de `@mail()` natif).
 
-**Sprint** : Sprint 11 (recouvrement) · Sprint 14 (WhatsApp)
+**Sprint** : Historique Sprint 11 (recouvrement) · Sprint 14 (WhatsApp) ; exécution active des gaps selon `docs/Sprint14/README.md`.
 
 **User stories** :
-- US-078 — Infra email + relances de paiement (échéancier J-7 → J+21)
-- US-079 — Suspension douce et réactivation
+- US-078 — Infra email + relances de paiement (échéancier J-7 → J+21) *(fondation livrée / acquise, à ne pas replanifier comme chantier actif)*
+- US-079 — Suspension douce et réactivation *(gap actif Sprint 15 redéfini)*
 - US-094 — WhatsApp semi-manuel (client + marchand) *(Sprint 14)*
 
 **Critère de sortie** : Un marchand est relancé par email, suspendu en douceur (catalogue conservé) puis réactivé après paiement ; le contact WhatsApp est contextualisé et tracé.
@@ -325,10 +334,10 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Valeur produit** : Levier de conversion essai → payant : un catalogue rapide à monter retient le marchand.
 
-**Sprint** : Sprint 11 (CSV / scan) · Sprint 13 (photo IA)
+**Sprint** : Historique Sprint 11 (CSV / scan) · Sprint 13 (photo IA) ; #365 reste actif en Sprint 15 redéfini.
 
 **User stories** :
-- US-080 — Import CSV + scan code-barres (onboarding minimum) *(Sprint 11)*
+- US-080 — Import CSV + scan code-barres (onboarding minimum) *(actif Sprint 15 redéfini)*
 - US-081 — Import catalogue par photo assisté IA *(Sprint 13)*
 
 **Critère de sortie** : Un marchand crée un catalogue exploitable par fichier, scan ou photo, en réutilisant le bulk multi-format et l'infra IA existants.
@@ -358,13 +367,13 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Valeur produit** : L'équipe traite incidents et cas limites de façon homogène et traçable.
 
-**Sprint** : Sprint 12 — Support & exploitation
+**Sprint** : Historique Sprint 12 ; fondations support acquises et à vérifier en Sprint 15 redéfini.
 
 **User stories** :
-- US-085 — Incidents commande (module structuré)
-- US-086 — Backoffice support (consultation / traitement)
-- US-087 — Journal opérationnel marchand complet + vue santé *(étend la vue minimale #357)*
-- US-088 — Process manuel d'exploitation terrain (runbook)
+- US-085 — Incidents commande (module structuré) *(fondation livrée / acquise)*
+- US-086 — Backoffice support (consultation / traitement) *(fondation livrée / acquise)*
+- US-087 — Journal opérationnel marchand complet + vue santé *(fondation livrée / acquise)*
+- US-088 — Process manuel d'exploitation terrain (runbook) *(fondation livrée / acquise)*
 
 **Critère de sortie** : L'admin consulte, filtre, annote et clôture des incidents ; la santé de chaque marchand est visible ; les procédures sont écrites.
 
@@ -376,7 +385,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Valeur produit** : Une vraie expérience mobile terrain pour client et marchand (PWA/WCAG reportés post-Sprint 7), sans multiplier les dépôts avant validation terrain.
 
-**Sprint** : Sprint 14 — PWA & notifications
+**Sprint** : Sprint 14 — Mobile Launch Readiness
 
 **User stories** :
 - US-089 — PWA client (installable, mobile-first) *(#374 ouverte)*
@@ -394,16 +403,16 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Valeur produit** : Aider les marchands à vendre plus et l'équipe à les retenir.
 
-**Sprint** : Sprint 15 — Croissance
+**Sprint** : Historique Sprint 15 ; exécution active scindée entre Sprint 16 light et post-lancement selon `docs/Sprint14/README.md`.
 
 **User stories** :
-- US-095 — Statistiques marchand avancées
-- US-096 — Packs produits
-- US-097 — Suggestions de Kadhia (souvent achetés / récents / favoris)
-- US-098 — Promotions simples (prix barré, échéance)
-- US-099 — Suivi commercial (CRM léger des marchands)
+- US-095 — Statistiques marchand avancées *(version simple avant lancement)*
+- US-096 — Packs produits *(post-lancement)*
+- US-097 — Suggestions de Kadhia (souvent achetés / récents / favoris) *(post-lancement)*
+- US-098 — Promotions simples *(avant lancement si modèle stable)*
+- US-099 — Suivi commercial (CRM léger des marchands) *(avant lancement)*
 
-**Critère de sortie** : Le marchand pilote ses ventes, propose packs et promotions ; l'équipe suit la relation commerciale.
+**Critère de sortie** : Le marchand pilote ses ventes, propose packs et promotions ; l'équipe suit la relation commerciale. La version pré-lancement reste volontairement légère.
 
 ---
 
@@ -413,7 +422,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Valeur produit** : Performance et notifications fiables une fois la traction prouvée, sans réinventer le produit ni dupliquer la logique métier.
 
-**Sprint** : Sprint 16 — Apps natives
+**Sprint** : Post-lancement — applications natives sous condition.
 
 **User stories** :
 - US-100 — App native Android marchand

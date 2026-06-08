@@ -12,12 +12,13 @@ Ne passe pas à la phase de conception tant que tous ces fichiers n'ont pas ét�
 5. `Claude/workflows.md`
 6. `Claude/checklist.md`
 7. `README.md` — si présent
-8. `docs/roadmap/mvp-roadmap.md` — si présent
-9. `docs/architecture/api-contract.md` — si présent
-10. Sprint actif le plus récent — lister `docs/Sprint*/README.md` et `docs/SprintAuth/README.md`, lire le README du dossier ayant le nom le plus récent (ex. SprintAuth > Sprint5 > Sprint4)
-11. `apps/backend/src/` — lister la structure de répertoires (entités, API resources, services, processors)
-12. `apps/backend/config/` — lire `security.yaml` et `services.yaml` ; lister `packages/`
-13. `apps/backend/tests/` — lister la structure de répertoires
+8. `docs/Sprint14/README.md` — roadmap active à partir de Sprint 14, si présent
+9. `docs/roadmap/launch-readiness-reorganization.md` — synthèse stratégique, si présent
+10. `docs/architecture/api-contract.md` — si présent
+11. Sprint actif le plus récent — lister `docs/Sprint*/README.md` et `docs/SprintAuth/README.md`, lire le README du dossier ayant le nom le plus récent (ex. SprintAuth > Sprint5 > Sprint4)
+12. `apps/backend/src/` — lister la structure de répertoires (entités, API resources, services, processors)
+13. `apps/backend/config/` — lire `security.yaml` et `services.yaml` ; lister `packages/`
+14. `apps/backend/tests/` — lister la structure de répertoires
 
 ## Règles de lecture
 
