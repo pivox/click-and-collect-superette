@@ -26,6 +26,7 @@ export function PushNotificationToggle({ role }: PushNotificationToggleProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadState = useCallback(async () => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     try {
       const supported = await isWebPushSupported();
       if (!supported) {
@@ -48,7 +49,7 @@ export function PushNotificationToggle({ role }: PushNotificationToggleProps) {
         return;
       }
 
-      const isSubscribed = await getPushSubscriptionStatus(role);
+      const isSubscribed = await getPushSubscriptionStatus();
       setState(isSubscribed ? 'subscribed' : 'unsubscribed');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');

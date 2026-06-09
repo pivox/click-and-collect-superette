@@ -4,12 +4,16 @@ const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
 export type PushSubscriptionRole = 'customer' | 'merchant';
 
-export async function getPushPermissionState(): Promise<PermissionStatus | 'unsupported'> {
+interface WebKitNavigator extends Navigator {
+  standalone?: boolean;
+}
+
+export async function getPushPermissionState(): Promise<string> {
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     return 'unsupported';
   }
 
-  return Notification.permission as PermissionStatus;
+  return Notification.permission;
 }
 
 export async function isWebPushSupported(): Promise<boolean> {
@@ -23,7 +27,7 @@ export async function isWebPushSupported(): Promise<boolean> {
 
 export async function isPWAInstalledOnIOS(): Promise<boolean> {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  return isIOS && window.navigator.standalone === true;
+  return isIOS && (window.navigator as WebKitNavigator).standalone === true;
 }
 
 export async function subscribeToPush(role: PushSubscriptionRole): Promise<void> {
@@ -79,14 +83,14 @@ export async function unsubscribeFromPush(role: PushSubscriptionRole): Promise<v
   await subscription.unsubscribe();
 }
 
-export async function getPushSubscriptionStatus(role: PushSubscriptionRole): Promise<boolean> {
+export async function getPushSubscriptionStatus(): Promise<boolean> {
   const registration = await navigator.serviceWorker.ready;
   const subscription = await registration.pushManager.getSubscription();
   return !!subscription;
 }
 
-// Utility: Convert VAPID public key from base64url to Uint8Array
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+// Utility: Convert VAPID public key from base64url to BufferSource
+function urlBase64ToUint8Array(base64String: string): BufferSource {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding)
     .replace(/\-/g, '+')

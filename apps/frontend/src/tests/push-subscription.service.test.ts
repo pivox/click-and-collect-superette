@@ -2,8 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getPushPermissionState,
   isWebPushSupported,
-  subscribeToPush,
-  unsubscribeFromPush,
 } from '@/lib/services/push-subscription.service';
 
 // Mock the API client
