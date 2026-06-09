@@ -50,11 +50,8 @@ jobs:
           path: apps/backend/vendor
           key: composer-${{ hashFiles('apps/backend/composer.lock') }}
 
-      - name: Update composer.lock if out of sync
-        run: composer update --lock --no-install --no-interaction
-
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        run: composer install --prefer-dist --no-progress || composer update --prefer-dist --no-progress
 
       - name: PHP-CS-Fixer (dry-run)
         run: vendor/bin/php-cs-fixer fix --dry-run --diff
