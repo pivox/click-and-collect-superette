@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Processor;
 
 use ApiPlatform\Metadata\Operation;
-use ApiPlatform\Processor\ProcessorInterface;
+use ApiPlatform\State\ProcessorInterface;
 use App\Dto\PushSubscriptionInput;
+use App\Entity\User;
 use App\Repository\PushSubscriptionRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\Security\Core\Security;
-use App\Entity\User;
 
 final readonly class UnregisterCustomerPushSubscriptionProcessor implements ProcessorInterface
 {
@@ -32,7 +32,7 @@ final readonly class UnregisterCustomerPushSubscriptionProcessor implements Proc
         $hash = \hash('sha256', $data->endpoint);
         $subscription = $this->pushSubscriptionRepository->findByEndpointHash($hash);
 
-        if ($subscription) {
+        if ($subscription && $subscription->getUser()->getId()->equals($user->getId())) {
             $this->entityManager->remove($subscription);
             $this->entityManager->flush();
         }

@@ -10,7 +10,6 @@ use App\Repository\PushSubscriptionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Minishlink\WebPush\WebPush;
 use Minishlink\WebPush\Subscription;
-use Minishlink\WebPush\Auth;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -33,31 +32,25 @@ final readonly class WebPushService
 
     public function sendToUser(User $user, string $titleFr, string $bodyFr, ?string $url = null): void
     {
-        try {
-            $subscriptions = $this->pushSubscriptionRepository->findByUser($user);
+        $subscriptions = $this->pushSubscriptionRepository->findByUser($user);
 
-            foreach ($subscriptions as $subscription) {
-                $this->sendOneNotification($subscription, $titleFr, $bodyFr, $url);
-            }
-        } catch (\Throwable $e) {
-            $this->logger->warning('push_send_batch_failed', ['error' => $e->getMessage()]);
+        foreach ($subscriptions as $subscription) {
+            $this->sendOneNotification($subscription, $titleFr, $bodyFr, $url);
         }
     }
 
     private function sendOneNotification(PushSubscription $subscription, string $titleFr, string $bodyFr, ?string $url): void
     {
         try {
-            $webPush = new WebPush();
-            $webPush->setAuth(Auth::create([
-                'VAPID' => [
+            $webPush = new WebPush(
+                ['VAPID' => [
+                    'subject' => $this->vapidSubject,
                     'publicKey' => $this->vapidPublicKey,
                     'privateKey' => $this->vapidPrivateKey,
-                    'subject' => $this->vapidSubject,
-                ],
-            ]));
-
-            // Set HTTP timeout to avoid blocking order flow
-            $webPush->getClient()->setDefaultOption('timeout', self::TIMEOUT_SECONDS);
+                ]],
+                [],
+                self::TIMEOUT_SECONDS,
+            );
 
             $pushSubscription = Subscription::create([
                 'endpoint' => $subscription->getEndpoint(),
@@ -71,7 +64,7 @@ final readonly class WebPushService
                 'url' => $url ?? '/',
             ], JSON_THROW_ON_ERROR);
 
-            $webPush->sendNotification($pushSubscription, $payload);
+            $webPush->queueNotification($pushSubscription, $payload);
 
             foreach ($webPush->flush() as $report) {
                 if ($report->isSuccess()) {

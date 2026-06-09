@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Processor;
 
 use ApiPlatform\Metadata\Operation;
-use ApiPlatform\Processor\ProcessorInterface;
+use ApiPlatform\State\ProcessorInterface;
 use App\Dto\PushSubscriptionInput;
 use App\Entity\PushSubscription;
+use App\Entity\User;
 use App\Repository\PushSubscriptionRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\Security\Core\Security;
-use App\Entity\User;
 
 final readonly class RegisterCustomerPushSubscriptionProcessor implements ProcessorInterface
 {

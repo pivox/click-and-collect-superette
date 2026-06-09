@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Post;
 use App\Dto\PushSubscriptionInput;
 use App\Processor\RegisterCustomerPushSubscriptionProcessor;
@@ -23,8 +22,8 @@ use App\Processor\UnregisterCustomerPushSubscriptionProcessor;
             validate: true,
             security: "is_granted('ROLE_CUSTOMER')",
         ),
-        new Delete(
-            uriTemplate: '/me/push-subscriptions',
+        new Post(
+            uriTemplate: '/me/push-subscriptions/unregister',
             formats: ['json' => ['application/json']],
             input: PushSubscriptionInput::class,
             output: false,

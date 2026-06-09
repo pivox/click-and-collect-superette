@@ -69,12 +69,10 @@ export async function unsubscribeFromPush(role: PushSubscriptionRole): Promise<v
 
   const endpoint = subscription.endpoint;
 
-  // Delete from backend
-  const endpoint_url = role === 'customer' ? '/api/me/push-subscriptions' : '/api/merchant/push-subscriptions';
-  await apiClient.delete(endpoint_url, {
-    data: {
-      endpoint,
-    },
+  // Delete from backend via POST (DELETE with body not standard on iOS Safari)
+  const endpoint_url = role === 'customer' ? '/api/me/push-subscriptions/unregister' : '/api/merchant/push-subscriptions/unregister';
+  await apiClient.post(endpoint_url, {
+    endpoint,
   });
 
   // Unsubscribe from browser

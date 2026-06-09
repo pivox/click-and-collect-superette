@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Post;
 use App\Dto\PushSubscriptionInput;
 use App\Processor\RegisterMerchantPushSubscriptionProcessor;
@@ -23,8 +22,8 @@ use App\Processor\UnregisterMerchantPushSubscriptionProcessor;
             validate: true,
             security: "is_granted('ROLE_MERCHANT')",
         ),
-        new Delete(
-            uriTemplate: '/merchant/push-subscriptions',
+        new Post(
+            uriTemplate: '/merchant/push-subscriptions/unregister',
             formats: ['json' => ['application/json']],
             input: PushSubscriptionInput::class,
             output: false,

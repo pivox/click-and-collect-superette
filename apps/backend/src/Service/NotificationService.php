@@ -90,6 +90,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
                     'Votre commande est prête à être retirée. Présentez votre QR code en supérette.',
                     '/orders/' . $order->getId()->toRfc4122(),
                 );
+                $this->entityManager->flush();
             } catch (\Throwable $e) {
                 $this->logger->warning('push_send_failed_ready', ['error' => $e->getMessage()]);
             }
@@ -153,6 +154,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
                     $bodyFr,
                     '/orders/' . $order->getId()->toRfc4122(),
                 );
+                $this->entityManager->flush();
             } catch (\Throwable $e) {
                 $this->logger->warning('push_send_failed_reminder', ['error' => $e->getMessage()]);
             }
@@ -209,6 +211,17 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
 
     public function notifyMerchantOrderSubmitted(Order $order): void
     {
+        $owner = $order->getShop()->getOwner();
+
+        if (null === $owner) {
+            $this->logger->warning('notification.no_owner', [
+                'order_id' => $order->getId()->toRfc4122(),
+                'store_id' => $order->getShop()->getId()->toRfc4122(),
+            ]);
+
+            return;
+        }
+
         $this->persistForMerchant(
             $order,
             'Nouvelle commande',
@@ -218,8 +231,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
         );
 
         // best-effort push notification
-        $owner = $order->getShop()->getOwner();
-        if (null !== $owner && null !== $this->webPushService) {
+        if (null !== $this->webPushService) {
             try {
                 $this->webPushService->sendToUser(
                     $owner,
@@ -227,6 +239,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
                     'Une nouvelle Kadhia a été soumise.',
                     '/merchant/orders/' . $order->getId()->toRfc4122(),
                 );
+                $this->entityManager->flush();
             } catch (\Throwable $e) {
                 $this->logger->warning('push_send_failed_submitted', ['error' => $e->getMessage()]);
             }

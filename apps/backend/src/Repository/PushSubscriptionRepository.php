@@ -20,7 +20,7 @@ final class PushSubscriptionRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('ps')
             ->andWhere('ps.user = :user')
-            ->setParameter('user', $user)
+            ->setParameter('user', $user->getId(), 'uuid')
             ->getQuery()
             ->getResult();
     }

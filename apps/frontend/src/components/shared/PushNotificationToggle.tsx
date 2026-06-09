@@ -29,8 +29,11 @@ export function PushNotificationToggle({ role }: PushNotificationToggleProps) {
     try {
       const supported = await isWebPushSupported();
       if (!supported) {
-        const iosNotInstalled = await isPWAInstalledOnIOS();
-        if (iosNotInstalled === false) {
+        const isIosPwa = await isPWAInstalledOnIOS();
+        // isPWAInstalledOnIOS returns true = iOS+standalone (which actually supports push on iOS 16.4+)
+        // Show iOS install help only when on iOS but NOT installed as PWA
+        const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIos && !isIosPwa) {
           // iOS without PWA installed
           setState('unsupported_ios_not_installed');
         } else {
