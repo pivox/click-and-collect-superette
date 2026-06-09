@@ -39,6 +39,15 @@ export function InlineCreateCombobox<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
+  // Re-sync label when async items arrive after value was already set (edit mode).
+  // Only updates if query is currently blank to avoid overwriting active user input.
+  useEffect(() => {
+    if (!value) return;
+    const found = items.find((i) => getId(i) === value);
+    if (found) setQuery((prev) => (prev === '' ? getLabel(found) : prev));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
   const closeAndRestore = useCallback(() => {
     setOpen(false);
     setCreateError(null);
