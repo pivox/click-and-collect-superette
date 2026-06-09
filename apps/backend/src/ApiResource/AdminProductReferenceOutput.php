@@ -10,7 +10,10 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
 use App\Dto\AdminUpdateProductReferenceInput;
+use App\Dto\AdminRejectProductReferenceInput;
 use App\Processor\AdminArchiveProductReferenceProcessor;
+use App\Processor\AdminApproveProductReferenceProcessor;
+use App\Processor\AdminRejectProductReferenceProcessor;
 use App\Processor\AdminUpdateProductReferenceProcessor;
 use App\Provider\AdminProductReferenceItemProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -52,6 +55,31 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             provider: AdminProductReferenceItemProvider::class,
             processor: AdminArchiveProductReferenceProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
+        ),
+        new Patch(
+            uriTemplate: '/admin/product-references/{productReferenceId<[0-9a-fA-F\-]{32,36}>}/approve',
+            uriVariables: [
+                'productReferenceId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            input: false,
+            normalizationContext: ['groups' => ['admin_product_reference:read']],
+            provider: AdminProductReferenceItemProvider::class,
+            processor: AdminApproveProductReferenceProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+        ),
+        new Patch(
+            uriTemplate: '/admin/product-references/{productReferenceId<[0-9a-fA-F\-]{32,36}>}/reject',
+            uriVariables: [
+                'productReferenceId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            input: AdminRejectProductReferenceInput::class,
+            normalizationContext: ['groups' => ['admin_product_reference:read']],
+            provider: AdminProductReferenceItemProvider::class,
+            processor: AdminRejectProductReferenceProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+            validate: true,
         ),
     ],
 )]
@@ -101,6 +129,9 @@ final readonly class AdminProductReferenceOutput
         public string $country,
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         public string $status,
+        #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[SerializedName('rejection_reason')]
+        public ?string $rejectionReason,
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         #[SerializedName('created_at')]
         public string $createdAt,

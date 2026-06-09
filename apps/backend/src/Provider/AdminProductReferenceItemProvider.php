@@ -77,6 +77,7 @@ final readonly class AdminProductReferenceItemProvider implements ProviderInterf
             aliases: $productReference->getAliases(),
             country: $productReference->getCountry(),
             status: $productReference->getStatus()->value,
+            rejectionReason: $productReference->getRejectionReason(),
             createdAt: $productReference->getCreatedAt()->format(\DateTimeInterface::ATOM),
             updatedAt: $productReference->getUpdatedAt()->format(\DateTimeInterface::ATOM),
             qualityScore: $qualityScore,

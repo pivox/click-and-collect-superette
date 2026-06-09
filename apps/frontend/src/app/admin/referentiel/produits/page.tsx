@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowUpDown, GitMerge, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowUpDown, GitMerge, RefreshCw, Sparkles, Check, X } from 'lucide-react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
 import { ProductReferenceDrawer } from '@/components/admin/referentiel/produits/ProductReferenceDrawer';
@@ -9,6 +9,8 @@ import { useSort } from '@/lib/hooks/useSort';
 import {
   listProductReferences,
   archiveProductReference,
+  approveProductReference,
+  rejectProductReference,
   compareProductReferences,
   listProductReferenceDuplicateCandidates,
   mergeProductReference,
@@ -88,6 +90,10 @@ export default function ProduitsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ProductReference | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<ProductReference | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<ProductReference | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [approvalInProgress, setApprovalInProgress] = useState<string | null>(null);
+  const [rejectionInProgress, setRejectionInProgress] = useState<string | null>(null);
   const [aiLimit, setAiLimit] = useState(100);
   const [aiResult, setAiResult] = useState<ProductAiEnrichmentRunResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -184,6 +190,37 @@ export default function ProduitsPage() {
       console.error('[produits] archiveProductReference failed', err);
       setError("Impossible d'archiver ce produit.");
       setArchiveTarget(null);
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    setApprovalInProgress(id);
+    setError(null);
+    try {
+      await approveProductReference(id);
+      void load();
+    } catch (err) {
+      console.error('[produits] approveProductReference failed', err);
+      setError("Impossible d'approuver ce produit.");
+    } finally {
+      setApprovalInProgress(null);
+    }
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!rejectTarget || !rejectionReason.trim()) return;
+    setRejectionInProgress(rejectTarget.id);
+    setError(null);
+    try {
+      await rejectProductReference(rejectTarget.id, rejectionReason.trim());
+      setRejectTarget(null);
+      setRejectionReason('');
+      void load();
+    } catch (err) {
+      console.error('[produits] rejectProductReference failed', err);
+      setError('Impossible de rejeter ce produit.');
+    } finally {
+      setRejectionInProgress(null);
     }
   };
 
@@ -298,18 +335,40 @@ export default function ProduitsPage() {
       label: '',
       render: (row) =>
         row.status !== 'archived' ? (
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-1.5">
+            {row.status !== 'approved' && (
+              <button
+                onClick={() => void handleApprove(row.id)}
+                disabled={approvalInProgress === row.id}
+                className="rounded p-1 text-muted hover:bg-green-50 hover:text-green-700 disabled:opacity-50"
+                title="Approuver"
+              >
+                <Check size={16} />
+              </button>
+            )}
+            {row.status !== 'rejected' && (
+              <button
+                onClick={() => setRejectTarget(row)}
+                disabled={rejectionInProgress === row.id}
+                className="rounded p-1 text-muted hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                title="Rejeter"
+              >
+                <X size={16} />
+              </button>
+            )}
             <button
               onClick={() => { setEditTarget(row); setDrawerOpen(true); }}
-              className="text-xs text-muted hover:text-ink"
+              className="rounded p-1 text-muted hover:bg-blue-50 hover:text-blue-700"
+              title="Éditer"
             >
               ✏
             </button>
             <button
               onClick={() => setArchiveTarget(row)}
-              className="text-xs text-muted hover:text-danger"
+              className="rounded p-1 text-muted hover:bg-gray-100 hover:text-gray-700"
+              title="Archiver"
             >
-              ⊘
+              ⊗
             </button>
           </div>
         ) : null,
@@ -590,6 +649,40 @@ export default function ProduitsPage() {
         confirmLabel="Archiver"
         variant="warning"
       />
+      {rejectTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="mb-2 text-lg font-bold text-ink">Rejeter le produit</h2>
+            <p className="mb-4 text-sm text-muted">
+              Rejeter "{rejectTarget.name_fr}" ? Indiquez une raison pour l'admin.
+            </p>
+            <textarea
+              autoFocus
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Raison du rejet..."
+              maxLength={500}
+              className="mb-4 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              rows={4}
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setRejectTarget(null); setRejectionReason(''); }}
+                className="flex-1 rounded-md border border-line px-4 py-2 text-sm font-semibold hover:bg-soft"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => void handleRejectSubmit()}
+                disabled={!rejectionReason.trim() || rejectionInProgress !== null}
+                className="flex-1 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                Rejeter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
