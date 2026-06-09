@@ -211,17 +211,6 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
 
     public function notifyMerchantOrderSubmitted(Order $order): void
     {
-        $owner = $order->getShop()->getOwner();
-
-        if (null === $owner) {
-            $this->logger->warning('notification.no_owner', [
-                'order_id' => $order->getId()->toRfc4122(),
-                'store_id' => $order->getShop()->getId()->toRfc4122(),
-            ]);
-
-            return;
-        }
-
         $this->persistForMerchant(
             $order,
             'Nouvelle commande',
@@ -231,7 +220,8 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
         );
 
         // best-effort push notification
-        if (null !== $this->webPushService) {
+        $owner = $order->getShop()->getOwner();
+        if (null !== $owner && null !== $this->webPushService) {
             try {
                 $this->webPushService->sendToUser(
                     $owner,
