@@ -21,12 +21,12 @@ final readonly class WebPushService
         private PushSubscriptionRepository $pushSubscriptionRepository,
         private EntityManagerInterface $entityManager,
         private LoggerInterface $logger,
-        #[Autowire('%env(VAPID_PUBLIC_KEY)%')]
-        private string $vapidPublicKey,
-        #[Autowire('%env(VAPID_PRIVATE_KEY)%')]
-        private string $vapidPrivateKey,
-        #[Autowire('%env(VAPID_SUBJECT)%')]
-        private string $vapidSubject,
+        #[Autowire('%env(VAPID_PUBLIC_KEY)?%')]
+        private ?string $vapidPublicKey = null,
+        #[Autowire('%env(VAPID_PRIVATE_KEY)?%')]
+        private ?string $vapidPrivateKey = null,
+        #[Autowire('%env(VAPID_SUBJECT)?%')]
+        private ?string $vapidSubject = null,
     ) {
     }
 
@@ -41,6 +41,11 @@ final readonly class WebPushService
 
     private function sendOneNotification(PushSubscription $subscription, string $titleFr, string $bodyFr, ?string $url): void
     {
+        // Skip if VAPID keys are not configured (e.g., in test environment)
+        if (null === $this->vapidPublicKey || null === $this->vapidPrivateKey || null === $this->vapidSubject) {
+            return;
+        }
+
         try {
             $webPush = new WebPush(
                 ['VAPID' => [
