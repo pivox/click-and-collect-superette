@@ -121,6 +121,20 @@ Critère de déclenchement :
 Usage réel prouvé, limites PWA constatées, facturation opérationnelle, support stable, besoin terrain confirmé.
 ```
 
+### Post-lancement — Écosystème standalone, agent IA externe, apps natives & infra production
+
+Cette section formalise la structuration en repos standalones autour de la plateforme centrale. Voir
+`docs/architecture/standalone-ecosystem.md`, `docs/architecture/dockerized-platform.md` et
+`docs/adr/ADR-standalone-ecosystem-and-dockerized-platform.md`.
+
+- Créer `click-and-collect-ai-agent` comme **nouveau repo IA standalone** (distinct de la brique
+  catalogue-photo interne au backend ; périmètre fonctionnel exact à cadrer dans une issue dédiée).
+  Invariants : consomme l'API, sortie JSON + score de confiance, pas d'écriture directe en base, l'API
+  reste responsable du commit métier. Gate : besoin terrain confirmé.
+- Créer `click-and-collect-infra` pour orchestrer staging/prod à partir d'images Docker versionnées
+  (backup PostgreSQL, logs, monitoring, SSL ; secrets injectés, jamais dupliqués dans les repos).
+- Apps natives (#386–#389) déclenchées par le gate terrain de l'ADR-0005, Android marchand prioritaire.
+
 ## 6. Gates CTO avant lancement officiel
 
 ### Gate mobile
