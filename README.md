@@ -33,7 +33,7 @@ Blocs livrés :
 
 Limites ouvertes :
 
-- PWA client et marchand non livrée ;
+- PWA marchand non livrée (PWA client livrée via S14-001) ;
 - push notifications non livrées ;
 - accessibilité WCAG de base non auditée ;
 - décision bêta FR-only vs FR+AR (#358) à fermer comme non nécessaire, la bêta pouvant partir en FR+AR sur les parcours livrés.
