@@ -53,7 +53,10 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-security-blocking || composer update --prefer-dist --no-progress --no-security-blocking
 
-      - name: PHP-CS-Fixer (dry-run)
+      - name: PHP-CS-Fixer (auto-fix)
+        run: vendor/bin/php-cs-fixer fix
+
+      - name: PHP-CS-Fixer (verify)
         run: vendor/bin/php-cs-fixer fix --dry-run --diff
 
       - name: PHPStan
