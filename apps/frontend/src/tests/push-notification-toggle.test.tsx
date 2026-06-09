@@ -36,6 +36,12 @@ describe('PushNotificationToggle', () => {
   });
 
   it('should show help message for iOS without PWA installed', async () => {
+    // Mock iOS user agent
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_4 like Mac OS X)',
+      configurable: true,
+    });
+
     vi.mocked(pushService.isWebPushSupported).mockResolvedValue(false);
     vi.mocked(pushService.isPWAInstalledOnIOS).mockResolvedValue(false);
 
