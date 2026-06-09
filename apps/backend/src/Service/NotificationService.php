@@ -23,6 +23,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
         private NotificationRepository $notificationRepository,
         #[Autowire(service: 'monolog.logger.notification')]
         private LoggerInterface $logger,
+        private ?WebPushService $webPushService = null,
     ) {
     }
 
@@ -79,6 +80,21 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'Votre commande est prête à être retirée. Présentez votre QR code en supérette.',
             'طلبكم واجد للاستلام. أظهروا رمز QR في العطار.',
         );
+
+        // best-effort push notification
+        if (null !== $this->webPushService) {
+            try {
+                $this->webPushService->sendToUser(
+                    $order->getCustomer(),
+                    'Kadhia prête',
+                    'Votre commande est prête à être retirée. Présentez votre QR code en supérette.',
+                    '/orders/' . $order->getId()->toRfc4122(),
+                );
+                $this->entityManager->flush();
+            } catch (\Throwable $e) {
+                $this->logger->warning('push_send_failed_ready', ['error' => $e->getMessage()]);
+            }
+        }
     }
 
     public function notifyCustomerOrderCompleted(Order $order): void
@@ -128,6 +144,21 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             $bodyAr,
             self::TYPE_PICKUP_REMINDER,
         );
+
+        // best-effort push notification
+        if (null !== $this->webPushService) {
+            try {
+                $this->webPushService->sendToUser(
+                    $order->getCustomer(),
+                    'Rappel de retrait',
+                    $bodyFr,
+                    '/orders/' . $order->getId()->toRfc4122(),
+                );
+                $this->entityManager->flush();
+            } catch (\Throwable $e) {
+                $this->logger->warning('push_send_failed_reminder', ['error' => $e->getMessage()]);
+            }
+        }
     }
 
     public function notifyCustomerMerchantResponseTimeout(Order $order): void
@@ -187,6 +218,22 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'Une nouvelle Kadhia a été soumise.',
             'تم إرسال قاضية جديدة.',
         );
+
+        // best-effort push notification
+        $owner = $order->getShop()->getOwner();
+        if (null !== $owner && null !== $this->webPushService) {
+            try {
+                $this->webPushService->sendToUser(
+                    $owner,
+                    'Nouvelle commande',
+                    'Une nouvelle Kadhia a été soumise.',
+                    '/merchant/orders/' . $order->getId()->toRfc4122(),
+                );
+                $this->entityManager->flush();
+            } catch (\Throwable $e) {
+                $this->logger->warning('push_send_failed_submitted', ['error' => $e->getMessage()]);
+            }
+        }
     }
 
     public function notifyMerchantOrderCancelled(Order $order): void

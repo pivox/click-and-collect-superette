@@ -200,6 +200,6 @@ final readonly class OpenAiMerchantCatalogPhotoImportExtractor implements Mercha
             return null;
         }
 
-        return '' === $value ? null : bcadd($value, '0', 3);
+        return bcadd($value, '0', 3);
     }
 }

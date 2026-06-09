@@ -11,6 +11,7 @@ const withPWA = withPWAInit({
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
   disable: process.env.NODE_ENV === 'development',
+  customWorkerSrc: 'worker', // Custom SW handlers for Web Push (S14-003)
   workboxOptions: {
     disableDevLogs: true,
   },
