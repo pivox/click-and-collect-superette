@@ -40,6 +40,12 @@ const STATUS_LABELS: Record<string, string> = {
   archived: 'Archivé',
 };
 
+const BULK_ACTION_ELIGIBILITY: Record<BulkAction, (p: ProductReference) => boolean> = {
+  approve: (p) => p.status !== 'approved' && p.status !== 'archived',
+  archive: (p) => p.status !== 'archived',
+  reject: (p) => p.status !== 'rejected' && p.status !== 'archived',
+};
+
 const STATUS_STYLES: Record<string, string> = {
   approved: 'bg-green-100 text-green-700',
   pending_review: 'bg-yellow-100 text-yellow-700',
@@ -299,34 +305,55 @@ export default function ProduitsPage() {
 
   const displayedProducts = qualitySortDir ? products : sorted;
   const selectedProducts = displayedProducts.filter((p) => selectedIds.has(p.id));
-  const eligibleApprove = selectedProducts.filter((p) => p.status !== 'approved' && p.status !== 'archived').length;
-  const eligibleArchive = selectedProducts.filter((p) => p.status !== 'archived').length;
-  const eligibleReject = selectedProducts.filter((p) => p.status !== 'rejected' && p.status !== 'archived').length;
+  const eligibleApprove = selectedProducts.filter(BULK_ACTION_ELIGIBILITY.approve).length;
+  const eligibleArchive = selectedProducts.filter(BULK_ACTION_ELIGIBILITY.archive).length;
+  const eligibleReject = selectedProducts.filter(BULK_ACTION_ELIGIBILITY.reject).length;
 
   const handleBulkConfirm = async (reason?: string) => {
     if (!bulkAction) return;
+
+    if (bulkAction === 'reject' && (!reason || !reason.trim())) {
+      console.error('[bulk-action] Invalid rejection reason for bulk reject');
+      setBulkResult({ succeeded: 0, failed: selectedProducts.length, ignored: 0 });
+      setIsBulkBusy(false);
+      return;
+    }
+
     setIsBulkBusy(true);
     setBulkResult(null);
-    const eligibilityFn: Record<BulkAction, (p: ProductReference) => boolean> = {
-      approve: (p) => p.status !== 'approved' && p.status !== 'archived',
-      archive: (p) => p.status !== 'archived',
-      reject: (p) => p.status !== 'rejected' && p.status !== 'archived',
-    };
-    const eligible = selectedProducts.filter(eligibilityFn[bulkAction]);
+    const eligible = selectedProducts.filter(BULK_ACTION_ELIGIBILITY[bulkAction]);
     const ignored = selectedProducts.length - eligible.length;
-    const results = await Promise.allSettled(
-      eligible.map((p) => {
-        if (bulkAction === 'approve') return approveProductReference(p.id);
-        if (bulkAction === 'archive') return archiveProductReference(p.id);
-        return rejectProductReference(p.id, reason!);
-      }),
-    );
-    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
-    const failed = results.filter((r) => r.status === 'rejected').length;
-    setBulkResult({ succeeded, failed, ignored });
-    setIsBulkBusy(false);
-    setSelectedIds(new Set());
-    void load();
+
+    try {
+      const results = await Promise.allSettled(
+        eligible.map((p) => {
+          if (bulkAction === 'approve') return approveProductReference(p.id);
+          if (bulkAction === 'archive') return archiveProductReference(p.id);
+          if (bulkAction === 'reject') return rejectProductReference(p.id, reason!.trim());
+          throw new Error(`Unexpected bulk action: ${bulkAction}`);
+        }),
+      );
+      const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+      const failed = results.filter((r) => r.status === 'rejected').length;
+
+      results.forEach((result, i) => {
+        if (result.status === 'rejected') {
+          console.error(
+            `[bulk-action-error] Product ${eligible[i].id} failed to ${bulkAction}:`,
+            (result.reason as Error).message || result.reason,
+          );
+        }
+      });
+
+      setBulkResult({ succeeded, failed, ignored });
+    } catch (err) {
+      console.error('[bulk-action] Unexpected error in handleBulkConfirm', err);
+      setBulkResult({ succeeded: 0, failed: eligible.length, ignored });
+    } finally {
+      setIsBulkBusy(false);
+      setSelectedIds(new Set());
+      void load();
+    }
   };
 
   const columns: Column<ProductReference>[] = [
@@ -621,7 +648,7 @@ export default function ProduitsPage() {
           className="w-full max-w-xs rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
         <button
-          onClick={() => setStatusFilter('pending_review')}
+          onClick={() => setStatusFilter((s) => (s === 'pending_review' ? '' : 'pending_review'))}
           className={cn(
             'rounded-md border px-3 py-2 text-sm font-semibold transition-colors',
             statusFilter === 'pending_review'
@@ -734,9 +761,9 @@ export default function ProduitsPage() {
         variant="warning"
       />
       {rejectTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-labelledby="reject-dialog-title">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-            <h2 className="mb-2 text-lg font-bold text-ink">Rejeter le produit</h2>
+            <h2 id="reject-dialog-title" className="mb-2 text-lg font-bold text-ink">Rejeter le produit</h2>
             <p className="mb-4 text-sm text-muted">
               Rejeter &quot;{rejectTarget.name_fr}&quot; ? Indiquez une raison pour l&apos;admin.
             </p>

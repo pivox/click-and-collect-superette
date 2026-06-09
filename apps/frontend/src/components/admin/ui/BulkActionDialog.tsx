@@ -63,9 +63,9 @@ export function BulkActionDialog({
 
   if (result) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-labelledby="bulk-result-title">
         <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-          <h2 className="mb-4 text-lg font-bold text-ink">Résultat de l&apos;action</h2>
+          <h2 id="bulk-result-title" className="mb-4 text-lg font-bold text-ink">Résultat de l&apos;action</h2>
           <div className="space-y-3 text-sm">
             {result.succeeded > 0 && (
               <div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2">
@@ -104,9 +104,9 @@ export function BulkActionDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-labelledby="bulk-action-title">
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-        <h2 className="mb-2 text-lg font-bold text-ink">
+        <h2 id="bulk-action-title" className="mb-2 text-lg font-bold text-ink">
           {action === 'approve' && 'Approuver en masse'}
           {action === 'archive' && 'Archiver en masse'}
           {action === 'reject' && 'Rejeter en masse'}

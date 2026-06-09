@@ -94,6 +94,11 @@ export function AdminTable<T extends { id: string }>({
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
+                  {selectedIds && onSelectionChange && (
+                    <td className="px-4 py-3">
+                      <div className="h-4 w-8 animate-pulse rounded bg-soft" />
+                    </td>
+                  )}
                   {columns.map((col) => (
                     <td key={col.key} className="px-4 py-3">
                       <div className="h-4 w-3/4 animate-pulse rounded bg-soft" />
