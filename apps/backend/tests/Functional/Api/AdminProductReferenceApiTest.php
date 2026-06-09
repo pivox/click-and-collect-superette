@@ -626,6 +626,112 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
     }
 
+    // ── QUICK ACTIONS (approve / reject) ────────────────────────────────────────
+
+    public function testApproveProductReference(): void
+    {
+        $admin = $this->createUser('admin-pr-approve@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Approve', 'marque-approve');
+        $category = $this->createCategory('Catégorie Approve', 'categorie-approve');
+        $ref = $this->createProductReference($brand, $category, 'Produit à approuver');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/approve', $ref->getId()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('approved', $this->decodeJson($response)['status']);
+    }
+
+    public function testApproveClearsRejectionReason(): void
+    {
+        $admin = $this->createUser('admin-pr-approve-clear@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Clear', 'marque-clear');
+        $category = $this->createCategory('Catégorie Clear', 'categorie-clear');
+        $ref = $this->createProductReference(
+            $brand,
+            $category,
+            'Produit rejeté puis approuvé',
+            status: ProductReferenceStatus::Rejected,
+        );
+        $ref->setRejectionReason('Doublon supposé');
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/approve', $ref->getId()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('approved', $payload['status']);
+        // null nullable properties are omitted from the JSON payload by API Platform.
+        self::assertArrayNotHasKey('rejection_reason', $payload);
+
+        $this->entityManager->clear();
+        $reloaded = $this->entityManager->find(ProductReference::class, $ref->getId());
+        self::assertNotNull($reloaded);
+        self::assertNull($reloaded->getRejectionReason());
+    }
+
+    public function testApproveWithDuplicateBarcodeReturns422(): void
+    {
+        $admin = $this->createUser('admin-pr-approve-dup@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Dup Approve', 'marque-dup-approve');
+        $category = $this->createCategory('Catégorie Dup Approve', 'categorie-dup-approve');
+
+        // An active reference already owns the barcode.
+        $this->createProductReference(
+            $brand,
+            $category,
+            'Référence active',
+            barcode: '5555000001',
+            status: ProductReferenceStatus::Approved,
+        );
+        // An archived reference shares the same barcode (findOneByBarcode ignores archived).
+        $archived = $this->createProductReference(
+            $brand,
+            $category,
+            'Référence archivée',
+            barcode: '5555000001',
+            status: ProductReferenceStatus::Archived,
+        );
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/approve', $archived->getId()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
+    public function testRejectProductReference(): void
+    {
+        $admin = $this->createUser('admin-pr-reject@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Reject', 'marque-reject');
+        $category = $this->createCategory('Catégorie Reject', 'categorie-reject');
+        $ref = $this->createProductReference($brand, $category, 'Produit à rejeter');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/reject', $ref->getId()),
+            ['rejection_reason' => 'Information produit insuffisante'],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('rejected', $payload['status']);
+        self::assertSame('Information produit insuffisante', $payload['rejection_reason']);
+    }
+
     // ── ACCESS CONTROL ────────────────────────────────────────────────────────
 
     public function testAnonymousIsRejected(): void

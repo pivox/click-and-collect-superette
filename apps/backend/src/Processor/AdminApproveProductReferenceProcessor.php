@@ -16,6 +16,7 @@ use App\Service\ProductImage\ProductImageUrlBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -51,8 +52,23 @@ final readonly class AdminApproveProductReferenceProcessor implements ProcessorI
 
         $this->logger->debug('admin.product_reference.approve.start', ['product_reference_id' => $productReferenceId]);
 
+        // Guard against duplicate barcodes when moving back to a non-archived status.
+        // findOneByBarcode() ignores archived rows, so approving an archived reference
+        // could otherwise create two active references sharing the same barcode and
+        // break barcode-based matching/imports (same check as the normal update path).
+        $barcode = $productReference->getBarcode();
+        if (null !== $barcode) {
+            $existing = $this->adminProductReferenceRepository->findOneByBarcode($barcode);
+            if (null !== $existing && !$existing->getId()->equals($productReference->getId())) {
+                throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BARCODE_DUPLICATE');
+            }
+        }
+
         try {
             $productReference->setStatus(ProductReferenceStatus::Approved);
+            // Clear any stale rejection reason when moving out of the rejected status,
+            // otherwise an approved reference keeps exposing its previous rejection reason.
+            $productReference->setRejectionReason(null);
             $this->auditLogger->log(
                 action: 'product_reference.approve',
                 resourceType: 'product_reference',
