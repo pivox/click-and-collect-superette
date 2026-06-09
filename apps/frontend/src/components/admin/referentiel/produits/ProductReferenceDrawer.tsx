@@ -216,6 +216,7 @@ export function ProductReferenceDrawer({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Product created within this drawer session — lets the user attach an image
@@ -229,8 +230,9 @@ export function ProductReferenceDrawer({
         setBrands(b.items);
         setCategories(c.items);
       })
-      .catch(() => {
-        setError('Impossible de charger les marques et catégories.');
+      .catch((e) => {
+        console.error('[ProductReferenceDrawer] Failed to load brands/categories:', e);
+        setLoadError('Impossible de charger les marques et catégories. Rechargez la page.');
       });
   }, []);
 
@@ -332,6 +334,11 @@ export function ProductReferenceDrawer({
       size="lg"
     >
       <div className="space-y-4">
+        {loadError && (
+          <div className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+            {loadError}
+          </div>
+        )}
         {error && (
           <div className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
             {error}

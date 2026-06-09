@@ -30,25 +30,31 @@ export function InlineCreateCombobox<T>({
   const [createError, setCreateError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sync display text when external value changes
+  // Sync display text only when the selected value changes externally (not on every render).
+  // getId/getLabel/items are intentionally excluded: they are recreated each render in the parent
+  // and including them would reset the query while the user is typing.
   useEffect(() => {
     const found = items.find((i) => getId(i) === value);
     setQuery(found ? getLabel(found) : '');
-  }, [value, items, getId, getLabel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
-  // Close on outside click
+  const closeAndRestore = useCallback(() => {
+    setOpen(false);
+    setCreateError(null);
+    const found = items.find((i) => getId(i) === value);
+    setQuery(found ? getLabel(found) : '');
+  }, [items, value, getId, getLabel]);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        // Restore display text to selected item
-        const found = items.find((i) => getId(i) === value);
-        setQuery(found ? getLabel(found) : '');
+        closeAndRestore();
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [items, value, getId, getLabel]);
+  }, [closeAndRestore]);
 
   const filtered = query.trim()
     ? items.filter((i) => getLabel(i).toLowerCase().includes(query.toLowerCase()))
@@ -78,7 +84,10 @@ export function InlineCreateCombobox<T>({
     } catch (e) {
       if (axios.isAxiosError(e) && e.response?.status === 422) {
         setCreateError('Nom déjà existant (doublon détecté).');
+      } else if (axios.isAxiosError(e) && e.response?.status === 403) {
+        setCreateError('Action non autorisée.');
       } else {
+        console.error('[InlineCreateCombobox] onCreate failed:', e);
         setCreateError('Erreur lors de la création. Réessayez.');
       }
     } finally {
@@ -88,9 +97,7 @@ export function InlineCreateCombobox<T>({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      setOpen(false);
-      const found = items.find((i) => getId(i) === value);
-      setQuery(found ? getLabel(found) : '');
+      closeAndRestore();
     }
   };
 
@@ -132,7 +139,7 @@ export function InlineCreateCombobox<T>({
               </button>
             </li>
           )}
-          {filtered.length === 0 && hasExactMatch === false && query.trim() === '' && (
+          {filtered.length === 0 && query.trim() !== '' && (
             <li className="px-3 py-2 text-sm text-muted">Aucun résultat.</li>
           )}
           {filtered.map((item) => (
