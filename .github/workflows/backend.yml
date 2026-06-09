@@ -50,6 +50,9 @@ jobs:
           path: apps/backend/vendor
           key: composer-${{ hashFiles('apps/backend/composer.lock') }}
 
+      - name: Update composer.lock if out of sync
+        run: composer update --lock-only --no-interaction
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
