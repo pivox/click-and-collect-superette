@@ -13,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
+/** @implements ProcessorInterface<PushSubscriptionInput, mixed> */
 final readonly class UnregisterMerchantPushSubscriptionProcessor implements ProcessorInterface
 {
     public function __construct(

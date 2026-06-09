@@ -9,6 +9,7 @@ use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/** @extends ServiceEntityRepository<PushSubscription> */
 final class PushSubscriptionRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -16,6 +17,7 @@ final class PushSubscriptionRepository extends ServiceEntityRepository
         parent::__construct($registry, PushSubscription::class);
     }
 
+    /** @return array<int, PushSubscription> */
     public function findByUser(User $user): array
     {
         return $this->createQueryBuilder('ps')
