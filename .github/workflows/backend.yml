@@ -51,7 +51,7 @@ jobs:
           key: composer-${{ hashFiles('apps/backend/composer.lock') }}
 
       - name: Update composer.lock if out of sync
-        run: composer update --lock-only --no-interaction
+        run: composer update --lock --no-install --no-interaction
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
