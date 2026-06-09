@@ -93,6 +93,25 @@ export async function archiveProductReference(id: string): Promise<ProductRefere
   return data;
 }
 
+export async function approveProductReference(id: string): Promise<ProductReference> {
+  const { data } = await apiClient.patch<ProductReference>(
+    `/api/admin/product-references/${id}/approve`,
+    {},
+  );
+  return data;
+}
+
+export async function rejectProductReference(
+  id: string,
+  rejectionReason: string,
+): Promise<ProductReference> {
+  const { data } = await apiClient.patch<ProductReference>(
+    `/api/admin/product-references/${id}/reject`,
+    { rejection_reason: rejectionReason },
+  );
+  return data;
+}
+
 export async function listProductReferenceDuplicateCandidates(
   filters: ProductReferenceDuplicateFilters = {},
 ): Promise<ProductReferenceDuplicateCandidateListResponse> {

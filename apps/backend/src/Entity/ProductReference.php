@@ -62,6 +62,9 @@ class ProductReference
     #[ORM\Column(length: 32, enumType: ProductReferenceStatus::class)]
     private ProductReferenceStatus $status = ProductReferenceStatus::Draft;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $rejectionReason = null;
+
     #[ORM\ManyToOne(targetEntity: ProductFamily::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?ProductFamily $productFamily = null;
@@ -253,6 +256,18 @@ class ProductReference
     public function setStatus(ProductReferenceStatus $status): static
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getRejectionReason(): ?string
+    {
+        return $this->rejectionReason;
+    }
+
+    public function setRejectionReason(?string $rejectionReason): static
+    {
+        $this->rejectionReason = $rejectionReason;
 
         return $this;
     }
