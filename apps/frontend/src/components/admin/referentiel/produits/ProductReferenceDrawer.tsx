@@ -8,8 +8,9 @@ import {
   uploadProductReferenceImage,
   deleteProductReferenceImage,
 } from '@/lib/services/admin/product-references.service';
-import { listBrands } from '@/lib/services/admin/brands.service';
-import { listCategories } from '@/lib/services/admin/categories.service';
+import { listBrands, createBrand } from '@/lib/services/admin/brands.service';
+import { listCategories, createCategory } from '@/lib/services/admin/categories.service';
+import { InlineCreateCombobox } from '@/components/admin/ui/InlineCreateCombobox';
 import type {
   ProductReference,
   ProductReferenceImage,
@@ -347,27 +348,39 @@ export function ProductReferenceDrawer({
             <label className="mb-1 block text-sm font-semibold">
               Marque <span className="text-danger">*</span>
             </label>
-            <select
+            <InlineCreateCombobox
+              items={brands}
               value={form.brandId}
-              onChange={(e) => set('brandId', e.target.value)}
-              className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary"
-            >
-              <option value="">Sélectionner…</option>
-              {brands.map((b) => <option key={b.id} value={b.id}>{b.canonical_name}</option>)}
-            </select>
+              onChange={(id) => set('brandId', id)}
+              getId={(b) => b.id}
+              getLabel={(b) => b.canonical_name}
+              placeholder="Rechercher ou créer une marque…"
+              onCreate={async (name) => {
+                const created = await createBrand({ canonicalName: name });
+                setBrands((prev) => [...prev, created]);
+                return created;
+              }}
+              disabled={isSubmitting}
+            />
           </div>
           <div>
             <label className="mb-1 block text-sm font-semibold">
               Catégorie <span className="text-danger">*</span>
             </label>
-            <select
+            <InlineCreateCombobox
+              items={categories}
               value={form.categoryId}
-              onChange={(e) => set('categoryId', e.target.value)}
-              className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary"
-            >
-              <option value="">Sélectionner…</option>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name_fr}</option>)}
-            </select>
+              onChange={(id) => set('categoryId', id)}
+              getId={(c) => c.id}
+              getLabel={(c) => c.name_fr}
+              placeholder="Rechercher ou créer une catégorie…"
+              onCreate={async (name) => {
+                const created = await createCategory({ nameFr: name });
+                setCategories((prev) => [...prev, created]);
+                return created;
+              }}
+              disabled={isSubmitting}
+            />
           </div>
           <div>
             <label className="mb-1 block text-sm font-semibold">
