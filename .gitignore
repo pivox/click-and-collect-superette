@@ -33,3 +33,10 @@ __pycache__/
 *.pyo
 .venv/
 venv/
+
+# PWA generated files
+apps/frontend/public/sw.js
+apps/frontend/public/workbox-*.js
+apps/frontend/public/worker-*.js
+apps/frontend/public/sw.js.map
+apps/frontend/public/workbox-*.js.map

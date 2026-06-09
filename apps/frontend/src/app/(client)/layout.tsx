@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { DesktopNav } from '@/components/layout/DesktopNav';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { GlobalSearchBar } from '@/components/layout/GlobalSearchBar';
@@ -11,8 +11,26 @@ import { LanguageToggle } from '@/components/layout/LanguageToggle';
 import { StoreThemeSync } from '@/components/store/StoreThemeSync';
 import { ClientNotificationsProvider } from '@/lib/notifications/ClientNotificationsContext';
 
+export const viewport: Viewport = {
+  themeColor: '#1f7a4d',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: 'Kadhia · Click & Collect',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Kadhia',
+  },
+  formatDetection: { telephone: false },
+  icons: {
+    apple: '/icons/apple-touch-icon.png',
+  },
 };
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
