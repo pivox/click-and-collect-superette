@@ -654,7 +654,7 @@ export default function ProduitsPage() {
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
             <h2 className="mb-2 text-lg font-bold text-ink">Rejeter le produit</h2>
             <p className="mb-4 text-sm text-muted">
-              Rejeter "{rejectTarget.name_fr}" ? Indiquez une raison pour l'admin.
+              Rejeter &quot;{rejectTarget.name_fr}&quot; ? Indiquez une raison pour l&apos;admin.
             </p>
             <textarea
               autoFocus
