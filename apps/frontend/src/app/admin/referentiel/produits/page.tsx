@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { ArrowUpDown, GitMerge, RefreshCw, Sparkles, Check, X } from 'lucide-react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
+import { BulkActionBar } from '@/components/admin/ui/BulkActionBar';
+import { BulkActionDialog, type BulkAction, type BulkResult } from '@/components/admin/ui/BulkActionDialog';
 import { ProductReferenceDrawer } from '@/components/admin/referentiel/produits/ProductReferenceDrawer';
 import { Button } from '@/components/ui/Button';
 import { useSort } from '@/lib/hooks/useSort';
@@ -106,6 +108,10 @@ export default function ProduitsPage() {
   const [isComparisonLoading, setIsComparisonLoading] = useState(false);
   const [mergeError, setMergeError] = useState<string | null>(null);
   const [isMerging, setIsMerging] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<BulkAction | null>(null);
+  const [bulkResult, setBulkResult] = useState<BulkResult | null>(null);
+  const [isBulkBusy, setIsBulkBusy] = useState(false);
 
   const { sorted, sortKey, sortDir, toggleSort } = useSort(products);
 
@@ -169,6 +175,7 @@ export default function ProduitsPage() {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { void loadDuplicateCandidates(); }, [loadDuplicateCandidates]);
   useEffect(() => { setPage(1); }, [debouncedQ, brandFilter, categoryFilter, statusFilter, qualityFilter, qualitySortDir]);
+  useEffect(() => { setSelectedIds(new Set()); }, [page, debouncedQ, brandFilter, categoryFilter, statusFilter, qualityFilter, qualitySortDir]);
 
   const handleTableSort = (key: string) => {
     if (key === 'quality_score') {
@@ -269,6 +276,57 @@ export default function ProduitsPage() {
     } finally {
       setIsMerging(false);
     }
+  };
+
+  const handleSelectionChange = (id: string) => {
+    if (id === '__all__') {
+      const currentIds = (qualitySortDir ? products : sorted).map((p) => p.id);
+      setSelectedIds((prev) =>
+        prev.size === currentIds.length ? new Set() : new Set(currentIds),
+      );
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return next;
+      });
+    }
+  };
+
+  const displayedProducts = qualitySortDir ? products : sorted;
+  const selectedProducts = displayedProducts.filter((p) => selectedIds.has(p.id));
+  const eligibleApprove = selectedProducts.filter((p) => p.status !== 'approved' && p.status !== 'archived').length;
+  const eligibleArchive = selectedProducts.filter((p) => p.status !== 'archived').length;
+  const eligibleReject = selectedProducts.filter((p) => p.status !== 'rejected' && p.status !== 'archived').length;
+
+  const handleBulkConfirm = async (reason?: string) => {
+    if (!bulkAction) return;
+    setIsBulkBusy(true);
+    setBulkResult(null);
+    const eligibilityFn: Record<BulkAction, (p: ProductReference) => boolean> = {
+      approve: (p) => p.status !== 'approved' && p.status !== 'archived',
+      archive: (p) => p.status !== 'archived',
+      reject: (p) => p.status !== 'rejected' && p.status !== 'archived',
+    };
+    const eligible = selectedProducts.filter(eligibilityFn[bulkAction]);
+    const ignored = selectedProducts.length - eligible.length;
+    const results = await Promise.allSettled(
+      eligible.map((p) => {
+        if (bulkAction === 'approve') return approveProductReference(p.id);
+        if (bulkAction === 'archive') return archiveProductReference(p.id);
+        return rejectProductReference(p.id, reason!);
+      }),
+    );
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    setBulkResult({ succeeded, failed, ignored });
+    setIsBulkBusy(false);
+    setSelectedIds(new Set());
+    void load();
   };
 
   const columns: Column<ProductReference>[] = [
@@ -562,6 +620,17 @@ export default function ProduitsPage() {
           onChange={(e) => setQ(e.target.value)}
           className="w-full max-w-xs rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
+        <button
+          onClick={() => setStatusFilter('pending_review')}
+          className={cn(
+            'rounded-md border px-3 py-2 text-sm font-semibold transition-colors',
+            statusFilter === 'pending_review'
+              ? 'border-primary bg-primary text-white'
+              : 'border-line bg-white text-ink hover:bg-soft',
+          )}
+        >
+          À traiter
+        </button>
         <select
           value={brandFilter}
           onChange={(e) => setBrandFilter(e.target.value)}
@@ -617,6 +686,19 @@ export default function ProduitsPage() {
           </button>
         </div>
       )}
+      {selectedIds.size > 0 && (
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onClear={() => setSelectedIds(new Set())}
+          onApprove={() => { setBulkAction('approve'); setBulkResult(null); }}
+          onArchive={() => { setBulkAction('archive'); setBulkResult(null); }}
+          onReject={() => { setBulkAction('reject'); setBulkResult(null); }}
+          isBusy={isBulkBusy}
+          eligibleApprove={eligibleApprove}
+          eligibleArchive={eligibleArchive}
+          eligibleReject={eligibleReject}
+        />
+      )}
       <AdminTable
         columns={columns}
         data={qualitySortDir ? products : sorted}
@@ -630,6 +712,8 @@ export default function ProduitsPage() {
         sortKey={qualitySortDir ? 'quality_score' : (sortKey as string | null)}
         sortDir={qualitySortDir || sortDir}
         onSort={handleTableSort}
+        selectedIds={selectedIds}
+        onSelectionChange={handleSelectionChange}
       />
       {drawerOpen && (
         <ProductReferenceDrawer
@@ -683,6 +767,28 @@ export default function ProduitsPage() {
           </div>
         </div>
       )}
+      <BulkActionDialog
+        open={bulkAction !== null}
+        action={bulkAction}
+        eligibleCount={
+          bulkAction === 'approve'
+            ? eligibleApprove
+            : bulkAction === 'archive'
+              ? eligibleArchive
+              : eligibleReject
+        }
+        ignoredCount={
+          bulkAction === 'approve'
+            ? selectedProducts.length - eligibleApprove
+            : bulkAction === 'archive'
+              ? selectedProducts.length - eligibleArchive
+              : selectedProducts.length - eligibleReject
+        }
+        onClose={() => { setBulkAction(null); setBulkResult(null); }}
+        onConfirm={handleBulkConfirm}
+        result={bulkResult}
+        isBusy={isBulkBusy}
+      />
     </div>
   );
 }

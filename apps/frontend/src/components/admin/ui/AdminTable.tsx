@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui/Button';
 
@@ -26,6 +27,8 @@ interface AdminTableProps<T extends { id: string }> {
   sortKey?: string | null;
   sortDir?: 'asc' | 'desc';
   onSort?: (key: string) => void;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (id: string) => void;
 }
 
 export function AdminTable<T extends { id: string }>({
@@ -38,8 +41,20 @@ export function AdminTable<T extends { id: string }>({
   sortKey,
   sortDir,
   onSort,
+  selectedIds,
+  onSelectionChange,
 }: AdminTableProps<T>) {
   const pageCount = pagination ? Math.ceil(pagination.total / pagination.limit) : 1;
+  const selectAllRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (selectAllRef.current && selectedIds) {
+      const allIds = data.map((d) => d.id);
+      const selectedCount = allIds.filter((id) => selectedIds.has(id)).length;
+      selectAllRef.current.checked = selectedCount === allIds.length && allIds.length > 0;
+      selectAllRef.current.indeterminate = selectedCount > 0 && selectedCount < allIds.length;
+    }
+  }, [selectedIds, data]);
 
   return (
     <div className="rounded-xl border border-line bg-card overflow-hidden">
@@ -47,6 +62,17 @@ export function AdminTable<T extends { id: string }>({
         <table className="w-full min-w-[720px] text-sm">
           <thead className="border-b border-line bg-soft">
             <tr>
+              {selectedIds && onSelectionChange && (
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    onChange={(_e) => onSelectionChange('__all__')}
+                    className="cursor-pointer"
+                  />
+                </th>
+              )}
               {columns.map((col) => (
                 <th
                   key={col.key}
@@ -77,7 +103,7 @@ export function AdminTable<T extends { id: string }>({
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center">
+                <td colSpan={(selectedIds && onSelectionChange ? 1 : 0) + columns.length} className="px-4 py-12 text-center">
                   <p className="text-sm text-muted">{emptyMessage}</p>
                   {emptyAction && (
                     <Button
@@ -94,6 +120,17 @@ export function AdminTable<T extends { id: string }>({
             ) : (
               data.map((row) => (
                 <tr key={row.id} className="hover:bg-soft/50">
+                  {selectedIds && onSelectionChange && (
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(row.id)}
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        onChange={(_e) => onSelectionChange(row.id)}
+                        className="cursor-pointer"
+                      />
+                    </td>
+                  )}
                   {columns.map((col) => (
                     <td key={col.key} className="px-4 py-3">
                       {col.render
