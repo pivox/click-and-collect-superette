@@ -26,3 +26,10 @@ export async function updateBrand(id: string, payload: UpdateBrandPayload): Prom
 export async function deleteBrand(id: string): Promise<void> {
   await apiClient.delete(`/api/admin/brands/${id}`);
 }
+
+export async function rejectBrand(id: string, reason: string): Promise<Brand> {
+  const { data } = await apiClient.patch<Brand>(`/api/admin/brands/${id}/reject`, {
+    reason,
+  });
+  return data;
+}

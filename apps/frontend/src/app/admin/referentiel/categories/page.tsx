@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
 import { CategoryDrawer } from '@/components/admin/referentiel/categories/CategoryDrawer';
+import { CategoryEditRow } from '@/components/admin/referentiel/categories/CategoryEditRow';
 import { Button } from '@/components/ui/Button';
 import { useSort } from '@/lib/hooks/useSort';
 import { listCategories, deleteCategory } from '@/lib/services/admin/categories.service';
@@ -19,6 +21,7 @@ export default function CategoriesPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Category | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = categories.filter((c) =>
     search
@@ -29,8 +32,12 @@ export default function CategoriesPage() {
   const { sorted, sortKey, sortDir, toggleSort } = useSort(filtered);
   const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const handleToggleExpand = useCallback((id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  }, []);
+
   // Reset to first page when search changes
-  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { setPage(1); setExpandedId(null); }, [search]);
 
   // Load all categories upfront — client-side search per spec
   const load = useCallback(async () => {
@@ -85,6 +92,13 @@ export default function CategoriesPage() {
       label: '',
       render: (row) => (
         <div className="flex justify-end gap-2">
+          <button
+            onClick={() => handleToggleExpand(row.id)}
+            className="rounded p-1 text-muted hover:bg-primary-50 hover:text-primary"
+            title="Édition rapide"
+          >
+            {expandedId === row.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
           <button
             onClick={() => { setEditTarget(row); setDrawerOpen(true); }}
             className="text-xs text-muted hover:text-ink"
@@ -144,6 +158,16 @@ export default function CategoriesPage() {
         sortKey={sortKey as string | null}
         sortDir={sortDir}
         onSort={(key) => toggleSort(key as keyof Category)}
+        expandedRow={(row) =>
+          expandedId === row.id ? (
+            <CategoryEditRow
+              category={row}
+              colSpan={columns.length}
+              onSaved={() => { setExpandedId(null); void load(); }}
+              onCancel={() => setExpandedId(null)}
+            />
+          ) : null
+        }
       />
       <CategoryDrawer
         open={drawerOpen}

@@ -26,3 +26,10 @@ export async function updateCategory(id: string, payload: UpdateCategoryPayload)
 export async function deleteCategory(id: string): Promise<void> {
   await apiClient.delete(`/api/admin/categories/${id}`);
 }
+
+export async function rejectCategory(id: string, reason: string): Promise<Category> {
+  const { data } = await apiClient.patch<Category>(`/api/admin/categories/${id}/reject`, {
+    reason,
+  });
+  return data;
+}
