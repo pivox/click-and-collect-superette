@@ -47,7 +47,7 @@ export default function AdminOpsPage() {
       </div>
 
       {error && (
-        <div className="mt-4 flex items-center gap-3 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
+        <div role="alert" aria-atomic="true" className="mt-4 flex items-center gap-3 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
           <span className="flex-1">{error}</span>
           <button type="button" onClick={load} className="shrink-0 font-semibold underline">
             Réessayer

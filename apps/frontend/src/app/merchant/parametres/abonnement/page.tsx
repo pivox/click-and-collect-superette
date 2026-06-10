@@ -206,7 +206,7 @@ export default function MerchantSubscriptionPage() {
       )}
 
       {error && (
-        <div role="alert" className="rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
+        <div role="alert" aria-atomic="true" className="rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
           {error}
         </div>
       )}
@@ -268,7 +268,7 @@ export default function MerchantSubscriptionPage() {
         )}
 
         {documentsError && (
-          <div role="alert" className="rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
+          <div role="alert" aria-atomic="true" className="rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
             {documentsError}
           </div>
         )}
@@ -375,7 +375,7 @@ export default function MerchantSubscriptionPage() {
         )}
 
         {paymentsError && (
-          <div role="alert" className="rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
+          <div role="alert" aria-atomic="true" className="rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
             {paymentsError}
           </div>
         )}

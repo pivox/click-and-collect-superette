@@ -149,7 +149,7 @@ export default function MerchantCreneauxPage() {
       </div>
 
       {loadError && (
-        <div role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" aria-atomic="true" className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {loadError}{' '}
           <button
             type="button"

@@ -93,7 +93,7 @@ function ProfileEditForm({
           className="rounded-md border border-line bg-soft px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" aria-atomic="true" className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
         <Button variant="ghost" size="md" onClick={onCancel} disabled={saving}>
           {t("client.profile.cancel")}
@@ -179,7 +179,7 @@ function DeleteAccountSection({ onDeleted }: { onDeleted: () => void }) {
                 className="rounded-md border border-line bg-soft px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400"
               />
             </div>
-            {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+            {error && <p role="alert" aria-atomic="true" className="mb-3 text-sm text-red-600">{error}</p>}
             <div className="flex gap-3">
               <Button
                 variant="danger"

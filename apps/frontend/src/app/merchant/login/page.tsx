@@ -69,7 +69,7 @@ export default function MerchantLoginPage() {
           </div>
 
           {error && (
-            <p role="alert" className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+            <p role="alert" aria-atomic="true" className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
               {error}
             </p>
           )}

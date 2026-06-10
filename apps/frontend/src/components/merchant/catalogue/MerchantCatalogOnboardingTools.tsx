@@ -351,7 +351,7 @@ export function MerchantCatalogOnboardingTools({
           )}
 
           {importError && (
-            <div role="alert" className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+            <div role="alert" aria-atomic="true" className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
               {importError}
             </div>
           )}
@@ -453,7 +453,7 @@ export function MerchantCatalogOnboardingTools({
           </form>
 
           {barcodeError && (
-            <div role="alert" className="flex gap-2 rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+            <div role="alert" aria-atomic="true" className="flex gap-2 rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
               <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
               <span>{barcodeError}</span>
             </div>

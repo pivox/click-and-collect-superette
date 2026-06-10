@@ -182,7 +182,7 @@ export default function MerchantNotificationsPage() {
       </div>
 
       {mutationError && (
-        <div className="rounded-md border border-danger/30 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">
+        <div role="alert" aria-atomic="true" className="rounded-md border border-danger/30 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">
           {mutationError}
         </div>
       )}
@@ -192,7 +192,7 @@ export default function MerchantNotificationsPage() {
       )}
 
       {!isLoading && error && (
-        <Card className="flex flex-col gap-3">
+        <Card role="alert" aria-atomic="true" className="flex flex-col gap-3">
           <p className="text-sm font-semibold text-danger">{error}</p>
           <Button
             type="button"

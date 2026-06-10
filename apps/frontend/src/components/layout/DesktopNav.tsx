@@ -71,6 +71,7 @@ export function DesktopNav() {
             const active = pathname === href || (href !== '/' && pathname.startsWith(href));
             const isNotifications = href === '/notifications';
             const badge = isNotifications && unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null;
+            const badgeLabel = badge ? `${badge === '99+' ? '99 ou plus' : badge} notification${badge !== '1' ? 's' : ''} non lue${badge !== '1' ? 's' : ''}` : '';
             return (
               <Link
                 key={href}
@@ -84,9 +85,15 @@ export function DesktopNav() {
               >
                 <Icon size={18} />
                 {t(labelKey)}
-                {badge && (
-                  <span className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-black text-white">
-                    {badge}
+                {isNotifications && (
+                  <span
+                    aria-label={badgeLabel}
+                    aria-live="polite"
+                    aria-atomic="true"
+                    aria-hidden={!badge}
+                    className={`ml-auto flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-black text-white ${!badge ? 'hidden' : ''}`}
+                  >
+                    {badge || ''}
                   </span>
                 )}
               </Link>

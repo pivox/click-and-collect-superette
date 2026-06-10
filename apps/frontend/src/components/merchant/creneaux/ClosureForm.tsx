@@ -85,7 +85,7 @@ export function ClosureForm({ onSubmit, onCancel }: ClosureFormProps) {
           className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none placeholder:text-muted"
         />
       </div>
-      {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+      {error && <p role="alert" aria-atomic="true" className="text-xs text-danger">{error}</p>}
       <div className="flex gap-2">
         <Button type="submit" disabled={saving}>
           {saving ? 'Enregistrement…' : 'Ajouter la fermeture'}

@@ -124,8 +124,8 @@ export default function ClientNotificationsPage() {
       />
 
       {error && (
-        <div className="mb-4">
-          <p className="text-sm text-muted">{error}</p>
+        <div role="alert" aria-atomic="true" className="mb-4 rounded-md bg-red-50 px-3 py-2">
+          <p className="text-sm text-red-600">{error}</p>
           <button
             type="button"
             onClick={() => void load()}

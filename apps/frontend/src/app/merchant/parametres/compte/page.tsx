@@ -115,7 +115,7 @@ function AccountForm({
         }}
         maxLength={180}
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" aria-atomic="true" className="text-sm text-red-600">{error}</p>}
       {saved && <p className="text-sm text-green-700">Informations enregistrées.</p>}
       <Button type="submit" disabled={saving}>
         {saving ? 'Enregistrement…' : 'Enregistrer'}
@@ -193,7 +193,7 @@ function PasswordForm() {
         value={confirm}
         onChange={setConfirm}
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" aria-atomic="true" className="text-sm text-red-600">{error}</p>}
       {saved && <p className="text-sm text-green-700">Mot de passe mis à jour.</p>}
       <Button type="submit" disabled={saving}>
         {saving ? 'Mise à jour…' : 'Changer le mot de passe'}
