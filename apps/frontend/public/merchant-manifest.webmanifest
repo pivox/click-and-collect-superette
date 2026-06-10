@@ -11,6 +11,7 @@
   "theme_color": "#1f7a4d",
   "lang": "fr",
   "categories": ["shopping", "food", "business"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192.png",
