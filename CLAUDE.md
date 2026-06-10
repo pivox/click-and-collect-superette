@@ -74,11 +74,20 @@ php bin/console debug:router | grep "mon-pattern"   # vérifier les routes aprè
 - `/mvp-check` — vérifie qu'une demande reste dans le périmètre MVP
 - `/product-reference` — workflow référentiel produit
 
-**Globales (`~/.claude/commands/`) :**
-- `/review-pr` — revue de PR complète (multi-agents)
-- `/feature-dev` — workflow implémentation feature (discovery → clarification → architecture → code)
-- `/revise-claude-md` — met à jour CLAUDE.md avec les apprentissages de la session
-- `/claude-md-improver` — audite et améliore les fichiers CLAUDE.md
+**Plugins (`.claude/settings.json` → `enabledPlugins`, marketplace officiel `claude-plugins-official`) :**
+- `pr-review-toolkit` — `/review-pr`, revue de PR complète (multi-agents)
+- `feature-dev` — `/feature-dev`, workflow implémentation feature (discovery → clarification → architecture → code)
+- `claude-md-management` — `/revise-claude-md` (apprentissages de session) + skill `claude-md-improver` (audit CLAUDE.md)
+- `commit-commands` — messages de commit conventionnels, staging intelligent, création de PR
+- `php-lsp` — Intelephense sur `apps/backend/` : navigation, références, diagnostics temps réel
+- `typescript-lsp` — typescript-language-server sur `apps/frontend/`
+
+> **Prérequis binaires LSP** (une fois par poste) : `npm install -g intelephense typescript-language-server typescript`.
+> Sans eux, les plugins LSP restent inactifs (erreur visible dans `/plugin` → Errors, non bloquante).
+
+> **Migration :** `/review-pr`, `/feature-dev` et `/revise-claude-md` viennent désormais des plugins.
+> Si des copies manuelles existent encore dans `~/.claude/commands/`, `~/.claude/agents/` ou `~/.claude/skills/`
+> (anciennes installations), les supprimer pour éviter les doublons de commandes.
 
 **Hook automatique :** coller une URL `github.com/pivox/click-and-collect-superette/pull/{N}` dans le prompt déclenche automatiquement une revue de PR sans commande explicite.
 
