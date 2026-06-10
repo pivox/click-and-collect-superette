@@ -365,6 +365,22 @@
         "nextBilling": "Prochaine échéance",
         "nextPhase": "Prochain changement"
       }
+    },
+    "statistics": {
+      "title": "Statistiques",
+      "subtitle": "Suivi de performance",
+      "period": {
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "90d": "90 jours"
+      },
+      "totalOrders": "Commandes",
+      "totalRevenue": "CA estimé",
+      "acceptanceRate": "Taux d’acceptation",
+      "cancellationRate": "Taux d’annulation",
+      "topProducts": "Produits les plus demandés",
+      "topSlots": "Créneaux les plus utilisés",
+      "noData": "Aucune donnée sur cette période"
     }
   },
   "admin": {
