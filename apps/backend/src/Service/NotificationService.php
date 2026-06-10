@@ -88,7 +88,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
                     $order->getCustomer(),
                     'Kadhia prête',
                     'Votre commande est prête à être retirée. Présentez votre QR code en supérette.',
-                    '/orders/' . $order->getId()->toRfc4122(),
+                    '/orders/'.$order->getId()->toRfc4122(),
                 );
                 $this->entityManager->flush();
             } catch (\Throwable $e) {
@@ -152,7 +152,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
                     $order->getCustomer(),
                     'Rappel de retrait',
                     $bodyFr,
-                    '/orders/' . $order->getId()->toRfc4122(),
+                    '/orders/'.$order->getId()->toRfc4122(),
                 );
                 $this->entityManager->flush();
             } catch (\Throwable $e) {
@@ -227,7 +227,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
                     $owner,
                     'Nouvelle commande',
                     'Une nouvelle Kadhia a été soumise.',
-                    '/merchant/orders/' . $order->getId()->toRfc4122(),
+                    '/merchant/orders/'.$order->getId()->toRfc4122(),
                 );
                 $this->entityManager->flush();
             } catch (\Throwable $e) {
