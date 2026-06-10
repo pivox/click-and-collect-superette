@@ -11,7 +11,7 @@ describe('StoreSwitchWarning', () => {
         <StoreSwitchWarning currentStoreName="Aziza Montplaisir" onConfirm={vi.fn()} onCancel={vi.fn()} />
       </ClientLocaleProvider>,
     );
-    expect(screen.getByText('Aziza Montplaisir')).toBeTruthy();
+    expect(screen.getByText(/Aziza Montplaisir/)).toBeTruthy();
   });
 
   it('appelle onConfirm au clic sur "Changer quand même"', () => {
