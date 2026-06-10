@@ -60,13 +60,13 @@ export default function MerchantDashboardPage() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
+        <div role="alert" className="mt-4 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
           {error}
         </div>
       )}
 
       {onboarding && !onboarding.is_complete && (
-        <div className="mt-4 rounded-lg border border-[var(--status-wait)] bg-[var(--status-wait-bg)] px-4 py-3">
+        <div role="status" className="mt-4 rounded-lg border border-[var(--status-wait)] bg-[var(--status-wait-bg)] px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1">
               <p className="text-sm font-extrabold" style={{ color: 'var(--status-wait)' }}>

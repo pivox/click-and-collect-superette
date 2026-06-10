@@ -281,7 +281,7 @@ export default function MerchantOrdersPage() {
       </div>
 
       {selectedTab === 'active' && error && (
-        <div className="mt-4 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
+        <div role="alert" className="mt-4 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
           {error}
         </div>
       )}
@@ -408,7 +408,7 @@ export default function MerchantOrdersPage() {
           </div>
 
           {historyError && (
-            <div className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
+            <div role="alert" className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-md bg-status-cancel-bg px-4 py-3 text-sm text-status-cancel">
               <span>{historyError}</span>
               <Button
                 variant="ghost"

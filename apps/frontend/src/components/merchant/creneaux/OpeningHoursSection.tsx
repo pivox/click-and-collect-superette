@@ -111,6 +111,7 @@ export function OpeningHoursSection({ storeId }: { storeId: string }) {
                           value={day.open ?? ''}
                           disabled={day.closed}
                           onChange={(e) => updateDay(key, 'open', e.target.value || null)}
+                          aria-label={`${label} - heure d'ouverture`}
                           className="rounded border border-line px-2 py-1 text-sm disabled:opacity-40 focus:border-primary focus:outline-none"
                         />
                       </td>
@@ -120,6 +121,7 @@ export function OpeningHoursSection({ storeId }: { storeId: string }) {
                           value={day.close ?? ''}
                           disabled={day.closed}
                           onChange={(e) => updateDay(key, 'close', e.target.value || null)}
+                          aria-label={`${label} - heure de fermeture`}
                           className="rounded border border-line px-2 py-1 text-sm disabled:opacity-40 focus:border-primary focus:outline-none"
                         />
                       </td>
@@ -128,6 +130,7 @@ export function OpeningHoursSection({ storeId }: { storeId: string }) {
                           type="checkbox"
                           checked={day.closed}
                           onChange={(e) => updateDay(key, 'closed', e.target.checked)}
+                          aria-label={`${label} - fermé`}
                           className="h-4 w-4 accent-primary"
                         />
                       </td>

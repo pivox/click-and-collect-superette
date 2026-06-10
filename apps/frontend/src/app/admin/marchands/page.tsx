@@ -233,7 +233,7 @@ export default function MarchandsPage() {
           + Nouveau marchand
         </Button>
       </div>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div role="alert" className="mb-4 flex flex-wrap items-center gap-3">
         <input
           type="text"
           placeholder="Rechercher par nom ou email…"
@@ -261,7 +261,7 @@ export default function MarchandsPage() {
         </div>
       </div>
       {error && (
-        <div className="mb-4 flex items-center gap-3 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
+        <div role="alert" className="mb-4 flex items-center gap-3 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
           <span className="flex-1">{error}</span>
           <button onClick={() => void load()} className="shrink-0 font-semibold underline">
             Réessayer

@@ -67,7 +67,9 @@ export function BottomNav() {
           {unreadCount > 0 && (
             <span
               aria-label={`${unreadCount} notification${unreadCount > 1 ? "s" : ""} non lue${unreadCount > 1 ? "s" : ""}`}
-              className="absolute -right-2 -top-1.5 flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white leading-none py-0.5"
+              aria-live="polite"
+              aria-atomic="true"
+              className="absolute -right-2 -top-1.5 flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white leading-none py-0.5"
             >
               {badgeText}
             </span>

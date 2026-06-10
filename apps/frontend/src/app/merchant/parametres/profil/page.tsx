@@ -108,7 +108,7 @@ export default function MerchantStoreProfilePage() {
     return (
       <div className="flex min-h-40 items-center justify-center">
         {loadError ? (
-          <p className="text-sm text-red-600">{loadError}</p>
+          <p role="alert" className="text-sm text-red-600">{loadError}</p>
         ) : (
           <p className="text-sm text-muted">Chargement…</p>
         )}
@@ -183,7 +183,7 @@ export default function MerchantStoreProfilePage() {
           placeholder="https://…"
         />
 
-        {saveError && <p className="text-sm text-red-600">{saveError}</p>}
+        {saveError && <p role="alert" className="text-sm text-red-600">{saveError}</p>}
         {saved && <p className="text-sm text-green-700">Profil enregistré.</p>}
 
         <div className="flex items-center gap-3">

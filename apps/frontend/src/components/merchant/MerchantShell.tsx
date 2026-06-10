@@ -91,6 +91,8 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
         aria-label={`${unreadNotifications} notification${
           unreadNotifications > 1 ? 's' : ''
         } non lue${unreadNotifications > 1 ? 's' : ''}`}
+        aria-live="polite"
+        aria-atomic="true"
         className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-black text-[#332500]"
       >
         {badgeText}

@@ -278,7 +278,7 @@ export default function AdminIncidentsPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
+        <div role="alert" className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
           {error}
         </div>
       )}
