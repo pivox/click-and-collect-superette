@@ -14,6 +14,7 @@ use App\Entity\OrderLine;
 use App\Entity\Shop;
 use App\Enum\OrderStatus;
 use App\Security\MerchantShopAccessChecker;
+use App\Service\PickupSlotDisplayTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -65,10 +66,10 @@ final readonly class MerchantStatisticsProvider implements ProviderInterface
         $topSlots = $this->queryTopSlots($store, $periodStart, $periodEndExclusive);
 
         $totalSubmitted = array_reduce($ordersByStatus, static fn (int $carry, array $row): int => $carry + (int) $row['count'], 0);
-        $totalAcceptedAndPartial = ((int) ($ordersByStatus[OrderStatus::Accepted->value] ?? 0))
-            + ((int) ($ordersByStatus[OrderStatus::PartiallyAccepted->value] ?? 0));
-        $totalCancelled = (int) ($ordersByStatus[OrderStatus::Cancelled->value] ?? 0);
-        $totalRejected = (int) ($ordersByStatus[OrderStatus::Rejected->value] ?? 0);
+        $totalAcceptedAndPartial = ((int) ($ordersByStatus[OrderStatus::Accepted->value]['count'] ?? 0))
+            + ((int) ($ordersByStatus[OrderStatus::PartiallyAccepted->value]['count'] ?? 0));
+        $totalCancelled = (int) ($ordersByStatus[OrderStatus::Cancelled->value]['count'] ?? 0);
+        $totalRejected = (int) ($ordersByStatus[OrderStatus::Rejected->value]['count'] ?? 0);
 
         return new MerchantStatisticsOutput(
             id: $storeId,
@@ -116,11 +117,11 @@ final readonly class MerchantStatisticsProvider implements ProviderInterface
             ->andWhere('o.shop = :shop')
             ->andWhere('o.createdAt >= :dateFrom')
             ->andWhere('o.createdAt < :dateTo')
-            ->andWhere('o.status != :draft')
+            ->andWhere('o.status NOT IN (:excludedStatuses)')
             ->setParameter('shop', $store)
             ->setParameter('dateFrom', $dateFrom)
             ->setParameter('dateTo', $dateTo)
-            ->setParameter('draft', OrderStatus::Draft)
+            ->setParameter('excludedStatuses', [OrderStatus::Draft, OrderStatus::Cancelled, OrderStatus::Rejected])
             ->getQuery()
             ->getSingleResult();
 
@@ -233,8 +234,8 @@ final readonly class MerchantStatisticsProvider implements ProviderInterface
 
         return array_map(
             static fn (array $row): MerchantStatisticsTopSlotOutput => new MerchantStatisticsTopSlotOutput(
-                startsAt: $row['startsAt']->format(\DateTimeInterface::ATOM),
-                endsAt: $row['endsAt']->format(\DateTimeInterface::ATOM),
+                startsAt: PickupSlotDisplayTime::toLocalAtom($row['startsAt']),
+                endsAt: PickupSlotDisplayTime::toLocalAtom($row['endsAt']),
                 orderCount: (int) $row['order_count'],
             ),
             $results,

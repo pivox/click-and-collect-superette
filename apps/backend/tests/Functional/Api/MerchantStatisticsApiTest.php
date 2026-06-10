@@ -121,7 +121,6 @@ final class MerchantStatisticsApiTest extends FunctionalApiTestCase
         self::assertSame(0.0, $payload['acceptance_rate']);
     }
 
-
     private function createOrder(User $customer, Shop $shop, OrderStatus $status): Order
     {
         $order = (new Order())
