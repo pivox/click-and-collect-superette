@@ -35,7 +35,7 @@ export function StoreDetailContent({ shop }: StoreDetailContentProps) {
         <Hero
           badge={badgeText}
           title={shop.name}
-          subtitle="Produits du quotidien, boissons, lait, pâtes, conserves, hygiène et snacks."
+          subtitle={t('client.storeDetail.heroSubtitle')}
         />
 
         <div className="mt-4 md:mt-0 space-y-3">

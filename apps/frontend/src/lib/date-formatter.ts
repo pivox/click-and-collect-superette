@@ -7,7 +7,11 @@ export type Locale = 'fr' | 'ar';
 
 export function formatDate(iso: string, locale: Locale = 'fr'): string {
   const localeCode = locale === 'ar' ? 'ar-TN' : 'fr-FR';
-  return new Date(iso).toLocaleDateString(localeCode, { day: 'numeric', month: 'short' });
+  return new Date(iso).toLocaleDateString(localeCode, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'Africa/Tunis',
+  });
 }
 
 export function formatDateTime(iso: string, locale: Locale = 'fr'): string {
@@ -17,6 +21,7 @@ export function formatDateTime(iso: string, locale: Locale = 'fr'): string {
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Africa/Tunis',
   });
 }
 
@@ -25,10 +30,21 @@ export function formatSlotRange(startIso: string, endIso: string, locale: Locale
   const start = new Date(startIso);
   const end = new Date(endIso);
 
-  const dateStr = start.toLocaleDateString(localeCode, { day: 'numeric', month: 'short' });
-  const startTime = start.toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' });
-  const endTime = end.toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' });
+  const dateStr = start.toLocaleDateString(localeCode, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'Africa/Tunis',
+  });
+  const startTime = start.toLocaleTimeString(localeCode, {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Africa/Tunis',
+  });
+  const endTime = end.toLocaleTimeString(localeCode, {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Africa/Tunis',
+  });
 
-  const separator = locale === 'ar' ? ' — ' : ' — ';
-  return `${dateStr} ${startTime}${separator}${endTime}`;
+  return `${dateStr} ${startTime} — ${endTime}`;
 }
