@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { formatTnd } from "@/lib/format";
 import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
+import { formatDate as formatDateLocalized } from "@/lib/date-formatter";
 import type { KadhiaListItem } from "@/lib/services/kadhia.service";
 
 interface Props {
@@ -11,12 +12,8 @@ interface Props {
   onCreateNew: () => void;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-}
-
 export function KadhiaSelectorDialog({ drafts, onSelect, onCreateNew }: Props) {
-  const { t } = useClientLocale();
+  const { t, locale } = useClientLocale();
   return (
     <div
       role="dialog"
@@ -44,7 +41,7 @@ export function KadhiaSelectorDialog({ drafts, onSelect, onCreateNew }: Props) {
                   <span className="text-sm font-extrabold text-primary">{formatTnd(d.totalTnd)}</span>
                 </div>
                 <p className="mt-0.5 text-xs text-muted">
-                  {t("client.kadhiaSelector.updatedOn")} {formatDate(d.updatedAt)}
+                  {t("client.kadhiaSelector.updatedOn")} {formatDateLocalized(d.updatedAt, locale)}
                 </p>
               </button>
             </li>

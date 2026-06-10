@@ -40,6 +40,8 @@
       "orders": "الطلبات",
       "notifications": "الإشعارات",
       "notifs": "إشعارات",
+      "notificationsSingular": "إشعار واحد غير مقروء",
+      "notificationsPlural": "{count} إشعارات غير مقروءة",
       "profile": "الملف",
       "login": "تسجيل الدخول",
       "brandTagline": "Click & Collect Supérette",
@@ -50,6 +52,26 @@
       "register": "إنشاء حساب",
       "logout": "تسجيل الخروج",
       "clientFallback": "زبون"
+    },
+    "store": {
+      "open": "مفتوح",
+      "closed": "مغلق",
+      "pickupFrom": "الاستلام من",
+      "switchWarningTitle": "تغيير Supérette؟",
+      "switchWarningMessage": "لديك Kadhia جارية في {storeName}. تغيير Supérette لن يحذفها، لكنها ستكون معلقة حتى عودتك.",
+      "switchWarningCancel": "إلغاء",
+      "switchWarningConfirm": "تغيير على أي حال"
+    },
+    "storeDetail": {
+      "heroSubtitle": "منتجات يومية وجبات ومشروبات وحليب ومعكرونة وأغذية معلبة وحلويات.",
+      "hours": "الساعات",
+      "distance": "المسافة",
+      "km": "كم",
+      "payment": "الدفع",
+      "paymentOnSite": "في الموقع",
+      "slot": "موعد",
+      "from": "من",
+      "rating": "التقييم"
     },
     "profile": {
       "title": "حسابي",
