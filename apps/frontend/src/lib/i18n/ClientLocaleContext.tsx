@@ -64,23 +64,8 @@ export function ClientLocaleProvider({ children }: { children: React.ReactNode }
   );
 }
 
-const defaultValue: ClientLocaleContextValue = {
-  locale: defaultClientLocale,
-  dir: 'ltr',
-  setLocale: () => {},
-  t: (key: string) => key,
-};
-
 export function useClientLocale(): ClientLocaleContextValue {
   const ctx = useContext(ClientLocaleContext);
-  // In tests without provider, return default value instead of throwing.
-  // Real provider ensures proper context in production.
-  if (!ctx) {
-    // @ts-expect-error describe is globally available in test environment only
-    if (typeof describe !== 'undefined') {
-      return defaultValue;
-    }
-    throw new Error('useClientLocale must be used within ClientLocaleProvider');
-  }
+  if (!ctx) throw new Error('useClientLocale must be used within ClientLocaleProvider');
   return ctx;
 }
