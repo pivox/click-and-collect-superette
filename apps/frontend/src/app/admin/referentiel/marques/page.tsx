@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
 import { BrandDrawer } from '@/components/admin/referentiel/marques/BrandDrawer';
+import { BrandEditRow } from '@/components/admin/referentiel/marques/BrandEditRow';
 import { Button } from '@/components/ui/Button';
 import { useSort } from '@/lib/hooks/useSort';
 import { listBrands, deleteBrand } from '@/lib/services/admin/brands.service';
@@ -19,6 +21,7 @@ export default function MarquesPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Brand | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Brand | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = brands.filter((b) =>
     search ? b.canonical_name.toLowerCase().includes(search.toLowerCase()) : true,
@@ -26,8 +29,12 @@ export default function MarquesPage() {
   const { sorted, sortKey, sortDir, toggleSort } = useSort(filtered);
   const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const handleToggleExpand = useCallback((id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  }, []);
+
   // Reset to first page when search changes
-  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { setPage(1); setExpandedId(null); }, [search]);
 
   // Load all brands upfront — client-side search per spec
   const load = useCallback(async () => {
@@ -95,6 +102,13 @@ export default function MarquesPage() {
       render: (row) => (
         <div className="flex justify-end gap-2">
           <button
+            onClick={() => handleToggleExpand(row.id)}
+            className="rounded p-1 text-muted hover:bg-primary-50 hover:text-primary"
+            title="Édition rapide"
+          >
+            {expandedId === row.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          <button
             onClick={() => { setEditTarget(row); setDrawerOpen(true); }}
             className="text-xs text-muted hover:text-ink"
           >
@@ -153,6 +167,16 @@ export default function MarquesPage() {
         sortKey={sortKey as string | null}
         sortDir={sortDir}
         onSort={(key) => toggleSort(key as keyof Brand)}
+        expandedRow={(row) =>
+          expandedId === row.id ? (
+            <BrandEditRow
+              brand={row}
+              colSpan={columns.length}
+              onSaved={() => { setExpandedId(null); void load(); }}
+              onCancel={() => setExpandedId(null)}
+            />
+          ) : null
+        }
       />
       <BrandDrawer
         open={drawerOpen}

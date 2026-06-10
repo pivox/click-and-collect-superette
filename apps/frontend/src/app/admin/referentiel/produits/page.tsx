@@ -1,11 +1,12 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowUpDown, GitMerge, RefreshCw, Sparkles, Check, X } from 'lucide-react';
+import { ArrowUpDown, GitMerge, RefreshCw, Sparkles, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { AdminConfirmDialog } from '@/components/admin/ui/AdminConfirmDialog';
 import { BulkActionBar } from '@/components/admin/ui/BulkActionBar';
 import { BulkActionDialog, type BulkAction, type BulkResult } from '@/components/admin/ui/BulkActionDialog';
 import { ProductReferenceDrawer } from '@/components/admin/referentiel/produits/ProductReferenceDrawer';
+import { ProductReferenceEditRow } from '@/components/admin/referentiel/produits/ProductReferenceEditRow';
 import { Button } from '@/components/ui/Button';
 import { useSort } from '@/lib/hooks/useSort';
 import {
@@ -118,8 +119,13 @@ export default function ProduitsPage() {
   const [bulkAction, setBulkAction] = useState<BulkAction | null>(null);
   const [bulkResult, setBulkResult] = useState<BulkResult | null>(null);
   const [isBulkBusy, setIsBulkBusy] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { sorted, sortKey, sortDir, toggleSort } = useSort(products);
+
+  const handleToggleExpand = useCallback((id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  }, []);
 
   useEffect(() => {
     void Promise.all([listBrands(1, 50), listCategories(1, 50)])
@@ -180,7 +186,7 @@ export default function ProduitsPage() {
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { void loadDuplicateCandidates(); }, [loadDuplicateCandidates]);
-  useEffect(() => { setPage(1); }, [debouncedQ, brandFilter, categoryFilter, statusFilter, qualityFilter, qualitySortDir]);
+  useEffect(() => { setPage(1); setExpandedId(null); }, [debouncedQ, brandFilter, categoryFilter, statusFilter, qualityFilter, qualitySortDir]);
   useEffect(() => { setSelectedIds(new Set()); }, [page, debouncedQ, brandFilter, categoryFilter, statusFilter, qualityFilter, qualitySortDir]);
 
   const handleTableSort = (key: string) => {
@@ -441,6 +447,13 @@ export default function ProduitsPage() {
                 <X size={16} />
               </button>
             )}
+            <button
+              onClick={() => handleToggleExpand(row.id)}
+              className="rounded p-1 text-muted hover:bg-primary-50 hover:text-primary"
+              title="Édition rapide"
+            >
+              {expandedId === row.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
             <button
               onClick={() => { setEditTarget(row); setDrawerOpen(true); }}
               className="rounded p-1 text-muted hover:bg-blue-50 hover:text-blue-700"
@@ -741,6 +754,18 @@ export default function ProduitsPage() {
         onSort={handleTableSort}
         selectedIds={selectedIds}
         onSelectionChange={handleSelectionChange}
+        expandedRow={(row) =>
+          expandedId === row.id ? (
+            <ProductReferenceEditRow
+              product={row}
+              brands={filterBrands}
+              categories={filterCategories}
+              colSpan={columns.length + (selectedIds ? 1 : 0)}
+              onSaved={() => { setExpandedId(null); void load(); }}
+              onCancel={() => setExpandedId(null)}
+            />
+          ) : null
+        }
       />
       {drawerOpen && (
         <ProductReferenceDrawer

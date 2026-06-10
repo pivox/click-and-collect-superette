@@ -29,6 +29,7 @@ interface AdminTableProps<T extends { id: string }> {
   onSort?: (key: string) => void;
   selectedIds?: Set<string>;
   onSelectionChange?: (id: string) => void;
+  expandedRow?: (row: T) => React.ReactNode;
 }
 
 export function AdminTable<T extends { id: string }>({
@@ -43,6 +44,7 @@ export function AdminTable<T extends { id: string }>({
   onSort,
   selectedIds,
   onSelectionChange,
+  expandedRow,
 }: AdminTableProps<T>) {
   const pageCount = pagination ? Math.ceil(pagination.total / pagination.limit) : 1;
   const selectAllRef = React.useRef<HTMLInputElement>(null);
@@ -124,26 +126,29 @@ export function AdminTable<T extends { id: string }>({
               </tr>
             ) : (
               data.map((row) => (
-                <tr key={row.id} className="hover:bg-soft/50">
-                  {selectedIds && onSelectionChange && (
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(row.id)}
-                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                        onChange={(_e) => onSelectionChange(row.id)}
-                        className="cursor-pointer"
-                      />
-                    </td>
-                  )}
-                  {columns.map((col) => (
-                    <td key={col.key} className="px-4 py-3">
-                      {col.render
-                        ? col.render(row)
-                        : String((row as Record<string, unknown>)[col.key] ?? '')}
-                    </td>
-                  ))}
-                </tr>
+                <React.Fragment key={row.id}>
+                  <tr className="hover:bg-soft/50">
+                    {selectedIds && onSelectionChange && (
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(row.id)}
+                          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                          onChange={(_e) => onSelectionChange(row.id)}
+                          className="cursor-pointer"
+                        />
+                      </td>
+                    )}
+                    {columns.map((col) => (
+                      <td key={col.key} className="px-4 py-3">
+                        {col.render
+                          ? col.render(row)
+                          : String((row as Record<string, unknown>)[col.key] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                  {expandedRow?.(row)}
+                </React.Fragment>
               ))
             )}
           </tbody>
