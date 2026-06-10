@@ -15,6 +15,14 @@ const NAV_ITEMS = [
   { href: "/orders", labelKey: "client.nav.orders", icon: ClipboardList },
 ] as const;
 
+function getNotificationsAriaLabel(count: number, t: (key: string) => string): string {
+  if (count === 1) {
+    return t("client.nav.notificationsSingular");
+  }
+  const template = t("client.nav.notificationsPlural");
+  return template.replace("{count}", String(count));
+}
+
 export function BottomNav() {
   const pathname = usePathname() ?? "/";
   const { user } = useClientAuth();
@@ -65,7 +73,7 @@ export function BottomNav() {
         <span className="relative">
           <Bell size={20} strokeWidth={notifActive ? 2.5 : 2} />
           <span
-            aria-label={unreadCount > 0 ? `${unreadCount} notification${unreadCount > 1 ? "s" : ""} non lue${unreadCount > 1 ? "s" : ""}` : ''}
+            aria-label={unreadCount > 0 ? getNotificationsAriaLabel(unreadCount, t) : ''}
             aria-live="polite"
             aria-atomic="true"
             aria-hidden={unreadCount === 0}

@@ -40,6 +40,8 @@
       "orders": "Commandes",
       "notifications": "Notifications",
       "notifs": "Notifs",
+      "notificationsSingular": "1 notification non lue",
+      "notificationsPlural": "{count} notifications non lues",
       "profile": "Profil",
       "login": "Connexion",
       "brandTagline": "Click & Collect Supérette",
@@ -50,6 +52,25 @@
       "register": "Créer un compte",
       "logout": "Se déconnecter",
       "clientFallback": "Client"
+    },
+    "store": {
+      "open": "Ouverte",
+      "closed": "Fermée",
+      "pickupFrom": "Retrait dès",
+      "switchWarningTitle": "Changer de supérette ?",
+      "switchWarningMessage": "Tu as une Kadhia en cours chez {storeName}. Changer de supérette ne la supprime pas, mais elle sera mise en pause jusqu'à ton retour.",
+      "switchWarningCancel": "Annuler",
+      "switchWarningConfirm": "Changer quand même"
+    },
+    "storeDetail": {
+      "hours": "Horaires",
+      "distance": "Distance",
+      "km": "km",
+      "payment": "Paiement",
+      "paymentOnSite": "Sur place",
+      "slot": "Créneau",
+      "from": "Dès",
+      "rating": "Note"
     },
     "profile": {
       "title": "Mon compte",
