@@ -18,10 +18,21 @@ export default function MerchantStatisticsPage() {
   const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d')
 
   const daysOffset = period === '7d' ? 7 : period === '30d' ? 30 : 90
-  const dateFrom = new Date()
-  dateFrom.setDate(dateFrom.getDate() - daysOffset)
-  const dateFromStr = dateFrom.toISOString().split('T')[0]
-  const dateTo = new Date().toISOString().split('T')[0]
+
+  // Format dates in Tunis timezone instead of UTC to avoid off-by-one at midnight
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Tunis',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+
+  const today = new Date()
+  const dateFromDate = new Date(today)
+  dateFromDate.setDate(dateFromDate.getDate() - daysOffset)
+
+  const dateFromStr = formatter.format(dateFromDate)
+  const dateTo = formatter.format(today)
 
   const load = useCallback(async () => {
     if (!storeId) return
