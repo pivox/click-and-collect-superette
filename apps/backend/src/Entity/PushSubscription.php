@@ -68,7 +68,7 @@ final class PushSubscription
         $this->endpoint = $endpoint;
         $this->p256dhKey = $p256dhKey;
         $this->authKey = $authKey;
-        $this->endpointHash = \hash('sha256', $endpoint);
+        $this->endpointHash = hash('sha256', $endpoint);
         $this->scope = $scope;
         $this->userAgent = $userAgent;
         $now = new \DateTimeImmutable();
@@ -89,6 +89,7 @@ final class PushSubscription
     public function setUser(User $user): self
     {
         $this->user = $user;
+
         return $this;
     }
 
@@ -135,6 +136,7 @@ final class PushSubscription
     public function setUpdatedAt(\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
+
         return $this;
     }
 
@@ -146,6 +148,7 @@ final class PushSubscription
     public function setLastSuccessAt(\DateTimeImmutable $lastSuccessAt): self
     {
         $this->lastSuccessAt = $lastSuccessAt;
+
         return $this;
     }
 
@@ -157,6 +160,7 @@ final class PushSubscription
     public function setLastFailureAt(\DateTimeImmutable $lastFailureAt): self
     {
         $this->lastFailureAt = $lastFailureAt;
+
         return $this;
     }
 
@@ -168,6 +172,7 @@ final class PushSubscription
     public function setFailureCount(int $failureCount): self
     {
         $this->failureCount = $failureCount;
+
         return $this;
     }
 }

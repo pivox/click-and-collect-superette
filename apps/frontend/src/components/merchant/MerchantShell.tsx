@@ -24,6 +24,7 @@ import type { MerchantPickupSlot } from '@/lib/types/merchant-slots.types';
 
 const ACTIVE_NAV = [
   { href: '/merchant', label: 'Dashboard', icon: BarChart3 },
+  { href: '/merchant/statistiques', label: 'Statistiques', icon: BarChart3 },
   { href: '/merchant/commandes', label: 'Commandes', icon: ShoppingBasket },
   { href: '/merchant/catalogue', label: 'Catalogue', icon: Package },
   { href: '/merchant/retrait', label: 'Retrait', icon: QrCode },

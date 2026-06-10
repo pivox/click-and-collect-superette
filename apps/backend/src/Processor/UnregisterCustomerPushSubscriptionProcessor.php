@@ -30,7 +30,7 @@ final readonly class UnregisterCustomerPushSubscriptionProcessor implements Proc
             throw new AccessDeniedHttpException('Only authenticated customers can unregister push subscriptions');
         }
 
-        $hash = \hash('sha256', $data->endpoint);
+        $hash = hash('sha256', $data->endpoint);
         $subscription = $this->pushSubscriptionRepository->findByEndpointHash($hash);
 
         if ($subscription && $subscription->getUser()->getId()->equals($user->getId())) {

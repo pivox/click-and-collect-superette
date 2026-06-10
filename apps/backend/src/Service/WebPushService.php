@@ -8,8 +8,8 @@ use App\Entity\PushSubscription;
 use App\Entity\User;
 use App\Repository\PushSubscriptionRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Minishlink\WebPush\WebPush;
 use Minishlink\WebPush\Subscription;
+use Minishlink\WebPush\WebPush;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -63,11 +63,11 @@ final readonly class WebPushService
                 'authToken' => $subscription->getAuthKey(),
             ]);
 
-            $payload = \json_encode([
+            $payload = json_encode([
                 'title' => $titleFr,
                 'body' => $bodyFr,
                 'url' => $url ?? '/',
-            ], JSON_THROW_ON_ERROR);
+            ], \JSON_THROW_ON_ERROR);
 
             $webPush->queueNotification($pushSubscription, $payload);
 

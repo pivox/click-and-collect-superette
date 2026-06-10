@@ -1,5 +1,5 @@
-import { render, screen, act, waitFor } from '@testing-library/react';
-import React from 'react';
+import { render, screen, act, waitFor } from '@/tests/test-utils';
+import { render as renderWithoutProvider } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ClientLocaleProvider, useClientLocale } from '@/lib/i18n/ClientLocaleContext';
 
@@ -17,11 +17,7 @@ function Consumer() {
 }
 
 function renderConsumer() {
-  return render(
-    <ClientLocaleProvider>
-      <Consumer />
-    </ClientLocaleProvider>,
-  );
+  return render(<Consumer />);
 }
 
 describe('ClientLocaleContext (S14-004)', () => {
@@ -70,7 +66,7 @@ describe('ClientLocaleContext (S14-004)', () => {
   it('throws when used outside the provider', () => {
     const err = console.error;
     console.error = () => {};
-    expect(() => render(<Consumer />)).toThrow();
+    expect(() => renderWithoutProvider(<Consumer />)).toThrow();
     console.error = err;
   });
 });
