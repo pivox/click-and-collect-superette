@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@/tests/test-utils';
+import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PushNotificationToggle } from '@/components/shared/PushNotificationToggle';
 import * as pushService from '@/lib/services/push-subscription.service';
