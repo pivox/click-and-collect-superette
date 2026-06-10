@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
+import { render, screen, waitFor } from '@/tests/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const replace = vi.fn();

@@ -1,5 +1,4 @@
-import { render, screen, act, waitFor } from '@testing-library/react';
-import React from 'react';
+import { render, screen, act, waitFor } from '@/tests/test-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ClientLocaleProvider, useClientLocale } from '@/lib/i18n/ClientLocaleContext';
 
@@ -17,11 +16,7 @@ function Consumer() {
 }
 
 function renderConsumer() {
-  return render(
-    <ClientLocaleProvider>
-      <Consumer />
-    </ClientLocaleProvider>,
-  );
+  return render(<Consumer />);
 }
 
 describe('ClientLocaleContext (S14-004)', () => {

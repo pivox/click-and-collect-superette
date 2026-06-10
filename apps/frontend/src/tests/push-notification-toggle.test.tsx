@@ -1,14 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
+import { render, screen, waitFor } from '@/tests/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PushNotificationToggle } from '@/components/shared/PushNotificationToggle';
 import * as pushService from '@/lib/services/push-subscription.service';
-
-vi.mock('@/lib/i18n/ClientLocaleContext', () => ({
-  useClientLocale: () => ({
-    t: (key: string) => key,
-  }),
-}));
 
 vi.mock('@/lib/services/push-subscription.service', () => ({
   getPushPermissionState: vi.fn(),
