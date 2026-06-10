@@ -76,6 +76,7 @@ export function useClientLocale(): ClientLocaleContextValue {
   // In tests without provider, return default value instead of throwing.
   // Real provider ensures proper context in production.
   if (!ctx) {
+    // @ts-expect-error describe is globally available in test environment only
     if (typeof describe !== 'undefined') {
       return defaultValue;
     }
