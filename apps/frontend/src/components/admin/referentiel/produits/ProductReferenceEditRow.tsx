@@ -67,12 +67,12 @@ export function ProductReferenceEditRow({
     try {
       await updateProductReference(product.id, {
         nameFr: nameFr.trim(),
-        nameAr: nameAr.trim() || null,
+        nameAr: nameAr.trim() || undefined,
         brandId,
         categoryId,
         unit,
-        barcode: barcode.trim() || null,
-        volume: volume.trim() || null,
+        barcode: barcode.trim() || undefined,
+        volume: volume.trim() || undefined,
       });
       onSaved();
     } catch (e) {

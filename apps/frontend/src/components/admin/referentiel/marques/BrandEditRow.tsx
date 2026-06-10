@@ -41,7 +41,7 @@ export function BrandEditRow({ brand, colSpan, onSaved, onCancel }: BrandEditRow
       await updateBrand(brand.id, {
         canonicalName: canonicalName.trim(),
         aliases: aliasesArray,
-        country: country.trim() || null,
+        country: country.trim() || undefined,
         isActive,
       });
       onSaved();

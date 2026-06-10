@@ -4,8 +4,8 @@ import axios from 'axios';
 import {
   approveProposal,
   rejectProposal,
-  listProductReferences,
 } from '@/lib/services/admin/proposals.service';
+import { listProductReferences } from '@/lib/services/admin/product-references.service';
 import { createBrand } from '@/lib/services/admin/brands.service';
 import { createCategory } from '@/lib/services/admin/categories.service';
 import { InlineCreateCombobox } from '@/components/admin/ui/InlineCreateCombobox';
