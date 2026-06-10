@@ -152,7 +152,7 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
         />
       </div>
       {errors.length > 0 && (
-        <ul role="alert" className="space-y-0.5">
+        <ul role="alert" aria-atomic="true" className="space-y-0.5">
           {errors.map((err) => (
             <li key={err} className="text-xs text-danger">
               {err}

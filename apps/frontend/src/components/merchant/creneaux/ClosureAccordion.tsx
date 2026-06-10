@@ -122,7 +122,7 @@ export function ClosureAccordion({
           </ul>
 
           {deleteError && (
-            <p role="alert" className="mt-2 text-xs text-danger">{deleteError}</p>
+            <p role="alert" aria-atomic="true" className="mt-2 text-xs text-danger">{deleteError}</p>
           )}
 
           {showForm ? (

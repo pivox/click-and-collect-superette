@@ -106,12 +106,12 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
       </div>
 
       {deleteError && (
-        <p role="alert" className="mt-2 text-xs text-danger">
+        <p role="alert" aria-atomic="true" className="mt-2 text-xs text-danger">
           {deleteError}
         </p>
       )}
       {toggleError && (
-        <p role="alert" className="mt-1 text-xs text-danger">
+        <p role="alert" aria-atomic="true" className="mt-1 text-xs text-danger">
           {toggleError}
         </p>
       )}
@@ -164,7 +164,7 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
         )}
         </div>
         {editingCapacity && saveError && (
-          <p role="alert" className="mt-1 text-xs text-danger">
+          <p role="alert" aria-atomic="true" className="mt-1 text-xs text-danger">
             {saveError}
           </p>
         )}

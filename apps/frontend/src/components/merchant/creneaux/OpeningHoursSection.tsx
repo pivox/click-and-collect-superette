@@ -86,7 +86,7 @@ export function OpeningHoursSection({ storeId }: { storeId: string }) {
       {open && (
         <div className="mt-3 space-y-3">
           {loadError && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{loadError}</p>
+            <p role="alert" aria-atomic="true" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{loadError}</p>
           )}
 
           <div className="overflow-x-auto rounded-lg border border-line">
@@ -142,7 +142,7 @@ export function OpeningHoursSection({ storeId }: { storeId: string }) {
           </div>
 
           {saveError && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
+            <p role="alert" aria-atomic="true" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
           )}
           {savedOk && (
             <p className="rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700">

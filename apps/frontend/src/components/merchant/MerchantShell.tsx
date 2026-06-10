@@ -81,19 +81,21 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
     pathname === href || (href !== '/merchant' && pathname.startsWith(href));
 
   const renderBadge = (label?: string) => {
-    if (label !== 'notifications' || unreadNotifications <= 0) {
+    if (label !== 'notifications') {
       return null;
     }
     const badgeText = unreadNotifications > 99 ? '99+' : String(unreadNotifications);
+    const badgeLabel = unreadNotifications > 0 ? `${unreadNotifications} notification${
+      unreadNotifications > 1 ? 's' : ''
+    } non lue${unreadNotifications > 1 ? 's' : ''}` : '';
 
     return (
       <span
-        aria-label={`${unreadNotifications} notification${
-          unreadNotifications > 1 ? 's' : ''
-        } non lue${unreadNotifications > 1 ? 's' : ''}`}
+        aria-label={badgeLabel}
         aria-live="polite"
         aria-atomic="true"
-        className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-black text-[#332500]"
+        aria-hidden={unreadNotifications === 0}
+        className={`ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-black text-[#332500] ${unreadNotifications === 0 ? 'hidden' : ''}`}
       >
         {badgeText}
       </span>

@@ -151,7 +151,7 @@ export function SlotCreateModal({
             />
           </div>
 
-          {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+          {error && <p role="alert" aria-atomic="true" className="text-xs text-danger">{error}</p>}
 
           <Button full type="submit" disabled={saving}>
             {saving ? 'Création…' : 'Créer le créneau'}

@@ -85,14 +85,15 @@ export function DesktopNav() {
               >
                 <Icon size={18} />
                 {t(labelKey)}
-                {badge && (
+                {isNotifications && (
                   <span
                     aria-label={badgeLabel}
                     aria-live="polite"
                     aria-atomic="true"
-                    className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-black text-white"
+                    aria-hidden={!badge}
+                    className={`ml-auto flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-black text-white ${!badge ? 'hidden' : ''}`}
                   >
-                    {badge}
+                    {badge || ''}
                   </span>
                 )}
               </Link>

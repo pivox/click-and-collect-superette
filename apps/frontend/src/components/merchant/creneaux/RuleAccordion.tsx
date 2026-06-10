@@ -128,7 +128,7 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }:
           </ul>
 
           {deleteError && (
-            <p role="alert" className="mt-2 text-xs text-danger">{deleteError}</p>
+            <p role="alert" aria-atomic="true" className="mt-2 text-xs text-danger">{deleteError}</p>
           )}
 
           {showForm ? (
@@ -174,7 +174,7 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }:
                 </p>
               )}
               {generateError && (
-                <p role="alert" className="mt-2 text-xs text-danger">{generateError}</p>
+                <p role="alert" aria-atomic="true" className="mt-2 text-xs text-danger">{generateError}</p>
               )}
             </div>
           )}

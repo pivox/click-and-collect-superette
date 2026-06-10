@@ -64,16 +64,15 @@ export function BottomNav() {
       >
         <span className="relative">
           <Bell size={20} strokeWidth={notifActive ? 2.5 : 2} />
-          {unreadCount > 0 && (
-            <span
-              aria-label={`${unreadCount} notification${unreadCount > 1 ? "s" : ""} non lue${unreadCount > 1 ? "s" : ""}`}
-              aria-live="polite"
-              aria-atomic="true"
-              className="absolute -right-2 -top-1.5 flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white leading-none py-0.5"
-            >
-              {badgeText}
-            </span>
-          )}
+          <span
+            aria-label={unreadCount > 0 ? `${unreadCount} notification${unreadCount > 1 ? "s" : ""} non lue${unreadCount > 1 ? "s" : ""}` : ''}
+            aria-live="polite"
+            aria-atomic="true"
+            aria-hidden={unreadCount === 0}
+            className={`absolute -right-2 -top-1.5 flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white leading-none py-0.5 ${unreadCount === 0 ? 'hidden' : ''}`}
+          >
+            {badgeText}
+          </span>
         </span>
         <span>{t("client.nav.notifs")}</span>
       </Link>

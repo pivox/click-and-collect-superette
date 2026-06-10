@@ -66,7 +66,7 @@ export function GenerateBanner({ onGenerate, onDismiss }: GenerateBannerProps) {
           <p className="mt-0.5 text-xs text-muted">
             Période : du {fmt(now)} au {fmt(horizon)}
           </p>
-          {error && <p role="alert" className="mt-1 text-xs text-danger">{error}</p>}
+          {error && <p role="alert" aria-atomic="true" className="mt-1 text-xs text-danger">{error}</p>}
           <div className="mt-3 flex items-center gap-2">
             <Button size="md" onClick={handleGenerate} disabled={loading}>
               {loading ? 'Génération…' : 'Générer'}

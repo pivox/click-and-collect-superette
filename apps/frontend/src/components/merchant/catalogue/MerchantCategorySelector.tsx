@@ -110,7 +110,7 @@ export function MerchantCategorySelector({
       )}
 
       {createError && (
-        <div role="alert" className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+        <div role="alert" aria-atomic="true" className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
           {createError}
         </div>
       )}
