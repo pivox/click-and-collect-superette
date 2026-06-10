@@ -3,7 +3,6 @@ import { useState } from 'react';
 import axios from 'axios';
 import {
   updateCategory,
-  rejectCategory,
 } from '@/lib/services/admin/categories.service';
 import type { Category } from '@/lib/types/admin/referentiel.types';
 import { cn } from '@/lib/cn';
@@ -21,9 +20,6 @@ export function CategoryEditRow({ category, colSpan, onSaved, onCancel }: Catego
   const [isActive, setIsActive] = useState(category.is_active);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showRejectPrompt, setShowRejectPrompt] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
-  const [isRejecting, setIsRejecting] = useState(false);
 
   const handleSave = async () => {
     setError(null);
@@ -40,34 +36,20 @@ export function CategoryEditRow({ category, colSpan, onSaved, onCancel }: Catego
       });
       onSaved();
     } catch (e) {
-      setError(
-        axios.isAxiosError(e) && e.response?.status === 409
-          ? 'Cette catégorie a déjà été modifiée ailleurs.'
-          : 'Une erreur est survenue. Réessayez.',
-      );
+      if (axios.isAxiosError(e)) {
+        if (e.response?.status === 409) {
+          setError('Cette catégorie a déjà été modifiée ailleurs.');
+          return;
+        }
+        if (e.response?.status === 422) {
+          setError('Données invalides (peut-être un nom déjà utilisé).');
+          return;
+        }
+      }
+      console.error('[CategoryEditRow] updateCategory failed:', e);
+      setError('Une erreur est survenue. Réessayez.');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleRejectConfirm = async () => {
-    if (!rejectReason.trim()) {
-      setError('La raison du rejet est obligatoire.');
-      return;
-    }
-    setIsRejecting(true);
-    setError(null);
-    try {
-      await rejectCategory(category.id, rejectReason.trim());
-      onSaved();
-    } catch (e) {
-      setError(
-        axios.isAxiosError(e) && e.response?.status === 409
-          ? 'Cette catégorie a déjà été traitée ailleurs.'
-          : 'Une erreur est survenue. Réessayez.',
-      );
-    } finally {
-      setIsRejecting(false);
     }
   };
 
@@ -130,46 +112,6 @@ export function CategoryEditRow({ category, colSpan, onSaved, onCancel }: Catego
           </div>
         </div>
 
-        {showRejectPrompt && (
-          <div className="mt-3 flex items-start gap-3 border-t border-line pt-3">
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              disabled={isRejecting}
-              rows={2}
-              placeholder="Raison du rejet *"
-              className={cn(
-                'max-w-sm flex-1 rounded-md border border-line px-3 py-2 text-sm outline-none transition',
-                'focus:border-primary focus:ring-2 focus:ring-primary/20',
-                isRejecting && 'opacity-50 cursor-not-allowed',
-              )}
-            />
-            <button
-              onClick={() => void handleRejectConfirm()}
-              disabled={isRejecting || !rejectReason.trim()}
-              className={cn(
-                'rounded-md px-3 py-2 text-sm font-semibold transition',
-                isRejecting || !rejectReason.trim()
-                  ? 'bg-red-100 text-red-500 cursor-not-allowed'
-                  : 'bg-red-600 text-white hover:bg-red-700',
-              )}
-            >
-              {isRejecting ? '…' : 'Confirmer le rejet'}
-            </button>
-            <button
-              onClick={() => {
-                setShowRejectPrompt(false);
-                setRejectReason('');
-                setError(null);
-              }}
-              disabled={isRejecting}
-              className="rounded-md border border-line px-3 py-2 text-sm transition hover:bg-soft disabled:opacity-50"
-            >
-              Annuler
-            </button>
-          </div>
-        )}
-
         {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 
         <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
@@ -187,22 +129,10 @@ export function CategoryEditRow({ category, colSpan, onSaved, onCancel }: Catego
           </button>
           <button
             onClick={onCancel}
-            disabled={isSubmitting || isRejecting}
+            disabled={isSubmitting}
             className="rounded-md border border-line px-3 py-2 text-sm transition hover:bg-soft disabled:opacity-50"
           >
             Annuler l&apos;édition
-          </button>
-          <button
-            onClick={() => setShowRejectPrompt(true)}
-            disabled={isSubmitting || isRejecting || showRejectPrompt}
-            className={cn(
-              'ml-auto rounded-md px-3 py-2 text-sm font-semibold transition',
-              showRejectPrompt || isSubmitting || isRejecting
-                ? 'bg-red-50 text-red-500 cursor-not-allowed'
-                : 'bg-red-50 text-red-700 hover:bg-red-100',
-            )}
-          >
-            Rejeter
           </button>
         </div>
       </td>

@@ -76,11 +76,18 @@ export function ProductReferenceEditRow({
       });
       onSaved();
     } catch (e) {
-      setError(
-        axios.isAxiosError(e) && e.response?.status === 409
-          ? 'Ce produit a déjà été modifié ailleurs.'
-          : 'Une erreur est survenue. Réessayez.',
-      );
+      if (axios.isAxiosError(e)) {
+        if (e.response?.status === 409) {
+          setError('Ce produit a déjà été modifié ailleurs.');
+          return;
+        }
+        if (e.response?.status === 422) {
+          setError('Données invalides. Vérifiez les champs obligatoires.');
+          return;
+        }
+      }
+      console.error('[ProductReferenceEditRow] updateProductReference failed:', e);
+      setError('Une erreur est survenue. Réessayez.');
     } finally {
       setIsSubmitting(false);
     }
@@ -97,11 +104,18 @@ export function ProductReferenceEditRow({
       await rejectProductReference(product.id, rejectReason.trim());
       onSaved();
     } catch (e) {
-      setError(
-        axios.isAxiosError(e) && e.response?.status === 409
-          ? 'Ce produit a déjà été traité ailleurs.'
-          : 'Une erreur est survenue. Réessayez.',
-      );
+      if (axios.isAxiosError(e)) {
+        if (e.response?.status === 409) {
+          setError('Ce produit a déjà été traité ailleurs.');
+          return;
+        }
+        if (e.response?.status === 422) {
+          setError('Données invalides pour le rejet.');
+          return;
+        }
+      }
+      console.error('[ProductReferenceEditRow] rejectProductReference failed:', e);
+      setError('Une erreur est survenue. Réessayez.');
     } finally {
       setIsRejecting(false);
     }
