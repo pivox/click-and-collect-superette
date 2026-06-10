@@ -36,8 +36,8 @@ final readonly class AdminRejectProductReferenceProcessor implements ProcessorIn
 
     /**
      * @param AdminRejectProductReferenceInput $data
-     * @param array<string, mixed> $uriVariables
-     * @param array<string, mixed> $context
+     * @param array<string, mixed>             $uriVariables
+     * @param array<string, mixed>             $context
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AdminProductReferenceOutput
     {

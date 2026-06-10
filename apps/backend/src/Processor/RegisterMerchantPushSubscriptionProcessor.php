@@ -31,7 +31,7 @@ final readonly class RegisterMerchantPushSubscriptionProcessor implements Proces
             throw new AccessDeniedHttpException('Only authenticated merchants can register push subscriptions');
         }
 
-        $hash = \hash('sha256', $data->endpoint);
+        $hash = hash('sha256', $data->endpoint);
         $existing = $this->pushSubscriptionRepository->findByEndpointHash($hash);
 
         if ($existing) {

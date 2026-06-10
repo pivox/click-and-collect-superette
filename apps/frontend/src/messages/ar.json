@@ -365,6 +365,22 @@
         "nextBilling": "الموعد القادم",
         "nextPhase": "التغيير القادم"
       }
+    },
+    "statistics": {
+      "title": "الإحصائيات",
+      "subtitle": "تتبع الأداء",
+      "period": {
+        "7d": "7 أيام",
+        "30d": "30 يوماً",
+        "90d": "90 يوماً"
+      },
+      "totalOrders": "الطلبات",
+      "totalRevenue": "الإيراد المقدّر",
+      "acceptanceRate": "معدل القبول",
+      "cancellationRate": "معدل الإلغاء",
+      "topProducts": "المنتجات الأكثر طلباً",
+      "topSlots": "أكثر الفترات استخداماً",
+      "noData": "لا توجد بيانات في هذه الفترة"
     }
   },
   "admin": {
