@@ -93,6 +93,27 @@ final class PushSubscription
         return $this;
     }
 
+    public function refresh(
+        User $user,
+        string $endpoint,
+        string $p256dhKey,
+        string $authKey,
+        ?string $scope,
+        ?string $userAgent,
+    ): self {
+        $this->user = $user;
+        $this->endpoint = $endpoint;
+        $this->p256dhKey = $p256dhKey;
+        $this->authKey = $authKey;
+        $this->endpointHash = hash('sha256', $endpoint);
+        $this->scope = $scope;
+        $this->userAgent = $userAgent;
+        $this->updatedAt = new \DateTimeImmutable();
+        $this->failureCount = 0;
+
+        return $this;
+    }
+
     public function getEndpoint(): string
     {
         return $this->endpoint;
