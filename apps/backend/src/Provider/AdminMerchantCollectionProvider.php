@@ -6,8 +6,11 @@ namespace App\Provider;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use App\ApiResource\AdminMerchantCrmOutput;
 use App\ApiResource\AdminMerchantListOutput;
+use App\Enum\MerchantCrmStatus;
 use App\Repository\AdminMerchantRepository;
+use App\Repository\MerchantCrmProfileRepository;
 use App\Repository\SubscriptionRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -24,6 +27,7 @@ final readonly class AdminMerchantCollectionProvider implements ProviderInterfac
     public function __construct(
         private AdminMerchantRepository $adminMerchantRepository,
         private SubscriptionRepository $subscriptionRepository,
+        private MerchantCrmProfileRepository $crmProfileRepository,
         private RequestStack $requestStack,
     ) {
     }
@@ -40,14 +44,19 @@ final readonly class AdminMerchantCollectionProvider implements ProviderInterfac
         $limit = min(self::MAX_LIMIT, $limit);
         $offset = ($page - 1) * $limit;
 
-        $merchants = $this->adminMerchantRepository->findPaginated($limit, $offset);
+        $crmStatus = $this->parseCrmStatusFilter($request?->query->get('crm_status'));
+        $crmOwner = $this->parseCrmOwnerFilter($request?->query->get('crm_owner'));
+
+        $merchants = $this->adminMerchantRepository->findPaginated($limit, $offset, $crmStatus, $crmOwner);
         $storesCounts = $this->adminMerchantRepository->countStoresGrouped($merchants);
         $subscriptions = $this->subscriptionRepository->findByMerchantsIndexed($merchants);
+        $crmProfiles = $this->crmProfileRepository->findByMerchantsIndexed($merchants);
         $items = array_map(
             static fn ($merchant) => AdminMerchantItemProvider::toOutput(
                 $merchant,
                 $storesCounts[$merchant->getId()->toRfc4122()] ?? 0,
                 subscriptionLifecycle: ($subscriptions[$merchant->getId()->toRfc4122()] ?? null)?->getLifecycle()->value,
+                crm: AdminMerchantCrmOutput::fromProfile($crmProfiles[$merchant->getId()->toRfc4122()] ?? null),
             ),
             $merchants,
         );
@@ -57,8 +66,39 @@ final readonly class AdminMerchantCollectionProvider implements ProviderInterfac
             items: $items,
             page: $page,
             limit: $limit,
-            total: $this->adminMerchantRepository->countAll(),
+            total: $this->adminMerchantRepository->countFiltered($crmStatus, $crmOwner),
         );
+    }
+
+    private function parseCrmStatusFilter(mixed $raw): ?string
+    {
+        if (null === $raw || '' === $raw) {
+            return null;
+        }
+
+        if (!\is_string($raw) || null === MerchantCrmStatus::tryFrom($raw)) {
+            throw new BadRequestHttpException('ADMIN_MERCHANT_INVALID_CRM_STATUS_FILTER');
+        }
+
+        return $raw;
+    }
+
+    private function parseCrmOwnerFilter(mixed $raw): ?string
+    {
+        if (null === $raw || '' === $raw) {
+            return null;
+        }
+
+        if (!\is_string($raw)) {
+            throw new BadRequestHttpException('ADMIN_MERCHANT_INVALID_CRM_OWNER_FILTER');
+        }
+
+        $owner = trim($raw);
+        if ('' === $owner || mb_strlen($owner) > 120) {
+            throw new BadRequestHttpException('ADMIN_MERCHANT_INVALID_CRM_OWNER_FILTER');
+        }
+
+        return $owner;
     }
 
     private function parsePositiveInt(mixed $raw, int $default, string $errorCode): int

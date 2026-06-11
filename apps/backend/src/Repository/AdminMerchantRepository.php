@@ -21,9 +21,9 @@ final readonly class AdminMerchantRepository
     /**
      * @return list<User>
      */
-    public function findPaginated(int $limit, int $offset): array
+    public function findPaginated(int $limit, int $offset, ?string $crmStatus = null, ?string $crmOwner = null): array
     {
-        $ids = $this->fetchMerchantIds($limit, $offset);
+        $ids = $this->fetchMerchantIds($limit, $offset, $crmStatus, $crmOwner);
         if ([] === $ids) {
             return [];
         }
@@ -43,9 +43,16 @@ final readonly class AdminMerchantRepository
 
     public function countAll(): int
     {
+        return $this->countFiltered();
+    }
+
+    public function countFiltered(?string $crmStatus = null, ?string $crmOwner = null): int
+    {
+        [$joinSql, $whereSql, $params] = $this->crmFilterSql($crmStatus, $crmOwner);
+
         return (int) $this->connection()->executeQuery(
-            \sprintf('SELECT COUNT(id) FROM users WHERE %s', $this->roleExpr()),
-            ['role' => '%ROLE_MERCHANT%'],
+            \sprintf('SELECT COUNT(u.id) FROM users u%s WHERE %s%s', $joinSql, $this->roleExpr('u'), $whereSql),
+            ['role' => '%ROLE_MERCHANT%'] + $params,
         )->fetchOne();
     }
 
@@ -90,25 +97,58 @@ final readonly class AdminMerchantRepository
     }
 
     /** @return list<string> */
-    private function fetchMerchantIds(int $limit, int $offset): array
+    private function fetchMerchantIds(int $limit, int $offset, ?string $crmStatus = null, ?string $crmOwner = null): array
     {
+        [$joinSql, $whereSql, $params] = $this->crmFilterSql($crmStatus, $crmOwner);
+
         /* @var list<string> */
         return $this->connection()->executeQuery(
             \sprintf(
-                'SELECT id FROM users WHERE %s ORDER BY created_at DESC, id DESC LIMIT :limit OFFSET :offset',
-                $this->roleExpr(),
+                'SELECT u.id FROM users u%s WHERE %s%s ORDER BY u.created_at DESC, u.id DESC LIMIT :limit OFFSET :offset',
+                $joinSql,
+                $this->roleExpr('u'),
+                $whereSql,
             ),
-            ['role' => '%ROLE_MERCHANT%', 'limit' => $limit, 'offset' => $offset],
+            ['role' => '%ROLE_MERCHANT%', 'limit' => $limit, 'offset' => $offset] + $params,
         )->fetchFirstColumn();
     }
 
-    private function roleExpr(): string
+    /**
+     * @return array{string, string, array<string, string>}
+     */
+    private function crmFilterSql(?string $crmStatus, ?string $crmOwner): array
     {
+        if (null === $crmStatus && null === $crmOwner) {
+            return ['', '', []];
+        }
+
+        $joinSql = ' LEFT JOIN merchant_crm_profiles mcp ON mcp.merchant_id = u.id';
+        $whereSql = '';
+        $params = [];
+
+        if (null !== $crmStatus) {
+            // A merchant without a CRM profile is an implicit prospect.
+            $whereSql .= ' AND COALESCE(mcp.status, \'prospect\') = :crm_status';
+            $params['crm_status'] = $crmStatus;
+        }
+
+        if (null !== $crmOwner) {
+            $whereSql .= ' AND mcp.commercial_owner = :crm_owner';
+            $params['crm_owner'] = $crmOwner;
+        }
+
+        return [$joinSql, $whereSql, $params];
+    }
+
+    private function roleExpr(string $alias = ''): string
+    {
+        $column = '' !== $alias ? $alias.'.roles' : 'roles';
+
         // PostgreSQL json column does not support LIKE — cast to text first.
         // SQLite stores json as plain text, so LIKE works directly.
         return $this->connection()->getDatabasePlatform() instanceof PostgreSQLPlatform
-            ? 'roles::text LIKE :role'
-            : 'roles LIKE :role';
+            ? $column.'::text LIKE :role'
+            : $column.' LIKE :role';
     }
 
     private function connection(): Connection

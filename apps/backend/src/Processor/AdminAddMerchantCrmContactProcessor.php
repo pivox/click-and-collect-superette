@@ -8,8 +8,11 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\AdminMerchantCrmOutput;
 use App\ApiResource\AdminMerchantOutput;
-use App\Dto\AdminUpdateMerchantInput;
+use App\Dto\AdminMerchantCrmContactCreateInput;
+use App\Entity\MerchantCrmContact;
+use App\Entity\MerchantCrmProfile;
 use App\Entity\User;
+use App\Enum\MerchantCrmContactChannel;
 use App\Provider\AdminMerchantItemProvider;
 use App\Repository\AdminMerchantRepository;
 use App\Repository\MerchantCrmContactRepository;
@@ -19,15 +22,17 @@ use App\Service\AdminAuditLogger;
 use App\Service\MerchantOperationalJournalCalculator;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * @implements ProcessorInterface<AdminUpdateMerchantInput, AdminMerchantOutput>
+ * @implements ProcessorInterface<AdminMerchantCrmContactCreateInput, AdminMerchantOutput>
  */
-final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
+final readonly class AdminAddMerchantCrmContactProcessor implements ProcessorInterface
 {
     public function __construct(
         private AdminMerchantRepository $adminMerchantRepository,
@@ -35,7 +40,7 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
         private MerchantCrmProfileRepository $crmProfileRepository,
         private MerchantCrmContactRepository $crmContactRepository,
         private EntityManagerInterface $entityManager,
-        private RequestStack $requestStack,
+        private Security $security,
         private AdminAuditLogger $auditLogger,
         private MerchantOperationalJournalCalculator $operationalJournalCalculator,
         #[Autowire(service: 'monolog.logger.admin')]
@@ -49,62 +54,51 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AdminMerchantOutput
     {
-        if (!$data instanceof AdminUpdateMerchantInput) {
-            throw new \InvalidArgumentException('AdminUpdateMerchantInput expected.');
+        if (!$data instanceof AdminMerchantCrmContactCreateInput) {
+            throw new \InvalidArgumentException('AdminMerchantCrmContactCreateInput expected.');
+        }
+
+        $admin = $this->security->getUser();
+        if (!$admin instanceof User) {
+            throw new AccessDeniedHttpException('ADMIN_ACCESS_REQUIRED');
         }
 
         $merchantId = (string) ($uriVariables['merchantId'] ?? '');
         $merchant = $this->resolveMerchant($merchantId);
 
-        // Only update fields that were explicitly provided in the request body
-        $payload = $this->currentPayload();
+        $contactedAt = $this->parseContactedAt($data->contactedAt);
 
-        $knownFields = ['first_name', 'last_name', 'phone', 'is_active'];
-        $updatedFields = array_values(array_intersect(array_keys($payload), $knownFields));
-
-        $this->logger->debug('admin.merchant_update.start', [
-            'merchant_id' => $merchantId,
-            'updated_fields' => $updatedFields,
-        ]);
-
-        if (\array_key_exists('first_name', $payload) && null !== $data->firstName) {
-            $merchant->setFirstName($data->firstName);
+        $profile = $this->crmProfileRepository->findOneByMerchant($merchant);
+        if (null === $profile) {
+            $profile = new MerchantCrmProfile($merchant);
+            $this->entityManager->persist($profile);
         }
 
-        if (\array_key_exists('last_name', $payload) && null !== $data->lastName) {
-            $merchant->setLastName($data->lastName);
-        }
-
-        if (\array_key_exists('phone', $payload)) {
-            $merchant->setPhone($data->phone);
-        }
-
-        if (\array_key_exists('is_active', $payload) && null !== $data->isActive) {
-            $merchant->setActive($data->isActive);
-        }
-
-        // Rebuild the display name when first or last name changed
-        $firstName = $merchant->getFirstName();
-        $lastName = $merchant->getLastName();
-        if (null !== $firstName && null !== $lastName) {
-            $merchant->setName($firstName.' '.$lastName);
-        }
+        $contact = new MerchantCrmContact(
+            $merchant,
+            $admin,
+            MerchantCrmContactChannel::from((string) $data->channel),
+            (string) $data->note,
+            $contactedAt,
+        );
+        $this->entityManager->persist($contact);
+        $profile->registerContactAt($contact->getContactedAt());
 
         try {
             $this->auditLogger->log(
-                action: 'merchant.update',
+                action: 'merchant.crm_contact_add',
                 resourceType: 'merchant',
                 resourceId: $merchant->getId()->toRfc4122(),
-                summary: \sprintf('Compte marchand %s modifié.', $merchant->getEmail()),
-                metadata: ['email' => $merchant->getEmail()],
+                summary: \sprintf('Contact commercial ajouté pour le marchand %s.', $merchant->getEmail()),
+                metadata: ['email' => $merchant->getEmail(), 'channel' => $contact->getChannel()->value],
             );
             $this->entityManager->flush();
-            $this->logger->info('merchant.updated', [
+            $this->logger->info('merchant.crm_contact_added', [
                 'merchant_id' => $merchantId,
-                'updated_fields' => $updatedFields,
+                'channel' => $contact->getChannel()->value,
             ]);
         } catch (\Throwable $e) {
-            $this->logger->error('admin.merchant_update.failed', [
+            $this->logger->error('admin.merchant_crm_contact_add.failed', [
                 'merchant_id' => $merchantId,
                 'exception_class' => $e::class,
                 'exception_message' => $e->getMessage(),
@@ -117,11 +111,21 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
             $this->adminMerchantRepository->countStores($merchant),
             subscriptionLifecycle: $this->subscriptionRepository->findOneByMerchant($merchant)?->getLifecycle()->value,
             opsJournal: $this->operationalJournalCalculator->calculate($merchant),
-            crm: AdminMerchantCrmOutput::fromProfile(
-                $this->crmProfileRepository->findOneByMerchant($merchant),
-                $this->crmContactRepository->findByMerchant($merchant),
-            ),
+            crm: AdminMerchantCrmOutput::fromProfile($profile, $this->crmContactRepository->findByMerchant($merchant)),
         );
+    }
+
+    private function parseContactedAt(?string $raw): ?\DateTimeImmutable
+    {
+        if (null === $raw || '' === $raw) {
+            return null;
+        }
+
+        try {
+            return new \DateTimeImmutable($raw);
+        } catch (\Exception) {
+            throw new UnprocessableEntityHttpException('ADMIN_MERCHANT_CRM_INVALID_CONTACTED_AT');
+        }
     }
 
     private function resolveMerchant(string $merchantId): User
@@ -136,25 +140,5 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
         }
 
         return $merchant;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function currentPayload(): array
-    {
-        $request = $this->requestStack->getCurrentRequest();
-        if (null === $request) {
-            return [];
-        }
-
-        $content = $request->getContent();
-        if ('' === $content) {
-            return [];
-        }
-
-        $payload = json_decode($content, true);
-
-        return \is_array($payload) ? $payload : [];
     }
 }
