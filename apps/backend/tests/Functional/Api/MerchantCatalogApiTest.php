@@ -367,6 +367,7 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
             'PATCH /api/merchant/catalog/{merchantProductId}',
             'POST /api/merchant/stores/{storeId}/catalog',
             'POST /api/merchant/stores/{storeId}/catalog/import-csv',
+            'POST /api/merchant/stores/{storeId}/catalog/import-from-product-group',
             'POST /api/merchant/stores/{storeId}/catalog/photo-import/commit',
             'POST /api/merchant/stores/{storeId}/catalog/photo-import/preview',
         ], $catalogRoutes);
