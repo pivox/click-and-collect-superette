@@ -1,6 +1,6 @@
 # Groupements de produits référentiel
 
-Statut : cadrage produit Sprint 15  
+Statut : cadrage produit Sprint 15 — #466 livré
 Issues : #464, #465, #466, #467  
 Document détaillé : `docs/Sprint15/README.md`
 
@@ -17,7 +17,8 @@ Exemple : `Premières nécessités` peut contenir sel, sucre en vrac, farine, pa
 - Le groupement ne porte jamais de prix, stock, disponibilité ou visibilité client.
 - L'import d'un groupement dans le catalogue marchand doit être idempotent.
 - Si le produit est déjà présent dans le catalogue marchand, il n'est pas réinséré.
-- Un produit importé sans prix reste à compléter et non visible côté client.
+- Un produit importé par #466 est créé avec `price_tnd = 0.000`, reste à compléter et non visible côté client.
+- La complétion du prix, la publication et l'historique de prix associé restent le périmètre de #467.
 
 ## Modèle cible
 
@@ -72,6 +73,8 @@ Réponse d'import attendue :
 }
 ```
 
+Décision #466 : `defaultVisibility` est accepté dans le payload pour compatibilité, mais les produits créés restent `is_visible = false` tant que le prix n'est pas complété dans #467.
+
 ## Endpoints cibles
 
 ```http
@@ -88,9 +91,9 @@ GET  /api/merchant/stores/{storeId}/product-groups/{groupId}
 POST /api/merchant/stores/{storeId}/catalog/import-from-product-group  # #466
 ```
 
-#465 expose seulement les lectures marchand par supérette et prépare le payload
-`{ groupId, selectedProductReferenceIds }`. L'import effectif, idempotent et sans
-doublon catalogue, reste le périmètre de #466.
+#465 expose seulement les lectures marchand par supérette et la sélection.
+#466 livre l'import effectif, idempotent et sans doublon catalogue. #467 livrera
+la complétion des prix après import.
 
 ## Groupements MVP recommandés
 

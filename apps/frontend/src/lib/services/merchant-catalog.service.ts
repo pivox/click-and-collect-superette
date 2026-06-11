@@ -20,6 +20,8 @@ import type {
   MerchantCatalogPhotoImportSourceType,
   MerchantCatalogProduct,
   MerchantProductGroup,
+  MerchantProductGroupImportPayload,
+  MerchantProductGroupImportResult,
   MerchantProductGroupListResponse,
   MerchantLocalProductOutput,
   MerchantProductPriceHistoryResult,
@@ -118,6 +120,18 @@ export async function getMerchantProductGroup(
 ): Promise<MerchantProductGroup> {
   const { data } = await apiClient.get<MerchantProductGroup>(
     `/api/merchant/stores/${storeId}/product-groups/${groupId}`,
+  );
+
+  return data;
+}
+
+export async function importMerchantProductGroup(
+  storeId: string,
+  payload: MerchantProductGroupImportPayload,
+): Promise<MerchantProductGroupImportResult> {
+  const { data } = await apiClient.post<MerchantProductGroupImportResult>(
+    `/api/merchant/stores/${storeId}/catalog/import-from-product-group`,
+    payload,
   );
 
   return data;
