@@ -50,6 +50,51 @@ final class MerchantProductTest extends TestCase
         self::assertSame('2.500', $product->getPriceTnd());
     }
 
+    public function testPromotionDefaultsToInactiveAndEffectivePriceFallsBackToNormalPrice(): void
+    {
+        $product = (new MerchantProduct())
+            ->setShop($this->shop)
+            ->setProductReference($this->productReference)
+            ->setPriceTnd('2.500');
+
+        self::assertNull($product->getPromotionPriceTnd());
+        self::assertNull($product->getPromotionEndsOn());
+        self::assertFalse($product->isPromotionActive());
+        self::assertSame('2.500', $product->getEffectivePriceTnd());
+    }
+
+    public function testPromotionIsActiveUntilEndOfTunisiaDay(): void
+    {
+        $tunisiaTimezone = new \DateTimeZone('Africa/Tunis');
+        $today = new \DateTimeImmutable('today', $tunisiaTimezone);
+        $endOfDay = $today->setTime(23, 59, 59);
+
+        $product = (new MerchantProduct())
+            ->setShop($this->shop)
+            ->setProductReference($this->productReference)
+            ->setPriceTnd('2.500')
+            ->setPromotionPriceTnd('1.900')
+            ->setPromotionEndsOn($today);
+
+        self::assertTrue($product->isPromotionActive($endOfDay));
+        self::assertSame('1.900', $product->getEffectivePriceTnd($endOfDay));
+        self::assertFalse($product->isPromotionActive($endOfDay->modify('+1 second')));
+        self::assertSame('2.500', $product->getEffectivePriceTnd($endOfDay->modify('+1 second')));
+    }
+
+    public function testPromotionPriceMustBeStrictlyLowerThanNormalPrice(): void
+    {
+        $product = (new MerchantProduct())
+            ->setShop($this->shop)
+            ->setProductReference($this->productReference)
+            ->setPriceTnd('2.500');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('PROMOTION_PRICE_MUST_BE_LOWER_THAN_PRICE');
+
+        $product->setPromotionPriceTnd('2.500');
+    }
+
     public function testIsAvailableDefaultsToTrue(): void
     {
         self::assertTrue((new MerchantProduct())->isAvailable());

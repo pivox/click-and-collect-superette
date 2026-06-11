@@ -37,6 +37,10 @@ final readonly class StoreCatalogProductMapper
             volume: $merchantProduct->getDisplayVolume(),
             unit: $merchantProduct->getDisplayUnit()->value,
             priceTnd: $merchantProduct->getPriceTnd(),
+            promotionPriceTnd: $merchantProduct->getPromotionPriceTnd(),
+            promotionEndsOn: $merchantProduct->getPromotionEndsOn()?->format('Y-m-d'),
+            promotionActive: $merchantProduct->isPromotionActive(),
+            effectivePriceTnd: $merchantProduct->getEffectivePriceTnd(),
             isAvailable: $merchantProduct->isAvailable(),
             image: $this->productImageUrlBuilder->build($officialImage),
         );

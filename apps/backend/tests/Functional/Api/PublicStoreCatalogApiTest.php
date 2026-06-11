@@ -47,9 +47,47 @@ final class PublicStoreCatalogApiTest extends FunctionalApiTestCase
         self::assertSame('1.000', $payload['items'][0]['volume']);
         self::assertSame('litre', $payload['items'][0]['unit']);
         self::assertSame('1.650', $payload['items'][0]['price_tnd']);
+        self::assertNull($payload['items'][0]['promotion_price_tnd']);
+        self::assertNull($payload['items'][0]['promotion_ends_on']);
+        self::assertFalse($payload['items'][0]['promotion_active']);
+        self::assertSame('1.650', $payload['items'][0]['effective_price_tnd']);
         self::assertTrue($payload['items'][0]['is_available']);
         self::assertArrayNotHasKey('merchant_note', $payload['items'][0]);
         self::assertArrayNotHasKey('is_visible', $payload['items'][0]);
+    }
+
+    public function testPublicStoreCatalogExposesOnlyActivePromotionAsEffectivePrice(): void
+    {
+        $shop = $this->createShop();
+        $activeReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'lait-produits-laitiers', 'Lait promo');
+        $expiredReference = $this->createProductReference('Délice', 'Yaourts', 'yaourts', 'Yaourt promo expirée');
+        $activeEndsOn = (new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis')))->format('Y-m-d');
+        $expiredEndsOn = (new \DateTimeImmutable('yesterday', new \DateTimeZone('Africa/Tunis')))->format('Y-m-d');
+
+        $this->createMerchantProduct($shop, $activeReference, priceTnd: '2.500', promotionPriceTnd: '1.900', promotionEndsOn: $activeEndsOn);
+        $this->createMerchantProduct($shop, $expiredReference, priceTnd: '3.000', promotionPriceTnd: '2.000', promotionEndsOn: $expiredEndsOn);
+
+        $response = $this->requestJson('GET', \sprintf('/api/stores/%s/catalog', $shop->getId()));
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(2, $payload['items']);
+        $itemsByName = [];
+        foreach ($payload['items'] as $item) {
+            $itemsByName[$item['name_fr']] = $item;
+        }
+
+        self::assertSame('2.500', $itemsByName['Lait promo']['price_tnd']);
+        self::assertSame('1.900', $itemsByName['Lait promo']['promotion_price_tnd']);
+        self::assertSame($activeEndsOn, $itemsByName['Lait promo']['promotion_ends_on']);
+        self::assertTrue($itemsByName['Lait promo']['promotion_active']);
+        self::assertSame('1.900', $itemsByName['Lait promo']['effective_price_tnd']);
+
+        self::assertSame('3.000', $itemsByName['Yaourt promo expirée']['price_tnd']);
+        self::assertSame('2.000', $itemsByName['Yaourt promo expirée']['promotion_price_tnd']);
+        self::assertSame($expiredEndsOn, $itemsByName['Yaourt promo expirée']['promotion_ends_on']);
+        self::assertFalse($itemsByName['Yaourt promo expirée']['promotion_active']);
+        self::assertSame('3.000', $itemsByName['Yaourt promo expirée']['effective_price_tnd']);
     }
 
     public function testPublicStoreCatalogReturnsNotFoundForUnknownOrInactiveShop(): void
@@ -232,6 +270,8 @@ final class PublicStoreCatalogApiTest extends FunctionalApiTestCase
         bool $isAvailable = true,
         ?string $merchantNote = null,
         string $priceTnd = '1.650',
+        ?string $promotionPriceTnd = null,
+        ?string $promotionEndsOn = null,
     ): MerchantProduct {
         $merchantProduct = (new MerchantProduct())
             ->setShop($shop)
@@ -240,6 +280,13 @@ final class PublicStoreCatalogApiTest extends FunctionalApiTestCase
             ->setVisible($isVisible)
             ->setAvailable($isAvailable)
             ->setMerchantNote($merchantNote);
+
+        if (null !== $promotionPriceTnd) {
+            $merchantProduct->setPromotionPriceTnd($promotionPriceTnd);
+        }
+        if (null !== $promotionEndsOn) {
+            $merchantProduct->setPromotionEndsOn(new \DateTimeImmutable($promotionEndsOn, new \DateTimeZone('Africa/Tunis')));
+        }
 
         $this->entityManager->persist($merchantProduct);
         $this->entityManager->flush();

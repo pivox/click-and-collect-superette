@@ -3,6 +3,7 @@
 import type {
   MerchantCatalogAvailabilityFilter,
   MerchantCatalogListOptions,
+  MerchantCatalogPromotionFilter,
   MerchantCatalogVisibilityFilter,
 } from '@/lib/types/merchant-catalog.types';
 import { cn } from '@/lib/cn';
@@ -33,6 +34,7 @@ export function MerchantCatalogFilters({
 
   const visibility: MerchantCatalogVisibilityFilter = filters.visibility ?? 'all';
   const availability: MerchantCatalogAvailabilityFilter = filters.availability ?? 'all';
+  const promotion: MerchantCatalogPromotionFilter = filters.promotion ?? 'all';
 
   return (
     <form
@@ -104,6 +106,17 @@ export function MerchantCatalogFilters({
             onClick={() => updateFilter({ visibility: visibility === 'hidden' ? 'all' : 'hidden' })}
           >
             Masqués
+          </button>
+          <button
+            type="button"
+            className={cn(
+              'min-h-[44px] rounded-md px-3 text-sm font-black transition-colors',
+              promotion === 'active' ? 'bg-primary text-white' : 'bg-soft text-muted',
+            )}
+            aria-pressed={promotion === 'active'}
+            onClick={() => updateFilter({ promotion: promotion === 'active' ? 'all' : 'active' })}
+          >
+            En promo
           </button>
           <button
             type="submit"

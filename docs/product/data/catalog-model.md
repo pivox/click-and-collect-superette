@@ -34,6 +34,8 @@ id: merchant_product_001
 store: store_001
 product_reference: product_ref_001
 price_tnd: 1.650
+promotion_price_tnd: 1.450
+promotion_ends_on: 2026-06-30
 is_available: true
 is_visible: true
 merchant_note: null
@@ -57,6 +59,7 @@ merchant_note: null
 - Prix.
 - Disponibilité.
 - Visibilité.
+- Promotion simple éventuelle.
 - Rupture éventuelle.
 - Note interne marchand.
 - Ordre d'affichage éventuel.
@@ -69,6 +72,12 @@ merchant_note: null
 - Chaque supérette peut avoir son propre prix pour le même ProductReference.
 - Un produit non disponible ne doit pas être commandable.
 - Un produit invisible ne doit pas apparaître côté client.
+- `price_tnd` reste le prix normal défini par la supérette.
+- `promotion_price_tnd` est optionnel et doit être strictement inférieur au prix normal.
+- `promotion_ends_on` est la date de fin incluse : la promo reste active jusqu'à la fin de journée en fuseau Tunisie.
+- `effective_price_tnd` est le prix commandable : prix promo actif si disponible, sinon prix normal.
+- Une ligne de Kadhia prend un snapshot de `effective_price_tnd` au moment de l'ajout.
+- L'admin ne modifie pas les promotions dans le MVP ; le suivi lecture/filtre admin est extrait vers [#479](https://github.com/pivox/click-and-collect-superette/issues/479).
 
 ## Historique des prix marchand
 
@@ -81,6 +90,7 @@ Règles MVP :
 - un enregistrement sans changement de prix ne crée pas de doublon ;
 - l'historique est rattaché au produit marchand et au marchand propriétaire de la supérette ;
 - une ancienne commande garde son snapshot de prix dans `OrderLine.unitPriceTnd`.
+- le snapshot Kadhia utilise le prix effectif, puis reste figé même si la promotion expire ou change ensuite.
 
 Endpoints backend :
 

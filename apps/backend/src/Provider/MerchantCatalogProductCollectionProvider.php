@@ -56,6 +56,7 @@ final readonly class MerchantCatalogProductCollectionProvider implements Provide
         $visibility = $request?->query->get('visibility') ?: null;
         $completion = $request?->query->get('completion') ?: null;
         $category = $request?->query->get('category') ?: null;
+        $promotion = $request?->query->get('promotion') ?: null;
         $page = max(1, (int) ($request?->query->get('page') ?? 1));
         $limit = min(self::MAX_LIMIT, max(1, (int) ($request?->query->get('limit') ?? self::DEFAULT_LIMIT)));
 
@@ -66,6 +67,7 @@ final readonly class MerchantCatalogProductCollectionProvider implements Provide
             $visibility,
             $completion,
             $category,
+            $promotion,
         );
 
         $total = \count($allProducts);

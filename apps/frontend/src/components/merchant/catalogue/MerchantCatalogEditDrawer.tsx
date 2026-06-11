@@ -88,6 +88,9 @@ export function MerchantCatalogEditDrawer({
   product,
 }: MerchantCatalogEditDrawerProps) {
   const [priceTnd, setPriceTnd] = useState('');
+  const [promotionPriceTnd, setPromotionPriceTnd] = useState('');
+  const [promotionEndsOn, setPromotionEndsOn] = useState('');
+  const [promotionCleared, setPromotionCleared] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [merchantNote, setMerchantNote] = useState('');
@@ -108,6 +111,9 @@ export function MerchantCatalogEditDrawer({
     if (!product) return;
 
     setPriceTnd(product.price_tnd);
+    setPromotionPriceTnd(product.promotion_price_tnd ?? '');
+    setPromotionEndsOn(product.promotion_ends_on ?? '');
+    setPromotionCleared(false);
     setIsAvailable(product.is_available);
     setIsVisible(product.is_visible);
     setMerchantNote(product.merchant_note ?? '');
@@ -222,6 +228,14 @@ export function MerchantCatalogEditDrawer({
   const handleSubmit = async () => {
     const normalizedPrice = validatePrice(priceTnd);
     const normalizedZeroOrPositivePrice = normalizePriceAllowZero(priceTnd);
+    const normalizedPromotionPrice = promotionPriceTnd.trim()
+      ? validatePrice(promotionPriceTnd)
+      : null;
+    const hasPromotionDraft = promotionPriceTnd.trim() !== '' || promotionEndsOn.trim() !== '';
+    const promotionChanged =
+      promotionCleared ||
+      promotionPriceTnd !== (product.promotion_price_tnd ?? '') ||
+      promotionEndsOn !== (product.promotion_ends_on ?? '');
     const keepsUnchangedPlaceholderHidden =
       normalizedPrice === null &&
       !isVisible &&
@@ -232,6 +246,22 @@ export function MerchantCatalogEditDrawer({
       setHasPriceError(true);
       setError('Le prix doit être supérieur à 0 avec au maximum 3 décimales.');
       return;
+    }
+
+    if (hasPromotionDraft) {
+      if (!normalizedPromotionPrice || promotionEndsOn.trim() === '') {
+        setError('La promo doit avoir un prix supérieur à 0 et une date de fin.');
+        return;
+      }
+
+      const normalPriceForComparison = normalizedPrice ?? normalizedZeroOrPositivePrice;
+      if (
+        normalPriceForComparison &&
+        Number(normalizedPromotionPrice) >= Number(normalPriceForComparison)
+      ) {
+        setError('Le prix promo doit être strictement inférieur au prix normal.');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -245,6 +275,17 @@ export function MerchantCatalogEditDrawer({
         is_visible: isVisible,
         merchant_note: merchantNote.trim() || null,
         merchant_category_id: merchantCategoryId,
+        ...(promotionChanged
+          ? hasPromotionDraft && !promotionCleared
+            ? {
+                promotion_price_tnd: normalizedPromotionPrice,
+                promotion_ends_on: promotionEndsOn,
+              }
+            : {
+                promotion_price_tnd: null,
+                promotion_ends_on: null,
+              }
+          : {}),
       });
       onSaved();
     } catch {
@@ -304,6 +345,58 @@ export function MerchantCatalogEditDrawer({
               }}
               className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
+          </div>
+
+          <div className="rounded-md border border-line bg-soft p-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-black">Promotion</p>
+              {(product.promotion_price_tnd || promotionPriceTnd || promotionEndsOn) && (
+                <button
+                  type="button"
+                  className="text-xs font-black text-status-cancel hover:underline"
+                  onClick={() => {
+                    setPromotionPriceTnd('');
+                    setPromotionEndsOn('');
+                    setPromotionCleared(true);
+                  }}
+                >
+                  Supprimer la promo
+                </button>
+              )}
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="merchant-catalog-promotion-price" className="mb-1 block text-sm font-bold">
+                  Prix promo TND
+                </label>
+                <input
+                  id="merchant-catalog-promotion-price"
+                  type="text"
+                  inputMode="decimal"
+                  value={promotionPriceTnd}
+                  onChange={(event) => {
+                    setPromotionPriceTnd(event.target.value);
+                    setPromotionCleared(false);
+                  }}
+                  className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label htmlFor="merchant-catalog-promotion-ends-on" className="mb-1 block text-sm font-bold">
+                  Fin promo
+                </label>
+                <input
+                  id="merchant-catalog-promotion-ends-on"
+                  type="date"
+                  value={promotionEndsOn}
+                  onChange={(event) => {
+                    setPromotionEndsOn(event.target.value);
+                    setPromotionCleared(false);
+                  }}
+                  className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
           </div>
 
           <label className="flex min-h-[44px] items-center gap-3 text-sm font-bold">

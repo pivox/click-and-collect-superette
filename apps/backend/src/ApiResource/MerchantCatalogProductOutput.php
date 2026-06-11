@@ -95,6 +95,18 @@ final readonly class MerchantCatalogProductOutput
         #[SerializedName('price_tnd')]
         public string $priceTnd,
         #[Groups(['merchant_catalog:read'])]
+        #[SerializedName('promotion_price_tnd')]
+        public ?string $promotionPriceTnd,
+        #[Groups(['merchant_catalog:read'])]
+        #[SerializedName('promotion_ends_on')]
+        public ?string $promotionEndsOn,
+        #[Groups(['merchant_catalog:read'])]
+        #[SerializedName('promotion_active')]
+        public bool $promotionActive,
+        #[Groups(['merchant_catalog:read'])]
+        #[SerializedName('effective_price_tnd')]
+        public string $effectivePriceTnd,
+        #[Groups(['merchant_catalog:read'])]
         #[SerializedName('is_available')]
         public bool $isAvailable,
         #[Groups(['merchant_catalog:read'])]

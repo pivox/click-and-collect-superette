@@ -60,13 +60,44 @@ final readonly class UpdateMerchantCatalogProductProcessor implements ProcessorI
 
         if (null !== $data->priceTnd) {
             $user = $this->security->getUser();
-            $this->priceService->changePrice(
-                merchantProduct: $merchantProduct,
-                newPrice: $data->priceTnd,
-                changeType: MerchantProductPriceChangeType::ManualUpdate,
-                source: MerchantProductPriceSource::MerchantDashboard,
-                changedByUser: $user instanceof User ? $user : null,
-            );
+            try {
+                $this->priceService->changePrice(
+                    merchantProduct: $merchantProduct,
+                    newPrice: $data->priceTnd,
+                    changeType: MerchantProductPriceChangeType::ManualUpdate,
+                    source: MerchantProductPriceSource::MerchantDashboard,
+                    changedByUser: $user instanceof User ? $user : null,
+                );
+            } catch (\InvalidArgumentException $exception) {
+                throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->getMessage(), $exception);
+            }
+        }
+        if ($data->hasPromotionPriceTnd() || $data->hasPromotionEndsOn()) {
+            $promotionPriceTnd = $data->hasPromotionPriceTnd()
+                ? $data->getPromotionPriceTnd()
+                : $merchantProduct->getPromotionPriceTnd();
+            $promotionEndsOn = $data->hasPromotionEndsOn()
+                ? $data->getPromotionEndsOn()
+                : $merchantProduct->getPromotionEndsOn()?->format('Y-m-d');
+
+            if (null === $promotionPriceTnd || null === $promotionEndsOn) {
+                $merchantProduct
+                    ->setPromotionPriceTnd(null)
+                    ->setPromotionEndsOn(null);
+            } else {
+                $promotionEndsOnDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $promotionEndsOn, new \DateTimeZone('Africa/Tunis'));
+                if (false === $promotionEndsOnDate) {
+                    throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PROMOTION_ENDS_ON_INVALID');
+                }
+
+                try {
+                    $merchantProduct
+                        ->setPromotionPriceTnd($promotionPriceTnd)
+                        ->setPromotionEndsOn($promotionEndsOnDate);
+                } catch (\InvalidArgumentException $exception) {
+                    throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->getMessage(), $exception);
+                }
+            }
         }
         if (null !== $data->isAvailable) {
             $merchantProduct->setAvailable($data->isAvailable);

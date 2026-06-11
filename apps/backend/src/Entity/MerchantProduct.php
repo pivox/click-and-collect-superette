@@ -44,6 +44,13 @@ class MerchantProduct
     #[Assert\PositiveOrZero]
     private string $priceTnd;
 
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 3, nullable: true)]
+    #[Assert\Positive]
+    private ?string $promotionPriceTnd = null;
+
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $promotionEndsOn = null;
+
     #[ORM\Column]
     private bool $isAvailable = true;
 
@@ -292,8 +299,63 @@ class MerchantProduct
     public function setPriceTnd(string $priceTnd): static
     {
         $this->priceTnd = $priceTnd;
+        $this->assertPromotionPriceIsLowerThanPrice();
 
         return $this;
+    }
+
+    public function getPromotionPriceTnd(): ?string
+    {
+        if (null === $this->promotionPriceTnd) {
+            return null;
+        }
+
+        return bcadd($this->promotionPriceTnd, '0', 3);
+    }
+
+    public function setPromotionPriceTnd(?string $promotionPriceTnd): static
+    {
+        $this->promotionPriceTnd = $promotionPriceTnd;
+        $this->assertPromotionPriceIsLowerThanPrice();
+
+        return $this;
+    }
+
+    public function getPromotionEndsOn(): ?\DateTimeImmutable
+    {
+        return $this->promotionEndsOn;
+    }
+
+    public function setPromotionEndsOn(?\DateTimeImmutable $promotionEndsOn): static
+    {
+        $this->promotionEndsOn = null === $promotionEndsOn
+            ? null
+            : \DateTimeImmutable::createFromFormat('!Y-m-d', $promotionEndsOn->format('Y-m-d'), new \DateTimeZone('Africa/Tunis'));
+
+        return $this;
+    }
+
+    public function isPromotionActive(?\DateTimeImmutable $now = null): bool
+    {
+        if (null === $this->promotionPriceTnd || null === $this->promotionEndsOn) {
+            return false;
+        }
+
+        $timezone = new \DateTimeZone('Africa/Tunis');
+        $now ??= new \DateTimeImmutable('now', $timezone);
+        $now = $now->setTimezone($timezone);
+        $promotionEndsAt = $this->promotionEndsOn->setTimezone($timezone)->setTime(23, 59, 59);
+
+        return $now <= $promotionEndsAt;
+    }
+
+    public function getEffectivePriceTnd(?\DateTimeImmutable $now = null): string
+    {
+        if ($this->isPromotionActive($now)) {
+            return $this->getPromotionPriceTnd() ?? $this->getPriceTnd();
+        }
+
+        return $this->getPriceTnd();
     }
 
     public function isAvailable(): bool
@@ -340,5 +402,16 @@ class MerchantProduct
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    private function assertPromotionPriceIsLowerThanPrice(): void
+    {
+        if (null === $this->promotionPriceTnd) {
+            return;
+        }
+
+        if (bccomp($this->promotionPriceTnd, $this->priceTnd, 3) >= 0) {
+            throw new \InvalidArgumentException('PROMOTION_PRICE_MUST_BE_LOWER_THAN_PRICE');
+        }
     }
 }

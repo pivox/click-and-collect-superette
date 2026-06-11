@@ -44,6 +44,7 @@ class MerchantProductRepository extends ServiceEntityRepository
         ?string $visibility = null,
         ?string $completion = null,
         ?string $category = null,
+        ?string $promotion = null,
     ): array {
         $criteria = ['shop' => $shop];
 
@@ -91,6 +92,13 @@ class MerchantProductRepository extends ServiceEntityRepository
             $products = array_values(array_filter(
                 $products,
                 static fn (MerchantProduct $product): bool => 0 === bccomp($product->getPriceTnd(), '0.000', 3),
+            ));
+        }
+
+        if ('active' === $promotion) {
+            $products = array_values(array_filter(
+                $products,
+                static fn (MerchantProduct $product): bool => $product->isPromotionActive(),
             ));
         }
 

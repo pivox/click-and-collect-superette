@@ -1,6 +1,7 @@
 export type MerchantCatalogAvailabilityFilter = 'all' | 'available' | 'unavailable';
 export type MerchantCatalogVisibilityFilter = 'all' | 'visible' | 'hidden';
 export type MerchantCatalogCompletionFilter = 'all' | 'needs_price';
+export type MerchantCatalogPromotionFilter = 'all' | 'active';
 
 export interface MerchantCatalogProduct {
   id: string;
@@ -15,6 +16,10 @@ export interface MerchantCatalogProduct {
   volume: string | null;
   unit: string;
   price_tnd: string;
+  promotion_price_tnd?: string | null;
+  promotion_ends_on?: string | null;
+  promotion_active?: boolean;
+  effective_price_tnd?: string;
   is_available: boolean;
   is_visible: boolean;
   requires_price_completion?: boolean;
@@ -46,6 +51,7 @@ export interface MerchantCatalogListOptions {
   availability?: MerchantCatalogAvailabilityFilter;
   visibility?: MerchantCatalogVisibilityFilter;
   completion?: MerchantCatalogCompletionFilter;
+  promotion?: MerchantCatalogPromotionFilter;
   category?: string;
 }
 
@@ -121,6 +127,8 @@ export interface MerchantProductGroupImportResult {
 
 export interface UpdateMerchantCatalogProductPayload {
   price_tnd?: string;
+  promotion_price_tnd?: string | null;
+  promotion_ends_on?: string | null;
   is_available?: boolean;
   is_visible?: boolean;
   merchant_note?: string | null;

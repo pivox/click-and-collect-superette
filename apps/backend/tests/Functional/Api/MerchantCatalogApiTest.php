@@ -49,9 +49,122 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         self::assertSame('1.000', $payload['items'][0]['volume']);
         self::assertSame('litre', $payload['items'][0]['unit']);
         self::assertSame('1.500', $payload['items'][0]['price_tnd']);
+        self::assertNull($payload['items'][0]['promotion_price_tnd']);
+        self::assertNull($payload['items'][0]['promotion_ends_on']);
+        self::assertFalse($payload['items'][0]['promotion_active']);
+        self::assertSame('1.500', $payload['items'][0]['effective_price_tnd']);
         self::assertTrue($payload['items'][0]['is_available']);
         self::assertTrue($payload['items'][0]['is_visible']);
         self::assertNull($payload['items'][0]['merchant_note']);
+    }
+
+    public function testOwnerMerchantCanSetAndClearPromotion(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-promo@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait promo');
+        $merchantProduct = $this->createMerchantProduct($shop, $productReference);
+        $promotionEndsOn = (new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis')))->format('Y-m-d');
+
+        $setResponse = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
+            [
+                'promotion_price_tnd' => '1.200',
+                'promotion_ends_on' => $promotionEndsOn,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(200, $setResponse->getStatusCode());
+
+        $readResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?promotion=active', $shop->getId()),
+            user: $merchant,
+        );
+        self::assertSame(200, $readResponse->getStatusCode());
+        $payload = $this->decodeJson($readResponse);
+        self::assertSame(1, $payload['total']);
+        self::assertSame($merchantProduct->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertSame('1.200', $payload['items'][0]['promotion_price_tnd']);
+        self::assertSame($promotionEndsOn, $payload['items'][0]['promotion_ends_on']);
+        self::assertTrue($payload['items'][0]['promotion_active']);
+        self::assertSame('1.200', $payload['items'][0]['effective_price_tnd']);
+
+        $clearResponse = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
+            [
+                'promotion_price_tnd' => null,
+                'promotion_ends_on' => null,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(200, $clearResponse->getStatusCode());
+        $clearedResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog', $shop->getId()),
+            user: $merchant,
+        );
+        $clearedPayload = $this->decodeJson($clearedResponse);
+        self::assertNull($clearedPayload['items'][0]['promotion_price_tnd']);
+        self::assertNull($clearedPayload['items'][0]['promotion_ends_on']);
+        self::assertFalse($clearedPayload['items'][0]['promotion_active']);
+        self::assertSame('1.500', $clearedPayload['items'][0]['effective_price_tnd']);
+    }
+
+    public function testCatalogPromotionFilterReturnsOnlyActivePromotions(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-promo-filter@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $activeReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait en promo');
+        $expiredReference = $this->createProductReference('Délice', 'Yaourts', 'Yaourt promo expirée');
+        $normalReference = $this->createProductReference('Safia', 'Eaux', 'Eau normale');
+        $activeEndsOn = (new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis')))->format('Y-m-d');
+        $expiredEndsOn = (new \DateTimeImmutable('yesterday', new \DateTimeZone('Africa/Tunis')))->format('Y-m-d');
+
+        $activeProduct = $this->createMerchantProduct($shop, $activeReference, [
+            'promotionPriceTnd' => '1.200',
+            'promotionEndsOn' => $activeEndsOn,
+        ]);
+        $this->createMerchantProduct($shop, $expiredReference, [
+            'promotionPriceTnd' => '0.900',
+            'promotionEndsOn' => $expiredEndsOn,
+        ]);
+        $this->createMerchantProduct($shop, $normalReference);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?promotion=active', $shop->getId()),
+            user: $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(1, $payload['total']);
+        self::assertSame($activeProduct->getId()->toRfc4122(), $payload['items'][0]['id']);
+    }
+
+    public function testCatalogPatchRejectsPromotionPriceGreaterThanOrEqualToNormalPrice(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-promo-validation@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait promo invalide');
+        $merchantProduct = $this->createMerchantProduct($shop, $productReference);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
+            [
+                'promotion_price_tnd' => '1.500',
+                'promotion_ends_on' => (new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis')))->format('Y-m-d'),
+            ],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
     }
 
     public function testCatalogPaginationAndFilters(): void
@@ -652,7 +765,7 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
     }
 
     /**
-     * @param array{isAvailable?: bool, isVisible?: bool, priceTnd?: string} $options
+     * @param array{isAvailable?: bool, isVisible?: bool, priceTnd?: string, promotionPriceTnd?: string, promotionEndsOn?: string} $options
      */
     private function createMerchantProduct(Shop $shop, ProductReference $productReference, array $options = []): MerchantProduct
     {
@@ -666,6 +779,12 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         }
         if (isset($options['isVisible'])) {
             $merchantProduct->setVisible($options['isVisible']);
+        }
+        if (isset($options['promotionPriceTnd'])) {
+            $merchantProduct->setPromotionPriceTnd($options['promotionPriceTnd']);
+        }
+        if (isset($options['promotionEndsOn'])) {
+            $merchantProduct->setPromotionEndsOn(new \DateTimeImmutable($options['promotionEndsOn'], new \DateTimeZone('Africa/Tunis')));
         }
 
         $this->entityManager->persist($merchantProduct);

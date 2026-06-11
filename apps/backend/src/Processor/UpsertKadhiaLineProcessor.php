@@ -89,7 +89,7 @@ final readonly class UpsertKadhiaLineProcessor implements ProcessorInterface
         if ($isNew) {
             $line = (new KadhiaLine())
                 ->setMerchantProduct($merchantProduct)
-                ->setUnitPriceTnd($merchantProduct->getPriceTnd())
+                ->setUnitPriceTnd($merchantProduct->getEffectivePriceTnd())
                 ->setQuantity($data->quantity);
             $kadhia->addLine($line);
             $this->entityManager->persist($line);

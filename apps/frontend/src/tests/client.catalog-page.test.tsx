@@ -65,6 +65,16 @@ function makeProduct(index: number): ProductOffer {
   };
 }
 
+const PROMO_PRODUCT = {
+  ...makeProduct(99),
+  nameFr: 'Lait en promo',
+  priceTnd: '2.500',
+  promotionPriceTnd: '1.900',
+  promotionEndsOn: '2026-06-30',
+  promotionActive: true,
+  effectivePriceTnd: '1.900',
+} as ProductOffer;
+
 describe('CatalogPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -139,6 +149,23 @@ describe('CatalogPage', () => {
       itemsPerPage: 30,
     }));
     expect(await screen.findByText('Produit test 35')).toBeTruthy();
+  });
+
+  it('affiche le prix normal barré et le prix promo actif', async () => {
+    vi.mocked(listCatalog).mockResolvedValueOnce({
+      items: [PROMO_PRODUCT],
+      categories: [{ key: 'test', labelFr: 'Test', labelAr: null }],
+      page: 1,
+      itemsPerPage: 30,
+      total: 1,
+      pages: 1,
+    });
+
+    render(<Wrapped shopId="store-1" />);
+
+    expect(await screen.findByText('Lait en promo')).toBeTruthy();
+    expect(screen.getByText('2,500 TND')).toBeTruthy();
+    expect(screen.getByText('1,900 TND')).toBeTruthy();
   });
 
   it('affiche les libellés du catalogue en arabe quand la langue est AR', async () => {

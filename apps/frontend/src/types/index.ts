@@ -74,6 +74,10 @@ export interface ProductOffer {
   volume: number | null;
   unit: string | null;
   priceTnd: string;
+  promotionPriceTnd?: string | null;
+  promotionEndsOn?: string | null;
+  promotionActive?: boolean;
+  effectivePriceTnd?: string;
   isAvailable: boolean;
   photoUrl: string | null;
   /** Responsive official image, or null → category placeholder is shown. */

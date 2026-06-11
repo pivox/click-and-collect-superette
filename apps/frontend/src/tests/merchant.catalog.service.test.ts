@@ -78,6 +78,21 @@ describe('merchant catalogue service', () => {
     ]);
   });
 
+  it('passes the active promotion filter to the merchant catalog API', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { items: [], total: 0, page: 1, limit: 50, pages: 1 },
+    });
+
+    await listMerchantCatalog('store-1', {
+      promotion: 'active',
+      page: 1,
+    } as Parameters<typeof listMerchantCatalog>[1]);
+
+    expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog', {
+      params: { promotion: 'active', page: 1 },
+    });
+  });
+
   it('strips all/empty filter values from catalog query params', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
       data: { items: [], total: 0, page: 1, limit: 50, pages: 1 },
@@ -176,6 +191,49 @@ describe('merchant catalogue service', () => {
     ]);
   });
 
+  it('filters active promotions locally', () => {
+    const products = [
+      {
+        id: 'mp-1',
+        product_reference_id: 'ref-1',
+        name_fr: 'Lait en promo',
+        brand: 'Vitalait',
+        category: 'Boissons',
+        volume: '1',
+        unit: 'litre',
+        price_tnd: '2.500',
+        promotion_price_tnd: '1.900',
+        promotion_ends_on: '2026-06-30',
+        promotion_active: true,
+        effective_price_tnd: '1.900',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+      },
+      {
+        id: 'mp-2',
+        product_reference_id: 'ref-2',
+        name_fr: 'Yaourt promo expirée',
+        brand: 'Délice',
+        category: 'Frais',
+        volume: '110',
+        unit: 'g',
+        price_tnd: '3.000',
+        promotion_price_tnd: '2.200',
+        promotion_ends_on: '2026-05-01',
+        promotion_active: false,
+        effective_price_tnd: '3.000',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+      },
+    ] as unknown as MerchantCatalogProduct[];
+
+    expect(filterMerchantCatalogProducts(products, { promotion: 'active' } as Parameters<typeof filterMerchantCatalogProducts>[1])).toEqual([
+      products[0],
+    ]);
+  });
+
   it('filters safely when optional catalogue fields are null or undefined', () => {
     const products = [
       {
@@ -237,6 +295,22 @@ describe('merchant catalogue service', () => {
       is_visible: true,
       merchant_note: 'Rupture temporaire',
       merchant_category_id: 'merchant-cat-1',
+    });
+  });
+
+  it('updates merchant product promotion fields', async () => {
+    vi.mocked(apiClient.patch).mockResolvedValue({ data: null });
+
+    const payload = {
+      promotion_price_tnd: '1.900',
+      promotion_ends_on: '2026-06-30',
+    } as UpdateMerchantCatalogProductPayload;
+
+    await updateMerchantCatalogProduct('mp-1', payload);
+
+    expect(apiClient.patch).toHaveBeenCalledWith('/api/merchant/catalog/mp-1', {
+      promotion_price_tnd: '1.900',
+      promotion_ends_on: '2026-06-30',
     });
   });
 

@@ -42,6 +42,18 @@ final readonly class StoreCatalogProductOutput
         #[SerializedName('price_tnd')]
         public string $priceTnd,
         #[Groups(['store_catalog:read'])]
+        #[SerializedName('promotion_price_tnd')]
+        public ?string $promotionPriceTnd,
+        #[Groups(['store_catalog:read'])]
+        #[SerializedName('promotion_ends_on')]
+        public ?string $promotionEndsOn,
+        #[Groups(['store_catalog:read'])]
+        #[SerializedName('promotion_active')]
+        public bool $promotionActive,
+        #[Groups(['store_catalog:read'])]
+        #[SerializedName('effective_price_tnd')]
+        public string $effectivePriceTnd,
+        #[Groups(['store_catalog:read'])]
         #[SerializedName('is_available')]
         public bool $isAvailable,
         // Official product image (responsive URLs), or null → frontend shows the

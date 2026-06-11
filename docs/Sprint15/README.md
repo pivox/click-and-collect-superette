@@ -53,6 +53,15 @@ Le Sprint 15 conserve donc son périmètre existant :
 #467 — S15-009 / US-084 — Marchand — Compléter les prix après import groupé — livré
 ```
 
+### Promotions catalogue
+
+```text
+#384 — S15-004 — Promotions simples — scope marchand/client livré : définir/supprimer une promo, afficher prix barré côté client, snapshot Kadhia au prix effectif.
+#479 — S15-010 — Admin — Filtrer les produits marchands en promotion — follow-up admin lecture seule extrait de #384.
+```
+
+Note de scope : #384 ne livre pas le filtrage admin du catalogue marchand. Le besoin admin est suivi dans #479 avec filtre promo active/expirée, filtre par supérette/marchand et aucune édition de promotion côté admin pour le MVP.
+
 ---
 
 ## 3. Décision PO

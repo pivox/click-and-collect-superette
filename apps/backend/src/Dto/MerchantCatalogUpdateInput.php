@@ -21,15 +21,61 @@ final class MerchantCatalogUpdateInput
     #[SerializedName('is_visible')]
     public ?bool $isVisible = null;
 
+    #[Assert\Regex('/^\d{1,7}(?:\.\d{1,3})?$/')]
+    #[Assert\NotBlank(allowNull: true)]
+    #[Assert\Positive]
+    private ?string $promotionPriceTnd = null;
+
+    #[Assert\Date]
+    private ?string $promotionEndsOn = null;
+
     #[Assert\Length(max: 500)]
     private ?string $merchantNote = null;
 
     #[Assert\Uuid]
     private ?string $merchantCategoryId = null;
 
+    private bool $promotionPriceTndProvided = false;
+
+    private bool $promotionEndsOnProvided = false;
+
     private bool $merchantNoteProvided = false;
 
     private bool $merchantCategoryIdProvided = false;
+
+    public function getPromotionPriceTnd(): ?string
+    {
+        return $this->promotionPriceTnd;
+    }
+
+    #[SerializedName('promotion_price_tnd')]
+    public function setPromotionPriceTnd(?string $promotionPriceTnd): void
+    {
+        $this->promotionPriceTnd = $promotionPriceTnd;
+        $this->promotionPriceTndProvided = true;
+    }
+
+    public function hasPromotionPriceTnd(): bool
+    {
+        return $this->promotionPriceTndProvided;
+    }
+
+    public function getPromotionEndsOn(): ?string
+    {
+        return $this->promotionEndsOn;
+    }
+
+    #[SerializedName('promotion_ends_on')]
+    public function setPromotionEndsOn(?string $promotionEndsOn): void
+    {
+        $this->promotionEndsOn = $promotionEndsOn;
+        $this->promotionEndsOnProvided = true;
+    }
+
+    public function hasPromotionEndsOn(): bool
+    {
+        return $this->promotionEndsOnProvided;
+    }
 
     public function getMerchantNote(): ?string
     {
