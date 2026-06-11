@@ -20,16 +20,17 @@ final readonly class ProductPackOutputFactory
         usort($packItems, static fn ($a, $b) => $a->getId()->toRfc4122() <=> $b->getId()->toRfc4122());
 
         foreach ($packItems as $item) {
+            $unitPriceTnd = $item->getMerchantProduct()->getEffectivePriceTnd();
             $items[] = new ProductPackItemOutput(
                 id: $item->getId()->toRfc4122(),
                 merchantProductId: $item->getMerchantProduct()->getId()->toRfc4122(),
                 nameFr: $this->getProductName($item->getMerchantProduct(), 'fr'),
                 nameAr: $this->getProductName($item->getMerchantProduct(), 'ar'),
                 quantity: $item->getQuantity(),
-                unitPriceTnd: $item->getMerchantProduct()->getPriceTnd(),
+                unitPriceTnd: $unitPriceTnd,
             );
 
-            $itemPrice = (string) bcmul($item->getMerchantProduct()->getPriceTnd(), (string) $item->getQuantity(), 3);
+            $itemPrice = (string) bcmul($unitPriceTnd, (string) $item->getQuantity(), 3);
             $totalPriceTnd = (string) bcadd($totalPriceTnd, $itemPrice, 3);
         }
 

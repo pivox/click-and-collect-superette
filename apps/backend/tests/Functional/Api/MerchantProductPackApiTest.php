@@ -188,6 +188,36 @@ final class MerchantProductPackApiTest extends FunctionalApiTestCase
         self::assertSame('Pack Public', $data[0]['name_fr']);
     }
 
+    public function testPublicPackCatalogDisplaysEffectivePromotionPrice(): void
+    {
+        $promotionEndsOn = new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis'));
+        $this->product1
+            ->setPromotionPriceTnd('1.900')
+            ->setPromotionEndsOn($promotionEndsOn);
+        $this->entityManager->flush();
+
+        $payload = [
+            'name_fr' => 'Pack Public Promo',
+            'items' => [
+                [
+                    'merchant_product_id' => $this->product1->getId()->toRfc4122(),
+                    'quantity' => 2,
+                ],
+            ],
+        ];
+
+        $this->requestJson('POST', '/api/merchant/stores/'.$this->shop->getId()->toRfc4122().'/packs', $payload, $this->merchant);
+
+        $response = $this->requestJson('GET', '/api/stores/'.$this->shop->getId()->toRfc4122().'/packs');
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $data = $this->decodeJson($response);
+
+        self::assertCount(1, $data);
+        self::assertSame('1.900', $data[0]['items'][0]['unit_price_tnd']);
+        self::assertSame('3.800', $data[0]['total_price_tnd']);
+    }
+
     public function testClientCanAddPackToKadhia(): void
     {
         $payload = [
