@@ -16,7 +16,10 @@ final readonly class ProductPackOutputFactory
         $items = [];
         $totalPriceTnd = '0.000';
 
-        foreach ($pack->getItems() as $item) {
+        $packItems = $pack->getItems()->toArray();
+        \usort($packItems, static fn ($a, $b) => $a->getId()->toRfc4122() <=> $b->getId()->toRfc4122());
+
+        foreach ($packItems as $item) {
             $items[] = new ProductPackItemOutput(
                 id: $item->getId()->toRfc4122(),
                 merchantProductId: $item->getMerchantProduct()->getId()->toRfc4122(),

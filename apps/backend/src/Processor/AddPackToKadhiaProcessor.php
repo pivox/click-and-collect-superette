@@ -71,6 +71,9 @@ final readonly class AddPackToKadhiaProcessor implements ProcessorInterface
             throw new NotFoundHttpException('PRODUCT_PACK_NOT_FOUND');
         }
 
+        // Reload pack to ensure items are properly loaded
+        $this->entityManager->refresh($pack);
+
         // Validate all items are available BEFORE adding any
         foreach ($pack->getItems() as $packItem) {
             $merchantProduct = $packItem->getMerchantProduct();
