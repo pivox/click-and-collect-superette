@@ -41,6 +41,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/admin/referentiel/categories', label: 'Catégories' },
       { href: '/admin/referentiel/marques', label: 'Marques' },
       { href: '/admin/referentiel/produits', label: 'Produits' },
+      { href: '/admin/referentiel/groupements', label: 'Groupements' },
       { href: '/admin/referentiel/propositions', label: 'Propositions' },
     ],
   },
