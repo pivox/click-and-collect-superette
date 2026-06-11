@@ -114,20 +114,20 @@ final readonly class MerchantStatisticsProvider implements ProviderInterface
             ->select('COUNT(o.id) AS total_orders')
             ->addSelect('COALESCE(SUM(o.totalTnd), \'0.000\') AS total_revenue')
             ->from(Order::class, 'o')
-            ->andWhere('o.shop = :shop')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
             ->andWhere('o.createdAt >= :dateFrom')
             ->andWhere('o.createdAt < :dateTo')
             ->andWhere('o.status NOT IN (:excludedStatuses)')
-            ->setParameter('shop', $store)
+            ->setParameter('shopId', $store->getId(), 'uuid')
             ->setParameter('dateFrom', $dateFrom)
             ->setParameter('dateTo', $dateTo)
-            ->setParameter('excludedStatuses', [OrderStatus::Draft, OrderStatus::Cancelled, OrderStatus::Rejected])
+            ->setParameter('excludedStatuses', self::excludedRevenueStatusValues())
             ->getQuery()
             ->getSingleResult();
 
         return [
             'total_orders' => (int) ($result['total_orders'] ?? 0),
-            'total_revenue' => (string) ($result['total_revenue'] ?? '0.000'),
+            'total_revenue' => self::money($result['total_revenue'] ?? '0.000'),
         ];
     }
 
@@ -140,15 +140,15 @@ final readonly class MerchantStatisticsProvider implements ProviderInterface
             ->select('o.status AS status')
             ->addSelect('COUNT(o.id) AS count')
             ->from(Order::class, 'o')
-            ->andWhere('o.shop = :shop')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
             ->andWhere('o.createdAt >= :dateFrom')
             ->andWhere('o.createdAt < :dateTo')
             ->andWhere('o.status != :draft')
             ->groupBy('o.status')
-            ->setParameter('shop', $store)
+            ->setParameter('shopId', $store->getId(), 'uuid')
             ->setParameter('dateFrom', $dateFrom)
             ->setParameter('dateTo', $dateTo)
-            ->setParameter('draft', OrderStatus::Draft)
+            ->setParameter('draft', OrderStatus::Draft->value)
             ->getQuery()
             ->getResult();
 
@@ -167,37 +167,40 @@ final readonly class MerchantStatisticsProvider implements ProviderInterface
     private function queryTopProducts(Shop $store, \DateTimeImmutable $dateFrom, \DateTimeImmutable $dateTo): array
     {
         $results = $this->entityManager->createQueryBuilder()
-            ->select('pr.id')
-            ->addSelect('pr.nameFr')
-            ->addSelect('pr.nameAr')
+            ->select('mp.id AS merchant_product_id')
+            ->addSelect('COALESCE(pr.nameFr, lp.nameFr) AS name_fr')
+            ->addSelect('COALESCE(pr.nameAr, lp.nameAr) AS name_ar')
             ->addSelect('SUM(ol.quantity) AS total_quantity')
             ->addSelect('SUM(ol.lineTotalTnd) AS total_revenue')
             ->from(OrderLine::class, 'ol')
             ->join('ol.order', 'o')
             ->join('ol.merchantProduct', 'mp')
-            ->join('mp.productReference', 'pr')
-            ->andWhere('o.shop = :shop')
+            ->leftJoin('mp.productReference', 'pr')
+            ->leftJoin('mp.localProduct', 'lp')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
             ->andWhere('o.createdAt >= :dateFrom')
             ->andWhere('o.createdAt < :dateTo')
             ->andWhere('o.status NOT IN (:excludedStatuses)')
-            ->groupBy('pr.id')
+            ->groupBy('mp.id')
             ->addGroupBy('pr.nameFr')
             ->addGroupBy('pr.nameAr')
+            ->addGroupBy('lp.nameFr')
+            ->addGroupBy('lp.nameAr')
             ->orderBy('total_quantity', 'DESC')
             ->setMaxResults(10)
-            ->setParameter('shop', $store)
+            ->setParameter('shopId', $store->getId(), 'uuid')
             ->setParameter('dateFrom', $dateFrom)
             ->setParameter('dateTo', $dateTo)
-            ->setParameter('excludedStatuses', [OrderStatus::Draft, OrderStatus::Cancelled, OrderStatus::Rejected])
+            ->setParameter('excludedStatuses', self::excludedRevenueStatusValues())
             ->getQuery()
             ->getResult();
 
         return array_map(
             static fn (array $row): MerchantStatisticsTopProductOutput => new MerchantStatisticsTopProductOutput(
-                nameFr: $row['nameFr'],
-                nameAr: $row['nameAr'],
+                nameFr: $row['name_fr'],
+                nameAr: $row['name_ar'],
                 totalQuantity: (int) $row['total_quantity'],
-                totalRevenueTnd: (string) $row['total_revenue'],
+                totalRevenueTnd: self::money($row['total_revenue'] ?? '0.000'),
             ),
             $results,
         );
@@ -215,7 +218,7 @@ final readonly class MerchantStatisticsProvider implements ProviderInterface
             ->addSelect('COUNT(o.id) AS order_count')
             ->from(Order::class, 'o')
             ->join('o.pickupSlot', 'ps')
-            ->andWhere('o.shop = :shop')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
             ->andWhere('o.createdAt >= :dateFrom')
             ->andWhere('o.createdAt < :dateTo')
             ->andWhere('o.status NOT IN (:excludedStatuses)')
@@ -225,10 +228,10 @@ final readonly class MerchantStatisticsProvider implements ProviderInterface
             ->addGroupBy('ps.endsAt')
             ->orderBy('order_count', 'DESC')
             ->setMaxResults(5)
-            ->setParameter('shop', $store)
+            ->setParameter('shopId', $store->getId(), 'uuid')
             ->setParameter('dateFrom', $dateFrom)
             ->setParameter('dateTo', $dateTo)
-            ->setParameter('excludedStatuses', [OrderStatus::Draft, OrderStatus::Cancelled, OrderStatus::Rejected])
+            ->setParameter('excludedStatuses', self::excludedRevenueStatusValues())
             ->getQuery()
             ->getResult();
 
@@ -264,5 +267,22 @@ final readonly class MerchantStatisticsProvider implements ProviderInterface
         }
 
         return round($numerator / $denominator, 3);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function excludedRevenueStatusValues(): array
+    {
+        return [
+            OrderStatus::Draft->value,
+            OrderStatus::Cancelled->value,
+            OrderStatus::Rejected->value,
+        ];
+    }
+
+    private static function money(mixed $value): string
+    {
+        return bcadd((string) $value, '0', 3);
     }
 }
