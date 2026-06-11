@@ -28,7 +28,7 @@ Le référentiel produit est un **actif stratégique partagé** par tous les mar
 
 - **Peut proposer** un nouveau produit via `ProductReferenceProposal`.
 - **Ne peut pas** valider, refuser, fusionner ou archiver les références globales.
-- Peut utiliser les références en `approved` dans son catalogue via `MerchantLocalProduct`.
+- Peut utiliser les références en `approved` dans son catalogue via `MerchantProduct.productReference`.
 
 ### 2.3 Système IA
 
@@ -48,17 +48,17 @@ draft
 ├─→ pending_review (admin relance)
 ├─→ approved (admin valide)
 ├─→ rejected (admin refuse)
-└─→ archived (admin archibe, final)
+└─→ archived (admin archive, final)
 
 pending_review
 ├─→ approved (admin valide)
 ├─→ rejected (admin refuse)
-├─→ archived (admin archibe)
+├─→ archived (admin archive)
 └─→ draft (admin revient en brouillon pour corrections)
 
 approved
 ├─→ pending_review (admin demande révision)
-├─→ archived (admin archibe)
+├─→ archived (admin archive)
 └─→ draft (admin revient en brouillon pour corrections)
 
 rejected
@@ -162,7 +162,7 @@ Admin approuve ou rejette
    - Enregistrement : `ProductReferenceMergeHistory` (qui + quand + source + target)
 
 4. **Conséquences**
-   - Les `MerchantLocalProduct` liées aux sources restent valides (foreign keys not deleted)
+   - Les `MerchantProduct` liés aux sources restent valides (foreign keys not deleted)
    - Les propositions en pending des sources deviennent orphelines (cascade `SET NULL`)
    - Les commandes historiques restent intactes (frozen prices)
 
@@ -180,9 +180,9 @@ Admin approuve ou rejette
 3. **Changement d'état** : current status → `archived`
 4. **Conséquences**
    - La référence **disparaît du filtre marchand** (readonly visible seulement)
-   - Les `MerchantLocalProduct` liées deviennent **invisibles au client** (catalog filtre sur `status=approved`)
+   - Les `MerchantProduct` liés deviennent **invisibles au client** (catalog filtre sur `productReference.status=approved`)
    - Les commandes existantes restent valides (prix figé)
-   - Aucune nouvelle `MerchantLocalProduct` ne peut pointer sur une référence archivée
+   - Aucun nouveau `MerchantProduct` ne peut pointer sur une référence archivée
 
 ---
 
@@ -190,17 +190,19 @@ Admin approuve ou rejette
 
 **Calculé** : `ProductReferenceQualityScorer` (Sprint 13 #372)  
 **Échelle** : 0–100 (déterministe, réproductible)  
-**Niveaux** : low (0–40), medium (41–70), good (71–100)
+**Niveaux** : low (0–59), medium (60–79), good (80–100)
 
 ### Critères de scoring
 
 Champs complétés avec poids :
-- `nameFr` + `nameAr` — 20 points
-- `brand` (existant) — 15 points
-- `category` (existant) — 15 points
-- `barcode` — 25 points
-- `volume` + `unit` — 15 points
-- `productImages` (count ≥ 1) — 10 points
+- `nameFr` — 20 points
+- `brand.canonicalName` — 10 points
+- `category.nameFr` — 10 points
+- `volume` — 10 points
+- `unit` — 10 points
+- `barcode` — 15 points
+- `productImages` officielles/validées (count ≥ 1) — 15 points
+- `status=approved` — 10 points
 
 **Utilisation** :
 - **Admin** : Filtre par qualité (min/max) pour prioriser le review
@@ -232,13 +234,13 @@ Champs complétés avec poids :
 |---|---|---|---|
 | Rechercher | `GET /api/merchant/product-references` | Marchand | Seules references en `approved` |
 | Détailer | `GET /api/merchant/product-references/{id}` | Marchand | Seules references en `approved` |
-| Proposer | `POST /api/merchant/product-proposals` | Marchand | Crée une ProductReferenceProposal |
+| Proposer | `POST /api/merchant/stores/{storeId}/product-proposals` | Marchand | Crée une ProductReferenceProposal |
 
 ### Client endpoints
 
 | Opération | Endpoint | Rôle | Voir |
 |---|---|---|---|
-| Catalogue public | `GET /api/stores/{storeId}/products` | Public | MerchantLocalProduct pointant sur approved references |
+| Catalogue public | `GET /api/stores/{storeId}/products` | Public | MerchantProduct pointant sur approved references |
 
 ---
 
@@ -247,9 +249,9 @@ Champs complétés avec poids :
 Chaque transition d'état doit être enregistrée :
 
 - **Champ `updatedAt`** sur ProductReference
-- **Log admin** (si `AdminAuditLog` existe) : `action=ARCHIVE_PRODUCT_REFERENCE`, metadata with reason
+- **Log admin** (`AdminAuditLog`) : actions `product_reference.create`, `product_reference.update`, `product_reference.approve`, `product_reference.reject`, `product_reference.archive`, `product_reference.merge`
 - **ProductReferenceMergeHistory** : qui a fusionné quoi et quand
-- **ProductReferenceProposal.status** : historique des décisions (pending → approved/rejected → created/archived)
+- **ProductReferenceProposal.status** : historique des décisions (pending → approved/rejected/merged)
 
 ---
 
@@ -258,9 +260,9 @@ Chaque transition d'état doit être enregistrée :
 ### Ce qui se passe quand une référence est archivée
 
 1. **Références elles-mêmes** → `archived` (changement d'état)
-2. **MerchantLocalProduct liées**
-   - Statut ne change pas (`is_active` reste inchangé)
-   - Deviennent **invisibles au client** (filtre catalog sur `reference.status=approved`)
+2. **MerchantProduct liés**
+   - Disponibilité et visibilité marchandes ne changent pas (`isAvailable` / `isVisible`)
+   - Deviennent **invisibles au client** (filtre catalog sur `productReference.status=approved`)
    - Marchand peut les réactiver en les reliant à une nouvelle référence approuvée
 3. **Commandes existantes** → intactes (prix figé, référence toujours queryable)
 4. **Propositions en pending** → gardent leur statut (orphelines, pas de cascade delete)
@@ -269,8 +271,8 @@ Chaque transition d'état doit être enregistrée :
 
 - Une référence archivée **ne peut pas être de-archivée** directement
   - Pour la réutiliser : créer une nouvelle référence et migrer les liens
-- Une référence archivée **bloque la création de nouvelles MerchantLocalProduct** pointant sur elle
-  - Validation lors de la création : `if (reference.status === archived) throw 422`
+- Une référence archivée **bloque la création de nouveaux MerchantProduct** pointant sur elle
+  - Validation lors de la création : `if (productReference.status !== approved) throw 422`
 
 ---
 
