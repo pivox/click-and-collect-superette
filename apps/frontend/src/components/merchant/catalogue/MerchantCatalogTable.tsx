@@ -95,6 +95,7 @@ export function MerchantCatalogTable({
                   {product.is_visible
                     ? statusBadge('Visible', true, 'success')
                     : statusBadge('Masqué', false, 'muted')}
+                  {product.requires_price_completion && statusBadge('À compléter', false, 'muted')}
                 </div>
               </td>
               <td className="max-w-[220px] px-4 py-4 align-top text-muted">

@@ -63,6 +63,22 @@ function validatePrice(value: string): string | null {
   return parsedPrice.toFixed(3);
 }
 
+function normalizePriceAllowZero(value: string): string | null {
+  const trimmedValue = value.trim();
+
+  if (!/^\d+(?:[.,]\d{1,3})?$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const parsedPrice = Number(trimmedValue.replace(',', '.'));
+
+  if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+    return null;
+  }
+
+  return parsedPrice.toFixed(3);
+}
+
 export function MerchantCatalogEditDrawer({
   categories,
   categoryMessage,
@@ -173,6 +189,9 @@ export function MerchantCatalogEditDrawer({
 
   if (!product) return null;
 
+  const normalizedDraftPrice = validatePrice(priceTnd);
+  const canPublish = normalizedDraftPrice !== null;
+
   const handleTogglePriceHistory = async () => {
     if (showPriceHistory) {
       setShowPriceHistory(false);
@@ -202,8 +221,14 @@ export function MerchantCatalogEditDrawer({
 
   const handleSubmit = async () => {
     const normalizedPrice = validatePrice(priceTnd);
+    const normalizedZeroOrPositivePrice = normalizePriceAllowZero(priceTnd);
+    const keepsUnchangedPlaceholderHidden =
+      normalizedPrice === null &&
+      !isVisible &&
+      normalizedZeroOrPositivePrice === product.price_tnd &&
+      product.requires_price_completion === true;
 
-    if (!normalizedPrice) {
+    if (!normalizedPrice && !keepsUnchangedPlaceholderHidden) {
       setHasPriceError(true);
       setError('Le prix doit être supérieur à 0 avec au maximum 3 décimales.');
       return;
@@ -215,7 +240,7 @@ export function MerchantCatalogEditDrawer({
 
     try {
       await updateMerchantCatalogProduct(product.id, {
-        price_tnd: normalizedPrice,
+        ...(normalizedPrice ? { price_tnd: normalizedPrice } : {}),
         is_available: isAvailable,
         is_visible: isVisible,
         merchant_note: merchantNote.trim() || null,
@@ -295,11 +320,18 @@ export function MerchantCatalogEditDrawer({
             <input
               type="checkbox"
               checked={isVisible}
+              disabled={!canPublish}
               onChange={(event) => setIsVisible(event.target.checked)}
               className="h-5 w-5 rounded border-line"
             />
             Visible
           </label>
+
+          {!canPublish && (
+            <p className="rounded-md bg-soft px-3 py-2 text-sm text-muted">
+              Saisis un prix supérieur à 0 pour rendre ce produit visible.
+            </p>
+          )}
 
           <MerchantCategorySelector
             categories={categories}

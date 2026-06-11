@@ -75,6 +75,7 @@ final class PublicStoreCatalogApiTest extends FunctionalApiTestCase
         $pendingReviewReference = $this->createProductReference('Nadhif Plus', 'Hygiène', 'hygiene', 'Produit en revue', status: ProductReferenceStatus::PendingReview);
         $archivedReference = $this->createProductReference('Jouda', 'Conserves', 'conserves', 'Harissa archivée', status: ProductReferenceStatus::Archived);
         $rejectedReference = $this->createProductReference('Candia', 'Boissons', 'boissons', 'Boisson rejetée', status: ProductReferenceStatus::Rejected);
+        $placeholderReference = $this->createProductReference('Rose Blanche', 'Epicerie', 'epicerie', 'Semoule sans prix');
 
         $visibleProduct = $this->createMerchantProduct($shop, $visibleReference);
         $this->createMerchantProduct($shop, $hiddenReference, isVisible: false);
@@ -84,6 +85,7 @@ final class PublicStoreCatalogApiTest extends FunctionalApiTestCase
         $this->createMerchantProduct($shop, $pendingReviewReference);
         $this->createMerchantProduct($shop, $archivedReference);
         $this->createMerchantProduct($shop, $rejectedReference);
+        $this->createMerchantProduct($shop, $placeholderReference, priceTnd: '0.000');
 
         $response = $this->requestJson('GET', \sprintf('/api/stores/%s/catalog', $shop->getId()));
 
@@ -229,11 +231,12 @@ final class PublicStoreCatalogApiTest extends FunctionalApiTestCase
         bool $isVisible = true,
         bool $isAvailable = true,
         ?string $merchantNote = null,
+        string $priceTnd = '1.650',
     ): MerchantProduct {
         $merchantProduct = (new MerchantProduct())
             ->setShop($shop)
             ->setProductReference($productReference)
-            ->setPriceTnd('1.650')
+            ->setPriceTnd($priceTnd)
             ->setVisible($isVisible)
             ->setAvailable($isAvailable)
             ->setMerchantNote($merchantNote);

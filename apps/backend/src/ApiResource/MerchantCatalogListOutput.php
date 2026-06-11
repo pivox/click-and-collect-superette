@@ -37,6 +37,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
                     schema: ['type' => 'string', 'enum' => ['visible', 'hidden']],
                     description: 'Filtrer par visibilité : visible ou hidden.',
                 ),
+                'completion' => new QueryParameter(
+                    schema: ['type' => 'string', 'enum' => ['needs_price']],
+                    description: 'Filtrer les produits à compléter : needs_price retourne les produits sans prix positif.',
+                ),
                 'category' => new QueryParameter(
                     schema: ['type' => 'string'],
                     description: 'Filtrer par nom de catégorie (catégorie marchand ou catégorie référentiel).',

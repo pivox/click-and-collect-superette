@@ -1,6 +1,6 @@
 # Groupements de produits référentiel
 
-Statut : cadrage produit Sprint 15 — #466 livré
+Statut : cadrage produit Sprint 15 — #466 et #467 livrés
 Issues : #464, #465, #466, #467  
 Document détaillé : `docs/Sprint15/README.md`
 
@@ -18,7 +18,8 @@ Exemple : `Premières nécessités` peut contenir sel, sucre en vrac, farine, pa
 - L'import d'un groupement dans le catalogue marchand doit être idempotent.
 - Si le produit est déjà présent dans le catalogue marchand, il n'est pas réinséré.
 - Un produit importé par #466 est créé avec `price_tnd = 0.000`, reste à compléter et non visible côté client.
-- La complétion du prix, la publication et l'historique de prix associé restent le périmètre de #467.
+- #467 permet au marchand de retrouver ces produits via `completion=needs_price`, de saisir un prix positif et de publier uniquement les produits complets.
+- La première saisie d'un vrai prix après import crée l'historique de prix marchand ; le référentiel global ne porte toujours aucun prix.
 
 ## Modèle cible
 
@@ -73,7 +74,9 @@ Réponse d'import attendue :
 }
 ```
 
-Décision #466 : `defaultVisibility` est accepté dans le payload pour compatibilité, mais les produits créés restent `is_visible = false` tant que le prix n'est pas complété dans #467.
+Décision #466 : `defaultVisibility` est accepté dans le payload pour compatibilité, mais les produits créés restent `is_visible = false` tant que le prix n'est pas complété.
+
+Décision #467 : le backend refuse de publier un produit si son prix final reste `0.000`. Le catalogue client filtre les produits sans prix positif, même si une donnée incohérente les marque visibles.
 
 ## Endpoints cibles
 
@@ -89,11 +92,12 @@ DELETE /api/admin/product-groups/{groupId}/items/{itemId}
 GET  /api/merchant/stores/{storeId}/product-groups
 GET  /api/merchant/stores/{storeId}/product-groups/{groupId}
 POST /api/merchant/stores/{storeId}/catalog/import-from-product-group  # #466
+GET  /api/merchant/stores/{storeId}/catalog?completion=needs_price      # #467
 ```
 
 #465 expose seulement les lectures marchand par supérette et la sélection.
-#466 livre l'import effectif, idempotent et sans doublon catalogue. #467 livrera
-la complétion des prix après import.
+#466 livre l'import effectif, idempotent et sans doublon catalogue.
+#467 livre la complétion des prix après import.
 
 ## Groupements MVP recommandés
 

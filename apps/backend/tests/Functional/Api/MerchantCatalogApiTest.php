@@ -137,6 +137,40 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         self::assertSame($mpCouscous->getId()->toRfc4122(), $payloadCat['items'][0]['id']);
     }
 
+    public function testCatalogCanFilterProductsRequiringPriceCompletion(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-completion@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $placeholderReference = $this->createProductReference('Rose Blanche', 'Epicerie', 'Semoule à compléter');
+        $pricedReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait prêt');
+
+        $placeholderProduct = $this->createMerchantProduct($shop, $placeholderReference, [
+            'priceTnd' => '0.000',
+            'isAvailable' => true,
+            'isVisible' => false,
+        ]);
+        $this->createMerchantProduct($shop, $pricedReference, [
+            'priceTnd' => '1.500',
+            'isAvailable' => true,
+            'isVisible' => true,
+        ]);
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?completion=needs_price', $shop->getId()),
+            user: $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame(1, $payload['total']);
+        self::assertCount(1, $payload['items']);
+        self::assertSame($placeholderProduct->getId()->toRfc4122(), $payload['items'][0]['id']);
+        self::assertSame('0.000', $payload['items'][0]['price_tnd']);
+        self::assertFalse($payload['items'][0]['is_visible']);
+        self::assertTrue($payload['items'][0]['requires_price_completion']);
+    }
+
     public function testCatalogLimitIsCapAt100(): void
     {
         $merchant = $this->createUser('merchant-catalog-limit@example.test', ['ROLE_MERCHANT']);
@@ -471,6 +505,57 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         self::assertSame('1.500', $persistedMerchantProduct->getPriceTnd());
     }
 
+    public function testCatalogPatchRejectsPublishingProductWithoutPositivePrice(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-publish-placeholder@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Rose Blanche', 'Epicerie', 'Semoule placeholder');
+        $merchantProduct = $this->createMerchantProduct($shop, $productReference, [
+            'priceTnd' => '0.000',
+            'isVisible' => false,
+        ]);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
+            ['is_visible' => true],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+        $persistedMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->find($merchantProduct->getId());
+        self::assertInstanceOf(MerchantProduct::class, $persistedMerchantProduct);
+        self::assertSame('0.000', $persistedMerchantProduct->getPriceTnd());
+        self::assertFalse($persistedMerchantProduct->isVisible());
+    }
+
+    public function testCatalogPatchCanCompletePriceAndPublishInSameRequest(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-complete-publish@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Rose Blanche', 'Epicerie', 'Semoule publication');
+        $merchantProduct = $this->createMerchantProduct($shop, $productReference, [
+            'priceTnd' => '0.000',
+            'isVisible' => false,
+        ]);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
+            [
+                'price_tnd' => '1.900',
+                'is_visible' => true,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $persistedMerchantProduct = $this->entityManager->getRepository(MerchantProduct::class)->find($merchantProduct->getId());
+        self::assertInstanceOf(MerchantProduct::class, $persistedMerchantProduct);
+        self::assertSame('1.900', $persistedMerchantProduct->getPriceTnd());
+        self::assertTrue($persistedMerchantProduct->isVisible());
+    }
+
     public function testCatalogCreateRejectsUnapprovedProductReference(): void
     {
         $merchant = $this->createUser('merchant-catalog-owner@example.test', ['ROLE_MERCHANT']);
@@ -567,14 +652,14 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
     }
 
     /**
-     * @param array{isAvailable?: bool, isVisible?: bool} $options
+     * @param array{isAvailable?: bool, isVisible?: bool, priceTnd?: string} $options
      */
     private function createMerchantProduct(Shop $shop, ProductReference $productReference, array $options = []): MerchantProduct
     {
         $merchantProduct = (new MerchantProduct())
             ->setShop($shop)
             ->setProductReference($productReference)
-            ->setPriceTnd('1.500');
+            ->setPriceTnd($options['priceTnd'] ?? '1.500');
 
         if (isset($options['isAvailable'])) {
             $merchantProduct->setAvailable($options['isAvailable']);

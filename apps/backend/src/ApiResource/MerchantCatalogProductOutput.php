@@ -101,6 +101,9 @@ final readonly class MerchantCatalogProductOutput
         #[SerializedName('is_visible')]
         public bool $isVisible,
         #[Groups(['merchant_catalog:read'])]
+        #[SerializedName('requires_price_completion')]
+        public bool $requiresPriceCompletion,
+        #[Groups(['merchant_catalog:read'])]
         #[SerializedName('merchant_note')]
         public ?string $merchantNote,
     ) {

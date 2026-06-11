@@ -29,6 +29,7 @@ final readonly class MerchantCatalogProductMapper
             priceTnd: $merchantProduct->getPriceTnd(),
             isAvailable: $merchantProduct->isAvailable(),
             isVisible: $merchantProduct->isVisible(),
+            requiresPriceCompletion: 0 === bccomp($merchantProduct->getPriceTnd(), '0.000', 3),
             merchantNote: $merchantProduct->getMerchantNote(),
         );
     }
