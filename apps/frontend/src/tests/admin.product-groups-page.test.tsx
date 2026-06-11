@@ -152,7 +152,7 @@ describe('GroupementsPage', () => {
       target: { value: 'lait' },
     });
 
-    await waitFor(() => expect(listProductReferences).toHaveBeenCalledWith({ q: 'lait', limit: 10 }));
+    await waitFor(() => expect(listProductReferences).toHaveBeenCalledWith({ q: 'lait', status: 'approved', limit: 10 }));
     fireEvent.click(await within(detail).findByRole('button', { name: 'Ajouter Lait demi-écrémé' }));
 
     await waitFor(() => expect(addProductGroupItem).toHaveBeenCalledWith('group-1', expect.objectContaining({

@@ -100,7 +100,7 @@ export default function GroupementsPage() {
     }
 
     let cancelled = false;
-    void listProductReferences({ q: productQuery.trim(), limit: 10 })
+    void listProductReferences({ q: productQuery.trim(), status: 'approved', limit: 10 })
       .then((data) => {
         if (!cancelled) {
           setProductResults(data.items);

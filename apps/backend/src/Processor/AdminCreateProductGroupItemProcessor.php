@@ -10,6 +10,7 @@ use App\ApiResource\AdminProductGroupItemOutput;
 use App\Dto\AdminCreateProductGroupItemInput;
 use App\Entity\ProductGroupItem;
 use App\Enum\ProductGroupItemImportance;
+use App\Enum\ProductReferenceStatus;
 use App\Provider\AdminProductGroupItemProvider;
 use App\Repository\AdminProductGroupRepository;
 use App\Repository\AdminProductReferenceRepository;
@@ -43,6 +44,10 @@ final readonly class AdminCreateProductGroupItemProcessor implements ProcessorIn
             : null;
         if (null === $productReference) {
             throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_GROUP_PRODUCT_REFERENCE_NOT_FOUND');
+        }
+
+        if (ProductReferenceStatus::Approved !== $productReference->getStatus()) {
+            throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_GROUP_PRODUCT_REFERENCE_NOT_APPROVED');
         }
 
         if (null !== $this->adminProductGroupRepository->findItemByProductReference($group, $productReference)) {

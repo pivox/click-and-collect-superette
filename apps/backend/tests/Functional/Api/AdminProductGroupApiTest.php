@@ -12,6 +12,7 @@ use App\Entity\ProductReference;
 use App\Enum\ProductGroupItemImportance;
 use App\Enum\ProductGroupStatus;
 use App\Enum\ProductGroupVisibility;
+use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 
 final class AdminProductGroupApiTest extends FunctionalApiTestCase
@@ -213,6 +214,20 @@ final class AdminProductGroupApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('ADMIN_PRODUCT_GROUP_PRODUCT_REFERENCE_NOT_FOUND', (string) $response->getContent());
     }
 
+    public function testAddingNonApprovedProductReferenceReturns422(): void
+    {
+        $admin = $this->createUser('admin-product-group-item-draft-ref@example.test', ['ROLE_ADMIN']);
+        [$milk] = $this->persistReferences(['Lait'], ProductReferenceStatus::Draft);
+        $group = $this->persistGroup('Petit déjeuner', 'petit-dejeuner');
+
+        $response = $this->requestJson('POST', \sprintf('/api/admin/product-groups/%s/items', $group->getId()), [
+            'productReferenceId' => $milk->getId()->toRfc4122(),
+        ], $admin);
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertStringContainsString('ADMIN_PRODUCT_GROUP_PRODUCT_REFERENCE_NOT_APPROVED', (string) $response->getContent());
+    }
+
     private function persistGroup(
         string $nameFr,
         string $slug,
@@ -237,7 +252,7 @@ final class AdminProductGroupApiTest extends FunctionalApiTestCase
      *
      * @return list<ProductReference>
      */
-    private function persistReferences(array $names): array
+    private function persistReferences(array $names, ProductReferenceStatus $status = ProductReferenceStatus::Approved): array
     {
         $brand = (new Brand())->setCanonicalName('Group API Brand '.uniqid())->setSlug('group-api-brand-'.uniqid());
         $category = (new Category())->setNameFr('Group API Category '.uniqid())->setSlug('group-api-category-'.uniqid());
@@ -250,7 +265,8 @@ final class AdminProductGroupApiTest extends FunctionalApiTestCase
                 ->setBrand($brand)
                 ->setCategory($category)
                 ->setNameFr($name)
-                ->setUnit(ProductUnit::Piece);
+                ->setUnit(ProductUnit::Piece)
+                ->setStatus($status);
             $this->entityManager->persist($reference);
             $references[] = $reference;
         }
