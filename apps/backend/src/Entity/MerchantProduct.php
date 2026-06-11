@@ -344,7 +344,7 @@ class MerchantProduct
         $timezone = new \DateTimeZone('Africa/Tunis');
         $now ??= new \DateTimeImmutable('now', $timezone);
         $now = $now->setTimezone($timezone);
-        $promotionEndsAt = $this->promotionEndsOn->setTimezone($timezone)->setTime(23, 59, 59);
+        $promotionEndsAt = new \DateTimeImmutable($this->promotionEndsOn->format('Y-m-d').' 23:59:59', $timezone);
 
         return $now <= $promotionEndsAt;
     }

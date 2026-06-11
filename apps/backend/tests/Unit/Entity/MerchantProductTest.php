@@ -82,6 +82,20 @@ final class MerchantProductTest extends TestCase
         self::assertSame('2.500', $product->getEffectivePriceTnd($endOfDay->modify('+1 second')));
     }
 
+    public function testPromotionEndDateUsesStoredCalendarDateWhenHydratedInAnotherTimezone(): void
+    {
+        $product = (new MerchantProduct())
+            ->setShop($this->shop)
+            ->setProductReference($this->productReference)
+            ->setPriceTnd('2.500')
+            ->setPromotionPriceTnd('1.900');
+
+        $reflectionProperty = new \ReflectionProperty($product, 'promotionEndsOn');
+        $reflectionProperty->setValue($product, new \DateTimeImmutable('2026-06-11 00:00:00', new \DateTimeZone('Europe/Paris')));
+
+        self::assertTrue($product->isPromotionActive(new \DateTimeImmutable('2026-06-11 23:30:00', new \DateTimeZone('Africa/Tunis'))));
+    }
+
     public function testPromotionPriceMustBeStrictlyLowerThanNormalPrice(): void
     {
         $product = (new MerchantProduct())

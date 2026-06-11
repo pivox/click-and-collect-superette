@@ -167,6 +167,64 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
     }
 
+    public function testCatalogPatchCanUpdateNormalPriceAndPromotionTogether(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-price-promo-update@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait promo modifiée');
+        $promotionEndsOn = (new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis')))->format('Y-m-d');
+        $merchantProduct = $this->createMerchantProduct($shop, $productReference, [
+            'priceTnd' => '2.500',
+            'promotionPriceTnd' => '2.000',
+            'promotionEndsOn' => $promotionEndsOn,
+        ]);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
+            [
+                'price_tnd' => '1.800',
+                'promotion_price_tnd' => '1.500',
+                'promotion_ends_on' => $promotionEndsOn,
+            ],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $readResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/catalog?promotion=active', $shop->getId()),
+            user: $merchant,
+        );
+        self::assertSame(200, $readResponse->getStatusCode());
+        $payload = $this->decodeJson($readResponse);
+        self::assertSame(1, $payload['total']);
+        self::assertSame('1.800', $payload['items'][0]['price_tnd']);
+        self::assertSame('1.500', $payload['items'][0]['promotion_price_tnd']);
+        self::assertSame($promotionEndsOn, $payload['items'][0]['promotion_ends_on']);
+        self::assertSame('1.500', $payload['items'][0]['effective_price_tnd']);
+    }
+
+    public function testCatalogPatchRejectsIncompletePromotionPayload(): void
+    {
+        $merchant = $this->createUser('merchant-catalog-promo-incomplete@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $productReference = $this->createProductReference('Vitalait', 'Lait & produits laitiers', 'Lait promo incomplète');
+        $merchantProduct = $this->createMerchantProduct($shop, $productReference);
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/catalog/%s', $merchantProduct->getId()),
+            [
+                'promotion_price_tnd' => '1.200',
+            ],
+            $merchant,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     public function testCatalogPaginationAndFilters(): void
     {
         $merchant = $this->createUser('merchant-catalog-filters@example.test', ['ROLE_MERCHANT']);
