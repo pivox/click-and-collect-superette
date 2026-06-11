@@ -113,6 +113,15 @@ export function MerchantProductGroupDrawer({
 
   if (!isOpen || !storeId) return null;
 
+  const applyGroupDetail = (detail: MerchantProductGroup) => {
+    setSelectedGroup(detail);
+    setSelectedReferenceIds(
+      (detail.items ?? [])
+        .filter((item) => item.status === 'new')
+        .map((item) => item.product_reference.id),
+    );
+  };
+
   const handleSelectGroup = async (groupId: string) => {
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
@@ -124,12 +133,7 @@ export function MerchantProductGroupDrawer({
       const detail = await getMerchantProductGroup(storeId, groupId);
       if (requestRef.current !== requestId) return;
 
-      setSelectedGroup(detail);
-      setSelectedReferenceIds(
-        (detail.items ?? [])
-          .filter((item) => item.status === 'new')
-          .map((item) => item.product_reference.id),
-      );
+      applyGroupDetail(detail);
     } catch {
       if (requestRef.current !== requestId) return;
       setSelectedGroup(null);
@@ -151,25 +155,41 @@ export function MerchantProductGroupDrawer({
   };
 
   const handleImport = async () => {
-    if (!selectedGroup) return;
+    if (!selectedGroup || selectedReferenceIds.length === 0 || isImporting) return;
 
+    const requestId = requestRef.current + 1;
+    requestRef.current = requestId;
+    const groupId = selectedGroup.id;
     setIsImporting(true);
     setImportResult(null);
     setError(null);
 
     try {
       const result = await importMerchantProductGroup(storeId, {
-        groupId: selectedGroup.id,
+        groupId,
         selectedProductReferenceIds: selectedReferenceIds,
         skipExisting: true,
         defaultVisibility: false,
         defaultAvailability: true,
       });
+      if (requestRef.current !== requestId) return;
       setImportResult(result);
+
+      try {
+        const detail = await getMerchantProductGroup(storeId, groupId);
+        if (requestRef.current !== requestId) return;
+        applyGroupDetail(detail);
+      } catch {
+        if (requestRef.current !== requestId) return;
+        setError('Import effectué, mais impossible de rafraîchir ce groupement.');
+      }
+
       await onImported?.();
     } catch {
+      if (requestRef.current !== requestId) return;
       setError("Impossible d'importer ce groupement.");
     } finally {
+      if (requestRef.current !== requestId) return;
       setIsImporting(false);
     }
   };

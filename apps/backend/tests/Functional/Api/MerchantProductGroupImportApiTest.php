@@ -148,6 +148,30 @@ final class MerchantProductGroupImportApiTest extends FunctionalApiTestCase
         ], $payload['errors']);
     }
 
+    public function testSelectedProductReferenceIdsAreMatchedCaseInsensitively(): void
+    {
+        $merchant = $this->createUser('merchant-product-group-import-uppercase@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $reference = $this->createProductReference('Farine');
+        $group = $this->createGroup('Épicerie uppercase', 'import-uppercase-epicerie', ProductGroupStatus::Published, ProductGroupVisibility::Merchant);
+        $this->addItem($group, $reference);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', $this->importPath($shop), [
+            'groupId' => $group->getId()->toRfc4122(),
+            'selectedProductReferenceIds' => [strtoupper($reference->getId()->toRfc4122())],
+        ], user: $merchant);
+
+        self::assertSame(200, $response->getStatusCode(), (string) $response->getContent());
+        self::assertSame([
+            'created' => 1,
+            'alreadyInCatalog' => 0,
+            'skipped' => 0,
+            'requiresPriceCompletion' => 1,
+            'errors' => [],
+        ], $this->decodeJson($response));
+    }
+
     public function testUnpublishedAdminOnlyAndUnknownGroupReturn404(): void
     {
         $merchant = $this->createUser('merchant-product-group-import-not-found@example.test', ['ROLE_MERCHANT']);

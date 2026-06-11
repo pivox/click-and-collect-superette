@@ -158,7 +158,12 @@ final readonly class MerchantProductGroupImporter
      */
     private function uniqueIds(array $ids): array
     {
-        return array_values(array_unique($ids));
+        $normalizedIds = array_map(
+            static fn (string $id): string => Uuid::fromString($id)->toRfc4122(),
+            $ids,
+        );
+
+        return array_values(array_unique($normalizedIds));
     }
 
     private function insertMerchantProduct(Shop $shop, ProductReference $productReference, bool $defaultAvailability): void

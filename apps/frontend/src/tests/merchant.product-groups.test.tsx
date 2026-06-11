@@ -125,6 +125,15 @@ const groupDetail: MerchantProductGroup = {
   ],
 };
 
+const importedGroupDetail: MerchantProductGroup = {
+  ...groupDetail,
+  items: groupDetail.items?.map((item) =>
+    item.product_reference.id === 'ref-new'
+      ? { ...item, status: 'already_present' }
+      : item,
+  ),
+};
+
 function catalogResult(items: MerchantCatalogProduct[]): MerchantCatalogListResult {
   return { items, total: items.length, page: 1, limit: 50, pages: 1 };
 }
@@ -160,6 +169,10 @@ describe('MerchantCatalogPage product groups', () => {
   });
 
   it('opens product groups, selects only new lines by default, imports them, and refreshes the catalog', async () => {
+    vi.mocked(getMerchantProductGroup)
+      .mockResolvedValueOnce(groupDetail)
+      .mockResolvedValueOnce(importedGroupDetail);
+
     render(<MerchantCatalogPage />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Ajouter par groupement' }));
@@ -209,6 +222,9 @@ describe('MerchantCatalogPage product groups', () => {
     expect(within(dialog).getByText('1 prix à compléter')).toBeInTheDocument();
     expect(within(dialog).getByText(/Selected product reference does not belong/)).toBeInTheDocument();
     await waitFor(() => expect(listMerchantCatalog).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getMerchantProductGroup).toHaveBeenCalledTimes(2));
+    expect(within(dialog).getByRole('checkbox', { name: /Lait UHT/ })).toBeDisabled();
+    expect(within(dialog).getByText('0 référence sélectionnée')).toBeInTheDocument();
     expect(within(dialog).queryByText(/ref-present/)).not.toBeInTheDocument();
     expect(within(dialog).queryByText(/ref-blocked/)).not.toBeInTheDocument();
   });
