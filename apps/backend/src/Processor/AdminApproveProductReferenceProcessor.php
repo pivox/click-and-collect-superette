@@ -53,6 +53,7 @@ final readonly class AdminApproveProductReferenceProcessor implements ProcessorI
 
         try {
             $productReference->setStatus(ProductReferenceStatus::Approved);
+            $productReference->setRejectionReason(null);
             $this->auditLogger->log(
                 action: 'product_reference.approve',
                 resourceType: 'product_reference',

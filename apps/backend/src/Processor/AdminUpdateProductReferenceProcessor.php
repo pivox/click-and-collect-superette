@@ -149,6 +149,9 @@ final readonly class AdminUpdateProductReferenceProcessor implements ProcessorIn
                 }
             }
             $productReference->setStatus($status);
+            if (ProductReferenceStatus::Approved === $status) {
+                $productReference->setRejectionReason(null);
+            }
         }
 
         $this->auditLogger->log(
