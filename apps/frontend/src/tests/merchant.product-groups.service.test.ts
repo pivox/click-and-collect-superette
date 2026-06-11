@@ -82,6 +82,6 @@ describe('merchant product groups service', () => {
     expect(apiClient.get).toHaveBeenCalledWith(
       '/api/merchant/stores/store-1/product-groups/group-1',
     );
-    expect(result.items[0].status).toBe('new');
+    expect(result.items?.[0]?.status).toBe('new');
   });
 });
