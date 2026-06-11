@@ -35,8 +35,8 @@ final readonly class RegisterMerchantPushSubscriptionProcessor implements Proces
         $existing = $this->pushSubscriptionRepository->findByEndpointHash($hash);
 
         if ($existing) {
-            // Upsert: reassign to current user with new keys
-            $existing->setUser($user);
+            // Upsert: reassign to current user with fresh browser keys.
+            $existing->refresh($user, $data->endpoint, $data->p256dhKey, $data->authKey, 'merchant', $data->userAgent);
             $this->entityManager->flush();
         } else {
             // Create new subscription
