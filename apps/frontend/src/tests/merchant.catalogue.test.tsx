@@ -71,6 +71,7 @@ const products: MerchantCatalogProduct[] = [
     price_tnd: '1.650',
     is_available: true,
     is_visible: true,
+    requires_price_completion: false,
     merchant_note: null,
   },
   {
@@ -85,9 +86,26 @@ const products: MerchantCatalogProduct[] = [
     price_tnd: '2.400',
     is_available: false,
     is_visible: false,
+    requires_price_completion: false,
     merchant_note: 'Rupture fournisseur',
   },
 ];
+
+const productToComplete: MerchantCatalogProduct = {
+  id: 'mp-3',
+  product_reference_id: 'ref-3',
+  name_fr: 'Semoule fine',
+  brand: 'Rose Blanche',
+  category: 'Epicerie',
+  merchant_category_name: null,
+  volume: '1',
+  unit: 'kg',
+  price_tnd: '0.000',
+  is_available: true,
+  is_visible: false,
+  requires_price_completion: true,
+  merchant_note: null,
+};
 
 const merchantCategories: MerchantCategory[] = [
   {
@@ -324,6 +342,26 @@ describe('MerchantCatalogPage', () => {
     });
   });
 
+  it('filters products that need price completion', async () => {
+    vi.mocked(listMerchantCatalog)
+      .mockResolvedValueOnce(catalogResult(products))
+      .mockResolvedValueOnce(catalogResult([productToComplete]));
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Produits à compléter' }));
+
+    await waitFor(() =>
+      expect(listMerchantCatalog).toHaveBeenLastCalledWith(
+        'store-1',
+        expect.objectContaining({ completion: 'needs_price', page: 1 }),
+      ),
+    );
+    expect(await screen.findByText('Semoule fine')).toBeInTheDocument();
+    expect(screen.getByText('À compléter')).toBeInTheDocument();
+  });
+
   it('edits a merchant catalogue product from the drawer', async () => {
     render(React.createElement(MerchantCatalogPage));
 
@@ -352,6 +390,36 @@ describe('MerchantCatalogPage', () => {
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps an incomplete imported product hidden until a positive price is entered', async () => {
+    vi.mocked(listMerchantCatalog).mockResolvedValue(catalogResult([productToComplete]));
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Semoule fine');
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+
+    const visibleCheckbox = screen.getByLabelText('Visible');
+    expect(visibleCheckbox).toBeDisabled();
+    expect(
+      screen.getByText('Saisis un prix supérieur à 0 pour rendre ce produit visible.'),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Prix TND'), { target: { value: '1.900' } });
+    expect(visibleCheckbox).toBeEnabled();
+    fireEvent.click(visibleCheckbox);
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(updateMerchantCatalogProduct).toHaveBeenCalledWith('mp-3', {
+        price_tnd: '1.900',
+        is_available: true,
+        is_visible: true,
+        merchant_note: null,
+        merchant_category_id: null,
+      }),
+    );
   });
 
   it('loads merchant categories and shows the selector in edit drawer', async () => {

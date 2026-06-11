@@ -173,6 +173,9 @@ export function MerchantCatalogEditDrawer({
 
   if (!product) return null;
 
+  const normalizedDraftPrice = validatePrice(priceTnd);
+  const canPublish = normalizedDraftPrice !== null;
+
   const handleTogglePriceHistory = async () => {
     if (showPriceHistory) {
       setShowPriceHistory(false);
@@ -295,11 +298,18 @@ export function MerchantCatalogEditDrawer({
             <input
               type="checkbox"
               checked={isVisible}
+              disabled={!canPublish}
               onChange={(event) => setIsVisible(event.target.checked)}
               className="h-5 w-5 rounded border-line"
             />
             Visible
           </label>
+
+          {!canPublish && (
+            <p className="rounded-md bg-soft px-3 py-2 text-sm text-muted">
+              Saisis un prix supérieur à 0 pour rendre ce produit visible.
+            </p>
+          )}
 
           <MerchantCategorySelector
             categories={categories}

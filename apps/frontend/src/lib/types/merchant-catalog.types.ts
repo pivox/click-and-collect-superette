@@ -1,5 +1,6 @@
 export type MerchantCatalogAvailabilityFilter = 'all' | 'available' | 'unavailable';
 export type MerchantCatalogVisibilityFilter = 'all' | 'visible' | 'hidden';
+export type MerchantCatalogCompletionFilter = 'all' | 'needs_price';
 
 export interface MerchantCatalogProduct {
   id: string;
@@ -16,6 +17,7 @@ export interface MerchantCatalogProduct {
   price_tnd: string;
   is_available: boolean;
   is_visible: boolean;
+  requires_price_completion?: boolean;
   merchant_note: string | null;
 }
 
@@ -43,6 +45,7 @@ export interface MerchantCatalogListOptions {
   q?: string;
   availability?: MerchantCatalogAvailabilityFilter;
   visibility?: MerchantCatalogVisibilityFilter;
+  completion?: MerchantCatalogCompletionFilter;
   category?: string;
 }
 

@@ -2,7 +2,7 @@
 
 Date de cadrage : 2026-06-11  
 Rôles de cadrage : PO + commercial terrain supérettes + Tech Lead  
-Statut : cadrage Sprint 15 enrichi avec les groupements de produits référentiel. #466 livré.
+Statut : cadrage Sprint 15 enrichi avec les groupements de produits référentiel. #466 et #467 livrés.
 
 ---
 
@@ -50,7 +50,7 @@ Le Sprint 15 conserve donc son périmètre existant :
 #464 — S15-006 / US-081 — Admin — Créer des groupements de produits référentiel
 #465 — S15-007 / US-082 — Marchand — Voir et sélectionner un groupement de produits
 #466 — S15-008 / US-083 — Marchand — Importer un groupement sans doublon catalogue — livré
-#467 — S15-009 / US-084 — Marchand — Compléter les prix après import groupé — à faire
+#467 — S15-009 / US-084 — Marchand — Compléter les prix après import groupé — livré
 ```
 
 ---
@@ -282,7 +282,7 @@ Le modèle exact doit respecter le code existant, mais le comportement attendu e
 ```text
 store_id
 product_reference_id
-price_tnd = 0.000 pour les imports #466 tant que #467 n'est pas livré
+price_tnd = 0.000 pour les imports #466 tant que le marchand n'a pas complété le prix
 is_available
 is_visible = false
 source = product_group_import optionnel
@@ -302,6 +302,17 @@ L'historique de prix initial n'est pas créé pour 0.000.
 ```
 
 La décision PO reste la même : aucun produit sans prix valide ne doit être visible côté client. La saisie du prix, le statut à compléter et l'historique de prix associé restent le périmètre de #467.
+
+Décision #467 :
+
+```text
+Le catalogue marchand expose les produits à compléter via completion=needs_price.
+La réponse catalogue marque ces lignes avec requires_price_completion = true.
+Le marchand peut saisir un prix positif puis publier le produit dans la même action.
+Le backend refuse is_visible = true tant que le prix final reste à 0.000.
+Le catalogue client filtre aussi les produits sans prix positif.
+Le passage de 0.000 au premier prix réel crée une ligne d'historique prix marchand.
+```
 
 ---
 
@@ -530,11 +541,11 @@ En tant que marchand, je veux retrouver les produits importés à compléter, sa
 ### Critères d'acceptation
 
 ```text
-- Après import, les produits sans prix apparaissent comme à compléter.
-- Le marchand peut saisir un prix ligne par ligne ou en mode rapide.
-- Un produit sans prix reste non visible côté client.
-- Un produit devient visible seulement si les conditions catalogue sont remplies.
-- Modifier le prix modifie uniquement le catalogue marchand.
+- Après import, les produits sans prix apparaissent comme à compléter — livré.
+- Le marchand peut saisir un prix ligne par ligne depuis le catalogue — livré.
+- Un produit sans prix reste non visible côté client — livré.
+- Un produit devient visible seulement si les conditions catalogue sont remplies — livré.
+- Modifier le prix modifie uniquement le catalogue marchand — livré.
 ```
 
 ---
@@ -645,7 +656,7 @@ Les produits sans prix restent à compléter et invisibles côté client.
 1. #464 — Modèle + CRUD admin groupements.
 2. #465 — Lecture marchand store-scoped + sélection + payload préparé.
 3. #466 — Import idempotent sans doublon — livré.
-4. #467 — Complétion prix et visibilité après import.
+4. #467 — Complétion prix et visibilité après import — livré.
 ```
 
-L'US #466 est livrée avec la contrainte unique existante `UNIQ_MERCHANT_PRODUCTS_SHOP_REF`. #467 reste nécessaire pour l'expérience de complétion prix et publication.
+L'US #466 est livrée avec la contrainte unique existante `UNIQ_MERCHANT_PRODUCTS_SHOP_REF`. L'US #467 ajoute l'expérience de complétion prix et publication sans changer le référentiel global.

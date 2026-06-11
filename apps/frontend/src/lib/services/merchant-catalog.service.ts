@@ -86,6 +86,7 @@ export async function listMerchantCatalog(
         q: options.q,
         availability: options.availability,
         visibility: options.visibility,
+        completion: options.completion,
         category: options.category,
         page: options.page,
         limit: options.limit,
@@ -187,6 +188,10 @@ export function filterMerchantCatalogProducts(
     }
 
     if (options.visibility === 'hidden' && product.is_visible) {
+      return false;
+    }
+
+    if (options.completion === 'needs_price' && !product.requires_price_completion) {
       return false;
     }
 

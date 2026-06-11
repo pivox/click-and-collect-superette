@@ -31,6 +31,7 @@ const defaultFilters: MerchantCatalogListOptions = {
   q: '',
   availability: 'all',
   visibility: 'all',
+  completion: 'all',
 };
 
 export default function MerchantCatalogPage() {
@@ -71,6 +72,7 @@ export default function MerchantCatalogPage() {
         q: appliedFilters.q,
         availability: appliedFilters.availability,
         visibility: appliedFilters.visibility,
+        completion: appliedFilters.completion,
         category: appliedFilters.category,
         page,
         limit: DEFAULT_LIMIT,
@@ -131,6 +133,7 @@ export default function MerchantCatalogPage() {
     !!(appliedFilters.q) ||
     (appliedFilters.availability !== 'all' && !!appliedFilters.availability) ||
     (appliedFilters.visibility !== 'all' && !!appliedFilters.visibility) ||
+    (appliedFilters.completion !== 'all' && !!appliedFilters.completion) ||
     !!appliedFilters.category;
 
   const handleToggleSelectionMode = () => {
@@ -233,6 +236,21 @@ export default function MerchantCatalogPage() {
     setBulkSuccessMessage(null);
   };
 
+  const handleShowProductsToComplete = () => {
+    const completionFilters: MerchantCatalogListOptions = {
+      ...defaultFilters,
+      completion: 'needs_price',
+    };
+
+    setDraftFilters(completionFilters);
+    setAppliedFilters(completionFilters);
+    setPage(1);
+    setSelectedProductIds([]);
+    setSelectionError(null);
+    setBulkError(null);
+    setBulkSuccessMessage(null);
+  };
+
   const handlePageChange = (nextPage: number) => {
     setPage(nextPage);
     setSelectedProductIds([]);
@@ -280,6 +298,14 @@ export default function MerchantCatalogPage() {
             onClick={() => setIsLocalProductDrawerOpen(true)}
           >
             Créer un produit de ma supérette
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={handleShowProductsToComplete}
+          >
+            Produits à compléter
           </Button>
           <Button
             variant="ghost"

@@ -72,6 +72,9 @@ final readonly class UpdateMerchantCatalogProductProcessor implements ProcessorI
             $merchantProduct->setAvailable($data->isAvailable);
         }
         if (null !== $data->isVisible) {
+            if ($data->isVisible && bccomp($merchantProduct->getPriceTnd(), '0.000', 3) <= 0) {
+                throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'MERCHANT_PRODUCT_PRICE_REQUIRED_FOR_VISIBILITY');
+            }
             $merchantProduct->setVisible($data->isVisible);
         }
         if ($data->hasMerchantNote()) {

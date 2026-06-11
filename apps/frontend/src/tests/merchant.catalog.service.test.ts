@@ -58,10 +58,15 @@ describe('merchant catalogue service', () => {
       },
     });
 
-    const result = await listMerchantCatalog('store-1', { q: 'vitalait', page: 1, limit: 50 });
+    const result = await listMerchantCatalog('store-1', {
+      q: 'vitalait',
+      completion: 'needs_price',
+      page: 1,
+      limit: 50,
+    });
 
     expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog', {
-      params: { q: 'vitalait', page: 1, limit: 50 },
+      params: { q: 'vitalait', completion: 'needs_price', page: 1, limit: 50 },
     });
     expect(result.total).toBe(1);
     expect(result.items).toEqual([
@@ -78,7 +83,13 @@ describe('merchant catalogue service', () => {
       data: { items: [], total: 0, page: 1, limit: 50, pages: 1 },
     });
 
-    await listMerchantCatalog('store-1', { q: '', availability: 'all', visibility: 'all', page: 1 });
+    await listMerchantCatalog('store-1', {
+      q: '',
+      availability: 'all',
+      visibility: 'all',
+      completion: 'all',
+      page: 1,
+    });
 
     expect(apiClient.get).toHaveBeenCalledWith('/api/merchant/stores/store-1/catalog', {
       params: { page: 1 },
@@ -125,6 +136,21 @@ describe('merchant catalogue service', () => {
         price_tnd: '4.900',
         is_available: true,
         is_visible: false,
+        requires_price_completion: false,
+        merchant_note: null,
+      },
+      {
+        id: 'mp-4',
+        product_reference_id: 'ref-4',
+        name_fr: 'Semoule fine',
+        brand: 'Rose Blanche',
+        category: 'Epicerie',
+        volume: '1',
+        unit: 'kg',
+        price_tnd: '0.000',
+        is_available: true,
+        is_visible: false,
+        requires_price_completion: true,
         merchant_note: null,
       },
     ];
@@ -140,9 +166,13 @@ describe('merchant catalogue service', () => {
     ]);
     expect(filterMerchantCatalogProducts(products, { visibility: 'hidden' })).toEqual([
       products[2],
+      products[3],
     ]);
     expect(filterMerchantCatalogProducts(products, { category: 'Lait' })).toEqual([
       products[0],
+    ]);
+    expect(filterMerchantCatalogProducts(products, { completion: 'needs_price' })).toEqual([
+      products[3],
     ]);
   });
 

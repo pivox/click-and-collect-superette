@@ -42,6 +42,7 @@ class MerchantProductRepository extends ServiceEntityRepository
         ?string $q = null,
         ?string $availability = null,
         ?string $visibility = null,
+        ?string $completion = null,
         ?string $category = null,
     ): array {
         $criteria = ['shop' => $shop];
@@ -83,6 +84,13 @@ class MerchantProductRepository extends ServiceEntityRepository
 
                     return true;
                 },
+            ));
+        }
+
+        if ('needs_price' === $completion) {
+            $products = array_values(array_filter(
+                $products,
+                static fn (MerchantProduct $product): bool => 0 === bccomp($product->getPriceTnd(), '0.000', 3),
             ));
         }
 
@@ -189,6 +197,10 @@ class MerchantProductRepository extends ServiceEntityRepository
         $merchantProducts = array_filter(
             $merchantProducts,
             function (MerchantProduct $merchantProduct) use ($normalizedQuery, $normalizedCategorySlug): bool {
+                if (bccomp($merchantProduct->getPriceTnd(), '0.000', 3) <= 0) {
+                    return false;
+                }
+
                 $productReference = $merchantProduct->getProductReference();
 
                 if (null !== $productReference && ProductReferenceStatus::Approved !== $productReference->getStatus()) {
