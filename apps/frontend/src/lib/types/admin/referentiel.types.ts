@@ -29,7 +29,7 @@ export interface CreateCategoryPayload {
 
 export interface UpdateCategoryPayload {
   nameFr?: string;
-  nameAr?: string;
+  nameAr?: string | null;
   isActive?: boolean;
 }
 
@@ -63,7 +63,7 @@ export interface UpdateBrandPayload {
   canonicalName?: string;
   slug?: string;
   aliases?: string[];
-  country?: string;
+  country?: string | null;
   isActive?: boolean;
 }
 
@@ -181,16 +181,16 @@ export interface CreateProductReferencePayload {
 
 export interface UpdateProductReferencePayload {
   nameFr?: string;
-  nameAr?: string;
-  variantFr?: string;
-  variantAr?: string;
+  nameAr?: string | null;
+  variantFr?: string | null;
+  variantAr?: string | null;
   brandId?: string;
   categoryId?: string;
   unit?: string;
-  volume?: string;
-  barcode?: string;
+  volume?: string | null;
+  barcode?: string | null;
   aliases?: string[];
-  country?: string;
+  country?: string | null;
   status?: string;
 }
 

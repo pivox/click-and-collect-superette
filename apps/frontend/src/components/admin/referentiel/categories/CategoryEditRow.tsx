@@ -31,7 +31,7 @@ export function CategoryEditRow({ category, colSpan, onSaved, onCancel }: Catego
     try {
       await updateCategory(category.id, {
         nameFr: nameFr.trim(),
-        nameAr: nameAr.trim() || undefined,
+        nameAr: nameAr.trim() || null,
         isActive,
       });
       onSaved();

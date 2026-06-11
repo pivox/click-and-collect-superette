@@ -42,7 +42,7 @@ export function CategoryDrawer({ open, onClose, category, onSaved }: CategoryDra
       if (category) {
         await updateCategory(category.id, {
           nameFr: nameFr.trim(),
-          nameAr: nameAr.trim() || undefined,
+          nameAr: nameAr.trim() || null,
           isActive,
         });
       } else {
