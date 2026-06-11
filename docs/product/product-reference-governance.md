@@ -233,8 +233,7 @@ Champs complétés avec poids :
 
 | Opération | Endpoint | Rôle | Voir |
 |---|---|---|---|
-| Rechercher | `GET /api/merchant/product-references` | Marchand | Seules references en `approved` |
-| Détailer | `GET /api/merchant/product-references/{id}` | Marchand | Seules references en `approved` |
+| Rechercher | `GET /api/merchant/stores/{storeId}/product-references` | Marchand | Seules references en `approved` |
 | Proposer | `POST /api/merchant/stores/{storeId}/product-proposals` | Marchand | Crée une ProductReferenceProposal |
 
 ### Client endpoints
