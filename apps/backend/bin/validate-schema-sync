@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-$command = [PHP_BINARY, 'bin/console', 'doctrine:schema:update', '--dump-sql'];
+$command = [PHP_BINARY, 'bin/console', 'doctrine:schema:update', '--dump-sql', '--no-interaction', '--no-ansi'];
 
 $descriptors = [
     1 => ['pipe', 'w'],
@@ -27,8 +27,17 @@ if (0 !== $status) {
     exit($status);
 }
 
+$normalizedStdout = preg_replace('/\e\[[\d;]*m/', '', $stdout) ?? $stdout;
+if (
+    false !== stripos($normalizedStdout, 'Nothing to update')
+    && 1 !== preg_match('/;\s*$/m', $normalizedStdout)
+) {
+    echo "[OK] Doctrine schema is in sync.\n";
+    exit(0);
+}
+
 $statements = array_values(array_filter(
-    array_map('trim', preg_split('/\R/', $stdout) ?: []),
+    array_map('trim', preg_split('/\R/', $normalizedStdout) ?: []),
     static fn (string $line): bool => '' !== $line,
 ));
 
