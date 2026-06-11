@@ -362,6 +362,28 @@ describe('MerchantCatalogPage', () => {
     expect(screen.getByText('À compléter')).toBeInTheDocument();
   });
 
+  it('clears the products to complete filter', async () => {
+    vi.mocked(listMerchantCatalog)
+      .mockResolvedValueOnce(catalogResult(products))
+      .mockResolvedValueOnce(catalogResult([productToComplete]))
+      .mockResolvedValueOnce(catalogResult(products));
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'Produits à compléter' }));
+    await screen.findByText('Semoule fine');
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher tout le catalogue' }));
+
+    await waitFor(() =>
+      expect(listMerchantCatalog).toHaveBeenLastCalledWith(
+        'store-1',
+        expect.objectContaining({ completion: 'all', page: 1 }),
+      ),
+    );
+    expect(await screen.findByText('Lait demi-écrémé')).toBeInTheDocument();
+  });
+
   it('edits a merchant catalogue product from the drawer', async () => {
     render(React.createElement(MerchantCatalogPage));
 

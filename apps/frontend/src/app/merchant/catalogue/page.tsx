@@ -251,6 +251,16 @@ export default function MerchantCatalogPage() {
     setBulkSuccessMessage(null);
   };
 
+  const handleClearProductsToComplete = () => {
+    setDraftFilters(defaultFilters);
+    setAppliedFilters(defaultFilters);
+    setPage(1);
+    setSelectedProductIds([]);
+    setSelectionError(null);
+    setBulkError(null);
+    setBulkSuccessMessage(null);
+  };
+
   const handlePageChange = (nextPage: number) => {
     setPage(nextPage);
     setSelectedProductIds([]);
@@ -323,6 +333,20 @@ export default function MerchantCatalogPage() {
         onFiltersChange={setDraftFilters}
         onSubmit={handleApplyFilters}
       />
+
+      {appliedFilters.completion === 'needs_price' && (
+        <div className="mt-4 flex flex-col gap-3 rounded-md bg-soft px-4 py-3 text-sm text-muted md:flex-row md:items-center md:justify-between">
+          <span>Vue limitée aux produits à compléter.</span>
+          <Button
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={handleClearProductsToComplete}
+          >
+            Afficher tout le catalogue
+          </Button>
+        </div>
+      )}
 
       <MerchantCatalogOnboardingTools
         storeId={merchant?.store.id ?? null}
