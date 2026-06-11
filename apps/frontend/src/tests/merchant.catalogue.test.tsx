@@ -444,6 +444,29 @@ describe('MerchantCatalogPage', () => {
     );
   });
 
+  it('saves non-price edits on hidden products that still need price completion', async () => {
+    vi.mocked(listMerchantCatalog).mockResolvedValue(catalogResult([productToComplete]));
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Semoule fine');
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByLabelText('Disponible'));
+    fireEvent.change(screen.getByLabelText('Note marchand'), {
+      target: { value: 'Prix à confirmer fournisseur' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(updateMerchantCatalogProduct).toHaveBeenCalledWith('mp-3', {
+        is_available: false,
+        is_visible: false,
+        merchant_note: 'Prix à confirmer fournisseur',
+        merchant_category_id: null,
+      }),
+    );
+  });
+
   it('loads merchant categories and shows the selector in edit drawer', async () => {
     render(React.createElement(MerchantCatalogPage));
 
