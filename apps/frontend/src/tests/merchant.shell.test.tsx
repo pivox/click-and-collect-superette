@@ -135,10 +135,16 @@ describe('MerchantShell', () => {
   });
 
   it('does not show unread notification badge when unread total is zero', async () => {
-    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+    const { container } = render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
 
     expect(await screen.findByText('Page')).toBeInTheDocument();
     expect(screen.queryByLabelText(/notifications non lues/i)).not.toBeInTheDocument();
+
+    const badges = Array.from(container.querySelectorAll('[aria-live="polite"][aria-atomic="true"]'));
+    expect(badges).toHaveLength(2);
+    expect(badges.every((badge) => !badge.hasAttribute('aria-hidden'))).toBe(true);
+    expect(badges.every((badge) => badge.textContent === '')).toBe(true);
+    expect(badges.every((badge) => !badge.className.includes('hidden'))).toBe(true);
   });
 
   it('refreshes unread notification badge when the refresh event is dispatched', async () => {
