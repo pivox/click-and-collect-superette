@@ -47,6 +47,7 @@ security:
         - { path: ^/api/stores/[^/]+/opening-hours$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/stores/[^/]+/catalog$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/stores/[^/]+/pickup-slots$, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/stores/[^/]+/packs$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/me/, roles: ROLE_CUSTOMER }
         - { path: ^/api/merchant, roles: ROLE_MERCHANT }
         - { path: ^/api/admin, roles: ROLE_ADMIN }
