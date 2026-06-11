@@ -85,7 +85,7 @@ export function BrandDrawer({ open, onClose, brand, onSaved }: BrandDrawerProps)
           canonicalName: canonicalName.trim(),
           slug: slug.trim() || undefined,
           aliases,
-          country: country.trim() || undefined,
+          country: country.trim() || null,
           isActive,
         });
       } else {

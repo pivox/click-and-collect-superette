@@ -270,27 +270,39 @@ export function ProductReferenceDrawer({
     setIsSubmitting(true);
     setError(null);
     try {
-      const payload = {
-        nameFr: form.nameFr.trim(),
-        nameAr: form.nameAr.trim() || undefined,
-        variantFr: form.variantFr.trim() || undefined,
-        variantAr: form.variantAr.trim() || undefined,
-        brandId: form.brandId,
-        categoryId: form.categoryId,
-        unit: form.unit,
-        volume: form.volume.trim() || undefined,
-        barcode: form.barcode.trim() || undefined,
-        country: form.country.trim() || undefined,
-        status: form.status,
-        aliases: form.aliases.length ? form.aliases : undefined,
-      };
       if (effectiveProduct) {
-        await updateProductReference(effectiveProduct.id, payload);
+        await updateProductReference(effectiveProduct.id, {
+          nameFr: form.nameFr.trim(),
+          nameAr: form.nameAr.trim() || null,
+          variantFr: form.variantFr.trim() || null,
+          variantAr: form.variantAr.trim() || null,
+          brandId: form.brandId,
+          categoryId: form.categoryId,
+          unit: form.unit,
+          volume: form.volume.trim() || null,
+          barcode: form.barcode.trim() || null,
+          country: form.country.trim() || null,
+          status: form.status,
+          aliases: form.aliases.length ? form.aliases : undefined,
+        });
         onSaved();
       } else {
         // Create then stay open in edit mode so the image section unlocks for the
         // freshly created product; refresh the list without closing.
-        const created = await createProductReference(payload);
+        const created = await createProductReference({
+          nameFr: form.nameFr.trim(),
+          nameAr: form.nameAr.trim() || undefined,
+          variantFr: form.variantFr.trim() || undefined,
+          variantAr: form.variantAr.trim() || undefined,
+          brandId: form.brandId,
+          categoryId: form.categoryId,
+          unit: form.unit,
+          volume: form.volume.trim() || undefined,
+          barcode: form.barcode.trim() || undefined,
+          country: form.country.trim() || undefined,
+          status: form.status,
+          aliases: form.aliases.length ? form.aliases : undefined,
+        });
         setSavedProduct(created);
         onChanged?.();
       }
