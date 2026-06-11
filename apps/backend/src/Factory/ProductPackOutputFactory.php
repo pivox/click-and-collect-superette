@@ -32,6 +32,7 @@ final readonly class ProductPackOutputFactory
 
         return new MerchantProductPackOutput(
             id: $pack->getId()->toRfc4122(),
+            storeId: $pack->getShop()->getId()->toRfc4122(),
             nameFr: $pack->getNameFr(),
             nameAr: $pack->getNameAr(),
             description: $pack->getDescription(),

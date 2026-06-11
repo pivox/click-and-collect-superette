@@ -6,6 +6,7 @@ namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
@@ -40,6 +41,15 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             provider: MerchantProductPackCollectionProvider::class,
             security: "is_granted('ROLE_MERCHANT')",
         ),
+        new Get(
+            uriTemplate: '/merchant/stores/{storeId}/packs/{packId}',
+            uriVariables: [
+                'storeId' => new Link(fromClass: self::class, identifiers: ['storeId']),
+                'packId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            provider: MerchantProductPackItemProvider::class,
+            security: "is_granted('ROLE_MERCHANT')",
+        ),
         new Patch(
             uriTemplate: '/merchant/stores/{storeId}/packs/{packId}',
             uriVariables: [
@@ -68,7 +78,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             uriTemplate: '/stores/{shopId}/packs',
             uriVariables: ['shopId' => new Link(fromClass: Shop::class, identifiers: ['id'])],
             provider: ClientProductPackCollectionProvider::class,
-            security: 'PUBLIC_ACCESS',
+            security: "is_granted('PUBLIC_ACCESS')",
         ),
         new Post(
             uriTemplate: '/me/kadhias/{kadhiaId}/packs/{packId}',
@@ -91,6 +101,9 @@ final readonly class MerchantProductPackOutput
      */
     public function __construct(
         public string $id,
+
+        #[SerializedName('store_id')]
+        public string $storeId,
 
         #[SerializedName('name_fr')]
         public string $nameFr,

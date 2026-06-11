@@ -27,22 +27,23 @@ final class MerchantProductPackApiTest extends FunctionalApiTestCase
         $category = (new MerchantCategory())
             ->setShop($this->shop)
             ->setNameFr('Petit-déjeuner')
-            ->setNameAr('الإفطار');
+            ->setNameAr('الإفطار')
+            ->setSlug('petit-dejeuner');
         $this->entityManager->persist($category);
 
         $this->product1 = (new MerchantProduct())
             ->setShop($this->shop)
             ->setPriceTnd('2.500')
-            ->setIsAvailable(true)
-            ->setIsVisible(true)
+            ->setAvailable(true)
+            ->setVisible(true)
             ->setMerchantCategory($category);
         $this->setLocalProduct($this->product1, 'Pain', 'الخبز');
 
         $this->product2 = (new MerchantProduct())
             ->setShop($this->shop)
             ->setPriceTnd('1.500')
-            ->setIsAvailable(true)
-            ->setIsVisible(true)
+            ->setAvailable(true)
+            ->setVisible(true)
             ->setMerchantCategory($category);
         $this->setLocalProduct($this->product2, 'Beurre', 'الزبدة');
 
