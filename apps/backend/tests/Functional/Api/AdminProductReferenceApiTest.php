@@ -367,6 +367,31 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         self::assertSame('7777000001', $payload['barcode']);
     }
 
+    public function testPatchApprovedStatusClearsPreviousRejectionReason(): void
+    {
+        $admin = $this->createUser('admin-pr-patch-approve-rejected@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Patch Approve Rejected', 'marque-patch-approve-rejected');
+        $category = $this->createCategory('Catégorie Patch Approve Rejected', 'categorie-patch-approve-rejected');
+        $ref = $this->createProductReference($brand, $category, 'Produit patch réapprouvé', status: ProductReferenceStatus::Rejected);
+        $ref->setRejectionReason('Photo illisible');
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s', $ref->getId()),
+            ['status' => 'approved'],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('approved', $payload['status']);
+        self::assertNull($payload['rejection_reason']);
+
+        $this->entityManager->refresh($ref);
+        self::assertNull($ref->getRejectionReason());
+    }
+
     public function testPatchWithNullAliasesClearsArray(): void
     {
         $admin = $this->createUser('admin-pr-patch-aliases@example.test', ['ROLE_ADMIN']);
