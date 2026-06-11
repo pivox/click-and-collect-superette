@@ -188,6 +188,36 @@ final class MerchantProductPackApiTest extends FunctionalApiTestCase
         self::assertSame('Pack Public', $data[0]['name_fr']);
     }
 
+    public function testPublicPackCatalogDisplaysEffectivePromotionPrice(): void
+    {
+        $promotionEndsOn = new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis'));
+        $this->product1
+            ->setPromotionPriceTnd('1.900')
+            ->setPromotionEndsOn($promotionEndsOn);
+        $this->entityManager->flush();
+
+        $payload = [
+            'name_fr' => 'Pack Public Promo',
+            'items' => [
+                [
+                    'merchant_product_id' => $this->product1->getId()->toRfc4122(),
+                    'quantity' => 2,
+                ],
+            ],
+        ];
+
+        $this->requestJson('POST', '/api/merchant/stores/'.$this->shop->getId()->toRfc4122().'/packs', $payload, $this->merchant);
+
+        $response = $this->requestJson('GET', '/api/stores/'.$this->shop->getId()->toRfc4122().'/packs');
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $data = $this->decodeJson($response);
+
+        self::assertCount(1, $data);
+        self::assertSame('1.900', $data[0]['items'][0]['unit_price_tnd']);
+        self::assertSame('3.800', $data[0]['total_price_tnd']);
+    }
+
     public function testClientCanAddPackToKadhia(): void
     {
         $payload = [
@@ -224,6 +254,41 @@ final class MerchantProductPackApiTest extends FunctionalApiTestCase
 
         self::assertSame(2, $quantitiesByProductId[$this->product1->getId()->toRfc4122()] ?? null);
         self::assertSame(1, $quantitiesByProductId[$this->product2->getId()->toRfc4122()] ?? null);
+    }
+
+    public function testClientAddPackSnapshotsActivePromotionPrice(): void
+    {
+        $promotionEndsOn = new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis'));
+        $this->product1
+            ->setPromotionPriceTnd('1.900')
+            ->setPromotionEndsOn($promotionEndsOn);
+        $this->entityManager->flush();
+
+        $payload = [
+            'name_fr' => 'Pack Promo',
+            'items' => [
+                [
+                    'merchant_product_id' => $this->product1->getId()->toRfc4122(),
+                    'quantity' => 2,
+                ],
+            ],
+        ];
+
+        $packResponse = $this->requestJson('POST', '/api/merchant/stores/'.$this->shop->getId()->toRfc4122().'/packs', $payload, $this->merchant);
+        $packId = $this->decodeJson($packResponse)['id'];
+
+        $customer = $this->createUser('customer-pack-promo@test.fr', ['ROLE_CUSTOMER']);
+        $kadhia = $this->createKadhia($customer, $this->shop);
+
+        $response = $this->requestJson('POST', '/api/me/kadhias/'.$kadhia->getId()->toRfc4122().'/packs/'.$packId, user: $customer);
+
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+        $data = $this->decodeJson($response);
+
+        self::assertCount(1, $data['lines']);
+        self::assertSame($this->product1->getId()->toRfc4122(), $data['lines'][0]['merchant_product_id']);
+        self::assertSame('1.900', $data['lines'][0]['unit_price_tnd']);
+        self::assertSame('3.800', $data['total_tnd']);
     }
 
     public function testNonOwnerMerchantCannotCreatePackForAnotherShop(): void

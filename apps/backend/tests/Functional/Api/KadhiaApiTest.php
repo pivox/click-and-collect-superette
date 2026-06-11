@@ -388,6 +388,36 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         self::assertSame('7.500', $payload['total_tnd']);
     }
 
+    public function testUpsertLineSnapshotsActivePromotionPrice(): void
+    {
+        $customer = $this->createUser('kadhia-upsert-promo@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $product = $this->createMerchantProduct(
+            shop: $shop,
+            priceTnd: '2.500',
+            promotionPriceTnd: '1.900',
+            promotionEndsOn: (new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis')))->format('Y-m-d'),
+        );
+
+        $kadhia = (new Kadhia())->setCustomer($customer)->setShop($shop);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'PUT',
+            \sprintf('/api/me/kadhias/%s/lines/%s', $kadhia->getId(), $product->getId()),
+            ['quantity' => 2],
+            $customer,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertCount(1, $payload['lines']);
+        self::assertSame('1.900', $payload['lines'][0]['unit_price_tnd']);
+        self::assertSame('3.800', $payload['lines'][0]['subtotal_tnd']);
+        self::assertSame('3.800', $payload['total_tnd']);
+    }
+
     public function testUpsertLineUpdatesQuantityOnExistingLine(): void
     {
         $customer = $this->createUser('kadhia-upsert-update@example.test', ['ROLE_CUSTOMER']);
@@ -589,6 +619,8 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         string $priceTnd,
         bool $available = true,
         bool $visible = true,
+        ?string $promotionPriceTnd = null,
+        ?string $promotionEndsOn = null,
     ): MerchantProduct {
         $id = Uuid::v4();
 
@@ -615,6 +647,14 @@ final class KadhiaApiTest extends FunctionalApiTestCase
             ->setPriceTnd($priceTnd)
             ->setAvailable($available)
             ->setVisible($visible);
+
+        if (null !== $promotionPriceTnd) {
+            $product->setPromotionPriceTnd($promotionPriceTnd);
+        }
+        if (null !== $promotionEndsOn) {
+            $product->setPromotionEndsOn(new \DateTimeImmutable($promotionEndsOn, new \DateTimeZone('Africa/Tunis')));
+        }
+
         $this->entityManager->persist($product);
 
         $this->entityManager->flush();

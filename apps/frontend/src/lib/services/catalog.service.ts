@@ -35,6 +35,10 @@ interface CatalogApiItem {
   volume?: string | null;
   unit: string;
   price_tnd: string;
+  promotion_price_tnd?: string | null;
+  promotion_ends_on?: string | null;
+  promotion_active?: boolean;
+  effective_price_tnd?: string;
   is_available: boolean;
   image?: CatalogApiImage | null;
 }
@@ -158,6 +162,10 @@ export async function listCatalog(q: CatalogQuery): Promise<CatalogResult> {
     })(),
     unit: item.unit,
     priceTnd: item.price_tnd,
+    promotionPriceTnd: item.promotion_price_tnd ?? null,
+    promotionEndsOn: item.promotion_ends_on ?? null,
+    promotionActive: item.promotion_active ?? false,
+    effectivePriceTnd: item.effective_price_tnd ?? item.price_tnd,
     isAvailable: item.is_available,
     photoUrl: item.image?.card_url ?? null,
     image: item.image ? mapCatalogImage(item.image) : null,

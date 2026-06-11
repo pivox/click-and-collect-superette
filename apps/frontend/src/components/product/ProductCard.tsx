@@ -23,6 +23,7 @@ export function ProductCard({ product, onAdd, className }: ProductCardProps) {
   const stockLabel = product.isAvailable
     ? t("client.product.available")
     : t("client.product.outOfStock");
+  const hasActivePromotion = product.promotionActive && product.effectivePriceTnd;
   return (
     <article
       className={cn(
@@ -45,9 +46,20 @@ export function ProductCard({ product, onAdd, className }: ProductCardProps) {
         {stockLabel}
       </span>
       <div className="mt-2 flex items-center justify-between">
-        <span className="font-black text-primary-dark">
-          {formatTnd(product.priceTnd)}
-        </span>
+        {hasActivePromotion ? (
+          <span className="flex flex-col">
+            <span className="text-xs font-bold text-muted line-through">
+              {formatTnd(product.priceTnd)}
+            </span>
+            <span className="font-black text-status-ready">
+              {formatTnd(product.effectivePriceTnd ?? product.priceTnd)}
+            </span>
+          </span>
+        ) : (
+          <span className="font-black text-primary-dark">
+            {formatTnd(product.priceTnd)}
+          </span>
+        )}
         {onAdd && (
           <button
             type="button"

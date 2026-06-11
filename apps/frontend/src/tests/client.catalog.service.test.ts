@@ -25,9 +25,13 @@ const RAW_CATALOG = {
       category_slug: 'alimentaire',
       volume: '1.500',
       unit: 'litre',
-      price_tnd: '2.411',
-      is_available: true,
-    },
+            price_tnd: '2.411',
+            promotion_price_tnd: '1.990',
+            promotion_ends_on: '2026-06-30',
+            promotion_active: true,
+            effective_price_tnd: '1.990',
+            is_available: true,
+        },
   ],
   categories: [
     { key: 'alimentaire', label_fr: 'Alimentaire', label_ar: null },
@@ -58,6 +62,11 @@ describe('client catalog service', () => {
     expect(result.items[0]).toMatchObject({
       category: 'alimentaire',
       categoryNameFr: 'Alimentaire',
+      priceTnd: '2.411',
+      promotionPriceTnd: '1.990',
+      promotionEndsOn: '2026-06-30',
+      promotionActive: true,
+      effectivePriceTnd: '1.990',
     });
     expect(result).toMatchObject({
       page: 2,

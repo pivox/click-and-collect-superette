@@ -58,15 +58,67 @@ final readonly class UpdateMerchantCatalogProductProcessor implements ProcessorI
 
         $this->merchantShopAccessChecker->denyUnlessMerchantOwnsShop($merchantProduct->getShop());
 
+        $promotionTouched = $data->hasPromotionPriceTnd() || $data->hasPromotionEndsOn();
+        $resolvedPromotionPriceTnd = null;
+        $resolvedPromotionEndsOnDate = null;
+        if ($promotionTouched) {
+            $resolvedPromotionPriceTnd = $data->hasPromotionPriceTnd()
+                ? $data->getPromotionPriceTnd()
+                : $merchantProduct->getPromotionPriceTnd();
+            $resolvedPromotionEndsOn = $data->hasPromotionEndsOn()
+                ? $data->getPromotionEndsOn()
+                : $merchantProduct->getPromotionEndsOn()?->format('Y-m-d');
+
+            if ((null === $resolvedPromotionPriceTnd) xor (null === $resolvedPromotionEndsOn)) {
+                throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PROMOTION_PAYLOAD_INCOMPLETE');
+            }
+
+            if (null !== $resolvedPromotionPriceTnd && null !== $resolvedPromotionEndsOn) {
+                $resolvedPromotionEndsOnDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $resolvedPromotionEndsOn, new \DateTimeZone('Africa/Tunis'));
+                if (false === $resolvedPromotionEndsOnDate) {
+                    throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PROMOTION_ENDS_ON_INVALID');
+                }
+
+                $finalPriceTnd = $data->priceTnd ?? $merchantProduct->getPriceTnd();
+                if (bccomp($resolvedPromotionPriceTnd, $finalPriceTnd, 3) >= 0) {
+                    throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PROMOTION_PRICE_MUST_BE_LOWER_THAN_PRICE');
+                }
+            }
+        }
+
         if (null !== $data->priceTnd) {
             $user = $this->security->getUser();
-            $this->priceService->changePrice(
-                merchantProduct: $merchantProduct,
-                newPrice: $data->priceTnd,
-                changeType: MerchantProductPriceChangeType::ManualUpdate,
-                source: MerchantProductPriceSource::MerchantDashboard,
-                changedByUser: $user instanceof User ? $user : null,
-            );
+            try {
+                if ($promotionTouched) {
+                    $merchantProduct
+                        ->setPromotionPriceTnd(null)
+                        ->setPromotionEndsOn(null);
+                }
+                $this->priceService->changePrice(
+                    merchantProduct: $merchantProduct,
+                    newPrice: $data->priceTnd,
+                    changeType: MerchantProductPriceChangeType::ManualUpdate,
+                    source: MerchantProductPriceSource::MerchantDashboard,
+                    changedByUser: $user instanceof User ? $user : null,
+                );
+            } catch (\InvalidArgumentException $exception) {
+                throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->getMessage(), $exception);
+            }
+        }
+        if ($promotionTouched) {
+            if (null === $resolvedPromotionPriceTnd || null === $resolvedPromotionEndsOnDate) {
+                $merchantProduct
+                    ->setPromotionPriceTnd(null)
+                    ->setPromotionEndsOn(null);
+            } else {
+                try {
+                    $merchantProduct
+                        ->setPromotionPriceTnd($resolvedPromotionPriceTnd)
+                        ->setPromotionEndsOn($resolvedPromotionEndsOnDate);
+                } catch (\InvalidArgumentException $exception) {
+                    throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->getMessage(), $exception);
+                }
+            }
         }
         if (null !== $data->isAvailable) {
             $merchantProduct->setAvailable($data->isAvailable);

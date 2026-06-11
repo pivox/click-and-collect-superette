@@ -35,6 +35,23 @@ function productFormat(product: MerchantCatalogProduct): string {
   return [product.volume, product.unit].filter(Boolean).join(' ') || 'Format non renseigné';
 }
 
+function productPrice(product: MerchantCatalogProduct) {
+  if (product.promotion_active && product.effective_price_tnd) {
+    return (
+      <div className="space-y-1">
+        <span className="block text-xs text-muted line-through">
+          {formatTnd(product.price_tnd)}
+        </span>
+        <span className="block font-black text-status-ready">
+          {formatTnd(product.effective_price_tnd)}
+        </span>
+      </div>
+    );
+  }
+
+  return formatTnd(product.price_tnd);
+}
+
 export function MerchantCatalogTable({
   emptyMessage,
   isSelectionDisabled = false,
@@ -86,7 +103,7 @@ export function MerchantCatalogTable({
               <td className="px-4 py-4 align-top">
                 {product.merchant_category_name ?? product.category}
               </td>
-              <td className="px-4 py-4 align-top font-black">{formatTnd(product.price_tnd)}</td>
+              <td className="px-4 py-4 align-top font-black">{productPrice(product)}</td>
               <td className="px-4 py-4 align-top">
                 <div className="flex flex-wrap gap-2">
                   {product.is_available
@@ -96,6 +113,7 @@ export function MerchantCatalogTable({
                     ? statusBadge('Visible', true, 'success')
                     : statusBadge('Masqué', false, 'muted')}
                   {product.requires_price_completion && statusBadge('À compléter', false, 'muted')}
+                  {product.promotion_active && statusBadge('En promo', true, 'success')}
                 </div>
               </td>
               <td className="max-w-[220px] px-4 py-4 align-top text-muted">

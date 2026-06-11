@@ -91,7 +91,7 @@ final readonly class AddPackToKadhiaProcessor implements ProcessorInterface
             if (null === $existingLine) {
                 $line = (new KadhiaLine())
                     ->setMerchantProduct($merchantProduct)
-                    ->setUnitPriceTnd($merchantProduct->getPriceTnd())
+                    ->setUnitPriceTnd($merchantProduct->getEffectivePriceTnd())
                     ->setQuantity($packItem->getQuantity());
                 $kadhia->addLine($line);
                 $this->entityManager->persist($line);

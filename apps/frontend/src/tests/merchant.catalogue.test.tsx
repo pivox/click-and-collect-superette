@@ -107,6 +107,17 @@ const productToComplete: MerchantCatalogProduct = {
   merchant_note: null,
 };
 
+const activePromoProduct = {
+  ...products[0],
+  id: 'mp-promo',
+  name_fr: 'Lait en promo',
+  price_tnd: '2.500',
+  promotion_price_tnd: '1.900',
+  promotion_ends_on: '2026-06-30',
+  promotion_active: true,
+  effective_price_tnd: '1.900',
+} as MerchantCatalogProduct;
+
 const merchantCategories: MerchantCategory[] = [
   {
     id: 'merchant-cat-1',
@@ -362,6 +373,26 @@ describe('MerchantCatalogPage', () => {
     expect(screen.getByText('À compléter')).toBeInTheDocument();
   });
 
+  it('filters active promotions from the merchant catalogue', async () => {
+    vi.mocked(listMerchantCatalog)
+      .mockResolvedValueOnce(catalogResult(products))
+      .mockResolvedValueOnce(catalogResult([activePromoProduct]));
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait demi-écrémé');
+    fireEvent.click(screen.getByRole('button', { name: 'En promo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rechercher' }));
+
+    await waitFor(() =>
+      expect(listMerchantCatalog).toHaveBeenLastCalledWith(
+        'store-1',
+        expect.objectContaining({ promotion: 'active', page: 1 }),
+      ),
+    );
+    expect(await screen.findByText('Lait en promo')).toBeInTheDocument();
+  });
+
   it('clears the products to complete filter', async () => {
     vi.mocked(listMerchantCatalog)
       .mockResolvedValueOnce(catalogResult(products))
@@ -412,6 +443,52 @@ describe('MerchantCatalogPage', () => {
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(listMerchantCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('sets a promotion from the edit drawer and marks the row as promoted', async () => {
+    vi.mocked(listMerchantCatalog).mockResolvedValue(catalogResult([activePromoProduct]));
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait en promo');
+    expect(screen.getAllByText('En promo').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('1,900 TND')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+
+    fireEvent.change(screen.getByLabelText('Prix promo TND'), { target: { value: '1.700' } });
+    fireEvent.change(screen.getByLabelText('Fin promo'), { target: { value: '2026-07-15' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(updateMerchantCatalogProduct).toHaveBeenCalledWith(
+        'mp-promo',
+        expect.objectContaining({
+          promotion_price_tnd: '1.700',
+          promotion_ends_on: '2026-07-15',
+        }),
+      ),
+    );
+  });
+
+  it('clears a promotion from the edit drawer', async () => {
+    vi.mocked(listMerchantCatalog).mockResolvedValue(catalogResult([activePromoProduct]));
+
+    render(React.createElement(MerchantCatalogPage));
+
+    await screen.findByText('Lait en promo');
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer la promo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(updateMerchantCatalogProduct).toHaveBeenCalledWith(
+        'mp-promo',
+        expect.objectContaining({
+          promotion_price_tnd: null,
+          promotion_ends_on: null,
+        }),
+      ),
+    );
   });
 
   it('keeps an incomplete imported product hidden until a positive price is entered', async () => {

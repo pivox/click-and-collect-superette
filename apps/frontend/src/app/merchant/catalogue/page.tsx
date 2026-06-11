@@ -32,6 +32,7 @@ const defaultFilters: MerchantCatalogListOptions = {
   availability: 'all',
   visibility: 'all',
   completion: 'all',
+  promotion: 'all',
 };
 
 export default function MerchantCatalogPage() {
@@ -73,6 +74,7 @@ export default function MerchantCatalogPage() {
         availability: appliedFilters.availability,
         visibility: appliedFilters.visibility,
         completion: appliedFilters.completion,
+        promotion: appliedFilters.promotion,
         category: appliedFilters.category,
         page,
         limit: DEFAULT_LIMIT,
@@ -134,6 +136,7 @@ export default function MerchantCatalogPage() {
     (appliedFilters.availability !== 'all' && !!appliedFilters.availability) ||
     (appliedFilters.visibility !== 'all' && !!appliedFilters.visibility) ||
     (appliedFilters.completion !== 'all' && !!appliedFilters.completion) ||
+    (appliedFilters.promotion !== 'all' && !!appliedFilters.promotion) ||
     !!appliedFilters.category;
 
   const handleToggleSelectionMode = () => {
