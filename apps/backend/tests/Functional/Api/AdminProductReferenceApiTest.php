@@ -434,6 +434,33 @@ final class AdminProductReferenceApiTest extends FunctionalApiTestCase
         self::assertSame(404, $response->getStatusCode());
     }
 
+    // ── APPROVE / REJECT ─────────────────────────────────────────────────────
+
+    public function testAdminApproveClearsPreviousRejectionReason(): void
+    {
+        $admin = $this->createUser('admin-pr-approve-rejected@example.test', ['ROLE_ADMIN']);
+        $brand = $this->createBrand('Marque Approve Rejected', 'marque-approve-rejected');
+        $category = $this->createCategory('Catégorie Approve Rejected', 'categorie-approve-rejected');
+        $ref = $this->createProductReference($brand, $category, 'Produit à réapprouver', status: ProductReferenceStatus::Rejected);
+        $ref->setRejectionReason('Doublon référentiel');
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/admin/product-references/%s/approve', $ref->getId()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('approved', $payload['status']);
+        self::assertNull($payload['rejection_reason']);
+
+        $this->entityManager->refresh($ref);
+        self::assertNull($ref->getRejectionReason());
+    }
+
     // ── ARCHIVE ───────────────────────────────────────────────────────────────
 
     public function testAdminArchivesProductReference(): void
