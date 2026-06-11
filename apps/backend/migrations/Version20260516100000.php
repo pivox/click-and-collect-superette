@@ -16,14 +16,14 @@ final class Version20260516100000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE notifications ADD type VARCHAR(64) DEFAULT NULL');
+        $this->addSql('ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type VARCHAR(64) DEFAULT NULL');
         // PostgreSQL does not enforce uniqueness for NULL values: multiple rows with the same order_id
         // and type IS NULL can coexist without violating this index. This is intentional — legacy
         // notifications from S4-005 have no type and must remain. Typed notifications (e.g.
         // pickup_reminder) are idempotent: at most one per (order_id, type) pair.
-        $this->addSql('CREATE UNIQUE INDEX UNIQ_NOTIFICATIONS_ORDER_TYPE ON notifications (order_id, type)');
+        $this->addSql('CREATE UNIQUE INDEX IF NOT EXISTS UNIQ_NOTIFICATIONS_ORDER_TYPE ON notifications (order_id, type)');
 
-        $this->addSql('CREATE TABLE messenger_messages (
+        $this->addSql('CREATE TABLE IF NOT EXISTS messenger_messages (
             id BIGSERIAL NOT NULL,
             body TEXT NOT NULL,
             headers TEXT NOT NULL,
@@ -33,13 +33,13 @@ final class Version20260516100000 extends AbstractMigration
             delivered_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL,
             PRIMARY KEY(id)
         )');
-        $this->addSql('CREATE INDEX IDX_MESSENGER_MESSAGES_QUEUE_AVAILABLE ON messenger_messages (queue_name, available_at, delivered_at, id)');
+        $this->addSql('CREATE INDEX IF NOT EXISTS IDX_MESSENGER_MESSAGES_QUEUE_AVAILABLE ON messenger_messages (queue_name, available_at, delivered_at, id)');
     }
 
     public function down(Schema $schema): void
     {
-        $this->addSql('DROP TABLE messenger_messages');
-        $this->addSql('DROP INDEX UNIQ_NOTIFICATIONS_ORDER_TYPE');
-        $this->addSql('ALTER TABLE notifications DROP type');
+        $this->addSql('DROP TABLE IF EXISTS messenger_messages');
+        $this->addSql('DROP INDEX IF EXISTS UNIQ_NOTIFICATIONS_ORDER_TYPE');
+        $this->addSql('ALTER TABLE notifications DROP COLUMN IF EXISTS type');
     }
 }

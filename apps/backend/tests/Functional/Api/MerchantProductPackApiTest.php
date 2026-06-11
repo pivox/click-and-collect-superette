@@ -216,8 +216,14 @@ final class MerchantProductPackApiTest extends FunctionalApiTestCase
         $data = $this->decodeJson($response);
 
         self::assertCount(2, $data['lines']);
-        self::assertSame(2, $data['lines'][0]['quantity']);
-        self::assertSame(1, $data['lines'][1]['quantity']);
+
+        $quantitiesByProductId = [];
+        foreach ($data['lines'] as $line) {
+            $quantitiesByProductId[$line['merchant_product_id']] = $line['quantity'];
+        }
+
+        self::assertSame(2, $quantitiesByProductId[$this->product1->getId()->toRfc4122()] ?? null);
+        self::assertSame(1, $quantitiesByProductId[$this->product2->getId()->toRfc4122()] ?? null);
     }
 
     public function testNonOwnerMerchantCannotCreatePackForAnotherShop(): void

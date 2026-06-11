@@ -48,8 +48,8 @@ COPY . .
 # Finalize composer autoloader
 RUN composer dump-autoload --optimize
 
-# Create JWT keys directory
-RUN mkdir -p config/jwt
+# Create runtime directories
+RUN mkdir -p config/jwt var
 
 # Set permissions
 RUN chown -R www-data:www-data var/
