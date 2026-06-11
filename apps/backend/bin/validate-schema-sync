@@ -1,0 +1,80 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+$command = [PHP_BINARY, 'bin/console', 'doctrine:schema:update', '--dump-sql', '--no-interaction', '--no-ansi'];
+
+$descriptors = [
+    1 => ['pipe', 'w'],
+    2 => ['pipe', 'w'],
+];
+
+$process = proc_open($command, $descriptors, $pipes);
+if (!\is_resource($process)) {
+    fwrite(STDERR, "Unable to start Doctrine schema diff.\n");
+    exit(1);
+}
+
+$stdout = stream_get_contents($pipes[1]);
+$stderr = stream_get_contents($pipes[2]);
+fclose($pipes[1]);
+fclose($pipes[2]);
+
+$status = proc_close($process);
+if (0 !== $status) {
+    fwrite(STDERR, $stderr);
+    exit($status);
+}
+
+$normalizedStdout = preg_replace('/\e\[[\d;]*m/', '', $stdout) ?? $stdout;
+if (
+    false !== stripos($normalizedStdout, 'Nothing to update')
+    && 1 !== preg_match('/;\s*$/m', $normalizedStdout)
+) {
+    echo "[OK] Doctrine schema is in sync.\n";
+    exit(0);
+}
+
+$statements = array_values(array_filter(
+    array_map('trim', preg_split('/\R/', $normalizedStdout) ?: []),
+    static fn (string $line): bool => '' !== $line,
+));
+
+$allowedPatterns = [
+    '/^DROP SEQUENCE billing_document_number_seq CASCADE;$/',
+    '/^DROP TABLE messenger_worker_state;$/',
+    '/^DROP INDEX idx_subscriptions_(created_at|pricing_phase|lifecycle);$/',
+    '/^DROP INDEX idx_messenger_messages_(available_at|delivered_at|queue_name|queue_available);$/',
+    '/^ALTER INDEX idx_subscription_payment_reminders_(subscription|admin) RENAME TO IDX_[A-F0-9]+;$/',
+    '/^ALTER INDEX idx_subscription_payments_(created_by_admin|validated_by_admin) RENAME TO IDX_[A-F0-9]+;$/',
+    '/^ALTER TABLE product_pack_items ALTER quantity DROP DEFAULT;$/',
+    '/^ALTER TABLE product_packs ALTER is_active DROP DEFAULT;$/',
+    '/^ALTER TABLE push_subscriptions ALTER failure_count DROP DEFAULT;$/',
+    '/^COMMENT ON COLUMN (subscriptions|subscription_payment_reminders|subscription_payments|billing_documents|incidents|product_packs|product_pack_items|incident_notes|messenger_messages)\.[a-z_]+ IS \'\';$/',
+];
+
+$unexpected = [];
+foreach ($statements as $statement) {
+    $isAllowed = false;
+    foreach ($allowedPatterns as $pattern) {
+        if (1 === preg_match($pattern, $statement)) {
+            $isAllowed = true;
+            break;
+        }
+    }
+
+    if (!$isAllowed) {
+        $unexpected[] = $statement;
+    }
+}
+
+if ([] !== $unexpected) {
+    fwrite(STDERR, "Unexpected Doctrine schema diff detected:\n");
+    foreach ($unexpected as $statement) {
+        fwrite(STDERR, "- {$statement}\n");
+    }
+    exit(1);
+}
+
+echo "[OK] Doctrine schema sync contains only known technical diffs.\n";

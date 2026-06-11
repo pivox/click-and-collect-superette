@@ -120,7 +120,9 @@ fix-backend: ## Corrige automatiquement le style PHP
 
 validate: ## Valide le container Symfony et le schéma Doctrine
 	$(BACKEND) php bin/console lint:container
-	$(BACKEND) php bin/console doctrine:schema:validate
+	$(BACKEND) php bin/console doctrine:schema:validate --skip-sync
+	$(BACKEND) php bin/validate-schema-sync
+	$(BACKEND) php bin/console doctrine:migrations:up-to-date --no-interaction
 
 # ─── Tout en une commande ────────────────────────────────────────────────────
 

@@ -1,0 +1,15 @@
+.git
+.gitignore
+.dockerignore
+
+vendor/
+var/
+
+.env.local
+.env.*.local
+
+coverage/
+phpunit.result.cache
+.phpunit.cache/
+
+*.log
