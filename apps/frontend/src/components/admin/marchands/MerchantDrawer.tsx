@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { AdminDrawer } from '@/components/admin/ui/AdminDrawer';
+import { MerchantCrmSection } from '@/components/admin/marchands/MerchantCrmSection';
 import { createMerchant, updateMerchant } from '@/lib/services/admin/merchants.service';
 import type { Merchant } from '@/lib/types/admin/merchants.types';
 
@@ -150,6 +151,9 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
               Les nouvelles Kadhia sont bloquées, le catalogue et l’historique restent conservés.
             </p>
           </section>
+        )}
+        {merchant && (
+          <MerchantCrmSection merchantId={merchant.id} initialCrm={merchant.crm ?? null} />
         )}
         {merchant && opsJournal && (
           <section className="rounded-md border border-line bg-soft px-4 py-3">

@@ -11,11 +11,13 @@ import {
   suspendMerchant,
   activateMerchant,
 } from '@/lib/services/admin/merchants.service';
-import type { Merchant } from '@/lib/types/admin/merchants.types';
+import type { Merchant, MerchantCrmStatus } from '@/lib/types/admin/merchants.types';
 
 const PAGE_SIZE = 20;
 
 type StatusFilter = '' | 'active' | 'suspended';
+
+type CrmStatusFilter = '' | MerchantCrmStatus;
 
 function isSubscriptionSuspended(merchant: Merchant): boolean {
   return merchant.subscription_lifecycle === 'suspended';
@@ -30,6 +32,9 @@ export default function MarchandsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
+  const [crmStatusFilter, setCrmStatusFilter] = useState<CrmStatusFilter>('');
+  const [crmOwnerFilter, setCrmOwnerFilter] = useState('');
+  const [debouncedCrmOwner, setDebouncedCrmOwner] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Merchant | null>(null);
   const [suspendTarget, setSuspendTarget] = useState<Merchant | null>(null);
@@ -54,11 +59,22 @@ export default function MarchandsPage() {
     return () => clearTimeout(t);
   }, [search]);
 
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedCrmOwner(crmOwnerFilter.trim()), 400);
+    return () => clearTimeout(t);
+  }, [crmOwnerFilter]);
+
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await listMerchants(page, PAGE_SIZE, debouncedSearch || undefined);
+      const data = await listMerchants(
+        page,
+        PAGE_SIZE,
+        debouncedSearch || undefined,
+        crmStatusFilter || undefined,
+        debouncedCrmOwner || undefined,
+      );
       setMerchants(data.items);
       setTotal(data.total);
     } catch (err) {
@@ -67,10 +83,10 @@ export default function MarchandsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, crmStatusFilter, debouncedCrmOwner]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter, crmStatusFilter, debouncedCrmOwner]);
 
   const handleSuspend = async () => {
     if (!suspendTarget) return;
@@ -184,6 +200,33 @@ export default function MarchandsPage() {
       ),
     },
     {
+      key: 'crm',
+      label: 'Suivi CRM',
+      render: (row) => {
+        const crm = row.crm;
+        const isClient = crm?.status === 'client';
+        return (
+          <div>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                isClient ? 'bg-green-100 text-green-700' : 'bg-soft text-muted'
+              }`}
+            >
+              {isClient ? 'Client' : 'Prospect'}
+            </span>
+            {crm?.commercial_owner && (
+              <div className="mt-1 text-xs text-muted">Resp. {crm.commercial_owner}</div>
+            )}
+            {crm?.last_contact_at && (
+              <div className="text-xs text-muted">
+                Relance {new Date(crm.last_contact_at).toLocaleDateString('fr-TN')}
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'created_at',
       label: 'Créé le',
       sortable: true,
@@ -258,6 +301,29 @@ export default function MarchandsPage() {
           {statusFilter !== '' && (
             <span className="text-xs text-muted">(page courante uniquement)</span>
           )}
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="crm-status-filter" className="text-xs font-semibold text-muted">
+            CRM
+          </label>
+          <select
+            id="crm-status-filter"
+            value={crmStatusFilter}
+            onChange={(e) => setCrmStatusFilter(e.target.value as CrmStatusFilter)}
+            className="rounded-md border border-line px-2 py-1.5 text-sm outline-none focus:border-primary"
+          >
+            <option value="">Tous</option>
+            <option value="prospect">Prospects</option>
+            <option value="client">Clients</option>
+          </select>
+          <input
+            type="text"
+            placeholder="Responsable commercial…"
+            value={crmOwnerFilter}
+            onChange={(e) => setCrmOwnerFilter(e.target.value)}
+            maxLength={120}
+            className="w-44 rounded-md border border-line px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
         </div>
       </div>
       {error && (
