@@ -111,6 +111,99 @@ export interface ProductReferenceListResponse {
   total: number;
 }
 
+export type ProductGroupStatus = 'draft' | 'published' | 'archived' | string;
+export type ProductGroupVisibility = 'admin_only' | 'merchant' | string;
+export type ProductGroupItemImportance = 'required' | 'recommended' | 'optional' | string;
+
+export interface ProductGroupReference {
+  id: string;
+  name_fr: string;
+  name_ar: string | null;
+  brand_name: string;
+  category_name_fr: string;
+  unit: string;
+  volume: string | null;
+  status: string;
+}
+
+export interface ProductGroupItem {
+  id: string;
+  sort_order: number;
+  importance: ProductGroupItemImportance;
+  product_reference: ProductGroupReference;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductGroup {
+  id: string;
+  name_fr: string;
+  name_ar: string | null;
+  slug: string;
+  description_fr: string | null;
+  description_ar: string | null;
+  market_country: string;
+  status: ProductGroupStatus;
+  visibility: ProductGroupVisibility;
+  icon: string | null;
+  sort_order: number;
+  items_count: number;
+  created_at: string;
+  updated_at: string;
+  items?: ProductGroupItem[];
+}
+
+export interface ProductGroupListResponse {
+  id: string;
+  items: ProductGroup[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface ProductGroupFilters {
+  q?: string;
+  status?: string;
+  marketCountry?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreateProductGroupPayload {
+  nameFr: string;
+  nameAr?: string;
+  slug?: string;
+  descriptionFr?: string;
+  descriptionAr?: string;
+  marketCountry?: string;
+  visibility?: 'admin_only' | 'merchant';
+  icon?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateProductGroupPayload {
+  nameFr?: string;
+  nameAr?: string | null;
+  slug?: string;
+  descriptionFr?: string | null;
+  descriptionAr?: string | null;
+  marketCountry?: string;
+  visibility?: 'admin_only' | 'merchant';
+  icon?: string | null;
+  sortOrder?: number;
+}
+
+export interface CreateProductGroupItemPayload {
+  productReferenceId: string;
+  sortOrder?: number;
+  importance?: 'required' | 'recommended' | 'optional';
+}
+
+export interface UpdateProductGroupItemPayload {
+  sortOrder?: number;
+  importance?: 'required' | 'recommended' | 'optional';
+}
+
 export interface ProductReferenceDuplicateCandidate {
   left: ProductReference;
   right: ProductReference;
