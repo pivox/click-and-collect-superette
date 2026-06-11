@@ -417,6 +417,7 @@ export default function MerchantCatalogPage() {
         isOpen={isProductGroupDrawerOpen}
         storeId={merchant?.store.id ?? null}
         onClose={() => setIsProductGroupDrawerOpen(false)}
+        onImported={() => loadCatalog()}
       />
 
       <MerchantLocalProductDrawer

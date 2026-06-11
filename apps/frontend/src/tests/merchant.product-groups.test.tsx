@@ -5,6 +5,7 @@ import MerchantCatalogPage from '@/app/merchant/catalogue/page';
 import {
   bulkUpdateMerchantProductAvailability,
   getMerchantProductGroup,
+  importMerchantProductGroup,
   listMerchantCategories,
   listMerchantCatalog,
   listMerchantProductGroups,
@@ -35,6 +36,7 @@ vi.mock('@/lib/services/merchant-catalog.service', async () => {
     ...actual,
     bulkUpdateMerchantProductAvailability: vi.fn(),
     getMerchantProductGroup: vi.fn(),
+    importMerchantProductGroup: vi.fn(),
     listMerchantCategories: vi.fn(),
     listMerchantCatalog: vi.fn(),
     listMerchantProductGroups: vi.fn(),
@@ -123,6 +125,15 @@ const groupDetail: MerchantProductGroup = {
   ],
 };
 
+const importedGroupDetail: MerchantProductGroup = {
+  ...groupDetail,
+  items: groupDetail.items?.map((item) =>
+    item.product_reference.id === 'ref-new'
+      ? { ...item, status: 'already_present' }
+      : item,
+  ),
+};
+
 function catalogResult(items: MerchantCatalogProduct[]): MerchantCatalogListResult {
   return { items, total: items.length, page: 1, limit: 50, pages: 1 };
 }
@@ -148,9 +159,20 @@ describe('MerchantCatalogPage product groups', () => {
       ],
     });
     vi.mocked(getMerchantProductGroup).mockResolvedValue(groupDetail);
+    vi.mocked(importMerchantProductGroup).mockResolvedValue({
+      created: 1,
+      alreadyInCatalog: 0,
+      skipped: 0,
+      requiresPriceCompletion: 1,
+      errors: [],
+    });
   });
 
-  it('opens product groups, selects only new lines by default and prepares the import payload', async () => {
+  it('opens product groups, selects only new lines by default, imports them, and refreshes the catalog', async () => {
+    vi.mocked(getMerchantProductGroup)
+      .mockResolvedValueOnce(groupDetail)
+      .mockResolvedValueOnce(importedGroupDetail);
+
     render(<MerchantCatalogPage />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Ajouter par groupement' }));
@@ -168,11 +190,41 @@ describe('MerchantCatalogPage product groups', () => {
     expect(presentCheckbox).toBeDisabled();
     expect(blockedCheckbox).toBeDisabled();
 
-    fireEvent.click(within(dialog).getByRole('button', { name: "Préparer l'import" }));
+    vi.mocked(importMerchantProductGroup).mockResolvedValueOnce({
+      created: 1,
+      alreadyInCatalog: 1,
+      skipped: 1,
+      requiresPriceCompletion: 1,
+      errors: [
+        {
+          productReferenceId: 'ref-skipped',
+          code: 'PRODUCT_REFERENCE_NOT_IN_GROUP',
+          message: 'Selected product reference does not belong to the product group.',
+        },
+      ],
+    });
 
-    expect(await within(dialog).findByText(/Payload prêt pour #466/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/"groupId": "group-1"/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/"selectedProductReferenceIds": \["ref-new"\]/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Importer la sélection' }));
+
+    await waitFor(() =>
+      expect(importMerchantProductGroup).toHaveBeenCalledWith('store-1', {
+        groupId: 'group-1',
+        selectedProductReferenceIds: ['ref-new'],
+        skipExisting: true,
+        defaultVisibility: false,
+        defaultAvailability: true,
+      }),
+    );
+    expect(await within(dialog).findByText('Import terminé')).toBeInTheDocument();
+    expect(within(dialog).getByText('1 créé')).toBeInTheDocument();
+    expect(within(dialog).getByText('1 déjà au catalogue')).toBeInTheDocument();
+    expect(within(dialog).getByText('1 ignoré')).toBeInTheDocument();
+    expect(within(dialog).getByText('1 prix à compléter')).toBeInTheDocument();
+    expect(within(dialog).getByText(/Selected product reference does not belong/)).toBeInTheDocument();
+    await waitFor(() => expect(listMerchantCatalog).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getMerchantProductGroup).toHaveBeenCalledTimes(2));
+    expect(within(dialog).getByRole('checkbox', { name: /Lait UHT/ })).toBeDisabled();
+    expect(within(dialog).getByText('0 référence sélectionnée')).toBeInTheDocument();
     expect(within(dialog).queryByText(/ref-present/)).not.toBeInTheDocument();
     expect(within(dialog).queryByText(/ref-blocked/)).not.toBeInTheDocument();
   });

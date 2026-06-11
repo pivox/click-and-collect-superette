@@ -57,7 +57,7 @@ final readonly class MerchantProductPriceService
             throw new \InvalidArgumentException('Initial price changes must use recordInitialPrice().');
         }
 
-        $oldPrice = $this->normalizePrice($merchantProduct->getPriceTnd());
+        $oldPrice = $this->normalizeCurrentPrice($merchantProduct->getPriceTnd());
         $normalizedNewPrice = $this->normalizePrice($newPrice);
 
         if (0 === bccomp($oldPrice, $normalizedNewPrice, 3)) {
@@ -111,6 +111,16 @@ final readonly class MerchantProductPriceService
     {
         $normalizedPrice = bcadd(trim($price), '0', 3);
         if (bccomp($normalizedPrice, '0.000', 3) <= 0) {
+            throw new \InvalidArgumentException('PRICE_MUST_BE_POSITIVE');
+        }
+
+        return $normalizedPrice;
+    }
+
+    private function normalizeCurrentPrice(string $price): string
+    {
+        $normalizedPrice = bcadd(trim($price), '0', 3);
+        if (bccomp($normalizedPrice, '0.000', 3) < 0) {
             throw new \InvalidArgumentException('PRICE_MUST_BE_POSITIVE');
         }
 

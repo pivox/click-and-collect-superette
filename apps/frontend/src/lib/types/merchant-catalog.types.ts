@@ -94,6 +94,28 @@ export interface MerchantProductGroupListResponse {
   items: MerchantProductGroup[];
 }
 
+export interface MerchantProductGroupImportPayload {
+  groupId: string;
+  selectedProductReferenceIds: string[];
+  skipExisting: boolean;
+  defaultVisibility: boolean;
+  defaultAvailability: boolean;
+}
+
+export interface MerchantProductGroupImportError {
+  productReferenceId: string;
+  code: string;
+  message: string;
+}
+
+export interface MerchantProductGroupImportResult {
+  created: number;
+  alreadyInCatalog: number;
+  skipped: number;
+  requiresPriceCompletion: number;
+  errors: MerchantProductGroupImportError[];
+}
+
 export interface UpdateMerchantCatalogProductPayload {
   price_tnd?: string;
   is_available?: boolean;

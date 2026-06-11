@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import {
   getMerchantProductGroup,
+  importMerchantProductGroup,
   listMerchantProductGroups,
 } from '@/lib/services/merchant-catalog.service';
 import type {
   MerchantProductGroup,
+  MerchantProductGroupImportResult,
   MerchantProductGroupItem,
 } from '@/lib/types/merchant-catalog.types';
 
@@ -15,11 +17,7 @@ interface MerchantProductGroupDrawerProps {
   isOpen: boolean;
   storeId: string | null;
   onClose: () => void;
-}
-
-interface PreparedProductGroupPayload {
-  groupId: string;
-  selectedProductReferenceIds: string[];
+  onImported?: () => void | Promise<void>;
 }
 
 const lineStatusLabel: Record<MerchantProductGroupItem['status'], string> = {
@@ -42,14 +40,16 @@ function productFormat(item: MerchantProductGroupItem): string {
 export function MerchantProductGroupDrawer({
   isOpen,
   onClose,
+  onImported,
   storeId,
 }: MerchantProductGroupDrawerProps) {
   const [groups, setGroups] = useState<MerchantProductGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<MerchantProductGroup | null>(null);
   const [selectedReferenceIds, setSelectedReferenceIds] = useState<string[]>([]);
-  const [preparedPayload, setPreparedPayload] = useState<PreparedProductGroupPayload | null>(null);
+  const [importResult, setImportResult] = useState<MerchantProductGroupImportResult | null>(null);
   const [isLoadingGroups, setIsLoadingGroups] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const requestRef = useRef(0);
@@ -59,10 +59,11 @@ export function MerchantProductGroupDrawer({
     setGroups([]);
     setSelectedGroup(null);
     setSelectedReferenceIds([]);
-    setPreparedPayload(null);
+    setImportResult(null);
     setError(null);
     setIsLoadingGroups(false);
     setIsLoadingDetail(false);
+    setIsImporting(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -78,7 +79,7 @@ export function MerchantProductGroupDrawer({
     requestRef.current = requestId;
     setIsLoadingGroups(true);
     setError(null);
-    setPreparedPayload(null);
+    setImportResult(null);
 
     void listMerchantProductGroups(storeId)
       .then((result) => {
@@ -112,23 +113,27 @@ export function MerchantProductGroupDrawer({
 
   if (!isOpen || !storeId) return null;
 
+  const applyGroupDetail = (detail: MerchantProductGroup) => {
+    setSelectedGroup(detail);
+    setSelectedReferenceIds(
+      (detail.items ?? [])
+        .filter((item) => item.status === 'new')
+        .map((item) => item.product_reference.id),
+    );
+  };
+
   const handleSelectGroup = async (groupId: string) => {
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
     setIsLoadingDetail(true);
     setError(null);
-    setPreparedPayload(null);
+    setImportResult(null);
 
     try {
       const detail = await getMerchantProductGroup(storeId, groupId);
       if (requestRef.current !== requestId) return;
 
-      setSelectedGroup(detail);
-      setSelectedReferenceIds(
-        (detail.items ?? [])
-          .filter((item) => item.status === 'new')
-          .map((item) => item.product_reference.id),
-      );
+      applyGroupDetail(detail);
     } catch {
       if (requestRef.current !== requestId) return;
       setSelectedGroup(null);
@@ -141,7 +146,7 @@ export function MerchantProductGroupDrawer({
   };
 
   const handleToggleReference = (referenceId: string) => {
-    setPreparedPayload(null);
+    setImportResult(null);
     setSelectedReferenceIds((currentIds) =>
       currentIds.includes(referenceId)
         ? currentIds.filter((currentId) => currentId !== referenceId)
@@ -149,13 +154,44 @@ export function MerchantProductGroupDrawer({
     );
   };
 
-  const handlePreparePayload = () => {
-    if (!selectedGroup) return;
+  const handleImport = async () => {
+    if (!selectedGroup || selectedReferenceIds.length === 0 || isImporting) return;
 
-    setPreparedPayload({
-      groupId: selectedGroup.id,
-      selectedProductReferenceIds: selectedReferenceIds,
-    });
+    const requestId = requestRef.current + 1;
+    requestRef.current = requestId;
+    const groupId = selectedGroup.id;
+    setIsImporting(true);
+    setImportResult(null);
+    setError(null);
+
+    try {
+      const result = await importMerchantProductGroup(storeId, {
+        groupId,
+        selectedProductReferenceIds: selectedReferenceIds,
+        skipExisting: true,
+        defaultVisibility: false,
+        defaultAvailability: true,
+      });
+      if (requestRef.current !== requestId) return;
+      setImportResult(result);
+
+      try {
+        const detail = await getMerchantProductGroup(storeId, groupId);
+        if (requestRef.current !== requestId) return;
+        applyGroupDetail(detail);
+      } catch {
+        if (requestRef.current !== requestId) return;
+        setError('Import effectué, mais impossible de rafraîchir ce groupement.');
+      }
+
+      await onImported?.();
+    } catch {
+      if (requestRef.current !== requestId) return;
+      setError("Impossible d'importer ce groupement.");
+    } finally {
+      if (requestRef.current !== requestId) return;
+      setIsImporting(false);
+    }
   };
 
   return (
@@ -271,19 +307,31 @@ export function MerchantProductGroupDrawer({
                   </p>
                   <Button
                     size="md"
-                    disabled={selectedReferenceIds.length === 0}
-                    onClick={handlePreparePayload}
+                    disabled={selectedReferenceIds.length === 0 || isImporting}
+                    onClick={() => void handleImport()}
                   >
-                    Préparer l&apos;import
+                    {isImporting ? 'Import en cours...' : 'Importer la sélection'}
                   </Button>
                 </div>
 
-                {preparedPayload && (
+                {importResult && (
                   <div role="status" className="rounded-md bg-status-ready-bg px-4 py-3 text-sm text-status-ready">
-                    <p className="font-black">Payload prêt pour #466</p>
-                    <pre className="mt-2 overflow-x-auto text-xs">
-                      {`{ "groupId": "${preparedPayload.groupId}", "selectedProductReferenceIds": [${preparedPayload.selectedProductReferenceIds.map((id) => `"${id}"`).join(', ')}] }`}
-                    </pre>
+                    <p className="font-black">Import terminé</p>
+                    <div className="mt-3 grid gap-2 text-xs font-bold sm:grid-cols-2">
+                      <span className="rounded-md bg-white px-3 py-2">{importResult.created} créé</span>
+                      <span className="rounded-md bg-white px-3 py-2">{importResult.alreadyInCatalog} déjà au catalogue</span>
+                      <span className="rounded-md bg-white px-3 py-2">{importResult.skipped} ignoré</span>
+                      <span className="rounded-md bg-white px-3 py-2">{importResult.requiresPriceCompletion} prix à compléter</span>
+                    </div>
+                    {importResult.errors.length > 0 && (
+                      <ul className="mt-3 space-y-1 text-xs">
+                        {importResult.errors.map((importError) => (
+                          <li key={`${importError.productReferenceId}-${importError.code}`}>
+                            {importError.message}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 )}
               </div>

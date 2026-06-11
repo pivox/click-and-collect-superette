@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '@/lib/api';
 import {
   getMerchantProductGroup,
+  importMerchantProductGroup,
   listMerchantProductGroups,
 } from '@/lib/services/merchant-catalog.service';
 
 vi.mock('@/lib/api', () => ({
   apiClient: {
     get: vi.fn(),
+    post: vi.fn(),
   },
 }));
 
@@ -83,5 +85,44 @@ describe('merchant product groups service', () => {
       '/api/merchant/stores/store-1/product-groups/group-1',
     );
     expect(result.items?.[0]?.status).toBe('new');
+  });
+
+  it('imports selected product references through the store-scoped catalogue endpoint', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        created: 1,
+        alreadyInCatalog: 2,
+        skipped: 1,
+        requiresPriceCompletion: 1,
+        errors: [
+          {
+            productReferenceId: 'ref-skipped',
+            code: 'PRODUCT_REFERENCE_NOT_IN_GROUP',
+            message: 'Selected product reference does not belong to the product group.',
+          },
+        ],
+      },
+    });
+
+    const result = await importMerchantProductGroup('store-1', {
+      groupId: 'group-1',
+      selectedProductReferenceIds: ['ref-1', 'ref-2'],
+      skipExisting: true,
+      defaultVisibility: false,
+      defaultAvailability: true,
+    });
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/merchant/stores/store-1/catalog/import-from-product-group',
+      {
+        groupId: 'group-1',
+        selectedProductReferenceIds: ['ref-1', 'ref-2'],
+        skipExisting: true,
+        defaultVisibility: false,
+        defaultAvailability: true,
+      },
+    );
+    expect(result.requiresPriceCompletion).toBe(1);
+    expect(result.errors[0]?.code).toBe('PRODUCT_REFERENCE_NOT_IN_GROUP');
   });
 });

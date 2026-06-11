@@ -69,6 +69,27 @@ final class MerchantProductPriceServiceTest extends TestCase
         self::assertSame('Ajustement fournisseur', $history?->getReason());
     }
 
+    public function testChangesPriceFromZeroPlaceholder(): void
+    {
+        $merchant = $this->createUser();
+        $merchantProduct = $this->createMerchantProduct($merchant, '0.000');
+        $persistedHistory = null;
+        $service = new MerchantProductPriceService($this->entityManagerExpectingPersist($persistedHistory));
+
+        $history = $service->changePrice(
+            merchantProduct: $merchantProduct,
+            newPrice: '1.900',
+            changeType: MerchantProductPriceChangeType::ManualUpdate,
+            source: MerchantProductPriceSource::MerchantDashboard,
+            changedByUser: $merchant,
+        );
+
+        self::assertSame($history, $persistedHistory);
+        self::assertSame('1.900', $merchantProduct->getPriceTnd());
+        self::assertSame('0.000', $history?->getOldPrice());
+        self::assertSame('1.900', $history?->getNewPrice());
+    }
+
     public function testDoesNotRecordHistoryWhenPriceIsUnchanged(): void
     {
         $merchantProduct = $this->createMerchantProduct($this->createUser(), '2.500');

@@ -2,7 +2,7 @@
 
 Date de cadrage : 2026-06-11  
 Rôles de cadrage : PO + commercial terrain supérettes + Tech Lead  
-Statut : cadrage Sprint 15 enrichi avec les groupements de produits référentiel.
+Statut : cadrage Sprint 15 enrichi avec les groupements de produits référentiel. #466 livré.
 
 ---
 
@@ -49,8 +49,8 @@ Le Sprint 15 conserve donc son périmètre existant :
 #365 — Import CSV + scan code-barres
 #464 — S15-006 / US-081 — Admin — Créer des groupements de produits référentiel
 #465 — S15-007 / US-082 — Marchand — Voir et sélectionner un groupement de produits
-#466 — S15-008 / US-083 — Marchand — Importer un groupement sans doublon catalogue
-#467 — S15-009 / US-084 — Marchand — Compléter les prix après import groupé
+#466 — S15-008 / US-083 — Marchand — Importer un groupement sans doublon catalogue — livré
+#467 — S15-009 / US-084 — Marchand — Compléter les prix après import groupé — à faire
 ```
 
 ---
@@ -282,24 +282,26 @@ Le modèle exact doit respecter le code existant, mais le comportement attendu e
 ```text
 store_id
 product_reference_id
-price_tnd nullable ou statut needs_price selon modèle existant
+price_tnd = 0.000 pour les imports #466 tant que #467 n'est pas livré
 is_available
-is_visible
+is_visible = false
 source = product_group_import optionnel
 source_product_group_id optionnel
 created_at
 updated_at
 ```
 
-Si `price_tnd` est techniquement non-nullable aujourd'hui, l'implémentation doit choisir une approche cohérente :
+Décision #466 :
 
 ```text
-Option A — rendre price_tnd nullable pour les produits à compléter.
-Option B — créer un statut catalogue needs_price.
-Option C — créer une table temporaire d'import à compléter avant création définitive.
+Le modèle existant garde price_tnd non-nullable.
+L'import groupement crée les produits avec price_tnd = 0.000.
+Les produits créés restent is_visible = false.
+defaultVisibility est accepté dans le payload mais n'active pas la visibilité.
+L'historique de prix initial n'est pas créé pour 0.000.
 ```
 
-La décision PO reste la même : aucun produit sans prix valide ne doit être visible côté client.
+La décision PO reste la même : aucun produit sans prix valide ne doit être visible côté client. La saisie du prix, le statut à compléter et l'historique de prix associé restent le périmètre de #467.
 
 ---
 
@@ -329,8 +331,8 @@ POST /api/merchant/stores/{storeId}/catalog/import-from-product-group  # #466
 
 Les endpoints de lecture marchand sont rattachés à la supérette, car l'état
 `déjà présent` dépend de `store_id + product_reference_id`. #465 expose
-uniquement ces lectures et la sélection côté interface. Le POST d'import réel
-reste hors périmètre #465 et sera livré dans #466.
+uniquement ces lectures et la sélection côté interface. #466 livre le POST
+d'import réel, idempotent et sans doublon catalogue.
 
 Payload cible :
 
@@ -370,8 +372,9 @@ Réponse cible :
 7. Pour chaque ProductReference sélectionnée :
    a. chercher un produit catalogue existant pour store_id + product_reference_id ;
    b. si trouvé : ne pas insérer, ajouter dans alreadyInCatalog ;
-   c. sinon : créer le produit catalogue marchand à compléter ;
-   d. marquer non visible si le prix est absent.
+   c. si hors groupement ou non approuvée : ignorer et ajouter une erreur ;
+   d. sinon : créer le produit catalogue marchand à compléter avec price_tnd = 0.000 ;
+   e. marquer non visible.
 8. Retourner le résumé : créés, déjà présents, ignorés, erreurs.
 ```
 
@@ -641,8 +644,8 @@ Les produits sans prix restent à compléter et invisibles côté client.
 ```text
 1. #464 — Modèle + CRUD admin groupements.
 2. #465 — Lecture marchand store-scoped + sélection + payload préparé.
-3. #466 — Import idempotent sans doublon.
+3. #466 — Import idempotent sans doublon — livré.
 4. #467 — Complétion prix et visibilité après import.
 ```
 
-L'US #466 ne doit pas être lancée sans la règle d'unicité ou la stratégie anti-doublon validée.
+L'US #466 est livrée avec la contrainte unique existante `UNIQ_MERCHANT_PRODUCTS_SHOP_REF`. #467 reste nécessaire pour l'expérience de complétion prix et publication.

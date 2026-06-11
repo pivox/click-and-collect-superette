@@ -137,20 +137,20 @@ final class MerchantProductGroupApiTest extends FunctionalApiTestCase
         self::assertSame(404, $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/product-groups/%s', $shop->getId(), Uuid::v4()->toRfc4122()), user: $merchant)->getStatusCode());
     }
 
-    public function testMerchantProductGroupRoutesExposeStoreScopedReadContractsOnly(): void
+    public function testMerchantProductGroupRoutesExposeStoreScopedReadAndImportContracts(): void
     {
         $router = self::getContainer()->get(RouterInterface::class);
         $routes = [];
 
         foreach ($router->getRouteCollection() as $route) {
-            if (str_contains($route->getPath(), 'product-groups')) {
+            if (str_contains($route->getPath(), 'product-groups') || str_contains($route->getPath(), 'import-from-product-group')) {
                 $routes[] = implode(' ', $route->getMethods()).' '.$route->getPath();
             }
         }
 
         self::assertContains('GET /api/merchant/stores/{storeId}/product-groups', $routes);
         self::assertContains('GET /api/merchant/stores/{storeId}/product-groups/{groupId}', $routes);
-        self::assertNotContains('POST /api/merchant/stores/{storeId}/catalog/import-from-product-group', $routes);
+        self::assertContains('POST /api/merchant/stores/{storeId}/catalog/import-from-product-group', $routes);
     }
 
     private function createGroup(
