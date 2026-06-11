@@ -4,6 +4,7 @@ FROM php:8.4-fpm-alpine
 RUN apk add --no-cache \
     git \
     curl \
+    curl-dev \
     libpq-dev \
     libzip-dev \
     freetype-dev \
@@ -19,6 +20,8 @@ RUN apk add --no-cache \
 RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \
+    curl \
+    mbstring \
     zip \
     intl \
     opcache \
