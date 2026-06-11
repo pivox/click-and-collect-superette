@@ -95,6 +95,34 @@ final class MerchantProductPriceHistoryApiTest extends FunctionalApiTestCase
         self::assertSame('2.700', $historyPayload['priceHistory'][0]['newPrice']);
     }
 
+    public function testMerchantCanCompleteZeroPlaceholderPrice(): void
+    {
+        $merchant = $this->createUser('merchant-price-placeholder@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $merchantProduct = $this->createMerchantProduct($shop, 'Produit import placeholder', '0.000');
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/merchant/products/%s/price', $merchantProduct->getId()),
+            [
+                'price' => '1.900',
+                'currency' => 'TND',
+                'reason' => 'Prix saisi après import groupement',
+            ],
+            $merchant,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('1.900', $payload['currentPrice']);
+        self::assertSame('0.000', $payload['lastPriceChange']['oldPrice']);
+        self::assertSame('1.900', $payload['lastPriceChange']['newPrice']);
+        self::assertSame('manual_update', $payload['lastPriceChange']['changeType']);
+
+        $this->entityManager->refresh($merchantProduct);
+        self::assertSame('1.900', $merchantProduct->getPriceTnd());
+    }
+
     public function testSamePriceDoesNotCreateDuplicateHistory(): void
     {
         $merchant = $this->createUser('merchant-price-same@example.test', ['ROLE_MERCHANT']);
