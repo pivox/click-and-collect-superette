@@ -13,6 +13,9 @@ final readonly class KadhiaOutputFactory
 {
     public function toOutput(Kadhia $kadhia, ?string $orderId = null): KadhiaOutput
     {
+        $kadhiaLines = $kadhia->getLines()->toArray();
+        \usort($kadhiaLines, static fn ($a, $b) => $a->getId()->toRfc4122() <=> $b->getId()->toRfc4122());
+
         $lines = array_map(
             static fn (KadhiaLine $l): KadhiaLineOutput => new KadhiaLineOutput(
                 id: $l->getId()->toRfc4122(),
@@ -22,7 +25,7 @@ final readonly class KadhiaOutputFactory
                 quantity: $l->getQuantity(),
                 subtotalTnd: bcmul($l->getUnitPriceTnd(), (string) $l->getQuantity(), 3),
             ),
-            $kadhia->getLines()->toArray(),
+            $kadhiaLines,
         );
 
         $totalTnd = array_reduce(
