@@ -85,20 +85,20 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
     if (label !== 'notifications') {
       return null;
     }
+    const hasUnreadNotifications = unreadNotifications > 0;
     const badgeText = unreadNotifications > 99 ? '99+' : String(unreadNotifications);
-    const badgeLabel = unreadNotifications > 0 ? `${unreadNotifications} notification${
+    const badgeLabel = hasUnreadNotifications ? `${unreadNotifications} notification${
       unreadNotifications > 1 ? 's' : ''
     } non lue${unreadNotifications > 1 ? 's' : ''}` : '';
 
     return (
       <span
-        aria-label={badgeLabel}
+        aria-label={badgeLabel || undefined}
         aria-live="polite"
         aria-atomic="true"
-        aria-hidden={unreadNotifications === 0}
-        className={`ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-black text-[#332500] ${unreadNotifications === 0 ? 'hidden' : ''}`}
+        className={`ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-black text-[#332500] ${hasUnreadNotifications ? '' : 'pointer-events-none opacity-0'}`}
       >
-        {badgeText}
+        {hasUnreadNotifications ? badgeText : ''}
       </span>
     );
   };

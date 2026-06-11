@@ -34,6 +34,7 @@ export function BottomNav() {
   const profileHref = user ? "/profile" : "/login";
   const profileActive = pathname.startsWith("/profile") || (!user && pathname.startsWith("/login"));
   const notifActive = pathname.startsWith("/notifications");
+  const hasUnreadNotifications = unreadCount > 0;
   const badgeText = unreadCount > 99 ? "99+" : String(unreadCount);
 
   return (
@@ -73,13 +74,12 @@ export function BottomNav() {
         <span className="relative">
           <Bell size={20} strokeWidth={notifActive ? 2.5 : 2} />
           <span
-            aria-label={unreadCount > 0 ? getNotificationsAriaLabel(unreadCount, t) : ''}
+            aria-label={hasUnreadNotifications ? getNotificationsAriaLabel(unreadCount, t) : undefined}
             aria-live="polite"
             aria-atomic="true"
-            aria-hidden={unreadCount === 0}
-            className={`absolute -right-2 -top-1.5 flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white leading-none py-0.5 ${unreadCount === 0 ? 'hidden' : ''}`}
+            className={`absolute -right-2 -top-1.5 flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white leading-none py-0.5 ${hasUnreadNotifications ? '' : 'pointer-events-none opacity-0'}`}
           >
-            {badgeText}
+            {hasUnreadNotifications ? badgeText : ''}
           </span>
         </span>
         <span>{t("client.nav.notifs")}</span>

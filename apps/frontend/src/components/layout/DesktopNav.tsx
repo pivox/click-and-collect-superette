@@ -87,11 +87,10 @@ export function DesktopNav() {
                 {t(labelKey)}
                 {isNotifications && (
                   <span
-                    aria-label={badgeLabel}
+                    aria-label={badgeLabel || undefined}
                     aria-live="polite"
                     aria-atomic="true"
-                    aria-hidden={!badge}
-                    className={`ml-auto flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-black text-white ${!badge ? 'hidden' : ''}`}
+                    className={`ml-auto flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-black text-white ${!badge ? 'pointer-events-none opacity-0' : ''}`}
                   >
                     {badge || ''}
                   </span>
