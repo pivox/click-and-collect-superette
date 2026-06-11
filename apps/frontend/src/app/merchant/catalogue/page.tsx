@@ -8,6 +8,7 @@ import { MerchantCatalogOnboardingTools } from '@/components/merchant/catalogue/
 import { MerchantCatalogTable } from '@/components/merchant/catalogue/MerchantCatalogTable';
 import { MerchantCatalogWizard } from '@/components/merchant/catalogue/MerchantCatalogWizard';
 import { MerchantLocalProductDrawer } from '@/components/merchant/catalogue/MerchantLocalProductDrawer';
+import { MerchantProductGroupDrawer } from '@/components/merchant/catalogue/MerchantProductGroupDrawer';
 import { MerchantProposeProductDrawer } from '@/components/merchant/catalogue/MerchantProposeProductDrawer';
 import { ProductReferenceSearchDrawer } from '@/components/merchant/catalogue/ProductReferenceSearchDrawer';
 import { Button } from '@/components/ui/Button';
@@ -48,6 +49,7 @@ export default function MerchantCatalogPage() {
   const [proposingProduct, setProposingProduct] = useState<MerchantCatalogProduct | null>(null);
   const [isCatalogWizardOpen, setIsCatalogWizardOpen] = useState(false);
   const [isAddProductDrawerOpen, setIsAddProductDrawerOpen] = useState(false);
+  const [isProductGroupDrawerOpen, setIsProductGroupDrawerOpen] = useState(false);
   const [isLocalProductDrawerOpen, setIsLocalProductDrawerOpen] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
@@ -267,6 +269,14 @@ export default function MerchantCatalogPage() {
             variant="ghost"
             size="md"
             disabled={isLoading}
+            onClick={() => setIsProductGroupDrawerOpen(true)}
+          >
+            Ajouter par groupement
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
             onClick={() => setIsLocalProductDrawerOpen(true)}
           >
             Créer un produit de ma supérette
@@ -401,6 +411,12 @@ export default function MerchantCatalogPage() {
         onCreateCategory={merchant ? handleCreateCategory : undefined}
         onClose={() => setIsAddProductDrawerOpen(false)}
         onAdded={handleProductAdded}
+      />
+
+      <MerchantProductGroupDrawer
+        isOpen={isProductGroupDrawerOpen}
+        storeId={merchant?.store.id ?? null}
+        onClose={() => setIsProductGroupDrawerOpen(false)}
       />
 
       <MerchantLocalProductDrawer

@@ -19,6 +19,8 @@ import type {
   MerchantCatalogPhotoImportPreviewResult,
   MerchantCatalogPhotoImportSourceType,
   MerchantCatalogProduct,
+  MerchantProductGroup,
+  MerchantProductGroupListResponse,
   MerchantLocalProductOutput,
   MerchantProductPriceHistoryResult,
   MerchantProductReferenceSearchOptions,
@@ -95,6 +97,27 @@ export async function listMerchantCatalog(
 export async function listMerchantCategories(storeId: string): Promise<MerchantCategory[]> {
   const { data } = await apiClient.get<MerchantCategory[]>(
     `/api/merchant/stores/${storeId}/categories`,
+  );
+
+  return data;
+}
+
+export async function listMerchantProductGroups(
+  storeId: string,
+): Promise<MerchantProductGroupListResponse> {
+  const { data } = await apiClient.get<MerchantProductGroupListResponse>(
+    `/api/merchant/stores/${storeId}/product-groups`,
+  );
+
+  return data;
+}
+
+export async function getMerchantProductGroup(
+  storeId: string,
+  groupId: string,
+): Promise<MerchantProductGroup> {
+  const { data } = await apiClient.get<MerchantProductGroup>(
+    `/api/merchant/stores/${storeId}/product-groups/${groupId}`,
   );
 
   return data;

@@ -83,10 +83,14 @@ PATCH  /api/admin/product-groups/{groupId}/archive
 POST   /api/admin/product-groups/{groupId}/items
 DELETE /api/admin/product-groups/{groupId}/items/{itemId}
 
-GET  /api/merchant/product-groups
-GET  /api/merchant/product-groups/{groupId}
-POST /api/merchant/stores/{storeId}/catalog/import-from-product-group
+GET  /api/merchant/stores/{storeId}/product-groups
+GET  /api/merchant/stores/{storeId}/product-groups/{groupId}
+POST /api/merchant/stores/{storeId}/catalog/import-from-product-group  # #466
 ```
+
+#465 expose seulement les lectures marchand par supérette et prépare le payload
+`{ groupId, selectedProductReferenceIds }`. L'import effectif, idempotent et sans
+doublon catalogue, reste le périmètre de #466.
 
 ## Groupements MVP recommandés
 

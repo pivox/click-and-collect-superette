@@ -322,10 +322,15 @@ DELETE /api/admin/product-groups/{groupId}/items/{itemId}
 ### Marchand
 
 ```http
-GET  /api/merchant/product-groups
-GET  /api/merchant/product-groups/{groupId}
-POST /api/merchant/stores/{storeId}/catalog/import-from-product-group
+GET  /api/merchant/stores/{storeId}/product-groups
+GET  /api/merchant/stores/{storeId}/product-groups/{groupId}
+POST /api/merchant/stores/{storeId}/catalog/import-from-product-group  # #466
 ```
+
+Les endpoints de lecture marchand sont rattachés à la supérette, car l'état
+`déjà présent` dépend de `store_id + product_reference_id`. #465 expose
+uniquement ces lectures et la sélection côté interface. Le POST d'import réel
+reste hors périmètre #465 et sera livré dans #466.
 
 Payload cible :
 
@@ -446,10 +451,12 @@ En tant que marchand, je veux ouvrir un groupement, voir les produits proposés,
 
 ```text
 - liste des groupements publiés ;
+- lecture store-scoped pour calculer les statuts par supérette ;
 - détail d'un groupement ;
 - produits proposés ;
 - état par produit : nouveau / déjà présent / non importable ;
-- sélection et désélection avant import.
+- sélection et désélection avant import ;
+- préparation du payload `{ groupId, selectedProductReferenceIds }` sans créer de produit.
 ```
 
 ### Critères d'acceptation
@@ -460,7 +467,8 @@ En tant que marchand, je veux ouvrir un groupement, voir les produits proposés,
 - Le marchand voit les produits du groupement dans l'ordre admin.
 - Les produits déjà présents dans son catalogue sont signalés.
 - Le marchand peut décocher les produits qu'il ne vend pas.
-- Le bouton d'import envoie uniquement les références sélectionnées.
+- Le bouton prépare uniquement les références sélectionnées.
+- Aucun produit catalogue marchand n'est créé dans #465.
 ```
 
 ---
@@ -632,7 +640,7 @@ Les produits sans prix restent à compléter et invisibles côté client.
 
 ```text
 1. #464 — Modèle + CRUD admin groupements.
-2. #465 — Lecture marchand + sélection.
+2. #465 — Lecture marchand store-scoped + sélection + payload préparé.
 3. #466 — Import idempotent sans doublon.
 4. #467 — Complétion prix et visibilité après import.
 ```

@@ -54,6 +54,46 @@ export interface MerchantCatalogListResult {
   pages: number;
 }
 
+export type MerchantProductGroupLineStatus = 'new' | 'already_present' | 'non_importable';
+
+export interface MerchantProductGroupReference {
+  id: string;
+  name_fr: string;
+  name_ar: string | null;
+  brand_name: string;
+  category_name_fr: string;
+  unit: string;
+  volume: string | null;
+  status: string;
+}
+
+export interface MerchantProductGroupItem {
+  id: string;
+  sort_order: number;
+  importance: string;
+  status: MerchantProductGroupLineStatus;
+  product_reference: MerchantProductGroupReference;
+}
+
+export interface MerchantProductGroup {
+  id: string;
+  name_fr: string;
+  name_ar: string | null;
+  slug: string;
+  description_fr: string | null;
+  description_ar: string | null;
+  market_country: string;
+  icon: string | null;
+  sort_order: number;
+  items_count: number;
+  items?: MerchantProductGroupItem[];
+}
+
+export interface MerchantProductGroupListResponse {
+  id: string;
+  items: MerchantProductGroup[];
+}
+
 export interface UpdateMerchantCatalogProductPayload {
   price_tnd?: string;
   is_available?: boolean;
