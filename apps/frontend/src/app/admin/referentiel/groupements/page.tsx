@@ -13,6 +13,7 @@ import {
   getProductGroup,
   listProductGroups,
   publishProductGroup,
+  updateProductGroupItem,
   updateProductGroup,
 } from '@/lib/services/admin/product-groups.service';
 import { listProductReferences } from '@/lib/services/admin/product-references.service';
@@ -43,6 +44,15 @@ const IMPORTANCE_LABELS: Record<string, string> = {
   optional: 'Optionnel',
 };
 
+const ITEM_IMPORTANCE_OPTIONS: Array<{
+  value: 'required' | 'recommended' | 'optional';
+  label: string;
+}> = [
+  { value: 'required', label: IMPORTANCE_LABELS.required },
+  { value: 'recommended', label: IMPORTANCE_LABELS.recommended },
+  { value: 'optional', label: IMPORTANCE_LABELS.optional },
+];
+
 function isDuplicateError(error: unknown): boolean {
   const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
   return typeof detail === 'string' && detail.includes('ADMIN_PRODUCT_GROUP_ITEM_DUPLICATE');
@@ -63,6 +73,8 @@ export default function GroupementsPage() {
   const [productQuery, setProductQuery] = useState('');
   const [productResults, setProductResults] = useState<ProductReference[]>([]);
   const [itemError, setItemError] = useState<string | null>(null);
+  const [newItemImportance, setNewItemImportance] = useState<'required' | 'recommended' | 'optional'>('recommended');
+  const [newItemSortOrder, setNewItemSortOrder] = useState(0);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -133,6 +145,8 @@ export default function GroupementsPage() {
     setItemError(null);
     setProductQuery('');
     setProductResults([]);
+    setNewItemImportance('recommended');
+    setNewItemSortOrder(0);
     try {
       const detail = await getProductGroup(group.id);
       setDetailGroup(detail);
@@ -181,7 +195,8 @@ export default function GroupementsPage() {
     try {
       const item = await addProductGroupItem(detailGroup.id, {
         productReferenceId: product.id,
-        importance: 'recommended',
+        sortOrder: newItemSortOrder,
+        importance: newItemImportance,
       });
       setDetailGroup({
         ...detailGroup,
@@ -193,6 +208,26 @@ export default function GroupementsPage() {
       setItemError(isDuplicateError(err)
         ? 'Ce produit est déjà dans le groupement.'
         : "Impossible d'ajouter ce produit.");
+    }
+  };
+
+  const handleUpdateItem = async (
+    item: ProductGroupItem,
+    changes: { sortOrder?: number; importance?: 'required' | 'recommended' | 'optional' },
+  ) => {
+    if (!detailGroup) return;
+    setItemError(null);
+    try {
+      const updated = await updateProductGroupItem(detailGroup.id, item.id, changes);
+      setDetailGroup({
+        ...detailGroup,
+        items: (detailGroup.items ?? [])
+          .map((current) => (current.id === item.id ? updated : current))
+          .sort((a, b) => a.sort_order - b.sort_order),
+      });
+    } catch (err) {
+      console.error('[groupements] updateProductGroupItem failed', err);
+      setItemError('Impossible de modifier ce produit.');
     }
   };
 
@@ -378,8 +413,36 @@ export default function GroupementsPage() {
                             {item.product_reference.brand_name} · {item.product_reference.category_name_fr}
                           </p>
                         </td>
-                        <td className="px-4 py-3">{IMPORTANCE_LABELS[item.importance] ?? item.importance}</td>
-                        <td className="px-4 py-3">{item.sort_order}</td>
+                        <td className="px-4 py-3">
+                          <select
+                            aria-label={`Importance ${item.product_reference.name_fr}`}
+                            value={item.importance}
+                            onChange={(event) => void handleUpdateItem(item, {
+                              importance: event.target.value as 'required' | 'recommended' | 'optional',
+                            })}
+                            className="w-36 rounded-md border border-line px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          >
+                            {ITEM_IMPORTANCE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="number"
+                            aria-label={`Ordre ${item.product_reference.name_fr}`}
+                            defaultValue={item.sort_order}
+                            onBlur={(event) => {
+                              const sortOrder = Number.parseInt(event.target.value, 10);
+                              if (Number.isFinite(sortOrder) && sortOrder !== item.sort_order) {
+                                void handleUpdateItem(item, { sortOrder });
+                              }
+                            }}
+                            className="w-24 rounded-md border border-line px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          />
+                        </td>
                         <td className="px-4 py-3 text-right">
                           <button
                             type="button"
@@ -409,6 +472,37 @@ export default function GroupementsPage() {
                 onChange={(event) => setProductQuery(event.target.value)}
                 className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <div>
+                  <label htmlFor="product-group-item-importance" className="mb-1 block text-sm font-semibold">
+                    Importance
+                  </label>
+                  <select
+                    id="product-group-item-importance"
+                    value={newItemImportance}
+                    onChange={(event) => setNewItemImportance(event.target.value as 'required' | 'recommended' | 'optional')}
+                    className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  >
+                    {ITEM_IMPORTANCE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="product-group-item-sort-order" className="mb-1 block text-sm font-semibold">
+                    Ordre
+                  </label>
+                  <input
+                    id="product-group-item-sort-order"
+                    type="number"
+                    value={newItemSortOrder}
+                    onChange={(event) => setNewItemSortOrder(Number.parseInt(event.target.value, 10) || 0)}
+                    className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
               {itemError && (
                 <div role="alert" className="mt-3 rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
                   {itemError}

@@ -8,6 +8,7 @@ import {
   getProductGroup,
   listProductGroups,
   publishProductGroup,
+  updateProductGroupItem,
 } from '@/lib/services/admin/product-groups.service';
 import { listProductReferences } from '@/lib/services/admin/product-references.service';
 import type { ProductGroup, ProductGroupItem } from '@/lib/types/admin/referentiel.types';
@@ -78,6 +79,7 @@ beforeEach(() => {
   vi.mocked(publishProductGroup).mockResolvedValue({ ...GROUP, status: 'published' });
   vi.mocked(archiveProductGroup).mockResolvedValue({ ...GROUP, status: 'archived' });
   vi.mocked(addProductGroupItem).mockResolvedValue(ITEM);
+  vi.mocked(updateProductGroupItem).mockResolvedValue(ITEM);
   vi.mocked(listProductReferences).mockResolvedValue({
     id: 'admin-product-references',
     items: [
@@ -136,7 +138,10 @@ describe('GroupementsPage', () => {
     await waitFor(() => expect(archiveProductGroup).toHaveBeenCalledWith('group-1'));
   });
 
-  it('ouvre le détail, ajoute une référence produit et affiche le refus doublon', async () => {
+  it('ouvre le détail, édite les items, ajoute une référence produit et affiche le refus doublon', async () => {
+    vi.mocked(updateProductGroupItem)
+      .mockResolvedValueOnce({ ...ITEM, importance: 'optional' })
+      .mockResolvedValueOnce({ ...ITEM, importance: 'optional', sort_order: 4 });
     vi.mocked(addProductGroupItem)
       .mockResolvedValueOnce(ITEM)
       .mockRejectedValueOnce({ response: { status: 422, data: { detail: 'ADMIN_PRODUCT_GROUP_ITEM_DUPLICATE' } } });
@@ -148,15 +153,39 @@ describe('GroupementsPage', () => {
     const detail = await screen.findByRole('region', { name: 'Détail Premières nécessités' });
     expect(within(detail).getByText('Lait demi-écrémé')).toBeInTheDocument();
 
+    fireEvent.change(within(detail).getByLabelText('Importance Lait demi-écrémé'), {
+      target: { value: 'optional' },
+    });
+
+    await waitFor(() => expect(updateProductGroupItem).toHaveBeenCalledWith('group-1', 'item-1', {
+      importance: 'optional',
+    }));
+
+    const itemOrderInput = within(detail).getByLabelText('Ordre Lait demi-écrémé');
+    fireEvent.change(itemOrderInput, { target: { value: '4' } });
+    fireEvent.blur(itemOrderInput);
+
+    await waitFor(() => expect(updateProductGroupItem).toHaveBeenCalledWith('group-1', 'item-1', {
+      sortOrder: 4,
+    }));
+
     fireEvent.change(within(detail).getByPlaceholderText('Rechercher un produit référentiel…'), {
       target: { value: 'lait' },
     });
 
     await waitFor(() => expect(listProductReferences).toHaveBeenCalledWith({ q: 'lait', status: 'approved', limit: 10 }));
+    fireEvent.change(within(detail).getByLabelText('Importance'), {
+      target: { value: 'required' },
+    });
+    fireEvent.change(within(detail).getByLabelText('Ordre'), {
+      target: { value: '3' },
+    });
     fireEvent.click(await within(detail).findByRole('button', { name: 'Ajouter Lait demi-écrémé' }));
 
     await waitFor(() => expect(addProductGroupItem).toHaveBeenCalledWith('group-1', expect.objectContaining({
       productReferenceId: 'product-1',
+      importance: 'required',
+      sortOrder: 3,
     })));
 
     fireEvent.click(await within(detail).findByRole('button', { name: 'Ajouter Lait demi-écrémé' }));
