@@ -226,6 +226,41 @@ final class MerchantProductPackApiTest extends FunctionalApiTestCase
         self::assertSame(1, $quantitiesByProductId[$this->product2->getId()->toRfc4122()] ?? null);
     }
 
+    public function testClientAddPackSnapshotsActivePromotionPrice(): void
+    {
+        $promotionEndsOn = new \DateTimeImmutable('tomorrow', new \DateTimeZone('Africa/Tunis'));
+        $this->product1
+            ->setPromotionPriceTnd('1.900')
+            ->setPromotionEndsOn($promotionEndsOn);
+        $this->entityManager->flush();
+
+        $payload = [
+            'name_fr' => 'Pack Promo',
+            'items' => [
+                [
+                    'merchant_product_id' => $this->product1->getId()->toRfc4122(),
+                    'quantity' => 2,
+                ],
+            ],
+        ];
+
+        $packResponse = $this->requestJson('POST', '/api/merchant/stores/'.$this->shop->getId()->toRfc4122().'/packs', $payload, $this->merchant);
+        $packId = $this->decodeJson($packResponse)['id'];
+
+        $customer = $this->createUser('customer-pack-promo@test.fr', ['ROLE_CUSTOMER']);
+        $kadhia = $this->createKadhia($customer, $this->shop);
+
+        $response = $this->requestJson('POST', '/api/me/kadhias/'.$kadhia->getId()->toRfc4122().'/packs/'.$packId, user: $customer);
+
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+        $data = $this->decodeJson($response);
+
+        self::assertCount(1, $data['lines']);
+        self::assertSame($this->product1->getId()->toRfc4122(), $data['lines'][0]['merchant_product_id']);
+        self::assertSame('1.900', $data['lines'][0]['unit_price_tnd']);
+        self::assertSame('3.800', $data['total_tnd']);
+    }
+
     public function testNonOwnerMerchantCannotCreatePackForAnotherShop(): void
     {
         $otherMerchant = $this->createUser('other-merchant@test.fr', ['ROLE_MERCHANT']);
