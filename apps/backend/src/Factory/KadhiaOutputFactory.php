@@ -14,7 +14,7 @@ final readonly class KadhiaOutputFactory
     public function toOutput(Kadhia $kadhia, ?string $orderId = null): KadhiaOutput
     {
         $kadhiaLines = $kadhia->getLines()->toArray();
-        \usort($kadhiaLines, static fn ($a, $b) => $a->getId()->toRfc4122() <=> $b->getId()->toRfc4122());
+        usort($kadhiaLines, static fn ($a, $b) => $a->getId()->toRfc4122() <=> $b->getId()->toRfc4122());
 
         $lines = array_map(
             static fn (KadhiaLine $l): KadhiaLineOutput => new KadhiaLineOutput(

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\MerchantLocalProduct;
+use App\Entity\MerchantProduct;
 use App\Entity\Order;
+use App\Entity\OrderLine;
 use App\Entity\OrderStatusLog;
 use App\Entity\Shop;
 use App\Entity\User;
@@ -121,6 +124,52 @@ final class MerchantStatisticsApiTest extends FunctionalApiTestCase
         self::assertSame(0.0, $payload['acceptance_rate']);
     }
 
+    public function testMerchantStatisticsIncludesLocalProductsInTopProducts(): void
+    {
+        $merchant = $this->createUser('merchant-local-product-stats@example.test', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('customer-local-product-stats@example.test', ['ROLE_CUSTOMER']);
+        $store = $this->createShop($merchant);
+        $product = $this->createLocalMerchantProduct($store, 'Harissa maison', 'هريسة محلية', '3.500');
+
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($store);
+        $order->submit();
+        $order->accept();
+
+        $line = (new OrderLine())
+            ->setMerchantProduct($product)
+            ->setQuantity(2)
+            ->setUnitPriceTnd('3.500')
+            ->setLineTotalTnd('7.000');
+        $order->addLine($line);
+        $order->recomputeTotal();
+
+        $this->entityManager->persist($order);
+        $this->entityManager->persist($line);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'GET',
+            \sprintf('/api/merchant/stores/%s/statistics', $store->getId()->toRfc4122()),
+            user: $merchant
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+
+        self::assertSame(1, $payload['total_orders']);
+        self::assertSame('7.000', $payload['total_revenue_tnd']);
+        self::assertSame([
+            [
+                'name_fr' => 'Harissa maison',
+                'name_ar' => 'هريسة محلية',
+                'total_quantity' => 2,
+                'total_revenue_tnd' => '7.000',
+            ],
+        ], $payload['top_products']);
+    }
+
     private function createOrder(User $customer, Shop $shop, OrderStatus $status): Order
     {
         $order = (new Order())
@@ -141,5 +190,24 @@ final class MerchantStatisticsApiTest extends FunctionalApiTestCase
         $this->entityManager->persist($log);
 
         return $log;
+    }
+
+    private function createLocalMerchantProduct(Shop $store, string $nameFr, ?string $nameAr, string $priceTnd): MerchantProduct
+    {
+        $localProduct = (new MerchantLocalProduct())
+            ->setShop($store)
+            ->setNameFr($nameFr)
+            ->setNameAr($nameAr);
+
+        $product = (new MerchantProduct())
+            ->setShop($store)
+            ->setLocalProduct($localProduct)
+            ->setPriceTnd($priceTnd);
+
+        $this->entityManager->persist($localProduct);
+        $this->entityManager->persist($product);
+        $this->entityManager->flush();
+
+        return $product;
     }
 }
