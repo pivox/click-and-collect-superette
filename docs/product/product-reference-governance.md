@@ -162,7 +162,8 @@ Admin approuve ou rejette
    - Enregistrement : `ProductReferenceMergeHistory` (qui + quand + source + target)
 
 4. **Conséquences**
-   - Les `MerchantProduct` liés aux sources restent valides (foreign keys not deleted)
+   - Les `MerchantProduct` liés aux sources sont rattachés à la référence cible
+   - En cas de conflit dans une même boutique, les lignes sont déplacées vers l'offre cible et l'offre source est supprimée
    - Les propositions en pending des sources deviennent orphelines (cascade `SET NULL`)
    - Les commandes historiques restent intactes (frozen prices)
 
