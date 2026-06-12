@@ -1,4 +1,4 @@
-# S15-011 — Module feedback activable par rôle et page
+# S15-011 — Module Feedback / Retour activable par rôle et page
 
 Issue GitHub : #482  
 Statut : cadrage PO / documentation  
@@ -10,7 +10,19 @@ Rôles concernés : admin, client, marchand
 
 ## 1. Objectif produit
 
-Créer un module de feedback transversal, activable depuis l'interface d'administration, pour permettre aux utilisateurs de faire un retour contextualisé sur la page où ils se trouvent.
+Créer un module technique `Feedback` transversal, activable depuis l'interface d'administration, pour permettre aux utilisateurs de faire un retour contextualisé sur la page où ils se trouvent.
+
+Décision wording PO :
+
+```text
+Nom technique : Feedback
+Libellé visible utilisateur : Retour
+Titre formulaire : Votre retour
+CTA : Envoyer
+Message succès : Merci, votre retour a bien été envoyé.
+```
+
+`Feedback` reste acceptable uniquement pour le nom technique, les routes, les fichiers ou les entités : `FeedbackEntry`, `FeedbackSetting`, `/api/feedback`.
 
 Le module doit servir à capter rapidement les irritants terrain pendant :
 
@@ -28,7 +40,7 @@ Le module n'est pas un chat support. C'est un outil de collecte de signaux produ
 
 ## 2. Vision UX
 
-### 2.1 Bouton feedback
+### 2.1 Bouton latéral
 
 Sur les pages autorisées, afficher un petit bouton fixe à droite de l'écran.
 
@@ -36,7 +48,7 @@ Comportement desktop :
 
 ```text
 - position : bord droit de la fenêtre ;
-- texte : Feedback ;
+- texte visible : Retour ;
 - orientation : rotation 90° ;
 - style : discret, visible, non bloquant ;
 - ouverture : drawer latéral droit.
@@ -46,6 +58,7 @@ Comportement mobile :
 
 ```text
 - bouton flottant adapté ;
+- libellé visible : Retour ;
 - ne doit pas masquer les CTA principaux ;
 - ouverture en bottom sheet ou panneau plein écran ;
 - fermeture claire.
@@ -53,14 +66,16 @@ Comportement mobile :
 
 ### 2.2 Formulaire utilisateur
 
-Au clic sur le bouton, ouvrir un formulaire simple.
+Au clic sur le bouton `Retour`, ouvrir un formulaire simple.
 
 Champs MVP visibles :
 
 ```text
+- titre : Votre retour ;
 - type de retour : Bug, Idée, Incompréhension, Autre ;
 - remarque obligatoire ;
-- consentement optionnel à être recontacté.
+- consentement optionnel à être recontacté ;
+- CTA : Envoyer.
 ```
 
 Contexte collecté automatiquement :
@@ -75,6 +90,7 @@ Contexte collecté automatiquement :
 - langue courante FR/AR ;
 - user agent ;
 - largeur/hauteur viewport ;
+- consentement contact : contactConsent ;
 - date de création.
 ```
 
@@ -94,9 +110,9 @@ Votre retour n'a pas pu être envoyé. Vérifiez votre connexion puis réessayez
 
 ## 3. User stories
 
-### US-085 — Admin — Activer et paramétrer le module feedback
+### US-085 — Admin — Activer et paramétrer le module Feedback / Retour
 
-En tant qu'admin plateforme, je veux activer ou désactiver le module feedback par rôle et par zone afin de contrôler où les utilisateurs peuvent envoyer un retour.
+En tant qu'admin plateforme, je veux activer ou désactiver le module technique `Feedback` par rôle et par zone afin de contrôler où les utilisateurs peuvent envoyer un retour.
 
 #### Périmètre inclus
 
@@ -104,7 +120,7 @@ En tant qu'admin plateforme, je veux activer ou désactiver le module feedback p
 - activation globale ;
 - activation par rôle : admin, client, marchand ;
 - activation par zone : client, marchand, admin ;
-- option MVP : feedback réservé aux utilisateurs connectés ;
+- option MVP : retour réservé aux utilisateurs connectés ;
 - lecture de la configuration côté frontend.
 ```
 
@@ -114,24 +130,25 @@ En tant qu'admin plateforme, je veux activer ou désactiver le module feedback p
 - Un admin peut activer/désactiver le module globalement.
 - Un admin peut choisir les rôles autorisés.
 - Un admin peut choisir les zones applicatives autorisées.
-- Quand le module est désactivé, aucun bouton n'apparaît.
-- Quand le module est activé pour le rôle courant, le bouton apparaît sur les pages autorisées.
+- Quand le module est désactivé, aucun bouton Retour n'apparaît.
+- Quand le module est activé pour le rôle courant, le bouton Retour apparaît sur les pages autorisées.
 ```
 
 ---
 
-### US-086 — Utilisateur — Envoyer un feedback depuis une page
+### US-086 — Utilisateur — Envoyer un retour depuis une page
 
-En tant qu'utilisateur connecté, je veux envoyer un feedback depuis la page où je me trouve afin de signaler un bug, une incompréhension ou une idée sans quitter mon parcours.
+En tant qu'utilisateur connecté, je veux envoyer un retour depuis la page où je me trouve afin de signaler un bug, une incompréhension ou une idée sans quitter mon parcours.
 
 #### Périmètre inclus
 
 ```text
-- bouton vertical Feedback ;
+- bouton vertical Retour ;
 - ouverture drawer/modal ;
-- formulaire simple ;
+- formulaire Votre retour ;
 - remarque obligatoire ;
-- type de feedback ;
+- type de retour ;
+- consentement contact optionnel persisté ;
 - contexte automatique de page ;
 - message succès/erreur.
 ```
@@ -139,12 +156,14 @@ En tant qu'utilisateur connecté, je veux envoyer un feedback depuis la page où
 #### Critères d'acceptation
 
 ```text
-- Le bouton affiche Feedback avec orientation verticale/rotation 90° sur desktop.
-- Au clic, le formulaire s'ouvre sans changer de page.
+- Le bouton affiche Retour avec orientation verticale/rotation 90° sur desktop.
+- Au clic, le formulaire Votre retour s'ouvre sans changer de page.
 - Le champ remarque est obligatoire.
 - Le type est obligatoire ou possède une valeur par défaut autre.
-- L'utilisateur peut envoyer un feedback en moins de 30 secondes.
-- Le feedback envoyé est persisté et visible dans le backoffice admin.
+- Le CTA d'envoi est Envoyer.
+- Le consentement optionnel à être recontacté est persisté via contactConsent.
+- L'utilisateur peut envoyer un retour en moins de 30 secondes.
+- Le feedback technique envoyé est persisté et visible dans le backoffice admin.
 - Le formulaire ne capture aucun secret ni contenu sensible.
 ```
 
@@ -161,6 +180,7 @@ En tant qu'admin support/produit, je veux consulter les feedbacks avec leur cont
 - filtres : lu/non lu, résolu/non résolu, rôle, type, zone, période ;
 - tri par date décroissante ;
 - détail feedback ;
+- affichage du consentement contact ;
 - action marquer comme lu ;
 - action marquer comme non lu ;
 - action résoudre ;
@@ -175,7 +195,7 @@ En tant qu'admin support/produit, je veux consulter les feedbacks avec leur cont
 - L'admin peut filtrer les feedbacks non lus.
 - L'admin peut filtrer les feedbacks non résolus.
 - L'admin peut ouvrir le détail d'un feedback.
-- Le détail affiche le message complet et le contexte de page.
+- Le détail affiche le message complet, le contexte de page et contactConsent.
 - L'admin peut marquer un feedback comme lu.
 - L'admin peut marquer un feedback comme résolu.
 - Lu et résolu restent deux notions distinctes.
@@ -192,7 +212,7 @@ Le module doit être piloté par une configuration admin.
 
 ```text
 is_enabled = false
-→ aucun bouton Feedback ne doit être visible.
+→ aucun bouton Retour ne doit être visible.
 ```
 
 ### Règle 2 — Rôle utilisateur
@@ -252,7 +272,18 @@ Un feedback peut être :
 - lu et résolu.
 ```
 
-### Règle 5 — Données sensibles
+### Règle 5 — Consentement contact
+
+Si le formulaire affiche une case pour être recontacté, le choix doit être persisté.
+
+```text
+contactConsent = true  → l'utilisateur accepte d'être recontacté
+contactConsent = false → l'utilisateur n'a pas donné cet accord
+```
+
+L'admin doit voir cette information dans le détail avant de contacter l'utilisateur.
+
+### Règle 6 — Données sensibles
 
 Le module ne doit jamais capturer automatiquement :
 
@@ -290,6 +321,7 @@ id
 status unread|read|resolved
 feedback_type bug|idea|confusing|other
 message text
+contact_consent boolean default false
 role string
 user_id nullable
 store_id nullable
@@ -343,6 +375,12 @@ Réponse :
   "appArea": "merchant",
   "appSubArea": "merchant_orders",
   "allowedFeedbackTypes": ["bug", "idea", "confusing", "other"],
+  "displayLabels": {
+    "button": "Retour",
+    "formTitle": "Votre retour",
+    "submit": "Envoyer",
+    "success": "Merci, votre retour a bien été envoyé."
+  },
   "requireAuthenticatedUser": true
 }
 ```
@@ -367,6 +405,7 @@ Payload :
 {
   "feedbackType": "bug",
   "message": "Le bouton valider n'est pas clair sur cette page.",
+  "contactConsent": true,
   "pageUrl": "https://app.clickcollect.tn/merchant/orders/123",
   "routeName": "merchant.orders.detail",
   "pageTitle": "Détail commande",
@@ -387,6 +426,7 @@ Réponse `201` :
 {
   "id": "feedback-uuid",
   "status": "unread",
+  "contactConsent": true,
   "createdAt": "2026-06-12T12:00:00+02:00"
 }
 ```
@@ -458,7 +498,7 @@ Sections :
 - Rôles autorisés ;
 - Zones autorisées ;
 - Mode connecté uniquement ;
-- Aperçu du bouton.
+- Aperçu du bouton Retour.
 ```
 
 ### 7.2 Utilisateur — Bouton + formulaire
@@ -468,12 +508,21 @@ Le bouton doit apparaître dans le layout global des zones activées.
 Structure recommandée :
 
 ```text
-FeedbackButton
-→ FeedbackDrawer
+FeedbackButton      # composant technique
+→ FeedbackDrawer    # composant technique
   → FeedbackTypeSelect
   → MessageTextarea
   → ContactConsentCheckbox
   → SubmitButton
+```
+
+Libellés visibles attendus :
+
+```text
+Bouton latéral : Retour
+Titre formulaire : Votre retour
+CTA : Envoyer
+Message succès : Merci, votre retour a bien été envoyé.
 ```
 
 ### 7.3 Admin — Liste feedbacks
@@ -489,6 +538,7 @@ Colonnes recommandées :
 - page ;
 - utilisateur ;
 - supérette ;
+- consentement contact ;
 - extrait message ;
 - date création.
 ```
@@ -510,6 +560,7 @@ Blocs :
 - message complet ;
 - contexte page ;
 - contexte utilisateur ;
+- consentement contact ;
 - contexte device ;
 - historique traitement ;
 - note admin ;
@@ -524,7 +575,7 @@ Blocs :
 
 ```text
 - bouton atteignable au clavier ;
-- libellé accessible : Envoyer un feedback ;
+- libellé accessible : Envoyer un retour ;
 - focus piégé dans le drawer/modal ;
 - fermeture via Escape ;
 - aria-expanded / aria-controls si drawer ;
@@ -537,7 +588,7 @@ Blocs :
 Libellés FR MVP :
 
 ```text
-Feedback
+Retour
 Votre retour
 Type de retour
 Bug
@@ -545,6 +596,7 @@ Idée
 Je ne comprends pas
 Autre
 Votre remarque
+J'accepte d'être recontacté à propos de ce retour
 Envoyer
 Merci, votre retour a bien été envoyé.
 ```
@@ -605,14 +657,19 @@ Garde-fou : deux états/action séparés dans l'interface admin.
 
 Garde-fou : capturer automatiquement page, zone, rôle, utilisateur, supérette et device approximatif.
 
+### Risque : wording trop technique
+
+Garde-fou : `Feedback` reste technique ; l'UI affiche `Retour`, `Votre retour`, `Envoyer`.
+
 ---
 
 ## 12. Critère de sortie S15-011
 
 ```text
 Un admin peut activer le module Feedback.
-Un client, marchand ou admin autorisé voit le bouton Feedback sur les pages activées.
-L'utilisateur peut envoyer une remarque contextualisée.
+Un client, marchand ou admin autorisé voit le bouton Retour sur les pages activées.
+L'utilisateur peut envoyer une remarque contextualisée depuis le formulaire Votre retour.
+Le choix contactConsent est persisté si la case de contact est affichée.
 L'admin peut consulter, filtrer, marquer comme lu, résoudre et réouvrir les feedbacks.
 Le module respecte les garde-fous de confidentialité et ne capture aucun secret.
 ```
@@ -623,10 +680,10 @@ Le module respecte les garde-fous de confidentialité et ne capture aucun secret
 
 ```text
 1. Modèle + configuration admin FeedbackSetting.
-2. Modèle FeedbackEntry + endpoint POST /api/feedback.
+2. Modèle FeedbackEntry avec contact_consent + endpoint POST /api/feedback.
 3. Endpoint GET /api/feedback/settings/current.
 4. Backoffice admin liste/détail/statuts.
-5. Bouton global + drawer frontend client/marchand/admin.
-6. Tests sécurité, rôle, visibilité et accessibilité.
+5. Bouton Retour global + drawer frontend client/marchand/admin.
+6. Tests sécurité, rôle, visibilité, wording et accessibilité.
 7. Documentation API consolidée si l'implémentation retient ces endpoints.
 ```
