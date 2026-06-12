@@ -111,6 +111,9 @@ describe('PromotionsPage', () => {
     expect(screen.getByText('2.500 TND')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.getByText('Expirée')).toBeInTheDocument();
+    // Business date rendered from the YYYY-MM-DD string, immune to browser-timezone shifts
+    expect(screen.getByText('30/06/2026')).toBeInTheDocument();
+    expect(screen.getByText('01/06/2026')).toBeInTheDocument();
     expect(listPromotions).toHaveBeenCalledWith(1, 20, undefined, undefined, undefined);
   });
 
@@ -178,6 +181,55 @@ describe('PromotionsPage', () => {
     // No intermediate request with the new filter but the stale page
     expect(listPromotions).not.toHaveBeenCalledWith(2, 20, 'active', undefined, undefined);
     expect(listPromotions).toHaveBeenCalledTimes(3);
+  });
+
+  it("ignore la réponse obsolète d'une requête encore en vol lors d'un changement de filtre", async () => {
+    let resolveStale!: (value: Awaited<ReturnType<typeof listPromotions>>) => void;
+    const stalePromise = new Promise<Awaited<ReturnType<typeof listPromotions>>>((resolve) => {
+      resolveStale = resolve;
+    });
+
+    vi.mocked(listPromotions)
+      .mockResolvedValueOnce({
+        items: [ACTIVE_PROMOTION, EXPIRED_PROMOTION],
+        page: 1,
+        limit: 20,
+        total: 40,
+      })
+      // Page 2 request stays in flight…
+      .mockReturnValueOnce(stalePromise)
+      // …while the filtered request resolves first
+      .mockResolvedValueOnce({
+        items: [ACTIVE_PROMOTION],
+        page: 1,
+        limit: 20,
+        total: 1,
+      });
+
+    render(<PromotionsPage />);
+    expect(await screen.findByText('Lait Vitalait 1L')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Suivant/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Actives' }));
+
+    await waitFor(() => {
+      expect(listPromotions).toHaveBeenLastCalledWith(1, 20, 'active', undefined, undefined);
+    });
+    expect(await screen.findByText('Lait Vitalait 1L')).toBeInTheDocument();
+    expect(screen.queryByText('Eau Safia 1.5L')).not.toBeInTheDocument();
+
+    // The stale page-2 response arrives last: it must not overwrite the filtered list
+    resolveStale({
+      items: [EXPIRED_PROMOTION],
+      page: 2,
+      limit: 20,
+      total: 40,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Lait Vitalait 1L')).toBeInTheDocument();
+      expect(screen.queryByText('Eau Safia 1.5L')).not.toBeInTheDocument();
+    });
   });
 
   it('affiche un état vide quand aucune promotion', async () => {

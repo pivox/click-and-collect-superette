@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { listPromotions } from '@/lib/services/admin/promotions.service';
 import { listStores } from '@/lib/services/admin/stores.service';
@@ -16,6 +16,13 @@ function merchantLabel(merchant: Merchant): string {
   return [merchant.first_name, merchant.last_name].filter(Boolean).join(' ') || merchant.email;
 }
 
+// promotion_ends_on is a business date (YYYY-MM-DD, end of day in Tunisia):
+// going through new Date() would shift it by a day in browsers west of UTC
+function formatPromotionEndsOn(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
+}
+
 export default function PromotionsPage() {
   const [promotions, setPromotions] = useState<AdminPromotionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,8 +34,12 @@ export default function PromotionsPage() {
   const [merchantFilter, setMerchantFilter] = useState('');
   const [stores, setStores] = useState<Store[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const requestSeq = useRef(0);
 
   const load = useCallback(async () => {
+    // Ignore stale responses: an in-flight request resolved after a newer one
+    // must not overwrite the list with results for old page/filter params
+    const seq = ++requestSeq.current;
     setIsLoading(true);
     setError(null);
     try {
@@ -39,13 +50,17 @@ export default function PromotionsPage() {
         storeFilter || undefined,
         merchantFilter || undefined,
       );
+      if (requestSeq.current !== seq) return;
       setPromotions(data.items);
       setTotal(data.total);
     } catch (err) {
+      if (requestSeq.current !== seq) return;
       console.error('[promotions] listPromotions failed', err);
       setError('Impossible de charger les promotions.');
     } finally {
-      setIsLoading(false);
+      if (requestSeq.current === seq) {
+        setIsLoading(false);
+      }
     }
   }, [page, statusFilter, storeFilter, merchantFilter]);
 
@@ -120,7 +135,7 @@ export default function PromotionsPage() {
     {
       key: 'promotion_ends_on',
       label: 'Fin de promo',
-      render: (row) => new Date(row.promotion_ends_on).toLocaleDateString('fr-TN'),
+      render: (row) => formatPromotionEndsOn(row.promotion_ends_on),
     },
     {
       key: 'promotion_active',
