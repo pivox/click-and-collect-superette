@@ -4,6 +4,7 @@ import type { KadhiaLine } from "@/types";
 import { Card } from "@/components/ui/Card";
 import { QtyControl } from "@/components/ui/QtyControl";
 import { formatTnd } from "@/lib/format";
+import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import { ProductThumbnail } from "./ProductThumbnail";
 
 export interface KadhiaLineRowProps {
@@ -16,6 +17,7 @@ export interface KadhiaLineRowProps {
  * line total in the middle, qty stepper on the right.
  */
 export function KadhiaLineRow({ line, onQuantity }: KadhiaLineRowProps) {
+  const { t } = useClientLocale();
   const p = line.productOffer;
   return (
     <Card compact className="flex items-center gap-3">
@@ -36,6 +38,11 @@ export function KadhiaLineRow({ line, onQuantity }: KadhiaLineRowProps) {
         <span className="mt-0.5 block text-xs text-muted">
           {formatTnd(line.unitPriceTnd)} · x{line.quantity}
         </span>
+        {!p.isAvailable && (
+          <span className="mt-0.5 inline-block rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-600">
+            {t("client.product.outOfStock")}
+          </span>
+        )}
       </div>
       <QtyControl
         value={line.quantity}

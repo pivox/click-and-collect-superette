@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, Star } from "lucide-react";
 import type { ProductOffer } from "@/types";
 import { formatTnd } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -10,6 +10,9 @@ import { ProductThumbnail } from "./ProductThumbnail";
 export interface ProductCardProps {
   product: ProductOffer;
   onAdd?: (product: ProductOffer) => void;
+  /** Favorite state — the star is rendered only when onToggleFavorite is provided (authenticated client). */
+  isFavorite?: boolean;
+  onToggleFavorite?: (product: ProductOffer, next: boolean) => void;
   className?: string;
 }
 
@@ -18,7 +21,7 @@ export interface ProductCardProps {
  * desktop catalog (auto-fill grid). Visual matches the prototype's
  * `.product-card` / `.product` patterns.
  */
-export function ProductCard({ product, onAdd, className }: ProductCardProps) {
+export function ProductCard({ product, onAdd, isFavorite = false, onToggleFavorite, className }: ProductCardProps) {
   const { t } = useClientLocale();
   const stockLabel = product.isAvailable
     ? t("client.product.available")
@@ -31,13 +34,29 @@ export function ProductCard({ product, onAdd, className }: ProductCardProps) {
         className,
       )}
     >
-      <ProductThumbnail
-        image={product.image}
-        nameFr={product.nameFr}
-        emoji={product.emoji}
-        sizes="(max-width: 768px) 45vw, 200px"
-        className="mb-2 h-[94px] rounded-md text-3xl"
-      />
+      <div className="relative">
+        <ProductThumbnail
+          image={product.image}
+          nameFr={product.nameFr}
+          emoji={product.emoji}
+          sizes="(max-width: 768px) 45vw, 200px"
+          className="mb-2 h-[94px] rounded-md text-3xl"
+        />
+        {onToggleFavorite && (
+          <button
+            type="button"
+            onClick={() => onToggleFavorite(product, !isFavorite)}
+            aria-pressed={isFavorite}
+            aria-label={`${isFavorite ? t("client.favorites.remove") : t("client.favorites.add")} ${product.nameFr}`}
+            className="absolute end-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-white/90 shadow-card"
+          >
+            <Star
+              size={15}
+              className={isFavorite ? "fill-amber-400 text-amber-400" : "text-muted"}
+            />
+          </button>
+        )}
+      </div>
       <strong className="block min-h-[36px] text-sm leading-snug">
         {product.nameFr}
       </strong>

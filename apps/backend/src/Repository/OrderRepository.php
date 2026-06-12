@@ -26,6 +26,58 @@ class OrderRepository extends ServiceEntityRepository
     }
 
     /**
+     * Customer order history for a shop with lines and products fetch-joined,
+     * newest first, bounded to the most recent $limit orders.
+     *
+     * Two queries on purpose: setMaxResults combined with a collection
+     * fetch-join truncates rows, so the bound is applied on an id-only query
+     * first, then the selected orders are hydrated with their lines.
+     *
+     * @param list<OrderStatus> $statuses
+     *
+     * @return list<Order>
+     */
+    public function findRecentByCustomerAndShopWithLines(User $customer, Shop $shop, array $statuses, int $limit): array
+    {
+        /** @var list<Uuid> $orderIds */
+        $orderIds = $this->createQueryBuilder('o')
+            ->select('o.id')
+            ->andWhere('IDENTITY(o.customer) = :customerId')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->andWhere('o.status IN (:statuses)')
+            ->setParameter('customerId', $customer->getId(), 'uuid')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('statuses', array_map(static fn (OrderStatus $status): string => $status->value, $statuses))
+            ->orderBy('o.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        if ([] === $orderIds) {
+            return [];
+        }
+
+        $queryBuilder = $this->createQueryBuilder('o')
+            ->leftJoin('o.lines', 'line')
+            ->leftJoin('line.merchantProduct', 'mp')
+            ->addSelect('line', 'mp')
+            ->orderBy('o.createdAt', 'DESC');
+
+        // Per-element 'uuid' binding keeps the IN clause portable across
+        // PostgreSQL (native uuid) and SQLite tests (binary storage).
+        $placeholders = [];
+        foreach ($orderIds as $index => $orderId) {
+            $name = 'orderId'.$index;
+            $placeholders[] = ':'.$name;
+            $queryBuilder->setParameter($name, $orderId, 'uuid');
+        }
+        $queryBuilder->andWhere(\sprintf('o.id IN (%s)', implode(', ', $placeholders)));
+
+        /* @var list<Order> */
+        return $queryBuilder->getQuery()->getResult();
+    }
+
+    /**
      * @return list<Order>
      */
     public function findByCustomerPaginated(User $customer, int $limit, int $offset): array

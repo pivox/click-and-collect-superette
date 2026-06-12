@@ -132,6 +132,23 @@
       "outOfStock": "نفد",
       "add": "إضافة"
     },
+    "suggestions": {
+      "frequentlyBoughtTogether": "يُشترى معًا غالبًا",
+      "recentlyOrdered": "طلبات أخيرة"
+    },
+    "favorites": {
+      "title": "مفضلاتي",
+      "add": "أضف إلى المفضلة",
+      "remove": "إزالة من المفضلة",
+      "error": "تعذّر تحديث المفضلة. أعد المحاولة."
+    },
+    "replacements": {
+      "title": "منتجات غير متوفرة",
+      "unavailable": "لم يعد متوفرًا",
+      "replace": "استبدال",
+      "none": "لا يوجد بديل متوفر في هذه السوبيرات.",
+      "error": "فشل الاستبدال. أعد المحاولة."
+    },
     "kadhiaPanel": {
       "title": "Kadhia الخاصة بي",
       "empty": "Kadhia فارغة — أضف منتجات",

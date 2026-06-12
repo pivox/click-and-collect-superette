@@ -14,7 +14,9 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('@/lib/services', () => ({
+  addLine: vi.fn(),
   fetchKadhia: vi.fn(),
+  fetchKadhiaReplacements: vi.fn().mockResolvedValue([]),
   updateLineQuantity: vi.fn(),
   discardKadhia: vi.fn(),
   patchKadhiaNotes: vi.fn(),

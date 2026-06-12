@@ -48,10 +48,15 @@ $allowedPatterns = [
     '/^DROP INDEX idx_messenger_messages_(available_at|delivered_at|queue_name|queue_available);$/',
     '/^ALTER INDEX idx_subscription_payment_reminders_(subscription|admin) RENAME TO IDX_[A-F0-9]+;$/',
     '/^ALTER INDEX idx_subscription_payments_(created_by_admin|validated_by_admin) RENAME TO IDX_[A-F0-9]+;$/',
+    '/^ALTER INDEX uniq_merchant_crm_profiles_merchant RENAME TO UNIQ_[A-F0-9]+;$/',
+    '/^ALTER INDEX uniq_product_groups_slug RENAME TO UNIQ_[A-F0-9]+;$/',
     '/^ALTER TABLE product_pack_items ALTER quantity DROP DEFAULT;$/',
     '/^ALTER TABLE product_packs ALTER is_active DROP DEFAULT;$/',
     '/^ALTER TABLE push_subscriptions ALTER failure_count DROP DEFAULT;$/',
-    '/^COMMENT ON COLUMN (subscriptions|subscription_payment_reminders|subscription_payments|billing_documents|incidents|product_packs|product_pack_items|incident_notes|messenger_messages)\.[a-z_]+ IS \'\';$/',
+    '/^ALTER TABLE merchant_crm_profiles ALTER status DROP DEFAULT;$/',
+    '/^ALTER TABLE product_groups ALTER (market_country|status|visibility) DROP DEFAULT;$/',
+    '/^ALTER TABLE product_group_items ALTER importance DROP DEFAULT;$/',
+    '/^COMMENT ON COLUMN (subscriptions|subscription_payment_reminders|subscription_payments|billing_documents|incidents|product_packs|product_pack_items|incident_notes|messenger_messages|merchant_crm_profiles|merchant_crm_contacts|product_groups|product_group_items|customer_product_favorites)\.[a-z_]+ IS \'\';$/',
 ];
 
 $unexpected = [];

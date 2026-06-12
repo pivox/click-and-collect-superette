@@ -25,7 +25,20 @@ vi.mock('@/lib/services', () => ({
   createKadhia: vi.fn(),
   getCurrentKadhia: vi.fn(),
   getShop: vi.fn(),
+  getStoreSuggestions: vi.fn(),
   listCatalog: vi.fn(),
+  listFavoriteProducts: vi.fn(),
+  toggleProductFavorite: vi.fn(),
+}));
+
+vi.mock('@/lib/auth/ClientAuthContext', () => ({
+  useClientAuth: vi.fn(() => ({
+    user: null,
+    isLoading: false,
+    login: vi.fn(),
+    logout: vi.fn(),
+    updateUser: vi.fn(),
+  })),
 }));
 
 const SHOP = {

@@ -3,6 +3,7 @@ import { apiClient } from "@/lib/api";
 import { MOCK_ORDER, MOCK_ORDER_PARTIALLY_ACCEPTED } from "@/lib/mock/orders.mock";
 import { displayOrderCode } from "@/lib/order-number";
 import { USE_MOCKS, mockDelay } from "./index";
+import { mapCatalogApiItem, type CatalogApiItem } from "./catalog.service";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Storage keys
@@ -65,6 +66,7 @@ type ApiLine = {
   unit_price_tnd: string;
   quantity: number;
   subtotal_tnd: string;
+  is_available?: boolean;
 };
 type ApiKadhia = {
   id: string;
@@ -118,7 +120,7 @@ function mapLine(l: ApiLine): KadhiaLine {
       volume: null,
       unit: null,
       priceTnd: l.unit_price_tnd,
-      isAvailable: true,
+      isAvailable: l.is_available ?? true,
       photoUrl: null,
       category: "other",
     } satisfies ProductOffer,
@@ -413,6 +415,42 @@ export async function fetchKadhia(kadhiaId: string): Promise<Kadhia> {
   writeActiveId(kadhia.shopId, kadhia.id);
   writeContext({ shopId: kadhia.shopId, kadhiaId: kadhia.id });
   return kadhia;
+}
+
+// ─── replacement suggestions (unavailable lines) ─────────────────────────────
+
+export interface KadhiaReplacementLine {
+  lineId: string;
+  merchantProductId: string;
+  productName: string;
+  quantity: number;
+  alternatives: ProductOffer[];
+}
+
+type ApiReplacementLine = {
+  line_id: string;
+  merchant_product_id: string;
+  product_name: string;
+  quantity: number;
+  alternatives: CatalogApiItem[];
+};
+
+/** Replacement suggestions for the Kadhia lines whose product became unavailable. */
+export async function fetchKadhiaReplacements(kadhiaId: string): Promise<KadhiaReplacementLine[]> {
+  if (USE_MOCKS) {
+    // Mock kadhias never carry unavailable lines — keep the block hidden.
+    return mockDelay([]);
+  }
+  const { data } = await apiClient.get<{ id: string; items: ApiReplacementLine[] }>(
+    `/api/me/kadhias/${kadhiaId}/replacements`,
+  );
+  return (data.items ?? []).map((item) => ({
+    lineId: item.line_id,
+    merchantProductId: item.merchant_product_id,
+    productName: item.product_name,
+    quantity: item.quantity,
+    alternatives: (item.alternatives ?? []).map(mapCatalogApiItem),
+  }));
 }
 
 /** Updates the personal note of a draft Kadhia (max 500 chars, visible only to the client). */
