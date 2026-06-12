@@ -26,6 +26,33 @@ class OrderRepository extends ServiceEntityRepository
     }
 
     /**
+     * Customer order history for a shop with lines and products fetch-joined,
+     * newest first. No setMaxResults here: a limit combined with a collection
+     * fetch-join truncates rows — callers cap the list in PHP instead.
+     *
+     * @param list<OrderStatus> $statuses
+     *
+     * @return list<Order>
+     */
+    public function findRecentByCustomerAndShopWithLines(User $customer, Shop $shop, array $statuses): array
+    {
+        /* @var list<Order> */
+        return $this->createQueryBuilder('o')
+            ->leftJoin('o.lines', 'line')
+            ->leftJoin('line.merchantProduct', 'mp')
+            ->addSelect('line', 'mp')
+            ->andWhere('IDENTITY(o.customer) = :customerId')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->andWhere('o.status IN (:statuses)')
+            ->setParameter('customerId', $customer->getId(), 'uuid')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('statuses', array_map(static fn (OrderStatus $status): string => $status->value, $statuses))
+            ->orderBy('o.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * @return list<Order>
      */
     public function findByCustomerPaginated(User $customer, int $limit, int $offset): array
