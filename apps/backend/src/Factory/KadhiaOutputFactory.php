@@ -8,22 +8,29 @@ use App\ApiResource\KadhiaLineOutput;
 use App\ApiResource\KadhiaOutput;
 use App\Entity\Kadhia;
 use App\Entity\KadhiaLine;
+use App\Service\KadhiaSuggestionService;
 
 final readonly class KadhiaOutputFactory
 {
+    public function __construct(
+        private KadhiaSuggestionService $kadhiaSuggestionService,
+    ) {
+    }
+
     public function toOutput(Kadhia $kadhia, ?string $orderId = null): KadhiaOutput
     {
         $kadhiaLines = $kadhia->getLines()->toArray();
         usort($kadhiaLines, static fn ($a, $b) => $a->getId()->toRfc4122() <=> $b->getId()->toRfc4122());
 
         $lines = array_map(
-            static fn (KadhiaLine $l): KadhiaLineOutput => new KadhiaLineOutput(
+            fn (KadhiaLine $l): KadhiaLineOutput => new KadhiaLineOutput(
                 id: $l->getId()->toRfc4122(),
                 merchantProductId: $l->getMerchantProduct()->getId()->toRfc4122(),
                 productName: $l->getMerchantProduct()->getDisplayNameFr(),
                 unitPriceTnd: $l->getUnitPriceTnd(),
                 quantity: $l->getQuantity(),
                 subtotalTnd: bcmul($l->getUnitPriceTnd(), (string) $l->getQuantity(), 3),
+                isAvailable: $this->kadhiaSuggestionService->isSuggestible($l->getMerchantProduct()),
             ),
             $kadhiaLines,
         );

@@ -26,6 +26,11 @@ final readonly class KadhiaLineOutput
         #[Groups(['kadhia:read'])]
         #[SerializedName('subtotal_tnd')]
         public string $subtotalTnd,
+        // False when the product can no longer be ordered (unavailable,
+        // hidden or reference no longer approved) — drives the rupture badge.
+        #[Groups(['kadhia:read'])]
+        #[SerializedName('is_available')]
+        public bool $isAvailable = true,
     ) {
     }
 }
