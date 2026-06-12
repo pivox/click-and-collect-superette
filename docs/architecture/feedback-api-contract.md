@@ -1,6 +1,6 @@
-# Contrat API — Module Feedback
+# Contrat API — Module Feedback / Retour
 
-Issue liée : #482 — S15-011 — Module feedback activable par rôle et page  
+Issue liée : #482 — S15-011 — Module Feedback / Retour activable par rôle et page  
 Statut : contrat cible, à aligner avec l'implémentation finale  
 Date : 2026-06-12
 
@@ -24,6 +24,15 @@ ROLE_MERCHANT
 ROLE_ADMIN
 ```
 
+Décision wording :
+
+```text
+Feedback = nom technique API / entités / routes
+Retour = libellé visible utilisateur
+Votre retour = titre formulaire visible
+Envoyer = CTA visible
+```
+
 ---
 
 ## 2. Lire la configuration courante
@@ -32,7 +41,7 @@ ROLE_ADMIN
 GET /api/feedback/settings/current?appArea=merchant&appSubArea=merchant_orders
 ```
 
-Objectif : permettre au frontend de savoir si le bouton Feedback doit être affiché pour l'utilisateur courant.
+Objectif : permettre au frontend de savoir si le bouton `Retour` doit être affiché pour l'utilisateur courant.
 
 ### Réponse `200`
 
@@ -42,6 +51,12 @@ Objectif : permettre au frontend de savoir si le bouton Feedback doit être affi
   "appArea": "merchant",
   "appSubArea": "merchant_orders",
   "allowedFeedbackTypes": ["bug", "idea", "confusing", "other"],
+  "displayLabels": {
+    "button": "Retour",
+    "formTitle": "Votre retour",
+    "submit": "Envoyer",
+    "success": "Merci, votre retour a bien été envoyé."
+  },
   "requireAuthenticatedUser": true
 }
 ```
@@ -53,6 +68,7 @@ Objectif : permettre au frontend de savoir si le bouton Feedback doit être affi
 - Si le module est désactivé, enabled = false.
 - Si la zone demandée n'est pas autorisée, enabled = false.
 - La route ne retourne pas la configuration admin complète.
+- Les libellés peuvent aussi venir du système i18n frontend ; displayLabels sert de référence contractuelle.
 ```
 
 ---
@@ -71,6 +87,7 @@ Objectif : enregistrer un retour utilisateur contextualisé.
 {
   "feedbackType": "bug",
   "message": "Le bouton valider n'est pas clair sur cette page.",
+  "contactConsent": true,
   "pageUrl": "https://app.clickcollect.tn/merchant/orders/123",
   "routeName": "merchant.orders.detail",
   "pageTitle": "Détail commande",
@@ -91,6 +108,7 @@ Objectif : enregistrer un retour utilisateur contextualisé.
 {
   "id": "feedback-uuid",
   "status": "unread",
+  "contactConsent": true,
   "createdAt": "2026-06-12T12:00:00+02:00"
 }
 ```
@@ -104,6 +122,15 @@ Objectif : enregistrer un retour utilisateur contextualisé.
 403 FEEDBACK_DISABLED_FOR_AREA
 422 FEEDBACK_MESSAGE_TOO_SHORT
 422 FEEDBACK_MESSAGE_TOO_LONG
+```
+
+### Règle consentement contact
+
+Si l'interface affiche une case d'accord pour être recontacté, le frontend doit envoyer `contactConsent` et le backend doit le persister.
+
+```text
+contactConsent = true  → accord explicite à être recontacté
+contactConsent = false → pas d'accord explicite
 ```
 
 ---
@@ -167,6 +194,7 @@ feedbackType = bug|idea|confusing|other
 appArea = client|merchant|admin
 appSubArea
 storeId
+contactConsent = true|false
 createdFrom
 createdTo
 ```
@@ -180,6 +208,7 @@ createdTo
       "id": "feedback-uuid",
       "status": "unread",
       "feedbackType": "bug",
+      "contactConsent": true,
       "role": "ROLE_MERCHANT",
       "appArea": "merchant",
       "appSubArea": "merchant_orders",
@@ -221,6 +250,7 @@ GET /api/admin/feedbacks/{feedbackId}
   "status": "read",
   "feedbackType": "bug",
   "message": "Le bouton valider n'est pas clair sur cette page.",
+  "contactConsent": true,
   "role": "ROLE_MERCHANT",
   "user": {
     "id": "user-uuid",
@@ -284,6 +314,7 @@ PATCH /api/admin/feedbacks/{feedbackId}/reopen
 {
   "id": "feedback-uuid",
   "status": "resolved",
+  "contactConsent": true,
   "adminNote": "Corrigé dans le wording de la page commande.",
   "updatedAt": "2026-06-12T12:30:00+02:00"
 }
@@ -297,6 +328,7 @@ PATCH /api/admin/feedbacks/{feedbackId}/reopen
 - Les endpoints admin sont strictement réservés à ROLE_ADMIN.
 - La création d'un feedback respecte la configuration courante.
 - Les données collectées automatiquement restent limitées au contexte utile.
+- Le choix contactConsent doit être respecté avant tout recontact utilisateur.
 - Le MVP ne prévoit pas de capture d'écran automatique.
 - Le MVP ne prévoit pas de pièce jointe.
 - Le MVP ne prévoit pas de session replay.
@@ -309,7 +341,8 @@ PATCH /api/admin/feedbacks/{feedbackId}/reopen
 ```text
 - Prévoir une configuration par défaut désactivée.
 - Prévoir une pagination sur la liste admin.
-- Prévoir des index sur status, role, app_area, store_id et created_at.
+- Prévoir des index sur status, role, app_area, store_id, contact_consent et created_at.
 - Prévoir une longueur maximale du message.
 - Prévoir une réponse neutre et simple côté utilisateur après création.
+- Garder Feedback pour les noms techniques et Retour pour le libellé utilisateur.
 ```
