@@ -30,7 +30,7 @@ final readonly class StoreSuggestionsProvider implements ProviderInterface
     private const int DEFAULT_LIMIT = 10;
     private const int MAX_LIMIT = 20;
 
-    /** Cap applied in PHP — see OrderRepository::findRecentByCustomerAndShopWithLines. */
+    /** Most recent orders considered by the heuristics (bounded in SQL). */
     private const int MAX_HISTORY_ORDERS = 30;
 
     private const array HISTORY_STATUSES = [
@@ -88,8 +88,7 @@ final readonly class StoreSuggestionsProvider implements ProviderInterface
 
         $seedProductIds = $this->resolveSeedProductIds($request?->query->getString('kadhia_id') ?: null, $user, $shop);
 
-        $orders = $this->orderRepository->findRecentByCustomerAndShopWithLines($user, $shop, self::HISTORY_STATUSES);
-        $orders = \array_slice($orders, 0, self::MAX_HISTORY_ORDERS);
+        $orders = $this->orderRepository->findRecentByCustomerAndShopWithLines($user, $shop, self::HISTORY_STATUSES, self::MAX_HISTORY_ORDERS);
 
         $frequentlyBoughtTogether = $this->kadhiaSuggestionService->buildFrequentlyBoughtTogether($orders, $seedProductIds, $limit);
         $recentlyOrdered = $this->kadhiaSuggestionService->buildRecentlyOrdered($orders, $seedProductIds, $limit);

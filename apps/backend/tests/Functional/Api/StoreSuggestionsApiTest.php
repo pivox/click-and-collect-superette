@@ -176,6 +176,44 @@ final class StoreSuggestionsApiTest extends FunctionalApiTestCase
         self::assertSame(403, $response->getStatusCode());
     }
 
+    public function testHistoryFetchIsBoundedToMostRecentOrders(): void
+    {
+        $customer = $this->createUser('customer-sugg-bound@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $productA = $this->createMerchantProduct($shop);
+        $productB = $this->createMerchantProduct($shop);
+        $productC = $this->createMerchantProduct($shop);
+
+        // Three orders with distinct, deterministic creation times (the
+        // createdAt column has second precision — same-second ties would
+        // make the ORDER BY non-deterministic).
+        $base = new \DateTimeImmutable('-1 day');
+        foreach ([[$productA, 0], [$productB, 60], [$productC, 120]] as [$product, $offsetSeconds]) {
+            $order = $this->createOrderWithProducts($customer, $shop, $product);
+            $this->setPrivateProperty($order, 'createdAt', $base->modify(\sprintf('+%d seconds', $offsetSeconds)));
+        }
+        $this->entityManager->flush();
+
+        /** @var \App\Repository\OrderRepository $orderRepository */
+        $orderRepository = $this->entityManager->getRepository(Order::class);
+        $orders = $orderRepository->findRecentByCustomerAndShopWithLines(
+            $customer,
+            $shop,
+            [\App\Enum\OrderStatus::Submitted],
+            2,
+        );
+
+        // Only the 2 most recent orders are fetched (bounded in SQL), newest first.
+        self::assertCount(2, $orders);
+        $productIds = [];
+        foreach ($orders as $order) {
+            foreach ($order->getLines() as $line) {
+                $productIds[] = $line->getMerchantProduct()->getId()->toRfc4122();
+            }
+        }
+        self::assertSame([$productC->getId()->toRfc4122(), $productB->getId()->toRfc4122()], $productIds);
+    }
+
     // Helpers
 
     private function createOrderWithProducts(User $customer, Shop $shop, MerchantProduct ...$products): Order
