@@ -99,23 +99,8 @@ Les specs des features passées sont dans `prompts/` (ex. `prompts/s7-003-data-r
 Commande type (pour les anciennes specs) : `traite @prompts/sX-XXX-nom.md et pousse une pr`.
 Avant d'implémenter, vérifier si la feature est déjà livrée : `git log --oneline | grep sX-XXX`.
 
-**Sprint 7 : entièrement livré** (`s7-003` à `s7-009` tous mergés).
-
-**Sprint 8 — Catalogue marchand (livré sur main, PRs #200–#204) :**
-Les features Sprint 8 passent par des issues GitHub (pas de fichiers prompts).
-- **#195 / PR #200** — `ProductReferenceProposal` liée au produit local (`local_product_id` nullable), `category_id` optionnel + `category_name_proposed` libre
-- **#196 / PR #201** — `POST /api/merchant/stores/{storeId}/local-products/bulk` (atomique, max 20 formats), drawer multi-format avec champ Qté/pack
-- **#197 / PR #202 + #204** — entité `ProductFamily`, champ `pack_quantity` (default 1) sur `ProductReference` et `MerchantLocalProduct`, câblé dans les endpoints de création
-- **#198 / PR #203** — `PATCH /api/admin/product-proposals/{id}/merge` dédié (distinct de `/approve`) ; guard sur référence archivée (422)
-
-**Sprint 9 — Kadhia multi + UX (livré sur main, PRs #214–#223) :**
-Toutes les features Sprint 9 mergées les 2026-05-28/29. Monolog backend (PR #232) mergé le 2026-05-30.
-
-**Post-Sprint 9 — correctifs (mergés sur main) :**
-- **#219 / PR #220** — corriger les erreurs silencieuses client
-- **#226 / PR #228** — catalogue accessible sans auth (intercepteur 401 préserve la navigation)
-- **#227 / PR #229** — unifier le libellé "Kadhia" desktop/mobile
-- **#230 / PR #231** — mapper `is_active→isActive` dans `getShop()` (badge supérette)
+**Sprints 7–15 : tous livrés sur `main`** — détail complet dans `AI_CONTEXT.md`.
+Pour vérifier une feature : `git log --oneline | grep sX-XXX`.
 
 ### Clôture de sprint (audit documentaire)
 
@@ -153,6 +138,12 @@ npm test          # tests vitest en mode watch
 
 ## Gotchas backend (voir aussi `.claude/rules/backend-patterns.md`)
 
+**`enum` dans `QueryParameter` schema → 422 avant le provider (S15-010)**
+`schema: ['type' => 'string', 'enum' => ['active', 'expired']]` sur un `#[QueryParameter]`
+déclenche la validation native API Platform *avant* d'entrer dans le provider → 422 au lieu
+du 400 attendu. Supprimer `'enum' => [...]` du schema et valider la valeur dans le provider
+via `BadRequestHttpException` (pattern #12).
+
 **`Assert\Choice` sur enum typé → 422 systématique (pattern #26)**
 Ne jamais mettre `#[Assert\Choice(callback: [MyEnum::class, 'values'])]` sur un champ `ProductUnit $unit` (type PHP enum). Le validateur compare une instance d'enum à une liste de strings → validation échoue pour toutes les requêtes. Réserver `Assert\Choice` aux champs `?string`.
 
@@ -175,6 +166,27 @@ try {
 ```
 
 ## Gotchas frontend (voir aussi `apps/frontend/src/tests/`)
+
+**`new Date('YYYY-MM-DD')` décale la date d'un jour à l'ouest d'UTC**
+`new Date('2026-06-30')` est interprété comme minuit UTC → affiché comme `29/06` dans les
+navigateurs FR/TN (UTC+1). Pour formater une date métier, splitter la chaîne directement :
+```ts
+const [year, month, day] = isoDate.split('-');
+return `${day}/${month}/${year}`;
+```
+
+**`requestSeq` — ignorer les réponses en vol devenues obsolètes**
+Quand un filtre change pendant qu'une requête est en vol, la réponse tardive peut écraser
+la liste avec des données périmées. Pattern à appliquer dans toutes les pages admin paginées :
+```ts
+const requestSeq = useRef(0);
+const load = useCallback(async () => {
+  const seq = ++requestSeq.current;
+  // ...
+  if (requestSeq.current !== seq) return; // ignore stale response
+  setData(result);
+}, [deps]);
+```
 
 **`MerchantLocalProductOutput` exige `pack_quantity: number` (depuis Sprint 8)**
 Les mocks de test qui omettent ce champ font échouer TypeScript CI silencieusement. Toujours inclure `pack_quantity: 1` dans les fixtures `createMerchantLocalProduct`.
