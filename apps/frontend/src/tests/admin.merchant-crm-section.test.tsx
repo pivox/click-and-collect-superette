@@ -121,6 +121,45 @@ describe('MerchantCrmSection', () => {
     expect(screen.getByText('par admin@example.test')).toBeInTheDocument();
   });
 
+  it('notifie le parent après chaque mutation CRM réussie', async () => {
+    vi.mocked(updateMerchantCrm).mockResolvedValue(MERCHANT_RESPONSE);
+    vi.mocked(addMerchantCrmContact).mockResolvedValue(MERCHANT_RESPONSE);
+    const onCrmChanged = vi.fn();
+
+    render(
+      <MerchantCrmSection merchantId="merchant-1" initialCrm={null} onCrmChanged={onCrmChanged} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le suivi' }));
+    await waitFor(() => {
+      expect(onCrmChanged).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.change(screen.getByLabelText('Note de contact'), {
+      target: { value: 'Relance.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '+ Ajouter' }));
+    await waitFor(() => {
+      expect(onCrmChanged).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('ne notifie pas le parent quand la mutation échoue', async () => {
+    vi.mocked(updateMerchantCrm).mockRejectedValue(new Error('boom'));
+    const onCrmChanged = vi.fn();
+
+    render(
+      <MerchantCrmSection merchantId="merchant-1" initialCrm={null} onCrmChanged={onCrmChanged} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le suivi' }));
+
+    expect(
+      await screen.findByText('Impossible d’enregistrer le suivi commercial.'),
+    ).toBeInTheDocument();
+    expect(onCrmChanged).not.toHaveBeenCalled();
+  });
+
   it('refuse un contact sans note', async () => {
     render(<MerchantCrmSection merchantId="merchant-1" initialCrm={null} />);
 

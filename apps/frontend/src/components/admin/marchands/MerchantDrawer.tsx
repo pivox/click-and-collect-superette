@@ -11,9 +11,11 @@ interface MerchantDrawerProps {
   onClose: () => void;
   merchant: Merchant | null;
   onSaved: () => void;
+  // Called after each CRM mutation so the list stays in sync even if the drawer is closed without saving
+  onCrmChanged?: () => void;
 }
 
-export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDrawerProps) {
+export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged }: MerchantDrawerProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -153,7 +155,11 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved }: MerchantDra
           </section>
         )}
         {merchant && (
-          <MerchantCrmSection merchantId={merchant.id} initialCrm={merchant.crm ?? null} />
+          <MerchantCrmSection
+            merchantId={merchant.id}
+            initialCrm={merchant.crm ?? null}
+            onCrmChanged={onCrmChanged}
+          />
         )}
         {merchant && opsJournal && (
           <section className="rounded-md border border-line bg-soft px-4 py-3">

@@ -11,6 +11,8 @@ import type {
 interface MerchantCrmSectionProps {
   merchantId: string;
   initialCrm: MerchantCrm | null;
+  // Notifies the parent so the merchants list reflects CRM changes (badge, filters)
+  onCrmChanged?: () => void;
 }
 
 const CHANNEL_LABELS: Record<MerchantCrmContactChannel, string> = {
@@ -41,7 +43,7 @@ function formatDate(iso: string | null): string {
   });
 }
 
-export function MerchantCrmSection({ merchantId, initialCrm }: MerchantCrmSectionProps) {
+export function MerchantCrmSection({ merchantId, initialCrm, onCrmChanged }: MerchantCrmSectionProps) {
   const [crm, setCrm] = useState<MerchantCrm | null>(initialCrm);
   const [owner, setOwner] = useState('');
   const [status, setStatus] = useState<MerchantCrmStatus>('prospect');
@@ -85,6 +87,7 @@ export function MerchantCrmSection({ merchantId, initialCrm }: MerchantCrmSectio
       });
       setCrm(updated.crm ?? null);
       setSaveSuccess(true);
+      onCrmChanged?.();
     } catch (err) {
       console.error('[marchands] updateMerchantCrm failed', err);
       setSaveError('Impossible d’enregistrer le suivi commercial.');
@@ -107,6 +110,7 @@ export function MerchantCrmSection({ merchantId, initialCrm }: MerchantCrmSectio
       });
       setCrm(updated.crm ?? null);
       setContactNote('');
+      onCrmChanged?.();
     } catch (err) {
       console.error('[marchands] addMerchantCrmContact failed', err);
       setContactError('Impossible d’ajouter le contact.');

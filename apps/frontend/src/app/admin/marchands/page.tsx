@@ -353,6 +353,7 @@ export default function MarchandsPage() {
         onClose={closeDrawer}
         merchant={editTarget}
         onSaved={handleSaved}
+        onCrmChanged={() => { void load(); }}
       />
       <AdminConfirmDialog
         open={!!suspendTarget}
