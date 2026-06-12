@@ -50,7 +50,23 @@ export default function PromotionsPage() {
   }, [page, statusFilter, storeFilter, merchantFilter]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { setPage(1); }, [statusFilter, storeFilter, merchantFilter]);
+
+  // Page reset happens in the same handler as the filter change: a separate
+  // effect would fire a first request with the new filter but the stale page.
+  const applyStatusFilter = (value: StatusFilter) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+
+  const applyStoreFilter = (value: string) => {
+    setStoreFilter(value);
+    setPage(1);
+  };
+
+  const applyMerchantFilter = (value: string) => {
+    setMerchantFilter(value);
+    setPage(1);
+  };
 
   useEffect(() => {
     // Filter selects: first 50 entries are enough for the MVP volume
@@ -134,7 +150,7 @@ export default function PromotionsPage() {
           {([['', 'Toutes'], ['active', 'Actives'], ['expired', 'Expirées']] as [StatusFilter, string][]).map(([val, label]) => (
             <button
               key={val}
-              onClick={() => setStatusFilter(val)}
+              onClick={() => applyStatusFilter(val)}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                 statusFilter === val
                   ? 'bg-primary text-white'
@@ -152,7 +168,7 @@ export default function PromotionsPage() {
           <select
             id="store-filter"
             value={storeFilter}
-            onChange={(e) => setStoreFilter(e.target.value)}
+            onChange={(e) => applyStoreFilter(e.target.value)}
             className="max-w-48 rounded-md border border-line px-2 py-1.5 text-sm outline-none focus:border-primary"
           >
             <option value="">Toutes</option>
@@ -168,7 +184,7 @@ export default function PromotionsPage() {
           <select
             id="merchant-filter"
             value={merchantFilter}
-            onChange={(e) => setMerchantFilter(e.target.value)}
+            onChange={(e) => applyMerchantFilter(e.target.value)}
             className="max-w-48 rounded-md border border-line px-2 py-1.5 text-sm outline-none focus:border-primary"
           >
             <option value="">Tous</option>

@@ -153,6 +153,33 @@ describe('PromotionsPage', () => {
     });
   });
 
+  it('revient en page 1 en une seule requête quand un filtre change depuis une page > 1', async () => {
+    vi.mocked(listPromotions).mockResolvedValue({
+      items: [ACTIVE_PROMOTION, EXPIRED_PROMOTION],
+      page: 1,
+      limit: 20,
+      total: 40,
+    });
+
+    render(<PromotionsPage />);
+    expect(await screen.findByText('Lait Vitalait 1L')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Suivant/ }));
+
+    await waitFor(() => {
+      expect(listPromotions).toHaveBeenLastCalledWith(2, 20, undefined, undefined, undefined);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actives' }));
+
+    await waitFor(() => {
+      expect(listPromotions).toHaveBeenLastCalledWith(1, 20, 'active', undefined, undefined);
+    });
+    // No intermediate request with the new filter but the stale page
+    expect(listPromotions).not.toHaveBeenCalledWith(2, 20, 'active', undefined, undefined);
+    expect(listPromotions).toHaveBeenCalledTimes(3);
+  });
+
   it('affiche un état vide quand aucune promotion', async () => {
     vi.mocked(listPromotions).mockResolvedValue({ items: [], page: 1, limit: 20, total: 0 });
 
