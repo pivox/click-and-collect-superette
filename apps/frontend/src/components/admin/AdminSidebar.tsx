@@ -10,6 +10,7 @@ import {
   LifeBuoy,
   LayoutDashboard,
   Package,
+  Percent,
   Store,
   Users,
   type LucideIcon,
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/admin/ops/messenger', label: 'Santé plateforme', icon: Activity },
   { href: '/admin/beta-metrics', label: 'Métriques bêta', icon: BarChart3 },
   { href: '/admin/superettes', label: 'Supérettes', icon: Store },
+  { href: '/admin/promotions', label: 'Promotions', icon: Percent },
   {
     href: '/admin/referentiel/produits',
     label: 'Référentiel produits',
