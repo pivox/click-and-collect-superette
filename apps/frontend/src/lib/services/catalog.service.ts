@@ -22,7 +22,7 @@ interface CatalogApiImage {
   status: string | null;
 }
 
-interface CatalogApiItem {
+export interface CatalogApiItem {
   id: string;
   product_reference_id: string | null;
   local_product_id: string | null;
@@ -93,6 +93,41 @@ function mapCatalogImage(image: CatalogApiImage): ProductImage {
   };
 }
 
+/** Maps a backend catalog product (snake_case) to a ProductOffer — shared with suggestions/favorites services. */
+export function mapCatalogApiItem(item: CatalogApiItem): ProductOffer {
+  return {
+    id: item.id,
+    productReferenceId:
+      item.product_reference_id ?? item.local_product_id ?? item.id,
+    nameFr: item.name_fr,
+    nameAr: item.name_ar,
+    brand: item.brand ?? "",
+    volume: (() => {
+      if (item.volume == null || item.volume === "" || item.volume === "undefined") return null;
+      const parsed = parseFloat(item.volume);
+      if (Number.isNaN(parsed)) {
+        console.warn(
+          `[catalog.service] Non-numeric volume for item ${item.id}: "${item.volume}"`,
+        );
+        return null;
+      }
+      return parsed;
+    })(),
+    unit: item.unit,
+    priceTnd: item.price_tnd,
+    promotionPriceTnd: item.promotion_price_tnd ?? null,
+    promotionEndsOn: item.promotion_ends_on ?? null,
+    promotionActive: item.promotion_active ?? false,
+    effectivePriceTnd: item.effective_price_tnd ?? item.price_tnd,
+    isAvailable: item.is_available,
+    photoUrl: item.image?.card_url ?? null,
+    image: item.image ? mapCatalogImage(item.image) : null,
+    category: item.category_slug,
+    categoryNameFr: item.category,
+    categoryNameAr: item.category_ar,
+  };
+}
+
 export async function listCatalog(q: CatalogQuery): Promise<CatalogResult> {
   const page = q.page ?? 1;
   const itemsPerPage = q.itemsPerPage ?? 30;
@@ -142,37 +177,7 @@ export async function listCatalog(q: CatalogQuery): Promise<CatalogResult> {
       },
     },
   );
-  const items = (data.items ?? []).map((item) => ({
-    id: item.id,
-    productReferenceId:
-      item.product_reference_id ?? item.local_product_id ?? item.id,
-    nameFr: item.name_fr,
-    nameAr: item.name_ar,
-    brand: item.brand ?? "",
-    volume: (() => {
-      if (item.volume == null || item.volume === "" || item.volume === "undefined") return null;
-      const parsed = parseFloat(item.volume);
-      if (Number.isNaN(parsed)) {
-        console.warn(
-          `[catalog.service] Non-numeric volume for item ${item.id}: "${item.volume}"`,
-        );
-        return null;
-      }
-      return parsed;
-    })(),
-    unit: item.unit,
-    priceTnd: item.price_tnd,
-    promotionPriceTnd: item.promotion_price_tnd ?? null,
-    promotionEndsOn: item.promotion_ends_on ?? null,
-    promotionActive: item.promotion_active ?? false,
-    effectivePriceTnd: item.effective_price_tnd ?? item.price_tnd,
-    isAvailable: item.is_available,
-    photoUrl: item.image?.card_url ?? null,
-    image: item.image ? mapCatalogImage(item.image) : null,
-    category: item.category_slug,
-    categoryNameFr: item.category,
-    categoryNameAr: item.category_ar,
-  }));
+  const items = (data.items ?? []).map(mapCatalogApiItem);
 
   return {
     items,

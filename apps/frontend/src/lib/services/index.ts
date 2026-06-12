@@ -26,3 +26,5 @@ export * from "./orders.service";
 export * from "./auth.service";
 export * from "./store-search.service";
 export * from "./store-theme.service";
+export * from "./suggestions.service";
+export * from "./product-favorites.service";
