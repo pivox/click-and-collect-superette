@@ -9,11 +9,20 @@ import { Button, getButtonClassName } from "@/components/ui/Button";
 import { Summary, SummaryRow } from "@/components/ui/Summary";
 import { StickyBottom } from "@/components/layout/StickyBottom";
 import { KadhiaLineRow } from "@/components/product/KadhiaLineRow";
-import { fetchKadhia, updateLineQuantity, discardKadhia, patchKadhiaNotes } from "@/lib/services";
+import { KadhiaReplacementSuggestions } from "@/components/product/KadhiaReplacementSuggestions";
+import {
+  addLine,
+  discardKadhia,
+  fetchKadhia,
+  fetchKadhiaReplacements,
+  patchKadhiaNotes,
+  updateLineQuantity,
+} from "@/lib/services";
+import type { KadhiaReplacementLine } from "@/lib/services/kadhia.service";
 import { formatTnd } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
-import type { Kadhia } from "@/types";
+import type { Kadhia, ProductOffer } from "@/types";
 
 const MAX_NOTE_LENGTH = 500;
 
@@ -154,6 +163,7 @@ export default function KadhiaDetailPage({
   const [quantityError, setQuantityError] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const [discardError, setDiscardError] = useState(false);
+  const [replacements, setReplacements] = useState<KadhiaReplacementLine[]>([]);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -167,6 +177,25 @@ export default function KadhiaDetailPage({
       .then(setKadhia)
       .catch(() => setLoadError(true));
   }, [kadhiaId, isLoading, user]);
+
+  // Replacement suggestions for unavailable lines (draft only, silent on failure).
+  const isDraftStatus = kadhia?.status === "draft";
+  useEffect(() => {
+    if (isLoading || !user || !isDraftStatus) return;
+    void fetchKadhiaReplacements(kadhiaId)
+      .then(setReplacements)
+      .catch(() => {});
+  }, [kadhiaId, isLoading, user, isDraftStatus]);
+
+  const onReplace = async (line: KadhiaReplacementLine, alternative: ProductOffer) => {
+    if (!kadhia?.shopId || !kadhia.id) return;
+    // Add the alternative first so the line is never lost, then drop the old one.
+    await addLine(kadhia.shopId, kadhia.id, alternative, line.quantity);
+    const next = await updateLineQuantity(kadhia.shopId, kadhia.id, line.merchantProductId, 0);
+    setKadhia(next);
+    const refreshed = await fetchKadhiaReplacements(kadhia.id);
+    setReplacements(refreshed);
+  };
 
   const onDiscard = async () => {
     if (!kadhia?.shopId) return;
@@ -281,6 +310,10 @@ export default function KadhiaDetailPage({
             <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
               {t("client.kadhia.quantityError")}
             </p>
+          )}
+
+          {isDraft && (
+            <KadhiaReplacementSuggestions lines={replacements} onReplace={onReplace} />
           )}
 
           <Card className="mt-4">
