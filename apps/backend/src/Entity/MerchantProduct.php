@@ -14,6 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'merchant_products')]
 #[ORM\UniqueConstraint(name: 'UNIQ_MERCHANT_PRODUCTS_SHOP_REF', columns: ['shop_id', 'product_reference_id'])]
 #[ORM\UniqueConstraint(name: 'UNIQ_MERCHANT_PRODUCTS_LOCAL_PRODUCT', columns: ['local_product_id'])]
+#[ORM\Index(name: 'IDX_MERCHANT_PRODUCTS_PROMOTION_ENDS_ON', columns: ['promotion_ends_on'])]
 #[ORM\HasLifecycleCallbacks]
 class MerchantProduct
 {
