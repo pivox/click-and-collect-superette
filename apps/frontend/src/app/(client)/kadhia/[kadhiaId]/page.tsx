@@ -178,23 +178,24 @@ export default function KadhiaDetailPage({
       .catch(() => setLoadError(true));
   }, [kadhiaId, isLoading, user]);
 
-  // Replacement suggestions for unavailable lines (draft only, silent on failure).
-  const isDraftStatus = kadhia?.status === "draft";
+  // Replacement suggestions for unavailable lines (draft only, silent on
+  // failure). Depends on the kadhia object so quantity edits, removals and
+  // replacements refetch — every mutation goes through setKadhia with a
+  // fresh reference.
   useEffect(() => {
-    if (isLoading || !user || !isDraftStatus) return;
+    if (isLoading || !user || kadhia?.status !== "draft") return;
     void fetchKadhiaReplacements(kadhiaId)
       .then(setReplacements)
       .catch(() => {});
-  }, [kadhiaId, isLoading, user, isDraftStatus]);
+  }, [kadhiaId, isLoading, user, kadhia]);
 
   const onReplace = async (line: KadhiaReplacementLine, alternative: ProductOffer) => {
     if (!kadhia?.shopId || !kadhia.id) return;
-    // Add the alternative first so the line is never lost, then drop the old one.
+    // Add the alternative first so the line is never lost, then drop the old
+    // one. setKadhia triggers the effect above, which refreshes the block.
     await addLine(kadhia.shopId, kadhia.id, alternative, line.quantity);
     const next = await updateLineQuantity(kadhia.shopId, kadhia.id, line.merchantProductId, 0);
     setKadhia(next);
-    const refreshed = await fetchKadhiaReplacements(kadhia.id);
-    setReplacements(refreshed);
   };
 
   const onDiscard = async () => {

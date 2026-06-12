@@ -184,6 +184,24 @@ describe('KadhiaDetailPage — remplacements produits indisponibles', () => {
     ).toBeInTheDocument();
   });
 
+  it('recharge les remplacements après un changement de quantité', async () => {
+    const updatedKadhia = makeKadhia();
+    updatedKadhia.lines[0].quantity = 3;
+    vi.mocked(updateLineQuantity).mockResolvedValue(updatedKadhia);
+
+    renderDetail();
+
+    await screen.findByText('Produits indisponibles');
+    const callsBefore = vi.mocked(fetchKadhiaReplacements).mock.calls.length;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Augmenter la quantité' }));
+
+    // La carte de remplacement porte la quantité — elle doit suivre la ligne.
+    await waitFor(() => {
+      expect(vi.mocked(fetchKadhiaReplacements).mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+  });
+
   it('ne charge pas les remplacements pour une Kadhia non-draft', async () => {
     vi.mocked(fetchKadhia).mockResolvedValue(makeKadhia({ status: 'submitted' }));
 
