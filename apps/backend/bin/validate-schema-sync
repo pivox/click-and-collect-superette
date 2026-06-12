@@ -56,7 +56,7 @@ $allowedPatterns = [
     '/^ALTER TABLE merchant_crm_profiles ALTER status DROP DEFAULT;$/',
     '/^ALTER TABLE product_groups ALTER (market_country|status|visibility) DROP DEFAULT;$/',
     '/^ALTER TABLE product_group_items ALTER importance DROP DEFAULT;$/',
-    '/^COMMENT ON COLUMN (subscriptions|subscription_payment_reminders|subscription_payments|billing_documents|incidents|product_packs|product_pack_items|incident_notes|messenger_messages|merchant_crm_profiles|merchant_crm_contacts|product_groups|product_group_items)\.[a-z_]+ IS \'\';$/',
+    '/^COMMENT ON COLUMN (subscriptions|subscription_payment_reminders|subscription_payments|billing_documents|incidents|product_packs|product_pack_items|incident_notes|messenger_messages|merchant_crm_profiles|merchant_crm_contacts|product_groups|product_group_items|customer_product_favorites)\.[a-z_]+ IS \'\';$/',
 ];
 
 $unexpected = [];
