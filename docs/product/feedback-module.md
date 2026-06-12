@@ -1,6 +1,6 @@
-# Module Feedback — Spécification produit
+# Module Feedback / Retour — Spécification produit
 
-Issue liée : #482 — S15-011 — Module feedback activable par rôle et page  
+Issue liée : #482 — S15-011 — Module Feedback / Retour activable par rôle et page  
 Statut : cadrage produit  
 Date : 2026-06-12
 
@@ -8,7 +8,17 @@ Date : 2026-06-12
 
 ## 1. Objectif
 
-Le module Feedback permet à un utilisateur connecté de faire un retour depuis la page qu'il consulte.
+Le module technique `Feedback` permet à un utilisateur connecté de faire un retour depuis la page qu'il consulte.
+
+Décision wording PO :
+
+```text
+Nom technique : Feedback
+Libellé visible utilisateur : Retour
+Titre formulaire : Votre retour
+CTA : Envoyer
+Message succès : Merci, votre retour a bien été envoyé.
+```
 
 Utilisateurs concernés :
 
@@ -18,7 +28,7 @@ Utilisateurs concernés :
 - admin.
 ```
 
-Le feedback doit être contextualisé automatiquement afin que l'équipe produit/support sache depuis quelle page le retour a été envoyé.
+Le retour doit être contextualisé automatiquement afin que l'équipe produit/support sache depuis quelle page il a été envoyé.
 
 ---
 
@@ -140,7 +150,7 @@ Décision recommandée : démarrer avec un module réservé aux utilisateurs con
 
 Le widget doit être intégré dans les layouts client, marchand et admin.
 
-Composants recommandés :
+Composants techniques recommandés :
 
 ```text
 FeedbackProvider
@@ -151,11 +161,20 @@ FeedbackSuccessState
 FeedbackErrorState
 ```
 
+Libellés visibles utilisateur :
+
+```text
+Bouton latéral : Retour
+Titre formulaire : Votre retour
+CTA : Envoyer
+Message succès : Merci, votre retour a bien été envoyé.
+```
+
 Le bouton :
 
 ```text
 - est fixe à droite sur desktop ;
-- affiche Feedback ;
+- affiche Retour ;
 - est orienté verticalement ;
 - ouvre un drawer ou une modal légère ;
 - s'adapte au mobile sans masquer les actions principales.
@@ -199,8 +218,11 @@ utilisateur si disponible
 supérette si disponible
 langue
 appareil approximatif
+contactConsent
 date de création
 ```
+
+Décision importante : si la case `accord optionnel pour être recontacté` est affichée, le choix doit être persisté via `contactConsent` pour que l'admin sache s'il peut recontacter l'utilisateur.
 
 ---
 
@@ -246,6 +268,7 @@ Colonnes de liste :
 - page ;
 - utilisateur ;
 - supérette ;
+- consentement contact ;
 - extrait message ;
 - date.
 ```
@@ -292,6 +315,7 @@ Autorisé :
 ```text
 - message saisi volontairement ;
 - type de retour ;
+- consentement contact ;
 - page ;
 - rôle ;
 - utilisateur connecté ;
@@ -319,7 +343,7 @@ Backend :
 
 ```text
 - configuration feedback ;
-- entité feedback ;
+- entité feedback avec contact_consent ;
 - création feedback ;
 - lecture configuration courante ;
 - liste admin ;
@@ -331,8 +355,9 @@ Backend :
 Frontend :
 
 ```text
-- bouton feedback ;
-- drawer formulaire ;
+- bouton Retour ;
+- drawer formulaire Votre retour ;
+- CTA Envoyer ;
 - intégration layouts ;
 - page admin liste ;
 - page admin détail ;
@@ -345,11 +370,12 @@ QA :
 
 ```text
 - module désactivé : aucun bouton ;
-- module activé client : bouton client visible ;
-- module activé marchand : bouton marchand visible ;
-- module activé admin : bouton admin visible ;
+- module activé client : bouton Retour visible côté client ;
+- module activé marchand : bouton Retour visible côté marchand ;
+- module activé admin : bouton Retour visible côté admin ;
 - rôle non autorisé : pas de bouton ;
 - message vide refusé ;
+- contactConsent persisté si la case est affichée ;
 - feedback visible admin après envoi ;
 - mark read fonctionne ;
 - resolve fonctionne ;
@@ -365,11 +391,11 @@ Les écrans à produire ou conserver comme référence design :
 
 ```text
 1. Admin — activation du module Feedback.
-2. Client — bouton latéral Feedback sur une page.
-3. Marchand — formulaire Feedback en drawer.
+2. Client — bouton latéral Retour sur une page.
+3. Marchand — formulaire Votre retour en drawer.
 4. Admin — liste des feedbacks.
-5. Admin — détail, lu/résolu, note interne.
-6. Mobile — bouton + formulaire adapté.
+5. Admin — détail, lu/résolu, note interne, consentement contact.
+6. Mobile — bouton Retour + formulaire adapté.
 ```
 
 ---
@@ -378,10 +404,14 @@ Les écrans à produire ou conserver comme référence design :
 
 ```text
 - Le module est activable par l'admin.
-- Le bouton est visible uniquement sur les zones autorisées.
-- Le feedback est contextualisé automatiquement.
+- Le bouton visible est Retour.
+- Le formulaire visible est Votre retour.
+- Le CTA visible est Envoyer.
+- Le feedback technique reste le nom interne.
+- Le retour est contextualisé automatiquement.
+- Le consentement contact est persisté via contactConsent.
 - Le MVP ne capture pas d'écran automatiquement.
 - Le MVP ne crée pas d'issue automatiquement.
 - Lu et résolu sont deux notions distinctes.
-- Le feedback est un signal produit/support, pas un chat temps réel.
+- Le retour est un signal produit/support, pas un chat temps réel.
 ```
