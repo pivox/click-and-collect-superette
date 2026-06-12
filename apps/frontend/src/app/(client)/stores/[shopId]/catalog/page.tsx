@@ -132,16 +132,17 @@ export default function CatalogPage({
     return () => { cancelled = true; };
   }, [shopId, user]);
 
-  // Suggestions seeded by the active Kadhia (silent on failure).
-  const kadhiaId = kadhia?.id ?? null;
+  // Suggestions seeded by the active Kadhia (silent on failure). Depends on
+  // the kadhia object so adding/removing lines refetches the co-occurrence
+  // seed — every mutation goes through setKadhia with a fresh reference.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    void getStoreSuggestions(shopId, kadhiaId ?? undefined)
+    void getStoreSuggestions(shopId, kadhia?.id ?? undefined)
       .then((data) => { if (!cancelled) setSuggestions(data); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [shopId, user, kadhiaId]);
+  }, [shopId, user, kadhia]);
 
   const onToggleFavorite = async (product: ProductOffer, next: boolean) => {
     // Optimistic update with rollback on failure.

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CatalogPage from '@/app/(client)/stores/[shopId]/catalog/page';
 import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 import {
+  addLine,
   getCurrentKadhia,
   getShop,
   getStoreSuggestions,
@@ -169,6 +170,47 @@ describe('CatalogPage — suggestions et favoris', () => {
     // Le favori est restauré après rollback.
     expect(screen.getByText('Mes favoris')).toBeInTheDocument();
     expect(screen.getByText('Harissa Sicam')).toBeInTheDocument();
+  });
+
+  it('recharge les suggestions quand une ligne est ajoutée à la Kadhia', async () => {
+    const emptyKadhia = {
+      id: 'kadhia-1',
+      shopId: 'store-1',
+      status: 'draft' as const,
+      lines: [],
+      totalTnd: '0.000',
+    };
+    const gridProduct = makeProduct('grid-1', 'Produit grille');
+    const kadhiaWithLine = {
+      ...emptyKadhia,
+      lines: [
+        {
+          id: 'grid-1',
+          productOffer: gridProduct,
+          quantity: 1,
+          unitPriceTnd: '2.000',
+          lineTotalTnd: '2.000',
+        },
+      ],
+      totalTnd: '2.000',
+    };
+    vi.mocked(getCurrentKadhia).mockResolvedValue({ type: 'active', kadhia: emptyKadhia });
+    vi.mocked(addLine).mockResolvedValue(kadhiaWithLine);
+
+    renderPage();
+
+    // Premier chargement avec la Kadhia vide.
+    await waitFor(() => {
+      expect(getStoreSuggestions).toHaveBeenCalledWith('store-1', 'kadhia-1');
+    });
+    const callsBeforeAdd = vi.mocked(getStoreSuggestions).mock.calls.length;
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter Produit grille' }));
+
+    // L'ajout d'une ligne change le seed de co-occurrence → refetch.
+    await waitFor(() => {
+      expect(vi.mocked(getStoreSuggestions).mock.calls.length).toBeGreaterThan(callsBeforeAdd);
+    });
   });
 
   it('marque un produit de la grille comme favori', async () => {
