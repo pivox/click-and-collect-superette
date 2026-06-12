@@ -227,6 +227,24 @@ final class KadhiaSuggestionServiceTest extends TestCase
         self::assertTrue($this->service->isSuggestible($this->makeProduct('OK')));
     }
 
+    public function testIsListableIgnoresAvailabilityButKeepsCatalogRules(): void
+    {
+        $unavailable = $this->makeProduct('Rupture');
+        $unavailable->setAvailable(false);
+        self::assertTrue($this->service->isListable($unavailable));
+        self::assertFalse($this->service->isSuggestible($unavailable));
+
+        $hidden = $this->makeProduct('Masqué');
+        $hidden->setVisible(false);
+        self::assertFalse($this->service->isListable($hidden));
+
+        self::assertFalse($this->service->isListable($this->makeProduct('Gratuit', price: '0.000')));
+
+        $archived = $this->makeProduct('Archivé');
+        $archived->getProductReference()?->setStatus(ProductReferenceStatus::Archived);
+        self::assertFalse($this->service->isListable($archived));
+    }
+
     // Helpers
 
     private function makeProduct(string $name, string $category = 'epicerie', string $price = '2.000'): MerchantProduct

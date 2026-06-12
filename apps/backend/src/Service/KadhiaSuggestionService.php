@@ -172,7 +172,17 @@ final readonly class KadhiaSuggestionService
      */
     public function isSuggestible(MerchantProduct $product): bool
     {
-        if (!$product->isAvailable() || !$product->isVisible()) {
+        return $product->isAvailable() && $this->isListable($product);
+    }
+
+    /**
+     * Catalog rules minus the stock availability flag — an unavailable
+     * product can still be listed (e.g. favorites showing "rupture"), but a
+     * hidden, zero-priced or non-approved one must never be exposed.
+     */
+    public function isListable(MerchantProduct $product): bool
+    {
+        if (!$product->isVisible()) {
             return false;
         }
 

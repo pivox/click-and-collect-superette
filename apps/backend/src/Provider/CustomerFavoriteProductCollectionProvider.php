@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Mapper\StoreCatalogProductBatchMapper;
 use App\Repository\CustomerProductFavoriteRepository;
 use App\Repository\ShopRepository;
+use App\Service\KadhiaSuggestionService;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -25,6 +26,7 @@ final readonly class CustomerFavoriteProductCollectionProvider implements Provid
         private ShopRepository $shopRepository,
         private CustomerProductFavoriteRepository $customerProductFavoriteRepository,
         private StoreCatalogProductBatchMapper $storeCatalogProductBatchMapper,
+        private KadhiaSuggestionService $kadhiaSuggestionService,
         private Security $security,
     ) {
     }
@@ -53,11 +55,12 @@ final readonly class CustomerFavoriteProductCollectionProvider implements Provid
         $favorites = $this->customerProductFavoriteRepository->findByCustomerAndShop($user, $shop);
 
         // Unavailable products stay listed (the frontend shows "rupture");
-        // hidden products are excluded so the list never leaks them.
+        // hidden, zero-priced or non-approved ones are excluded so favorites
+        // never bypass the public catalog rules.
         $merchantProducts = [];
         foreach ($favorites as $favorite) {
             $merchantProduct = $favorite->getMerchantProduct();
-            if ($merchantProduct->isVisible()) {
+            if ($this->kadhiaSuggestionService->isListable($merchantProduct)) {
                 $merchantProducts[] = $merchantProduct;
             }
         }

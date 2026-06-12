@@ -221,6 +221,41 @@ final class CustomerProductFavoriteApiTest extends FunctionalApiTestCase
         self::assertSame(0, $payload['total']);
     }
 
+    public function testFavoriteProductsListExcludesNonApprovedReferences(): void
+    {
+        $customer = $this->createUser('customer-fav-unapproved@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $product = $this->createMerchantProduct($shop);
+
+        $this->requestJson('PATCH', \sprintf('/api/me/products/%s/favorite', $product->getId()), ['is_favorite' => true], $customer);
+
+        // Reference moved out of the approved catalog after the favorite was set.
+        $product->getProductReference()?->setStatus(\App\Enum\ProductReferenceStatus::Archived);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', \sprintf('/api/me/stores/%s/favorite-products', $shop->getId()), user: $customer);
+
+        $payload = $this->decodeJson($response);
+        self::assertSame(0, $payload['total']);
+    }
+
+    public function testFavoriteProductsListExcludesZeroPricedProducts(): void
+    {
+        $customer = $this->createUser('customer-fav-zeroprice@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $product = $this->createMerchantProduct($shop);
+
+        $this->requestJson('PATCH', \sprintf('/api/me/products/%s/favorite', $product->getId()), ['is_favorite' => true], $customer);
+
+        $product->setPriceTnd('0.000');
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', \sprintf('/api/me/stores/%s/favorite-products', $shop->getId()), user: $customer);
+
+        $payload = $this->decodeJson($response);
+        self::assertSame(0, $payload['total']);
+    }
+
     public function testFavoriteProductsListUnknownStoreReturns404(): void
     {
         $customer = $this->createUser('customer-fav-list-404@example.test', ['ROLE_CUSTOMER']);
