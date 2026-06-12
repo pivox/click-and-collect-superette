@@ -6,11 +6,13 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Pill, PillRow } from "@/components/ui/Pill";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ProductCard } from "@/components/product/ProductCard";
+import { ProductSuggestionsSection } from "@/components/product/ProductSuggestionsSection";
 import { KadhiaPanel } from "@/components/product/KadhiaPanel";
 import { Button } from "@/components/ui/Button";
 import { KadhiaSelectorDialog } from "@/components/client/KadhiaSelectorDialog";
 import { ShoppingBasket } from "lucide-react";
 import { useHydrated } from "@/lib/hooks/useHydrated";
+import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import {
   addLine,
@@ -18,8 +20,12 @@ import {
   activateKadhia,
   getCurrentKadhia,
   getShop,
+  getStoreSuggestions,
   listCatalog,
+  listFavoriteProducts,
+  toggleProductFavorite,
 } from "@/lib/services";
+import type { StoreSuggestions } from "@/lib/services/suggestions.service";
 import type { CatalogCategoryOption } from "@/lib/services/catalog.service";
 import type { KadhiaListItem } from "@/lib/services/kadhia.service";
 import type { Kadhia, ProductOffer, Shop } from "@/types";
@@ -34,6 +40,7 @@ export default function CatalogPage({
 }) {
   const { shopId } = params;
   const isHydrated = useHydrated();
+  const { user } = useClientAuth();
   const { t } = useClientLocale();
   const itemsWord = (n: number) =>
     n > 1 ? t("client.itemsPlural") : t("client.itemsSingular");
@@ -54,6 +61,9 @@ export default function CatalogPage({
   const [catalogPages, setCatalogPages] = useState(1);
   const [catalogTotal, setCatalogTotal] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [suggestions, setSuggestions] = useState<StoreSuggestions | null>(null);
+  const [favorites, setFavorites] = useState<ProductOffer[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -107,6 +117,55 @@ export default function CatalogPage({
       .then(setShop)
       .catch(() => {});
   }, [shopId]);
+
+  // Favorites of the authenticated client for this store (silent on failure).
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void listFavoriteProducts(shopId)
+      .then((items) => {
+        if (cancelled) return;
+        setFavorites(items);
+        setFavoriteIds(new Set(items.map((p) => p.id)));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [shopId, user]);
+
+  // Suggestions seeded by the active Kadhia (silent on failure).
+  const kadhiaId = kadhia?.id ?? null;
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void getStoreSuggestions(shopId, kadhiaId ?? undefined)
+      .then((data) => { if (!cancelled) setSuggestions(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [shopId, user, kadhiaId]);
+
+  const onToggleFavorite = async (product: ProductOffer, next: boolean) => {
+    // Optimistic update with rollback on failure.
+    const previousIds = favoriteIds;
+    const previousFavorites = favorites;
+    setFavoriteIds((current) => {
+      const updated = new Set(current);
+      if (next) updated.add(product.id);
+      else updated.delete(product.id);
+      return updated;
+    });
+    setFavorites((current) =>
+      next
+        ? current.some((p) => p.id === product.id) ? current : [product, ...current]
+        : current.filter((p) => p.id !== product.id),
+    );
+    try {
+      await toggleProductFavorite(product.id, next);
+    } catch {
+      setFavoriteIds(previousIds);
+      setFavorites(previousFavorites);
+      setAddError(t("client.favorites.error"));
+    }
+  };
 
   const onStart = async () => {
     setIsStarting(true);
@@ -256,6 +315,31 @@ export default function CatalogPage({
               {addError}
             </p>
           )}
+          {user && category === "all" && !search && (
+            <>
+              <ProductSuggestionsSection
+                title={t("client.favorites.title")}
+                products={favorites}
+                onAdd={hasActiveKadhia ? onAdd : undefined}
+                favoriteIds={favoriteIds}
+                onToggleFavorite={onToggleFavorite}
+              />
+              <ProductSuggestionsSection
+                title={t("client.suggestions.frequentlyBoughtTogether")}
+                products={suggestions?.frequentlyBoughtTogether ?? []}
+                onAdd={hasActiveKadhia ? onAdd : undefined}
+                favoriteIds={favoriteIds}
+                onToggleFavorite={onToggleFavorite}
+              />
+              <ProductSuggestionsSection
+                title={t("client.suggestions.recentlyOrdered")}
+                products={suggestions?.recentlyOrdered ?? []}
+                onAdd={hasActiveKadhia ? onAdd : undefined}
+                favoriteIds={favoriteIds}
+                onToggleFavorite={onToggleFavorite}
+              />
+            </>
+          )}
           {catalogError ? (
             <div className="py-8 text-center">
               <p className="text-sm text-muted">{t("client.catalog.loadError")}</p>
@@ -319,6 +403,8 @@ export default function CatalogPage({
                     key={p.id}
                     product={p}
                     onAdd={hasActiveKadhia && p.isAvailable ? onAdd : undefined}
+                    isFavorite={favoriteIds.has(p.id)}
+                    onToggleFavorite={user ? onToggleFavorite : undefined}
                   />
                 ))}
               </div>

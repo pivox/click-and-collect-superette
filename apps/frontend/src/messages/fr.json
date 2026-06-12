@@ -132,6 +132,23 @@
       "outOfStock": "Rupture",
       "add": "Ajouter"
     },
+    "suggestions": {
+      "frequentlyBoughtTogether": "Souvent achetés ensemble",
+      "recentlyOrdered": "Récemment commandés"
+    },
+    "favorites": {
+      "title": "Mes favoris",
+      "add": "Ajouter aux favoris",
+      "remove": "Retirer des favoris",
+      "error": "Impossible de mettre à jour le favori. Réessaie."
+    },
+    "replacements": {
+      "title": "Produits indisponibles",
+      "unavailable": "n'est plus disponible",
+      "replace": "Remplacer",
+      "none": "Aucune alternative disponible dans cette supérette.",
+      "error": "Le remplacement a échoué. Réessaie."
+    },
     "kadhiaPanel": {
       "title": "Ma Kadhia",
       "empty": "Kadhia vide — ajoute des produits",
