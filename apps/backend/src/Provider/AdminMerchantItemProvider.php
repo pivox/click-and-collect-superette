@@ -6,10 +6,13 @@ namespace App\Provider;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use App\ApiResource\AdminMerchantCrmOutput;
 use App\ApiResource\AdminMerchantOpsJournalOutput;
 use App\ApiResource\AdminMerchantOutput;
 use App\Entity\User;
 use App\Repository\AdminMerchantRepository;
+use App\Repository\MerchantCrmContactRepository;
+use App\Repository\MerchantCrmProfileRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\MerchantOperationalJournalCalculator;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -24,6 +27,8 @@ final readonly class AdminMerchantItemProvider implements ProviderInterface
         private AdminMerchantRepository $adminMerchantRepository,
         private SubscriptionRepository $subscriptionRepository,
         private MerchantOperationalJournalCalculator $operationalJournalCalculator,
+        private MerchantCrmProfileRepository $crmProfileRepository,
+        private MerchantCrmContactRepository $crmContactRepository,
     ) {
     }
 
@@ -48,6 +53,10 @@ final readonly class AdminMerchantItemProvider implements ProviderInterface
             $this->adminMerchantRepository->countStores($merchant),
             subscriptionLifecycle: $this->subscriptionRepository->findOneByMerchant($merchant)?->getLifecycle()->value,
             opsJournal: $this->operationalJournalCalculator->calculate($merchant),
+            crm: AdminMerchantCrmOutput::fromProfile(
+                $this->crmProfileRepository->findOneByMerchant($merchant),
+                $this->crmContactRepository->findByMerchant($merchant),
+            ),
         );
     }
 
@@ -56,6 +65,7 @@ final readonly class AdminMerchantItemProvider implements ProviderInterface
         int $storesCount,
         ?string $subscriptionLifecycle = null,
         ?AdminMerchantOpsJournalOutput $opsJournal = null,
+        ?AdminMerchantCrmOutput $crm = null,
     ): AdminMerchantOutput {
         return new AdminMerchantOutput(
             id: $merchant->getId()->toRfc4122(),
@@ -68,6 +78,7 @@ final readonly class AdminMerchantItemProvider implements ProviderInterface
             storesCount: $storesCount,
             subscriptionLifecycle: $subscriptionLifecycle,
             opsJournal: $opsJournal,
+            crm: $crm ?? AdminMerchantCrmOutput::fromProfile(null),
         );
     }
 }

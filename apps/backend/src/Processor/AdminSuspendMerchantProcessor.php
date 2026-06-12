@@ -6,10 +6,13 @@ namespace App\Processor;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
+use App\ApiResource\AdminMerchantCrmOutput;
 use App\ApiResource\AdminMerchantOutput;
 use App\Entity\User;
 use App\Provider\AdminMerchantItemProvider;
 use App\Repository\AdminMerchantRepository;
+use App\Repository\MerchantCrmContactRepository;
+use App\Repository\MerchantCrmProfileRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\AdminAuditLogger;
 use App\Service\MerchantOperationalJournalCalculator;
@@ -27,6 +30,8 @@ final readonly class AdminSuspendMerchantProcessor implements ProcessorInterface
     public function __construct(
         private AdminMerchantRepository $adminMerchantRepository,
         private SubscriptionRepository $subscriptionRepository,
+        private MerchantCrmProfileRepository $crmProfileRepository,
+        private MerchantCrmContactRepository $crmContactRepository,
         private EntityManagerInterface $entityManager,
         private AdminAuditLogger $auditLogger,
         private MerchantOperationalJournalCalculator $operationalJournalCalculator,
@@ -78,6 +83,10 @@ final readonly class AdminSuspendMerchantProcessor implements ProcessorInterface
             $this->adminMerchantRepository->countStores($merchant),
             subscriptionLifecycle: $this->subscriptionRepository->findOneByMerchant($merchant)?->getLifecycle()->value,
             opsJournal: $this->operationalJournalCalculator->calculate($merchant),
+            crm: AdminMerchantCrmOutput::fromProfile(
+                $this->crmProfileRepository->findOneByMerchant($merchant),
+                $this->crmContactRepository->findByMerchant($merchant),
+            ),
         );
     }
 

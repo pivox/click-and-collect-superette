@@ -8,8 +8,10 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\AdminMerchantCrmOutput;
 use App\ApiResource\AdminMerchantOutput;
-use App\Dto\AdminUpdateMerchantInput;
+use App\Dto\AdminMerchantCrmUpdateInput;
+use App\Entity\MerchantCrmProfile;
 use App\Entity\User;
+use App\Enum\MerchantCrmStatus;
 use App\Provider\AdminMerchantItemProvider;
 use App\Repository\AdminMerchantRepository;
 use App\Repository\MerchantCrmContactRepository;
@@ -22,12 +24,13 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * @implements ProcessorInterface<AdminUpdateMerchantInput, AdminMerchantOutput>
+ * @implements ProcessorInterface<AdminMerchantCrmUpdateInput, AdminMerchantOutput>
  */
-final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
+final readonly class AdminUpdateMerchantCrmProcessor implements ProcessorInterface
 {
     public function __construct(
         private AdminMerchantRepository $adminMerchantRepository,
@@ -49,8 +52,8 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AdminMerchantOutput
     {
-        if (!$data instanceof AdminUpdateMerchantInput) {
-            throw new \InvalidArgumentException('AdminUpdateMerchantInput expected.');
+        if (!$data instanceof AdminMerchantCrmUpdateInput) {
+            throw new \InvalidArgumentException('AdminMerchantCrmUpdateInput expected.');
         }
 
         $merchantId = (string) ($uriVariables['merchantId'] ?? '');
@@ -59,52 +62,50 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
         // Only update fields that were explicitly provided in the request body
         $payload = $this->currentPayload();
 
-        $knownFields = ['first_name', 'last_name', 'phone', 'is_active'];
+        $knownFields = ['commercial_owner', 'status', 'next_action_at', 'next_action_note', 'commercial_note'];
         $updatedFields = array_values(array_intersect(array_keys($payload), $knownFields));
 
-        $this->logger->debug('admin.merchant_update.start', [
-            'merchant_id' => $merchantId,
-            'updated_fields' => $updatedFields,
-        ]);
-
-        if (\array_key_exists('first_name', $payload) && null !== $data->firstName) {
-            $merchant->setFirstName($data->firstName);
+        $profile = $this->crmProfileRepository->findOneByMerchant($merchant);
+        if (null === $profile) {
+            $profile = new MerchantCrmProfile($merchant);
+            $this->entityManager->persist($profile);
         }
 
-        if (\array_key_exists('last_name', $payload) && null !== $data->lastName) {
-            $merchant->setLastName($data->lastName);
+        if (\array_key_exists('commercial_owner', $payload)) {
+            $profile->setCommercialOwner($data->commercialOwner);
         }
 
-        if (\array_key_exists('phone', $payload)) {
-            $merchant->setPhone($data->phone);
+        if (\array_key_exists('status', $payload) && null !== $data->status) {
+            $profile->setStatus(MerchantCrmStatus::from($data->status));
         }
 
-        if (\array_key_exists('is_active', $payload) && null !== $data->isActive) {
-            $merchant->setActive($data->isActive);
+        if (\array_key_exists('next_action_at', $payload)) {
+            $profile->setNextActionAt($this->parseDate($data->nextActionAt, 'ADMIN_MERCHANT_CRM_INVALID_NEXT_ACTION_AT'));
         }
 
-        // Rebuild the display name when first or last name changed
-        $firstName = $merchant->getFirstName();
-        $lastName = $merchant->getLastName();
-        if (null !== $firstName && null !== $lastName) {
-            $merchant->setName($firstName.' '.$lastName);
+        if (\array_key_exists('next_action_note', $payload)) {
+            $profile->setNextActionNote($data->nextActionNote);
+        }
+
+        if (\array_key_exists('commercial_note', $payload)) {
+            $profile->setCommercialNote($data->commercialNote);
         }
 
         try {
             $this->auditLogger->log(
-                action: 'merchant.update',
+                action: 'merchant.crm_update',
                 resourceType: 'merchant',
                 resourceId: $merchant->getId()->toRfc4122(),
-                summary: \sprintf('Compte marchand %s modifié.', $merchant->getEmail()),
-                metadata: ['email' => $merchant->getEmail()],
+                summary: \sprintf('Suivi commercial du marchand %s modifié.', $merchant->getEmail()),
+                metadata: ['email' => $merchant->getEmail(), 'updated_fields' => $updatedFields],
             );
             $this->entityManager->flush();
-            $this->logger->info('merchant.updated', [
+            $this->logger->info('merchant.crm_updated', [
                 'merchant_id' => $merchantId,
                 'updated_fields' => $updatedFields,
             ]);
         } catch (\Throwable $e) {
-            $this->logger->error('admin.merchant_update.failed', [
+            $this->logger->error('admin.merchant_crm_update.failed', [
                 'merchant_id' => $merchantId,
                 'exception_class' => $e::class,
                 'exception_message' => $e->getMessage(),
@@ -117,11 +118,21 @@ final readonly class AdminUpdateMerchantProcessor implements ProcessorInterface
             $this->adminMerchantRepository->countStores($merchant),
             subscriptionLifecycle: $this->subscriptionRepository->findOneByMerchant($merchant)?->getLifecycle()->value,
             opsJournal: $this->operationalJournalCalculator->calculate($merchant),
-            crm: AdminMerchantCrmOutput::fromProfile(
-                $this->crmProfileRepository->findOneByMerchant($merchant),
-                $this->crmContactRepository->findByMerchant($merchant),
-            ),
+            crm: AdminMerchantCrmOutput::fromProfile($profile, $this->crmContactRepository->findByMerchant($merchant)),
         );
+    }
+
+    private function parseDate(?string $raw, string $errorCode): ?\DateTimeImmutable
+    {
+        if (null === $raw || '' === $raw) {
+            return null;
+        }
+
+        try {
+            return new \DateTimeImmutable($raw);
+        } catch (\Exception) {
+            throw new UnprocessableEntityHttpException($errorCode);
+        }
     }
 
     private function resolveMerchant(string $merchantId): User

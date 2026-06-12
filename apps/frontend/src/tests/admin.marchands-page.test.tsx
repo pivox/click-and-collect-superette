@@ -14,6 +14,8 @@ vi.mock('@/lib/services/admin/merchants.service', () => ({
   updateMerchant: vi.fn(),
   suspendMerchant: vi.fn(),
   activateMerchant: vi.fn(),
+  updateMerchantCrm: vi.fn(),
+  addMerchantCrmContact: vi.fn(),
 }));
 
 const MERCHANT: Merchant = {
@@ -265,6 +267,60 @@ describe('MarchandsPage', () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue('Noura')).toBeInTheDocument();
       expect(screen.queryByDisplayValue('Ali')).not.toBeInTheDocument();
+    });
+  });
+
+  it('affiche le statut CRM et le responsable dans la colonne Suivi CRM', async () => {
+    vi.mocked(listMerchants).mockResolvedValue({
+      id: 'admin-merchants',
+      items: [{
+        ...MERCHANT,
+        crm: {
+          commercial_owner: 'Sami',
+          status: 'client',
+          last_contact_at: '2026-06-10T11:30:00+00:00',
+          next_action_at: null,
+          next_action_note: null,
+          commercial_note: null,
+        },
+      }],
+      page: 1,
+      limit: 20,
+      total: 1,
+    });
+
+    render(<MarchandsPage />);
+
+    const row = (await screen.findByText('Ali Ben Salah')).closest('tr');
+    expect(row).not.toBeNull();
+    expect(within(row!).getByText('Client')).toBeInTheDocument();
+    expect(within(row!).getByText('Resp. Sami')).toBeInTheDocument();
+  });
+
+  it('affiche Prospect par défaut quand le bloc crm est absent', async () => {
+    render(<MarchandsPage />);
+
+    const row = (await screen.findByText('Ali Ben Salah')).closest('tr');
+    expect(within(row!).getByText('Prospect')).toBeInTheDocument();
+  });
+
+  it('passe les filtres CRM au backend et revient à la page 1', async () => {
+    render(<MarchandsPage />);
+
+    expect(await screen.findByText('Ali Ben Salah')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('CRM'), { target: { value: 'client' } });
+
+    await waitFor(() => {
+      expect(listMerchants).toHaveBeenLastCalledWith(1, 20, undefined, 'client', undefined);
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('Responsable commercial…'), {
+      target: { value: 'Sami' },
+    });
+
+    await waitFor(() => {
+      expect(listMerchants).toHaveBeenLastCalledWith(1, 20, undefined, 'client', 'Sami');
     });
   });
 });

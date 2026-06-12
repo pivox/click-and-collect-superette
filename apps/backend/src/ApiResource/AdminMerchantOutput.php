@@ -9,9 +9,14 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use App\Dto\AdminMerchantCrmContactCreateInput;
+use App\Dto\AdminMerchantCrmUpdateInput;
 use App\Dto\AdminUpdateMerchantInput;
 use App\Processor\AdminActivateMerchantProcessor;
+use App\Processor\AdminAddMerchantCrmContactProcessor;
 use App\Processor\AdminSuspendMerchantProcessor;
+use App\Processor\AdminUpdateMerchantCrmProcessor;
 use App\Processor\AdminUpdateMerchantProcessor;
 use App\Provider\AdminMerchantItemProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -66,6 +71,33 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             processor: AdminActivateMerchantProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
         ),
+        new Patch(
+            uriTemplate: '/admin/merchants/{merchantId<[0-9a-fA-F\-]{32,36}>}/crm',
+            uriVariables: [
+                'merchantId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            input: AdminMerchantCrmUpdateInput::class,
+            read: false,
+            normalizationContext: ['groups' => ['admin_merchant:read']],
+            processor: AdminUpdateMerchantCrmProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+            validate: true,
+        ),
+        new Post(
+            uriTemplate: '/admin/merchants/{merchantId<[0-9a-fA-F\-]{32,36}>}/crm/contacts',
+            uriVariables: [
+                'merchantId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            status: 201,
+            formats: ['json' => ['application/json']],
+            input: AdminMerchantCrmContactCreateInput::class,
+            read: false,
+            normalizationContext: ['groups' => ['admin_merchant:read']],
+            processor: AdminAddMerchantCrmContactProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+            validate: true,
+        ),
     ],
 )]
 final readonly class AdminMerchantOutput
@@ -99,6 +131,8 @@ final readonly class AdminMerchantOutput
         #[Groups(['admin_merchant:read'])]
         #[SerializedName('ops_journal')]
         public ?AdminMerchantOpsJournalOutput $opsJournal = null,
+        #[Groups(['admin_merchant:read', 'admin_merchant_list:read'])]
+        public ?AdminMerchantCrmOutput $crm = null,
     ) {
     }
 }

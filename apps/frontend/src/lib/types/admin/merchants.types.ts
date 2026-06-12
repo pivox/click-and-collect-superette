@@ -12,6 +12,47 @@ export interface Merchant {
   created_at: string;
   stores_count: number;
   ops_journal?: MerchantOpsJournal | null;
+  crm?: MerchantCrm | null;
+}
+
+export type MerchantCrmStatus = 'prospect' | 'client';
+
+export type MerchantCrmContactChannel = 'phone' | 'whatsapp' | 'visit' | 'email' | 'other';
+
+export interface MerchantCrm {
+  commercial_owner: string | null;
+  status: MerchantCrmStatus;
+  last_contact_at: string | null;
+  next_action_at: string | null;
+  next_action_note: string | null;
+  commercial_note: string | null;
+  // Item-only: returned by GET /{id} and CRM mutations, absent from the list response
+  contacts?: MerchantCrmContact[];
+}
+
+export interface MerchantCrmContact {
+  id: string;
+  contacted_at: string;
+  channel: MerchantCrmContactChannel;
+  note: string;
+  author_email: string;
+  created_at: string;
+}
+
+// AdminMerchantCrmUpdateInput — partial update: only provided keys are applied,
+// an explicit null clears the field (next_action_at, etc.)
+export interface UpdateMerchantCrmPayload {
+  commercial_owner?: string | null;
+  status?: MerchantCrmStatus;
+  next_action_at?: string | null;
+  next_action_note?: string | null;
+  commercial_note?: string | null;
+}
+
+export interface CreateMerchantCrmContactPayload {
+  channel: MerchantCrmContactChannel;
+  note: string;
+  contacted_at?: string;
 }
 
 export interface MerchantOpsJournal {
