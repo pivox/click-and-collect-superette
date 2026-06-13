@@ -32,7 +32,19 @@ class KadhiaRepository extends ServiceEntityRepository
 
     public function findByIdAndCustomer(string $kadhiaId, User $customer): ?Kadhia
     {
-        return $this->findOneBy(['id' => $kadhiaId, 'customer' => $customer]);
+        return $this->findByIdAndMember($kadhiaId, $customer);
+    }
+
+    public function findByIdAndMember(string $kadhiaId, User $member): ?Kadhia
+    {
+        return $this->createQueryBuilder('k')
+            ->innerJoin('k.members', 'm')
+            ->andWhere('k.id = :kadhiaId')
+            ->andWhere('m.user = :member')
+            ->setParameter('kadhiaId', $kadhiaId, 'uuid')
+            ->setParameter('member', $member->getId(), 'uuid')
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     /**
@@ -46,7 +58,8 @@ class KadhiaRepository extends ServiceEntityRepository
         int $perPage,
     ): array {
         $qb = $this->createQueryBuilder('k')
-            ->where('k.customer = :customer')
+            ->innerJoin('k.members', 'm')
+            ->where('m.user = :customer')
             ->setParameter('customer', $customer->getId(), 'uuid')
             ->orderBy('k.updatedAt', 'DESC')
             ->setFirstResult(($page - 1) * $perPage)
@@ -74,7 +87,8 @@ class KadhiaRepository extends ServiceEntityRepository
     ): int {
         $qb = $this->createQueryBuilder('k')
             ->select('COUNT(k.id)')
-            ->where('k.customer = :customer')
+            ->innerJoin('k.members', 'm')
+            ->where('m.user = :customer')
             ->setParameter('customer', $customer->getId(), 'uuid');
 
         if (null !== $status) {

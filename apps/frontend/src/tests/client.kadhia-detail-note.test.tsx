@@ -20,6 +20,7 @@ vi.mock('@/lib/services', () => ({
   updateLineQuantity: vi.fn(),
   discardKadhia: vi.fn(),
   patchKadhiaNotes: vi.fn(),
+  createKadhiaShareLink: vi.fn(),
   listMyKadhias: vi.fn(),
 }));
 
@@ -28,7 +29,7 @@ vi.mock('@/lib/auth/ClientAuthContext', () => ({
 }));
 
 import KadhiaDetailPage from '@/app/(client)/kadhia/[kadhiaId]/page';
-import { fetchKadhia, patchKadhiaNotes, discardKadhia } from '@/lib/services';
+import { fetchKadhia, patchKadhiaNotes, discardKadhia, createKadhiaShareLink } from '@/lib/services';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 import type { Kadhia } from '@/types';
@@ -230,6 +231,50 @@ describe('KadhiaDetailPage — note personnelle', () => {
 
     await waitFor(() => {
       expect(screen.queryByText(/Impossible d'enregistrer/i)).toBeNull();
+    });
+  });
+
+  it('affiche le lien de partage et copie son URL', async () => {
+    vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia());
+    vi.mocked(createKadhiaShareLink).mockResolvedValue({
+      shareUrl: 'http://localhost:3000/kadhia/share/tok-1',
+      expiresAt: '2026-06-20T12:00:00+01:00',
+    });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    renderDetail();
+    await waitFor(() => screen.getByText('Partager la Kadhia'));
+
+    fireEvent.click(screen.getByText('Partager la Kadhia'));
+
+    await waitFor(() => {
+      expect(createKadhiaShareLink).toHaveBeenCalledWith('k-1');
+      expect(screen.getByDisplayValue('http://localhost:3000/kadhia/share/tok-1')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText('Copier'));
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('http://localhost:3000/kadhia/share/tok-1');
+      expect(screen.getByText('Lien copié')).toBeTruthy();
+    });
+  });
+
+  it('affiche une erreur si la génération du lien échoue', async () => {
+    vi.mocked(fetchKadhia).mockResolvedValue(makeDraftKadhia());
+    vi.mocked(createKadhiaShareLink).mockRejectedValue(new Error('Network error'));
+
+    renderDetail();
+    await waitFor(() => screen.getByText('Partager la Kadhia'));
+
+    fireEvent.click(screen.getByText('Partager la Kadhia'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Impossible de créer le lien/i)).toBeTruthy();
     });
   });
 });

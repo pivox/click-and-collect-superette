@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Copy, Share2 } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { Card } from "@/components/ui/Card";
 import { Button, getButtonClassName } from "@/components/ui/Button";
@@ -12,6 +13,7 @@ import { KadhiaLineRow } from "@/components/product/KadhiaLineRow";
 import { KadhiaReplacementSuggestions } from "@/components/product/KadhiaReplacementSuggestions";
 import {
   addLine,
+  createKadhiaShareLink,
   discardKadhia,
   fetchKadhia,
   fetchKadhiaReplacements,
@@ -143,6 +145,78 @@ function KadhiaNote({
       {error && (
         <p className="mt-2 text-sm text-red-600">{error}</p>
       )}
+    </Card>
+  );
+}
+
+function KadhiaShareAction({ kadhiaId }: { kadhiaId: string }) {
+  const { t } = useClientLocale();
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleShare = async () => {
+    setIsLoading(true);
+    setCopied(false);
+    setError(null);
+    try {
+      const link = await createKadhiaShareLink(kadhiaId);
+      setShareUrl(link.shareUrl);
+      setExpiresAt(link.expiresAt);
+    } catch (err) {
+      console.error("[kadhia-share] createKadhiaShareLink failed", { kadhiaId, err });
+      setError(t("client.kadhia.shareError"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+  };
+
+  return (
+    <Card className="mt-4">
+      <div className="flex flex-col gap-3">
+        <Button type="button" variant="secondary" onClick={() => void handleShare()} disabled={isLoading}>
+          <span className="inline-flex items-center justify-center gap-2">
+            <Share2 aria-hidden="true" size={16} />
+            {isLoading ? t("client.kadhia.shareLoading") : t("client.kadhia.shareButton")}
+          </span>
+        </Button>
+
+        {shareUrl && (
+          <div className="grid gap-2">
+            <label htmlFor="kadhia-share-url" className="sr-only">
+              {t("client.kadhia.shareUrlLabel")}
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="kadhia-share-url"
+                readOnly
+                value={shareUrl}
+                className="min-w-0 flex-1 rounded-md border border-line bg-soft px-3 py-2 text-sm"
+              />
+              <Button type="button" variant="ghost" onClick={() => void handleCopy()}>
+                <span className="inline-flex items-center justify-center gap-2">
+                  <Copy aria-hidden="true" size={16} />
+                  {t("client.kadhia.shareCopy")}
+                </span>
+              </Button>
+            </div>
+            {expiresAt && (
+              <p className="text-xs text-muted">{t("client.kadhia.shareExpires").replace("{date}", new Date(expiresAt).toLocaleDateString())}</p>
+            )}
+            {copied && <p className="text-sm text-green-700">{t("client.kadhia.shareCopied")}</p>}
+          </div>
+        )}
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+      </div>
     </Card>
   );
 }
@@ -283,6 +357,7 @@ export default function KadhiaDetailPage({
       {kadhia.lines.length === 0 ? (
         <>
           <KadhiaNote kadhia={kadhia} onSaved={setKadhia} />
+          {isDraft && <KadhiaShareAction kadhiaId={kadhia.id} />}
           <Card className="text-center mt-4">
             <h3 className="mt-2 text-h3 font-extrabold">{t("client.kadhia.emptyTitle")}</h3>
             <p className="mt-2 text-sm text-muted">
@@ -296,6 +371,7 @@ export default function KadhiaDetailPage({
       ) : (
         <>
           <KadhiaNote kadhia={kadhia} onSaved={setKadhia} />
+          {isDraft && <KadhiaShareAction kadhiaId={kadhia.id} />}
 
           <section className="mt-4 grid gap-2.5">
             {kadhia.lines.map((l) => (

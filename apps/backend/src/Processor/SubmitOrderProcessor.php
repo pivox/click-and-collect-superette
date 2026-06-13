@@ -187,7 +187,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             $result = $this->entityManager->wrapInTransaction(
                 function () use ($data, $user, $shop, $slot, $kadhia, $existingOrder): SubmittedOrderResult {
                     return null !== $existingOrder
-                        ? $this->resubmit($data, $slot, $kadhia, $existingOrder)
+                        ? $this->resubmit($data, $user, $slot, $kadhia, $existingOrder)
                         : $this->firstSubmit($data, $user, $shop, $slot, $kadhia);
                 }
             );
@@ -308,6 +308,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
 
     private function resubmit(
         SubmitOrderInput $data,
+        User $user,
         \App\Entity\PickupSlot $slot,
         \App\Entity\Kadhia $kadhia,
         Order $order,
@@ -335,6 +336,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             }
         }
 
+        $order->setCustomer($user);
         $order->setPickupSlot($slot);
         $order->setNotes($data->notes);
 

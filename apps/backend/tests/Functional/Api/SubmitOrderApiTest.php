@@ -86,6 +86,44 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertNull($logs[0]->getNote());
     }
 
+    public function testSharedMemberSubmitCreatesOrderForSubmittingCustomer(): void
+    {
+        $owner = $this->createUser('submit-shared-owner@example.test', ['ROLE_CUSTOMER']);
+        $guest = $this->createUser('submit-shared-guest@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop, capacity: 5);
+        $product = $this->createMerchantProduct($shop, '3.000');
+        $kadhia = $this->createKadhiaWithLine($owner, $shop, $product, quantity: 1, unitPriceTnd: '3.000');
+
+        $shareResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/share-links', $kadhia->getId()),
+            user: $owner,
+        );
+        self::assertSame(200, $shareResponse->getStatusCode());
+        $token = $this->extractTokenFromShareUrl($this->decodeJson($shareResponse)['share_url']);
+        $joinResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhia-share-links/%s/join', $token),
+            user: $guest,
+        );
+        self::assertSame(200, $joinResponse->getStatusCode());
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $guest,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+
+        $this->entityManager->clear();
+        $orders = $this->entityManager->getRepository(Order::class)->findAll();
+        self::assertCount(1, $orders);
+        self::assertSame($guest->getId()->toRfc4122(), $orders[0]->getCustomer()->getId()->toRfc4122());
+    }
+
     public function testSubmitOrderAssignsSequentialOrderNumbersPerShop(): void
     {
         $customer = $this->createUser('submit-order-number-sequence@example.test', ['ROLE_CUSTOMER']);
@@ -539,6 +577,51 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         self::assertSame(12, $orders[0]->getOrderNumber());
     }
 
+    public function testSharedMemberResubmitAfterPartialAcceptanceAssignsSubmittingCustomer(): void
+    {
+        $owner = $this->createUser('submit-resubmit-shared-owner@example.test', ['ROLE_CUSTOMER']);
+        $guest = $this->createUser('submit-resubmit-shared-guest@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop, capacity: 5, startsAtModifier: '+3 hours', endsAtModifier: '+4 hours');
+        $product = $this->createMerchantProduct($shop, '2.000');
+        $kadhia = $this->createKadhiaWithLine($owner, $shop, $product, quantity: 1, unitPriceTnd: '2.000');
+
+        $existingOrder = (new Order())
+            ->setCustomer($owner)
+            ->setShop($shop)
+            ->setKadhia($kadhia)
+            ->setPickupSlot($slot);
+        $this->entityManager->persist($existingOrder);
+        $existingOrder->submit();
+        $existingOrder->assignOrderNumber(14);
+        $existingOrder->accept();
+        $ref = new \ReflectionProperty(Order::class, 'status');
+        $ref->setValue($existingOrder, OrderStatus::PartiallyAccepted);
+        $kadhia->setStatus(KadhiaStatus::Draft);
+        $this->entityManager->flush();
+
+        $shareResponse = $this->requestJson('POST', \sprintf('/api/me/kadhias/%s/share-links', $kadhia->getId()), user: $owner);
+        self::assertSame(200, $shareResponse->getStatusCode());
+        $token = $this->extractTokenFromShareUrl($this->decodeJson($shareResponse)['share_url']);
+        $joinResponse = $this->requestJson('POST', \sprintf('/api/me/kadhia-share-links/%s/join', $token), user: $guest);
+        self::assertSame(200, $joinResponse->getStatusCode());
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/kadhias/%s/submit', $kadhia->getId()),
+            ['pickup_slot_id' => $slot->getId()->toRfc4122()],
+            $guest,
+        );
+
+        self::assertSame(201, $response->getStatusCode());
+
+        $this->entityManager->clear();
+        $orders = $this->entityManager->getRepository(Order::class)->findAll();
+        self::assertCount(1, $orders);
+        self::assertSame($guest->getId()->toRfc4122(), $orders[0]->getCustomer()->getId()->toRfc4122());
+        self::assertSame(14, $orders[0]->getOrderNumber());
+    }
+
     public function testSubmitOrderResubmitAfterPartialAcceptanceDeadlineReturns422(): void
     {
         $customer = $this->createUser('submit-resubmit-expired@example.test', ['ROLE_CUSTOMER']);
@@ -740,5 +823,15 @@ final class SubmitOrderApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $kadhia;
+    }
+
+    private function extractTokenFromShareUrl(string $shareUrl): string
+    {
+        $path = parse_url($shareUrl, \PHP_URL_PATH);
+        self::assertIsString($path);
+        $prefix = '/kadhia/share/';
+        self::assertStringStartsWith($prefix, $path);
+
+        return substr($path, \strlen($prefix));
     }
 }

@@ -206,7 +206,17 @@
       "deleteError": "تعذّر حذف Kadhia. ربما تم إرسالها بالفعل.",
       "deleteConfirm": "حذف هذه Kadhia؟ يمكنك البدء من جديد من الكتالوج.",
       "chooseSlot": "اختر موعداً",
-      "trackOrder": "تتبّع الطلب"
+      "trackOrder": "تتبّع الطلب",
+      "shareButton": "مشاركة Kadhia",
+      "shareLoading": "جارٍ إنشاء الرابط…",
+      "shareUrlLabel": "رابط المشاركة",
+      "shareCopy": "نسخ",
+      "shareCopied": "تم نسخ الرابط",
+      "shareError": "تعذّر إنشاء رابط المشاركة. أعد المحاولة.",
+      "shareExpires": "الرابط صالح إلى {date}.",
+      "shareJoining": "جارٍ فتح Kadhia المشتركة…",
+      "shareInvalid": "رابط المشاركة غير صالح أو منتهي الصلاحية.",
+      "shareJoinError": "تعذّر الانضمام إلى هذه Kadhia. أعد المحاولة."
     },
     "slot": {
       "title": "موعد الاستلام",
