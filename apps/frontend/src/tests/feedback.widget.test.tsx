@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FeedbackProvider } from '@/components/feedback/FeedbackProvider';
 import {
@@ -16,6 +16,12 @@ vi.mock('@/lib/services/feedback.service', () => ({
   getCurrentFeedbackSettings: vi.fn(),
   createFeedback: vi.fn(),
 }));
+
+async function flushEffects() {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -47,7 +53,8 @@ describe('FeedbackProvider', () => {
   it('does not render or load settings when disabled by props', async () => {
     render(<FeedbackProvider appArea="merchant" enabled={false} shopId="shop-1" />);
 
-    await waitFor(() => expect(getCurrentFeedbackSettings).not.toHaveBeenCalled());
+    await flushEffects();
+    expect(getCurrentFeedbackSettings).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Retour' })).not.toBeInTheDocument();
   });
 
@@ -79,7 +86,8 @@ describe('FeedbackProvider', () => {
 
     render(<FeedbackProvider appArea="merchant" enabled shopId="shop-1" />);
 
-    await waitFor(() => expect(getCurrentFeedbackSettings).not.toHaveBeenCalled());
+    await flushEffects();
+    expect(getCurrentFeedbackSettings).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Retour' })).not.toBeInTheDocument();
   });
 
@@ -177,6 +185,40 @@ describe('FeedbackProvider', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(
       'Impossible d’envoyer votre retour. Réessayez.',
     );
+  });
+
+  it('closes and clears the draft when the page context changes', async () => {
+    const { rerender } = render(
+      <FeedbackProvider appArea="merchant" enabled shopId="shop-1" locale="fr" />,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Retour' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Votre retour' });
+    fireEvent.change(within(dialog).getByLabelText('Message'), {
+      target: { value: 'Ce filtre commande est ambigu.' },
+    });
+    fireEvent.click(within(dialog).getByLabelText('J’accepte d’être recontacté si besoin'));
+
+    pathname = '/merchant/retrait';
+    rerender(<FeedbackProvider appArea="merchant" enabled shopId="shop-1" locale="fr" />);
+
+    await waitFor(() =>
+      expect(getCurrentFeedbackSettings).toHaveBeenCalledWith({
+        appArea: 'merchant',
+        appSubArea: 'merchant_retrait',
+      }),
+    );
+    expect(await screen.findByRole('button', { name: 'Retour' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Votre retour' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
+
+    const reopenedDialog = await screen.findByRole('dialog', { name: 'Votre retour' });
+    expect(within(reopenedDialog).getByLabelText('Message')).toHaveValue('');
+    expect(
+      within(reopenedDialog).getByLabelText('J’accepte d’être recontacté si besoin'),
+    ).not.toBeChecked();
   });
 
   it('renders Arabic wording when locale is Arabic', async () => {
