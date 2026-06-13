@@ -23,9 +23,17 @@ interface ListFeedbacksOptions {
   createdTo?: string;
 }
 
+function normalizeCreatedTo(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value}T23:59:59.999`;
+
+  return value;
+}
+
 export async function listAdminFeedbacks(
   options: ListFeedbacksOptions = {},
 ): Promise<FeedbackListResponse> {
+  const createdTo = normalizeCreatedTo(options.createdTo);
   const params = {
     page: options.page ?? 1,
     limit: options.limit ?? 20,
@@ -38,7 +46,7 @@ export async function listAdminFeedbacks(
       ? { contactConsent: options.contactConsent }
       : {}),
     ...(options.createdFrom ? { createdFrom: options.createdFrom } : {}),
-    ...(options.createdTo ? { createdTo: options.createdTo } : {}),
+    ...(createdTo ? { createdTo } : {}),
   };
   const { data } = await apiClient.get<FeedbackListResponse>('/api/admin/feedbacks', { params });
 

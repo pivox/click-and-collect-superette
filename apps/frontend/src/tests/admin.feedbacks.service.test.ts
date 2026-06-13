@@ -55,7 +55,23 @@ describe('admin feedbacks service', () => {
         shop: 'shop-1',
         contactConsent: true,
         createdFrom: '2026-06-01',
-        createdTo: '2026-06-12',
+        createdTo: '2026-06-12T23:59:59.999',
+      },
+    });
+  });
+
+  it('keeps explicit createdTo timestamps unchanged', async () => {
+    mockGet.mockResolvedValue({ data: { id: 'admin-feedbacks', items: [], page: 1, limit: 20, total: 0 } });
+
+    await listAdminFeedbacks({
+      createdTo: '2026-06-12T15:30:00+01:00',
+    });
+
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/feedbacks', {
+      params: {
+        page: 1,
+        limit: 20,
+        createdTo: '2026-06-12T15:30:00+01:00',
       },
     });
   });

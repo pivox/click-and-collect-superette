@@ -127,7 +127,7 @@ describe('AdminFeedbacksPage', () => {
     fireEvent.change(screen.getByLabelText('Filtrer par zone'), { target: { value: 'merchant' } });
     fireEvent.change(screen.getByLabelText('Filtrer à partir du'), { target: { value: '2026-06-01' } });
     fireEvent.change(screen.getByLabelText("Filtrer jusqu'au"), { target: { value: '2026-06-12' } });
-    fireEvent.change(screen.getByLabelText('Filtrer par supérette'), { target: { value: STORE.id } });
+    fireEvent.change(screen.getByLabelText('Choisir une supérette'), { target: { value: STORE.id } });
     fireEvent.change(screen.getByLabelText('Filtrer par consentement contact'), {
       target: { value: 'true' },
     });
@@ -145,6 +145,26 @@ describe('AdminFeedbacksPage', () => {
           createdTo: '2026-06-12',
           shop: STORE.id,
           contactConsent: true,
+        }),
+      );
+    });
+  });
+
+  it('permet de filtrer par ID supérette absent de la liste chargée', async () => {
+    render(<AdminFeedbacksPage />);
+
+    await screen.findByText('Le bouton de validation...');
+    await waitFor(() => expect(listStores).toHaveBeenCalledWith({ page: 1, limit: 50, isActive: true }));
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filtrer par supérette' }), {
+      target: { value: 'archived-store-99' },
+    });
+
+    await waitFor(() => {
+      expect(listAdminFeedbacks).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          page: 1,
+          shop: 'archived-store-99',
         }),
       );
     });

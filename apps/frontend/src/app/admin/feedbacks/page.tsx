@@ -202,6 +202,8 @@ export default function AdminFeedbacksPage() {
     }
   };
 
+  const selectedStoreId = stores.some((store) => store.id === shopFilter) ? shopFilter : '';
+
   const columns: Column<FeedbackEntry>[] = [
     {
       key: 'type',
@@ -365,11 +367,29 @@ export default function AdminFeedbacksPage() {
           }}
           className="rounded-md border border-line px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
-        {storesError ? (
+        <div className="grid gap-2 xl:col-span-2 xl:grid-cols-2">
+          {!storesError && (
+            <select
+              aria-label="Choisir une supérette"
+              value={selectedStoreId}
+              onChange={(event) => {
+                resetPage();
+                setShopFilter(event.target.value);
+              }}
+              className="rounded-md border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="">Supérette connue</option>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.name}
+                </option>
+              ))}
+            </select>
+          )}
           <input
             aria-label="Filtrer par supérette"
             type="text"
-            placeholder="ID supérette"
+            placeholder={storesError ? 'ID supérette' : 'ID supérette manuel'}
             value={shopFilter}
             onChange={(event) => {
               resetPage();
@@ -377,24 +397,7 @@ export default function AdminFeedbacksPage() {
             }}
             className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
-        ) : (
-          <select
-            aria-label="Filtrer par supérette"
-            value={shopFilter}
-            onChange={(event) => {
-              resetPage();
-              setShopFilter(event.target.value);
-            }}
-            className="rounded-md border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="">Toutes supérettes</option>
-            {stores.map((store) => (
-              <option key={store.id} value={store.id}>
-                {store.name}
-              </option>
-            ))}
-          </select>
-        )}
+        </div>
         <select
           aria-label="Filtrer par consentement contact"
           value={contactFilter === '' ? '' : String(contactFilter)}
