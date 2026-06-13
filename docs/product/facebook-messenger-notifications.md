@@ -7,11 +7,11 @@ Cadrage documentaire ajouté en suite de Sprint 15.
 Issues associées :
 
 ```text
-#490 — [S15-post][SPIKE] Facebook Messenger comme canal parallèle aux notifications
-#491 — [S15-post-001] Notifications externes — préférences de canal et traces d'envoi
-#492 — [S15-post-002] Opt-in Messenger client via page Facebook Click & Collect
-#493 — [S15-post-003] Provider Facebook Messenger — envoi best-effort des notifications prioritaires
-#494 — [Post-lancement] Option page Facebook marchand pour notifications Messenger
+#490 — S15-013 — Spike Facebook Messenger comme canal parallèle aux notifications
+#491 — S15-014 — Notifications externes : preferences de canal et traces d envoi
+#492 — S15-015 — Opt-in Messenger client via page Facebook Click & Collect
+#493 — S15-016 — Provider Facebook Messenger pour notifications prioritaires
+#494 — S15-017 — Option page Facebook marchand pour notifications Messenger
 ```
 
 Ce document ne remplace pas les notifications existantes.
@@ -95,7 +95,7 @@ Option commerciale possible, uniquement après validation technique et Meta :
 +5 DT / mois — Notifications Messenger depuis la page Facebook du marchand
 ```
 
-Cette option ne doit pas être promise tant que l'issue #494 n'est pas validée.
+Cette option ne doit pas être promise tant que l'issue #494 / S15-017 n'est pas validée.
 
 ---
 
@@ -117,11 +117,11 @@ Il ne doit pas bloquer :
 Ordre recommandé :
 
 ```text
-1. #490 — Spike Facebook Messenger
-2. #491 — Socle préférences de canal et traces d'envoi
-3. #492 — Opt-in Messenger client
-4. #493 — Provider Facebook Messenger V1
-5. #494 — Page Facebook marchand, post-lancement uniquement
+1. #490 — S15-013 — Spike Facebook Messenger
+2. #491 — S15-014 — Socle préférences de canal et traces d envoi
+3. #492 — S15-015 — Opt-in Messenger client
+4. #493 — S15-016 — Provider Facebook Messenger V1
+5. #494 — S15-017 — Page Facebook marchand, post-lancement uniquement
 ```
 
 ---
@@ -331,7 +331,7 @@ Cas erreur Meta :
 
 ## 12. Documentation à compléter après Spike
 
-Selon la décision de #490, mettre à jour :
+Selon la décision de #490 / S15-013, mettre à jour :
 
 ```text
 docs/architecture/api-contract.md
