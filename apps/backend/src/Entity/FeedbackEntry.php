@@ -243,6 +243,7 @@ class FeedbackEntry
         $now ??= new \DateTimeImmutable();
         $this->status = FeedbackStatus::Read;
         $this->readAt ??= $now;
+        $this->resolvedAt = null;
         $this->updatedAt = $now;
     }
 

@@ -89,6 +89,11 @@ final class AdminFeedbackApiTest extends FunctionalApiTestCase
         ], $admin));
         self::assertSame('resolved', $resolvedPayload['status']);
         self::assertSame('Corrigé dans le flux retrait marchand.', $resolvedPayload['adminNote']);
+        self::assertNotNull($resolvedPayload['resolvedAt']);
+
+        $readAfterResolvedPayload = $this->decodeJson($this->requestJson('PATCH', '/api/admin/feedbacks/'.$merchantFeedback['id'].'/read', [], $admin));
+        self::assertSame('read', $readAfterResolvedPayload['status']);
+        self::assertNull($readAfterResolvedPayload['resolvedAt']);
 
         $reopenedPayload = $this->decodeJson($this->requestJson('PATCH', '/api/admin/feedbacks/'.$merchantFeedback['id'].'/reopen', [], $admin));
         self::assertSame('read', $reopenedPayload['status']);
@@ -97,7 +102,7 @@ final class AdminFeedbackApiTest extends FunctionalApiTestCase
         self::assertSame('unread', $unreadPayload['status']);
 
         self::assertSame(1, $this->entityManager->getRepository(AdminAuditLog::class)->count(['action' => 'feedback.settings_update']));
-        self::assertSame(1, $this->entityManager->getRepository(AdminAuditLog::class)->count(['action' => 'feedback.read']));
+        self::assertSame(2, $this->entityManager->getRepository(AdminAuditLog::class)->count(['action' => 'feedback.read']));
         self::assertSame(1, $this->entityManager->getRepository(AdminAuditLog::class)->count(['action' => 'feedback.resolve']));
         self::assertSame(1, $this->entityManager->getRepository(AdminAuditLog::class)->count(['action' => 'feedback.reopen']));
         self::assertSame(1, $this->entityManager->getRepository(AdminAuditLog::class)->count(['action' => 'feedback.unread']));

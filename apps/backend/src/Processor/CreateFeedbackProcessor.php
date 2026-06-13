@@ -23,6 +23,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
  * @implements ProcessorInterface<FeedbackCreateInput, FeedbackOutput>
@@ -60,10 +61,14 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
         if (!$this->feedbackSettingsManager->isEnabledFor($user, $appArea)) {
             throw new AccessDeniedHttpException('FEEDBACK_DISABLED');
         }
+        $message = trim((string) $data->message);
+        if (mb_strlen($message) < 5 || mb_strlen($message) > 2000) {
+            throw new UnprocessableEntityHttpException('FEEDBACK_INVALID_MESSAGE');
+        }
 
         $feedback = new FeedbackEntry(
             type: FeedbackType::from((string) $data->type),
-            message: trim((string) $data->message),
+            message: $message,
             appArea: $appArea,
             appSubArea: $this->normalizeNullableString($data->appSubArea, 100),
             userRole: $this->feedbackSettingsManager->userRole($user),

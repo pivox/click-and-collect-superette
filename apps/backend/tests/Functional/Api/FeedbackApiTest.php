@@ -133,6 +133,20 @@ final class FeedbackApiTest extends FunctionalApiTestCase
         ], $customer);
         self::assertSame(422, $tooShortResponse->getStatusCode(), (string) $tooShortResponse->getContent());
 
+        $blankAfterTrimResponse = $this->requestJson('POST', '/api/feedback', [
+            'type' => 'idea',
+            'message' => '     ',
+            'appArea' => 'client',
+        ], $customer);
+        self::assertSame(422, $blankAfterTrimResponse->getStatusCode(), (string) $blankAfterTrimResponse->getContent());
+
+        $tooShortAfterTrimResponse = $this->requestJson('POST', '/api/feedback', [
+            'type' => 'idea',
+            'message' => ' abcd ',
+            'appArea' => 'client',
+        ], $customer);
+        self::assertSame(422, $tooShortAfterTrimResponse->getStatusCode(), (string) $tooShortAfterTrimResponse->getContent());
+
         $tooLongResponse = $this->requestJson('POST', '/api/feedback', [
             'type' => 'idea',
             'message' => str_repeat('a', 2001),
