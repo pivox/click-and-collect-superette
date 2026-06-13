@@ -27,17 +27,24 @@ export default function AdminFeedbackSettingsPage() {
   const [settings, setSettings] = useState<AdminFeedbackSettings>(EMPTY_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const load = useCallback(() => {
     setIsLoading(true);
     setError(null);
+    setSaved(false);
+    setHasLoadedSettings(false);
     void getAdminFeedbackSettings()
-      .then(setSettings)
+      .then((data) => {
+        setSettings({ ...data, requireAuthenticatedUser: true });
+        setHasLoadedSettings(true);
+      })
       .catch((err: unknown) => {
         console.error('[admin-feedback-settings] load failed', err);
         setError('Impossible de charger les paramètres Feedback.');
+        setHasLoadedSettings(false);
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -55,11 +62,13 @@ export default function AdminFeedbackSettingsPage() {
   };
 
   const save = async () => {
+    if (!hasLoadedSettings) return;
+
     setIsSaving(true);
     setError(null);
     setSaved(false);
     try {
-      setSettings(await updateAdminFeedbackSettings({
+      const updated = await updateAdminFeedbackSettings({
         globalEnabled: settings.globalEnabled,
         clientEnabled: settings.clientEnabled,
         merchantEnabled: settings.merchantEnabled,
@@ -68,7 +77,8 @@ export default function AdminFeedbackSettingsPage() {
         merchantAreaEnabled: settings.merchantAreaEnabled,
         adminAreaEnabled: settings.adminAreaEnabled,
         requireAuthenticatedUser: true,
-      }));
+      });
+      setSettings({ ...updated, requireAuthenticatedUser: true });
       setSaved(true);
     } catch (err) {
       console.error('[admin-feedback-settings] save failed', err);
@@ -77,6 +87,8 @@ export default function AdminFeedbackSettingsPage() {
       setIsSaving(false);
     }
   };
+
+  const canEditSettings = hasLoadedSettings && !isLoading && !isSaving;
 
   return (
     <div className="max-w-4xl">
@@ -89,7 +101,7 @@ export default function AdminFeedbackSettingsPage() {
           <h1 className="text-h1 font-black">Paramètres Feedback</h1>
           <p className="mt-1 text-sm text-muted">Activation du bouton Retour par rôle et zone applicative simple.</p>
         </div>
-        <Button variant="primary" size="md" disabled={isSaving || isLoading} onClick={() => void save()}>
+        <Button variant="primary" size="md" disabled={!hasLoadedSettings || isSaving || isLoading} onClick={() => void save()}>
           <Save className="h-4 w-4" aria-hidden="true" />
           Enregistrer
         </Button>
@@ -98,6 +110,11 @@ export default function AdminFeedbackSettingsPage() {
       {error && (
         <div role="alert" className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
           {error}
+        </div>
+      )}
+      {isLoading && (
+        <div className="mb-4 rounded-md border border-line bg-soft px-4 py-2 text-sm font-semibold text-muted">
+          Chargement des paramètres Feedback...
         </div>
       )}
       {saved && (
@@ -111,29 +128,30 @@ export default function AdminFeedbackSettingsPage() {
           label="Activation globale"
           description="Affiche le module Retour uniquement si le rôle et la zone sont aussi activés."
           checked={settings.globalEnabled}
+          disabled={!canEditSettings}
           onChange={() => toggle('globalEnabled')}
         />
         <div className="mt-4 border-t border-line pt-4">
           <h2 className="text-sm font-black text-ink">Rôles</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <SettingToggle label="Client" checked={settings.clientEnabled} onChange={() => toggle('clientEnabled')} />
-            <SettingToggle label="Marchand" checked={settings.merchantEnabled} onChange={() => toggle('merchantEnabled')} />
-            <SettingToggle label="Admin" checked={settings.adminEnabled} onChange={() => toggle('adminEnabled')} />
+            <SettingToggle label="Client" checked={settings.clientEnabled} disabled={!canEditSettings} onChange={() => toggle('clientEnabled')} />
+            <SettingToggle label="Marchand" checked={settings.merchantEnabled} disabled={!canEditSettings} onChange={() => toggle('merchantEnabled')} />
+            <SettingToggle label="Admin" checked={settings.adminEnabled} disabled={!canEditSettings} onChange={() => toggle('adminEnabled')} />
           </div>
         </div>
         <div className="mt-4 border-t border-line pt-4">
           <h2 className="text-sm font-black text-ink">Zones</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <SettingToggle label="Zone client" checked={settings.clientAreaEnabled} onChange={() => toggle('clientAreaEnabled')} />
-            <SettingToggle label="Zone marchand" checked={settings.merchantAreaEnabled} onChange={() => toggle('merchantAreaEnabled')} />
-            <SettingToggle label="Zone admin" checked={settings.adminAreaEnabled} onChange={() => toggle('adminAreaEnabled')} />
+            <SettingToggle label="Zone client" checked={settings.clientAreaEnabled} disabled={!canEditSettings} onChange={() => toggle('clientAreaEnabled')} />
+            <SettingToggle label="Zone marchand" checked={settings.merchantAreaEnabled} disabled={!canEditSettings} onChange={() => toggle('merchantAreaEnabled')} />
+            <SettingToggle label="Zone admin" checked={settings.adminAreaEnabled} disabled={!canEditSettings} onChange={() => toggle('adminAreaEnabled')} />
           </div>
         </div>
         <div className="mt-4 border-t border-line pt-4">
           <SettingToggle
             label="Utilisateurs connectés uniquement"
-            description="Verrouillé pour le MVP."
-            checked={settings.requireAuthenticatedUser}
+            description="Verrouillé à oui pour le MVP."
+            checked
             disabled
             onChange={() => undefined}
           />
@@ -163,6 +181,7 @@ function SettingToggle({
         {description && <span className="mt-1 block text-xs text-muted">{description}</span>}
       </span>
       <input
+        aria-label={label}
         type="checkbox"
         checked={checked}
         disabled={disabled}

@@ -58,6 +58,10 @@ describe('AdminShell', () => {
       'href',
       '/admin/beta-metrics',
     );
+    expect(screen.getByRole('link', { name: 'Feedbacks' })).toHaveAttribute(
+      'href',
+      '/admin/feedbacks',
+    );
     expect(screen.getByRole('button', { name: 'Ouvrir la navigation admin' })).toHaveClass(
       'md:hidden',
     );
