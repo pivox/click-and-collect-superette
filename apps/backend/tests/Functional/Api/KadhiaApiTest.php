@@ -1155,6 +1155,37 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         self::assertSame(404, $response->getStatusCode());
     }
 
+    public function testDeleteKadhiaSharedMemberReturns404AndKeepsKadhia(): void
+    {
+        $owner = $this->createUser('kadhia-delete-shared-owner@example.test', ['ROLE_CUSTOMER']);
+        $guest = $this->createUser('kadhia-delete-shared-guest@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $createResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+            [],
+            $owner,
+        );
+        self::assertSame(201, $createResponse->getStatusCode());
+        $kadhiaId = $this->decodeJson($createResponse)['id'];
+
+        $shareResponse = $this->requestJson('POST', \sprintf('/api/me/kadhias/%s/share-links', $kadhiaId), user: $owner);
+        self::assertSame(200, $shareResponse->getStatusCode());
+        $token = $this->extractTokenFromShareUrl($this->decodeJson($shareResponse)['share_url']);
+        $joinResponse = $this->requestJson('POST', \sprintf('/api/me/kadhia-share-links/%s/join', $token), user: $guest);
+        self::assertSame(200, $joinResponse->getStatusCode());
+
+        $guestDeleteResponse = $this->requestJson('DELETE', \sprintf('/api/me/kadhias/%s', $kadhiaId), user: $guest);
+
+        self::assertSame(404, $guestDeleteResponse->getStatusCode());
+        $this->entityManager->clear();
+        self::assertNotNull($this->entityManager->getRepository(Kadhia::class)->find($kadhiaId));
+
+        $ownerDeleteResponse = $this->requestJson('DELETE', \sprintf('/api/me/kadhias/%s', $kadhiaId), user: $owner);
+        self::assertSame(204, $ownerDeleteResponse->getStatusCode());
+    }
+
     public function testDeleteKadhiaUnauthenticatedReturns401(): void
     {
         $customer = $this->createUser('kadhia-delete-unauth@example.test', ['ROLE_CUSTOMER']);
