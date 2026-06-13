@@ -21,6 +21,7 @@ import { listMerchantNotifications } from '@/lib/services/merchant-notifications
 import { listMerchantSlots } from '@/lib/services/merchant-slots.service';
 import { SlotCoverageWarning } from '@/components/merchant/SlotCoverageWarning';
 import type { MerchantPickupSlot } from '@/lib/types/merchant-slots.types';
+import { FeedbackProvider } from '@/components/feedback/FeedbackProvider';
 
 const ACTIVE_NAV = [
   { href: '/merchant', label: 'Dashboard', icon: BarChart3 },
@@ -172,6 +173,7 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
         )}
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
       </div>
+      <FeedbackProvider appArea="merchant" enabled={pathname !== '/merchant/login'} shopId={storeId || null} />
     </div>
   );
 }
