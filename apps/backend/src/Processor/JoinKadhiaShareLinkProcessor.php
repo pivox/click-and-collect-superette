@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Enum\KadhiaStatus;
 use App\Service\KadhiaMembershipService;
 use App\Service\KadhiaShareLinkService;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -54,13 +55,20 @@ final readonly class JoinKadhiaShareLinkProcessor implements ProcessorInterface
             throw new UnprocessableEntityHttpException('KADHIA_NOT_SHAREABLE');
         }
 
+        $kadhiaId = $kadhia->getId()->toRfc4122();
+        $storeId = $kadhia->getShop()->getId()->toRfc4122();
         $joined = $this->kadhiaMembershipService->ensureEditor($kadhia, $user);
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->flush();
+        } catch (UniqueConstraintViolationException) {
+            $this->entityManager->clear();
+            $joined = false;
+        }
 
         return new KadhiaShareJoinOutput(
             token: $token,
-            kadhiaId: $kadhia->getId()->toRfc4122(),
-            storeId: $kadhia->getShop()->getId()->toRfc4122(),
+            kadhiaId: $kadhiaId,
+            storeId: $storeId,
             joined: $joined,
         );
     }

@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Api;
 use App\Entity\Brand;
 use App\Entity\Category;
 use App\Entity\Kadhia;
+use App\Entity\KadhiaMember;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
@@ -141,6 +142,31 @@ final class OrderCancelApiTest extends FunctionalApiTestCase
         self::assertSame(404, $response->getStatusCode());
         self::assertStringContainsString('ORDER_NOT_FOUND', (string) $response->getContent());
         self::assertSame([], $this->findStatusLogs($order));
+    }
+
+    public function testSharedKadhiaMemberCanCancelSubmittedOrder(): void
+    {
+        $owner = $this->createUser('cancel-shared-owner@example.test', ['ROLE_CUSTOMER']);
+        $guest = $this->createUser('cancel-shared-guest@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $slot = $this->createPickupSlot($shop);
+        $slot->book();
+        $kadhia = $this->createSubmittedKadhia($owner, $shop);
+        $kadhia->addMember((new KadhiaMember())->setUser($guest));
+        $order = $this->createOrder($owner, $shop, OrderStatus::Submitted, $slot, $kadhia);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/orders/%s/cancel', $order->getId()->toRfc4122()),
+            [],
+            $guest,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('cancelled', $this->decodeJson($response)['status']);
+        $logs = $this->findStatusLogs($order);
+        self::assertCount(1, $logs);
+        self::assertSame(OrderStatus::Cancelled, $logs[0]->getStatus());
     }
 
     public function testMerchantCannotCallCustomerCancelEndpoint(): void
