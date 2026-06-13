@@ -95,12 +95,44 @@ class OrderRepository extends ServiceEntityRepository
         return \count($this->findBy(['customer' => $customer]));
     }
 
+    /**
+     * @return list<Order>
+     */
+    public function findReadableByCustomerPaginated(User $customer, int $limit, int $offset): array
+    {
+        /* @var list<Order> */
+        return $this->createReadableByCustomerQueryBuilder($customer)
+            ->select('DISTINCT o')
+            ->orderBy('o.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function countReadableByCustomer(User $customer): int
+    {
+        return (int) $this->createReadableByCustomerQueryBuilder($customer)
+            ->select('COUNT(DISTINCT o.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     public function findOneByCustomerAndId(User $customer, string $orderId): ?Order
     {
         return $this->findOneBy([
             'customer' => $customer,
             'id' => $orderId,
         ]);
+    }
+
+    public function findOneReadableByCustomerAndId(User $customer, string $orderId): ?Order
+    {
+        return $this->createReadableByCustomerQueryBuilder($customer)
+            ->andWhere('o.id = :orderId')
+            ->setParameter('orderId', $orderId, 'uuid')
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     public function nextOrderNumberForShop(Shop $shop): int
@@ -495,5 +527,14 @@ class OrderRepository extends ServiceEntityRepository
             'shop' => $shop,
             'status' => OrderStatus::Ready,
         ]);
+    }
+
+    private function createReadableByCustomerQueryBuilder(User $customer): \Doctrine\ORM\QueryBuilder
+    {
+        return $this->createQueryBuilder('o')
+            ->leftJoin('o.kadhia', 'k')
+            ->leftJoin('k.members', 'm')
+            ->andWhere('IDENTITY(o.customer) = :customerId OR IDENTITY(m.user) = :customerId')
+            ->setParameter('customerId', $customer->getId(), 'uuid');
     }
 }

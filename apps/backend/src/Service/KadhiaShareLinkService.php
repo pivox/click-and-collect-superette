@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Repository\KadhiaShareLinkRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -20,6 +21,7 @@ final readonly class KadhiaShareLinkService
     public function __construct(
         private KadhiaShareLinkRepository $kadhiaShareLinkRepository,
         private EntityManagerInterface $entityManager,
+        private ManagerRegistry $managerRegistry,
         private ClockInterface $clock,
         #[Autowire('%kernel.secret%')]
         private string $secret,
@@ -67,7 +69,12 @@ final readonly class KadhiaShareLinkService
             });
         } catch (UniqueConstraintViolationException $exception) {
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-            $existing = $this->kadhiaShareLinkRepository->findActiveForKadhia($kadhia, $now);
+            $repository = $this->managerRegistry->resetManager()->getRepository(KadhiaShareLink::class);
+            if (!$repository instanceof KadhiaShareLinkRepository) {
+                throw $exception;
+            }
+
+            $existing = $repository->findActiveForKadhia($kadhia, $now);
             if (null !== $existing) {
                 return [$existing, $this->tokenFor($existing)];
             }

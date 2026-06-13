@@ -46,8 +46,8 @@ final readonly class OrderCollectionProvider implements ProviderInterface
         $limit = min(50, max(1, (int) ($request?->query->get('limit') ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $orders = $this->orderRepository->findByCustomerPaginated($user, $limit, $offset);
-        $total = $this->orderRepository->countByCustomer($user);
+        $orders = $this->orderRepository->findReadableByCustomerPaginated($user, $limit, $offset);
+        $total = $this->orderRepository->countReadableByCustomer($user);
 
         $items = array_map(
             fn (Order $order): OrderOutput => $this->orderOutputFactory->toOutput($order),
