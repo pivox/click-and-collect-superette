@@ -13,6 +13,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\UniqueConstraint(name: 'UNIQ_KADHIA_SHARE_LINKS_TOKEN_HASH', columns: ['token_hash'])]
 #[ORM\UniqueConstraint(name: 'UNIQ_KADHIA_SHARE_LINKS_ACTIVE_KADHIA', columns: ['kadhia_id'], options: ['where' => 'active = true'])]
 #[ORM\Index(name: 'IDX_KADHIA_SHARE_LINKS_KADHIA', columns: ['kadhia_id'])]
+#[ORM\Index(name: 'IDX_KADHIA_SHARE_LINKS_CREATED_BY', columns: ['created_by_id'])]
 #[ORM\Index(name: 'IDX_KADHIA_SHARE_LINKS_EXPIRES_AT', columns: ['expires_at'])]
 class KadhiaShareLink
 {
