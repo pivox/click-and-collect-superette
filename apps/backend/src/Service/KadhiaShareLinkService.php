@@ -37,6 +37,7 @@ final readonly class KadhiaShareLinkService
             return $this->entityManager->wrapInTransaction(function () use ($kadhia, $creator): array {
                 $now = \DateTimeImmutable::createFromInterface($this->clock->now());
                 $activeRows = $this->kadhiaShareLinkRepository->findActiveRowsForKadhia($kadhia);
+                $deactivatedExpiredLink = false;
 
                 foreach ($activeRows as $activeRow) {
                     if ($activeRow->isActiveAt($now)) {
@@ -44,6 +45,11 @@ final readonly class KadhiaShareLinkService
                     }
 
                     $activeRow->setActive(false);
+                    $deactivatedExpiredLink = true;
+                }
+
+                if ($deactivatedExpiredLink) {
+                    $this->entityManager->flush();
                 }
 
                 $link = (new KadhiaShareLink())

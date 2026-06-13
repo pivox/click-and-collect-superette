@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\KadhiaShareJoinOutput;
 use App\Entity\User;
+use App\Enum\KadhiaStatus;
 use App\Service\KadhiaMembershipService;
 use App\Service\KadhiaShareLinkService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,6 +16,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
  * @implements ProcessorInterface<null, KadhiaShareJoinOutput>
@@ -48,6 +50,10 @@ final readonly class JoinKadhiaShareLinkProcessor implements ProcessorInterface
         }
 
         $kadhia = $link->getKadhia();
+        if (KadhiaStatus::Draft !== $kadhia->getStatus()) {
+            throw new UnprocessableEntityHttpException('KADHIA_NOT_SHAREABLE');
+        }
+
         $joined = $this->kadhiaMembershipService->ensureEditor($kadhia, $user);
         $this->entityManager->flush();
 

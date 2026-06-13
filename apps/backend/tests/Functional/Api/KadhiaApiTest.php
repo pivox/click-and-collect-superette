@@ -13,6 +13,7 @@ use App\Entity\KadhiaShareLink;
 use App\Entity\MerchantProduct;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
+use App\Enum\KadhiaStatus;
 use App\Enum\ProductReferenceStatus;
 use Symfony\Component\Uid\Uuid;
 
@@ -864,6 +865,33 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         self::assertSame(404, $response->getStatusCode());
     }
 
+    public function testJoinShareLinkForSubmittedKadhiaReturns422(): void
+    {
+        $owner = $this->createUser('kadhia-join-submitted-owner@example.test', ['ROLE_CUSTOMER']);
+        $guest = $this->createUser('kadhia-join-submitted-guest@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $createResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+            [],
+            $owner,
+        );
+        $kadhiaId = $this->decodeJson($createResponse)['id'];
+        $shareResponse = $this->requestJson('POST', \sprintf('/api/me/kadhias/%s/share-links', $kadhiaId), user: $owner);
+        $token = $this->extractTokenFromShareUrl($this->decodeJson($shareResponse)['share_url']);
+
+        $kadhia = $this->entityManager->getRepository(Kadhia::class)->find($kadhiaId);
+        self::assertInstanceOf(Kadhia::class, $kadhia);
+        $kadhia->setStatus(KadhiaStatus::Submitted);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', \sprintf('/api/me/kadhia-share-links/%s/join', $token), user: $guest);
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame('KADHIA_NOT_SHAREABLE', $this->decodeJson($response)['detail']);
+    }
+
     public function testCreateShareLinkReplacesExpiredActiveLink(): void
     {
         $customer = $this->createUser('kadhia-share-expired@example.test', ['ROLE_CUSTOMER']);
@@ -895,6 +923,38 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         $storedLinks = $this->entityManager->getRepository(KadhiaShareLink::class)->findAll();
         self::assertCount(2, $storedLinks);
         self::assertCount(1, array_filter($storedLinks, static fn (KadhiaShareLink $link): bool => $link->isActive()));
+    }
+
+    public function testCreateShareLinkFlushesExpiredActiveLinkBeforeReplacement(): void
+    {
+        $customer = $this->createUser('kadhia-share-expired-flush@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+
+        $createResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/me/stores/%s/kadhias', $shop->getId()),
+            [],
+            $customer,
+        );
+        $kadhiaId = $this->decodeJson($createResponse)['id'];
+
+        $shareResponse = $this->requestJson('POST', \sprintf('/api/me/kadhias/%s/share-links', $kadhiaId), user: $customer);
+        self::assertSame(200, $shareResponse->getStatusCode());
+
+        $link = $this->entityManager->getRepository(KadhiaShareLink::class)->findOneBy([]);
+        self::assertInstanceOf(KadhiaShareLink::class, $link);
+        $link->setExpiresAt(new \DateTimeImmutable('-1 second'));
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $second = $this->requestJson('POST', \sprintf('/api/me/kadhias/%s/share-links', $kadhiaId), user: $customer);
+
+        self::assertSame(200, $second->getStatusCode(), (string) $second->getContent());
+        $this->entityManager->clear();
+        $storedLinks = $this->entityManager->getRepository(KadhiaShareLink::class)->findAll();
+
+        self::assertCount(2, $storedLinks);
+        self::assertCount(1, array_filter($storedLinks, static fn (KadhiaShareLink $storedLink): bool => $storedLink->isActive()));
     }
 
     public function testRemoveLineNotFoundReturns404(): void
