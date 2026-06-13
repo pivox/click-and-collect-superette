@@ -9,7 +9,9 @@ use App\Entity\Shop;
 use App\Entity\ShopTheme;
 use App\Entity\User;
 use App\Enum\ThemeFontFamily;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -183,6 +185,47 @@ abstract class FunctionalApiTestCase extends KernelTestCase
 
         $schemaTool->dropSchema($metadata);
         $schemaTool->createSchema($metadata);
+        $this->restoreSqlitePartialUniqueIndexes($metadata);
+    }
+
+    /**
+     * DBAL drops the WHERE predicate from unique constraints when creating SQLite test schemas.
+     *
+     * @param list<ClassMetadata<object>> $metadata
+     */
+    private function restoreSqlitePartialUniqueIndexes(array $metadata): void
+    {
+        $connection = $this->entityManager->getConnection();
+        if (!$connection->getDatabasePlatform() instanceof SQLitePlatform) {
+            return;
+        }
+
+        $platform = $connection->getDatabasePlatform();
+        foreach ($metadata as $classMetadata) {
+            foreach ($classMetadata->table['uniqueConstraints'] ?? [] as $name => $constraint) {
+                $where = $constraint['options']['where'] ?? null;
+                if (!\is_string($where) || '' === $where) {
+                    continue;
+                }
+
+                $columns = array_map(
+                    static fn (string $column): string => $platform->quoteIdentifier($column),
+                    $constraint['columns'] ?? [],
+                );
+                if ([] === $columns) {
+                    continue;
+                }
+
+                $connection->executeStatement(\sprintf('DROP INDEX IF EXISTS %s', $platform->quoteIdentifier((string) $name)));
+                $connection->executeStatement(\sprintf(
+                    'CREATE UNIQUE INDEX %s ON %s (%s) WHERE %s',
+                    $platform->quoteIdentifier((string) $name),
+                    $platform->quoteIdentifier($classMetadata->getTableName()),
+                    implode(', ', $columns),
+                    $where,
+                ));
+            }
+        }
     }
 
     private function createDefaultPlatformTheme(): PlatformTheme
