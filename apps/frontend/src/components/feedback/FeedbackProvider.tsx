@@ -27,12 +27,70 @@ const AUTH_ROUTES = new Set([
   '/admin/login',
 ]);
 
-const TYPE_LABELS: Record<FeedbackType, string> = {
-  bug: 'Bug',
-  idea: 'Idée',
-  confusing: 'Incompréhension',
-  other: 'Autre',
-};
+const FEEDBACK_LABELS = {
+  fr: {
+    button: 'Retour',
+    title: 'Votre retour',
+    helper: 'Signalez un bug, une incompréhension ou une idée depuis cette page.',
+    closeOverlay: 'Fermer le retour',
+    close: 'Fermer',
+    success: 'Merci, votre retour a bien été envoyé.',
+    type: 'Type de retour',
+    message: 'Message',
+    contactConsent: 'J’accepte d’être recontacté si besoin',
+    submit: 'Envoyer',
+    minLengthError: 'Votre retour doit contenir au moins 5 caractères.',
+    submitError: 'Impossible d’envoyer votre retour. Réessayez.',
+    typeLabels: {
+      bug: 'Bug',
+      idea: 'Idée',
+      confusing: 'Incompréhension',
+      other: 'Autre',
+    },
+  },
+  ar: {
+    button: 'ملاحظات',
+    title: 'ملاحظتك',
+    helper: 'أرسل خللا أو نقطة غير واضحة أو فكرة من هذه الصفحة.',
+    closeOverlay: 'إغلاق الملاحظة',
+    close: 'إغلاق',
+    success: 'تم إرسال ملاحظتك بنجاح.',
+    type: 'نوع الملاحظة',
+    message: 'الرسالة',
+    contactConsent: 'أوافق على أن يتم التواصل معي عند الحاجة',
+    submit: 'إرسال',
+    minLengthError: 'يجب أن تحتوي ملاحظتك على 5 أحرف على الأقل.',
+    submitError: 'تعذر إرسال ملاحظتك. حاول مرة أخرى.',
+    typeLabels: {
+      bug: 'خلل',
+      idea: 'فكرة',
+      confusing: 'غير واضح',
+      other: 'آخر',
+    },
+  },
+} satisfies Record<string, {
+  button: string;
+  title: string;
+  helper: string;
+  closeOverlay: string;
+  close: string;
+  success: string;
+  type: string;
+  message: string;
+  contactConsent: string;
+  submit: string;
+  minLengthError: string;
+  submitError: string;
+  typeLabels: Record<FeedbackType, string>;
+}>;
+
+function labelsForLocale(locale: string): (typeof FEEDBACK_LABELS)['fr'] {
+  return locale === 'ar' ? FEEDBACK_LABELS.ar : FEEDBACK_LABELS.fr;
+}
+
+function directionForLocale(locale: string): 'ltr' | 'rtl' {
+  return locale === 'ar' ? 'rtl' : 'ltr';
+}
 
 export function FeedbackProvider({
   appArea,
@@ -50,6 +108,7 @@ export function FeedbackProvider({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const appSubArea = useMemo(() => routeToSubArea(pathname), [pathname]);
+  const labels = labelsForLocale(locale);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,7 +147,7 @@ export function FeedbackProvider({
 
   const submit = async () => {
     if (message.trim().length < 5) {
-      setError('Votre retour doit contenir au moins 5 caractères.');
+      setError(labels.minLengthError);
       return;
     }
     setIsSending(true);
@@ -113,7 +172,7 @@ export function FeedbackProvider({
       setContactConsent(false);
     } catch (err) {
       console.error('[feedback] submit failed', err);
-      setError('Impossible d’envoyer votre retour. Réessayez.');
+      setError(labels.submitError);
     } finally {
       setIsSending(false);
     }
@@ -127,7 +186,7 @@ export function FeedbackProvider({
     <>
       <button
         type="button"
-        aria-label="Retour"
+        aria-label={labels.button}
         onClick={() => setIsOpen(true)}
         className={cn(
           'fixed z-30 inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#1f6f54] px-4 text-sm font-black text-white shadow-floating transition-colors hover:bg-[#185943]',
@@ -135,33 +194,35 @@ export function FeedbackProvider({
         )}
       >
         <MessageSquare className="h-4 w-4 md:-rotate-90" aria-hidden="true" />
-        <span>Retour</span>
+        <span>{labels.button}</span>
       </button>
 
       {isOpen && (
         <div className="fixed inset-0 z-50">
           <button
             type="button"
-            aria-label="Fermer le retour"
+            aria-label={labels.closeOverlay}
             className="absolute inset-0 bg-black/45"
             onClick={close}
           />
           <section
             role="dialog"
             aria-modal="true"
-            aria-label="Votre retour"
+            aria-label={labels.title}
+            dir={directionForLocale(locale)}
+            lang={locale === 'ar' ? 'ar' : 'fr'}
             className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-auto rounded-t-md bg-card p-5 shadow-xl md:inset-y-0 md:left-auto md:w-full md:max-w-md md:rounded-none"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-ink">Votre retour</h2>
+                <h2 className="text-lg font-black text-ink">{labels.title}</h2>
                 <p className="mt-1 text-sm text-muted">
-                  Signalez un bug, une incompréhension ou une idée depuis cette page.
+                  {labels.helper}
                 </p>
               </div>
               <button
                 type="button"
-                aria-label="Fermer"
+                aria-label={labels.close}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-line bg-white text-ink"
                 onClick={close}
               >
@@ -171,18 +232,18 @@ export function FeedbackProvider({
 
             {success ? (
               <div className="mt-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">
-                Merci, votre retour a bien été envoyé.
+                {labels.success}
               </div>
             ) : (
               <div className="mt-5 space-y-4">
                 <label className="block text-sm font-bold text-ink">
-                  Type de retour
+                  {labels.type}
                   <select
                     value={type}
                     onChange={(event) => setType(event.target.value as FeedbackType)}
                     className="mt-2 w-full rounded-md border border-line bg-card px-3 py-2 text-sm font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   >
-                    {Object.entries(TYPE_LABELS).map(([value, label]) => (
+                    {Object.entries(labels.typeLabels).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
@@ -191,7 +252,7 @@ export function FeedbackProvider({
                 </label>
 
                 <label className="block text-sm font-bold text-ink">
-                  Message
+                  {labels.message}
                   <textarea
                     value={message}
                     minLength={5}
@@ -208,7 +269,7 @@ export function FeedbackProvider({
                     onChange={(event) => setContactConsent(event.target.checked)}
                     className="mt-1 h-4 w-4 rounded border-line text-primary"
                   />
-                  <span>J’accepte d’être recontacté si besoin</span>
+                  <span>{labels.contactConsent}</span>
                 </label>
 
                 {error && (
@@ -226,7 +287,7 @@ export function FeedbackProvider({
                   onClick={() => void submit()}
                 >
                   <Send className="h-4 w-4" aria-hidden="true" />
-                  Envoyer
+                  {labels.submit}
                 </Button>
               </div>
             )}

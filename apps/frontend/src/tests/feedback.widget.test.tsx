@@ -91,4 +91,19 @@ describe('FeedbackProvider', () => {
     });
     expect(await within(dialog).findByText('Merci, votre retour a bien été envoyé.')).toBeInTheDocument();
   });
+
+  it('renders Arabic wording when locale is Arabic', async () => {
+    render(<FeedbackProvider appArea="client" enabled locale="ar" />);
+
+    const button = await screen.findByRole('button', { name: 'ملاحظات' });
+    fireEvent.click(button);
+
+    const dialog = await screen.findByRole('dialog', { name: 'ملاحظتك' });
+    expect(within(dialog).getByText('ملاحظتك')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('نوع الملاحظة')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('الرسالة')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('أوافق على أن يتم التواصل معي عند الحاجة')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'إرسال' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('option', { name: 'فكرة' })).toBeInTheDocument();
+  });
 });
