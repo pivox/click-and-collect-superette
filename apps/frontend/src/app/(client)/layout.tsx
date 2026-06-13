@@ -11,6 +11,7 @@ import { StoreContextPill } from '@/components/store/StoreContextPill';
 import { LanguageToggle } from '@/components/layout/LanguageToggle';
 import { StoreThemeSync } from '@/components/store/StoreThemeSync';
 import { ClientNotificationsProvider } from '@/lib/notifications/ClientNotificationsContext';
+import { ClientFeedbackWidget } from '@/components/feedback/ClientFeedbackWidget';
 
 export const viewport = defaultViewport;
 
@@ -56,6 +57,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </div>
             {/* Bottom navigation — hidden on desktop via BottomNav's own md:hidden */}
             <BottomNav />
+            <ClientFeedbackWidget />
           </ClientLocaleProvider>
         </SelectedStoreProvider>
         </ClientNotificationsProvider>

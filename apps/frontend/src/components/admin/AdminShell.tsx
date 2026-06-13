@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AdminSidebar } from './AdminSidebar';
 import { useAdminAuth } from '@/lib/auth/AdminAuthContext';
 import { Button } from '@/components/ui/Button';
+import { FeedbackProvider } from '@/components/feedback/FeedbackProvider';
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAdminAuth();
@@ -70,6 +71,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
       </div>
+      <FeedbackProvider appArea="admin" enabled={Boolean(user) && pathname !== '/admin/login'} />
     </div>
   );
 }

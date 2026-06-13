@@ -21,6 +21,8 @@ import { listMerchantNotifications } from '@/lib/services/merchant-notifications
 import { listMerchantSlots } from '@/lib/services/merchant-slots.service';
 import { SlotCoverageWarning } from '@/components/merchant/SlotCoverageWarning';
 import type { MerchantPickupSlot } from '@/lib/types/merchant-slots.types';
+import { FeedbackProvider } from '@/components/feedback/FeedbackProvider';
+import { useMerchantLocale } from '@/lib/i18n/MerchantLocaleContext';
 
 const ACTIVE_NAV = [
   { href: '/merchant', label: 'Dashboard', icon: BarChart3 },
@@ -37,6 +39,7 @@ const ACTIVE_NAV = [
 
 export function MerchantShell({ children }: { children: React.ReactNode }) {
   const { merchant, logout } = useMerchantAuth();
+  const { locale } = useMerchantLocale();
   const pathname = usePathname();
   const storeId = merchant?.store.id ?? '';
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -172,6 +175,12 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
         )}
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
       </div>
+      <FeedbackProvider
+        appArea="merchant"
+        enabled={pathname !== '/merchant/login'}
+        locale={locale}
+        shopId={storeId || null}
+      />
     </div>
   );
 }
