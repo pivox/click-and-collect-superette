@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '@/lib/api';
 
 vi.mock('@/lib/api', () => ({
-  apiClient: { get: vi.fn() },
+  apiClient: { get: vi.fn(), post: vi.fn() },
 }));
 
 vi.mock('@/lib/services', async (importOriginal) => {
@@ -10,7 +10,7 @@ vi.mock('@/lib/services', async (importOriginal) => {
   return { ...actual, USE_MOCKS: false };
 });
 
-import { listMyKadhias } from '@/lib/services/kadhia.service';
+import { createKadhiaShareLink, joinKadhiaShareLink, listMyKadhias } from '@/lib/services/kadhia.service';
 
 const RAW_LIST_ITEM = {
   id: 'k-1',
@@ -120,5 +120,47 @@ describe('listMyKadhias', () => {
     const result = await listMyKadhias();
 
     expect(result.items[0].notes).toBeUndefined();
+  });
+});
+
+describe('partage de Kadhia', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('createKadhiaShareLink appelle le bon endpoint et mappe la réponse', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        share_url: 'http://localhost:3000/kadhia/share/tok-1',
+        expires_at: '2026-06-20T12:00:00+01:00',
+      },
+    });
+
+    const result = await createKadhiaShareLink('k-1');
+
+    expect(apiClient.post).toHaveBeenCalledWith('/api/me/kadhias/k-1/share-links', {});
+    expect(result).toEqual({
+      shareUrl: 'http://localhost:3000/kadhia/share/tok-1',
+      expiresAt: '2026-06-20T12:00:00+01:00',
+    });
+  });
+
+  it('joinKadhiaShareLink appelle le bon endpoint et active la Kadhia partagée', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        kadhia_id: 'k-1',
+        store_id: 'store-1',
+        joined: true,
+      },
+    });
+
+    const result = await joinKadhiaShareLink('tok-1');
+
+    expect(apiClient.post).toHaveBeenCalledWith('/api/me/kadhia-share-links/tok-1/join', {});
+    expect(window.localStorage.getItem('kadhia:active:store-1')).toBe('k-1');
+    expect(window.localStorage.getItem('kadhia:context')).toBe(JSON.stringify({ shopId: 'store-1', kadhiaId: 'k-1' }));
+    expect(result).toEqual({
+      kadhiaId: 'k-1',
+      storeId: 'store-1',
+      joined: true,
+    });
   });
 });

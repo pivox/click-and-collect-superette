@@ -56,8 +56,9 @@ final readonly class CustomerPickupSessionConfirmProcessor implements ProcessorI
         $order = $pickupSession->getOrder();
         $userId = $user->getId()->toRfc4122();
         $orderId = $order->getId()->toRfc4122();
+        $kadhia = $order->getKadhia();
 
-        if (!$order->getCustomer()->getId()->equals($user->getId())) {
+        if (!$order->getCustomer()->getId()->equals($user->getId()) && !$kadhia?->hasMember($user)) {
             $this->logger->warning('pickup.confirm_customer.rejected', [
                 'reason' => 'ownership_mismatch',
                 'pickup_session_id' => $pickupSessionId,

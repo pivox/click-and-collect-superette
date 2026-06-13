@@ -206,7 +206,17 @@
       "deleteError": "Impossible de supprimer la Kadhia. Elle a peut-être déjà été envoyée.",
       "deleteConfirm": "Supprimer cette Kadhia ? Tu pourras recommencer depuis le catalogue.",
       "chooseSlot": "Choisir un créneau",
-      "trackOrder": "Suivre la commande"
+      "trackOrder": "Suivre la commande",
+      "shareButton": "Partager la Kadhia",
+      "shareLoading": "Création du lien…",
+      "shareUrlLabel": "Lien de partage",
+      "shareCopy": "Copier",
+      "shareCopied": "Lien copié",
+      "shareError": "Impossible de créer le lien de partage. Réessaie.",
+      "shareExpires": "Lien valable jusqu’au {date}.",
+      "shareJoining": "Ouverture de la Kadhia partagée…",
+      "shareInvalid": "Lien de partage invalide ou expiré.",
+      "shareJoinError": "Impossible de rejoindre cette Kadhia. Réessaie."
     },
     "slot": {
       "title": "Créneau de retrait",

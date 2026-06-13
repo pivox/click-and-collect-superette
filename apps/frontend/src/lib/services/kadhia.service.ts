@@ -106,6 +106,17 @@ export type KadhiaResult =
   | { type: "none" }
   | { type: "multiple"; drafts: KadhiaListItem[] };
 
+export interface KadhiaShareLink {
+  shareUrl: string;
+  expiresAt: string;
+}
+
+export interface KadhiaShareJoin {
+  kadhiaId: string;
+  storeId: string;
+  joined: boolean;
+}
+
 // ─── mappers ─────────────────────────────────────────────────────────────────
 
 function mapLine(l: ApiLine): KadhiaLine {
@@ -415,6 +426,49 @@ export async function fetchKadhia(kadhiaId: string): Promise<Kadhia> {
   writeActiveId(kadhia.shopId, kadhia.id);
   writeContext({ shopId: kadhia.shopId, kadhiaId: kadhia.id });
   return kadhia;
+}
+
+export async function createKadhiaShareLink(kadhiaId: string): Promise<KadhiaShareLink> {
+  if (USE_MOCKS) {
+    return mockDelay({
+      shareUrl: `${window.location.origin}/kadhia/share/mock-${kadhiaId}`,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+  }
+
+  const { data } = await apiClient.post<{ share_url: string; expires_at: string }>(
+    `/api/me/kadhias/${kadhiaId}/share-links`,
+    {},
+  );
+
+  return {
+    shareUrl: data.share_url,
+    expiresAt: data.expires_at,
+  };
+}
+
+export async function joinKadhiaShareLink(token: string): Promise<KadhiaShareJoin> {
+  if (USE_MOCKS) {
+    const kadhiaId = token.replace(/^mock-/, '') || 'mock-shared-kadhia';
+    const shopId = readMock()?.shopId ?? 'mock-store';
+    writeActiveId(shopId, kadhiaId);
+    writeContext({ shopId, kadhiaId });
+    return mockDelay({ kadhiaId, storeId: shopId, joined: true });
+  }
+
+  const { data } = await apiClient.post<{ kadhia_id: string; store_id: string; joined: boolean }>(
+    `/api/me/kadhia-share-links/${encodeURIComponent(token)}/join`,
+    {},
+  );
+
+  writeActiveId(data.store_id, data.kadhia_id);
+  writeContext({ shopId: data.store_id, kadhiaId: data.kadhia_id });
+
+  return {
+    kadhiaId: data.kadhia_id,
+    storeId: data.store_id,
+    joined: data.joined,
+  };
 }
 
 // ─── replacement suggestions (unavailable lines) ─────────────────────────────

@@ -41,6 +41,10 @@ class Kadhia
     #[ORM\OneToMany(targetEntity: KadhiaLine::class, mappedBy: 'kadhia', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $lines;
 
+    /** @var Collection<int, KadhiaMember> */
+    #[ORM\OneToMany(targetEntity: KadhiaMember::class, mappedBy: 'kadhia', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $members;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -53,6 +57,7 @@ class Kadhia
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
         $this->lines = new ArrayCollection();
+        $this->members = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -74,6 +79,7 @@ class Kadhia
     public function setCustomer(User $customer): static
     {
         $this->customer = $customer;
+        $this->addMember((new KadhiaMember())->setUser($customer));
 
         return $this;
     }
@@ -133,6 +139,33 @@ class Kadhia
     public function removeLine(KadhiaLine $line): static
     {
         $this->lines->removeElement($line);
+
+        return $this;
+    }
+
+    /** @return Collection<int, KadhiaMember> */
+    public function getMembers(): Collection
+    {
+        return $this->members;
+    }
+
+    public function hasMember(User $user): bool
+    {
+        foreach ($this->members as $member) {
+            if ($member->getUser()->getId()->equals($user->getId())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function addMember(KadhiaMember $member): static
+    {
+        if (!$this->hasMember($member->getUser())) {
+            $this->members->add($member);
+            $member->setKadhia($this);
+        }
 
         return $this;
     }

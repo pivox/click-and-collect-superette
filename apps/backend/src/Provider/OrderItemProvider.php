@@ -45,7 +45,7 @@ final readonly class OrderItemProvider implements ProviderInterface
             throw new NotFoundHttpException('ORDER_NOT_FOUND');
         }
 
-        $order = $this->orderRepository->findOneByCustomerAndId($user, $orderId);
+        $order = $this->orderRepository->findOneReadableByCustomerAndId($user, $orderId);
 
         if (null === $order) {
             throw new NotFoundHttpException('ORDER_NOT_FOUND');

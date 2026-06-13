@@ -53,6 +53,10 @@ final readonly class DeleteKadhiaProcessor implements ProcessorInterface
             throw new NotFoundHttpException('KADHIA_NOT_FOUND');
         }
 
+        if (!$kadhia->getCustomer()->getId()->equals($user->getId())) {
+            throw new NotFoundHttpException('KADHIA_NOT_FOUND');
+        }
+
         $this->logger->debug('kadhia.delete.start', [
             'kadhia_id' => $kadhiaId,
             'user_id' => $user->getId()->toRfc4122(),

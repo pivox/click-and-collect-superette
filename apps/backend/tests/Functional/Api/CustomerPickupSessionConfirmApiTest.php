@@ -6,6 +6,8 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\Kadhia;
+use App\Entity\KadhiaMember;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
@@ -259,6 +261,34 @@ final class CustomerPickupSessionConfirmApiTest extends FunctionalApiTestCase
 
         self::assertSame(404, $response->getStatusCode());
         self::assertStringContainsString('PICKUP_SESSION_NOT_FOUND', (string) $response->getContent());
+    }
+
+    public function testSharedKadhiaMemberConfirmsScannedSession(): void
+    {
+        $owner = $this->createUser('cust-shared-confirm-owner@example.test', ['ROLE_CUSTOMER']);
+        $guest = $this->createUser('cust-shared-confirm-guest@example.test', ['ROLE_CUSTOMER']);
+        $merchant = $this->createUser('merch-shared-confirm@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $product = $this->createMerchantProduct($shop);
+        [$order, $pickupSession] = $this->createScannedPickupPendingSession($owner, $shop, $product);
+
+        $kadhia = (new Kadhia())->setCustomer($owner)->setShop($shop);
+        $kadhia->addMember((new KadhiaMember())->setUser($guest));
+        $order->setKadhia($kadhia);
+        $this->entityManager->persist($kadhia);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'PATCH',
+            \sprintf('/api/me/pickup-sessions/%s/confirm', $pickupSession->getId()->toRfc4122()),
+            [],
+            $guest,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame($order->getId()->toRfc4122(), $payload['order_id']);
+        self::assertNotEmpty($payload['customer_confirmed_at']);
     }
 
     public function testUnknownSessionReturns404(): void
