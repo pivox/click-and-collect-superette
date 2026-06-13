@@ -13,6 +13,7 @@ import {
   reopenAdminFeedback,
   resolveAdminFeedback,
 } from '@/lib/services/admin/feedbacks.service';
+import { listStores } from '@/lib/services/admin/stores.service';
 import type {
   FeedbackAppArea,
   FeedbackEntry,
@@ -20,6 +21,7 @@ import type {
   FeedbackType,
   FeedbackUserRole,
 } from '@/lib/types/admin/feedbacks.types';
+import type { Store } from '@/lib/types/admin/stores.types';
 
 const PAGE_SIZE = 20;
 
@@ -71,7 +73,12 @@ export default function AdminFeedbacksPage() {
   const [typeFilter, setTypeFilter] = useState<FeedbackType | ''>('');
   const [areaFilter, setAreaFilter] = useState<FeedbackAppArea | ''>('');
   const [shopFilter, setShopFilter] = useState('');
+  const [createdFromFilter, setCreatedFromFilter] = useState('');
+  const [createdToFilter, setCreatedToFilter] = useState('');
   const [contactFilter, setContactFilter] = useState<boolean | ''>('');
+  const [stores, setStores] = useState<Store[]>([]);
+  const [storesError, setStoresError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const listRequestSeq = useRef(0);
   const detailRequestSeq = useRef(0);
 
@@ -90,6 +97,8 @@ export default function AdminFeedbacksPage() {
         appArea: areaFilter,
         shop: shopFilter.trim(),
         contactConsent: contactFilter,
+        createdFrom: createdFromFilter,
+        createdTo: createdToFilter,
       });
       if (listRequestSeq.current !== requestSeq) return;
       setItems(data.items);
@@ -103,18 +112,53 @@ export default function AdminFeedbacksPage() {
         setIsLoading(false);
       }
     }
-  }, [areaFilter, contactFilter, page, roleFilter, shopFilter, statusFilter, typeFilter]);
+  }, [
+    areaFilter,
+    contactFilter,
+    createdFromFilter,
+    createdToFilter,
+    page,
+    roleFilter,
+    shopFilter,
+    statusFilter,
+    typeFilter,
+  ]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const resetPage = () => setPage(1);
+  useEffect(() => {
+    let isMounted = true;
+
+    listStores({ page: 1, limit: 50, isActive: true })
+      .then((data) => {
+        if (!isMounted) return;
+        setStores(data.items);
+        setStoresError(null);
+      })
+      .catch((err: unknown) => {
+        if (!isMounted) return;
+        console.error('[admin-feedbacks] stores load failed', err);
+        setStores([]);
+        setStoresError('Impossible de charger la liste des supérettes. Filtre par ID disponible.');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const resetPage = () => {
+    setActionSuccess(null);
+    setPage(1);
+  };
 
   const openDetail = async (id: string) => {
     const requestSeq = detailRequestSeq.current + 1;
     detailRequestSeq.current = requestSeq;
     setError(null);
+    setActionSuccess(null);
     try {
       const data = await getAdminFeedback(id);
       if (detailRequestSeq.current !== requestSeq) return;
@@ -139,14 +183,20 @@ export default function AdminFeedbacksPage() {
     await load();
   };
 
-  const runAction = async (action: () => Promise<FeedbackEntry>, message: string) => {
+  const runAction = async (
+    action: () => Promise<FeedbackEntry>,
+    successMessage: string,
+    errorMessage: string,
+  ) => {
     setIsSaving(true);
     setError(null);
+    setActionSuccess(null);
     try {
       await updateDetail(await action());
+      setActionSuccess(successMessage);
     } catch (err) {
       console.error('[admin-feedbacks] action failed', err);
-      setError(message);
+      setError(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -233,7 +283,7 @@ export default function AdminFeedbacksPage() {
         </div>
       </div>
 
-      <div className="mb-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="mb-4 grid gap-3 md:grid-cols-3 xl:grid-cols-8">
         <select
           aria-label="Filtrer par statut"
           value={statusFilter}
@@ -291,16 +341,60 @@ export default function AdminFeedbacksPage() {
           <option value="merchant">Marchand</option>
           <option value="admin">Admin</option>
         </select>
+        <label className="sr-only" htmlFor="feedback-created-from">Filtrer à partir du</label>
         <input
-          type="text"
-          placeholder="ID supérette"
-          value={shopFilter}
+          id="feedback-created-from"
+          aria-label="Filtrer à partir du"
+          type="date"
+          value={createdFromFilter}
           onChange={(event) => {
             resetPage();
-            setShopFilter(event.target.value);
+            setCreatedFromFilter(event.target.value);
           }}
-          className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="rounded-md border border-line px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
+        <label className="sr-only" htmlFor="feedback-created-to">Filtrer jusqu&apos;au</label>
+        <input
+          id="feedback-created-to"
+          aria-label="Filtrer jusqu'au"
+          type="date"
+          value={createdToFilter}
+          onChange={(event) => {
+            resetPage();
+            setCreatedToFilter(event.target.value);
+          }}
+          className="rounded-md border border-line px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+        />
+        {storesError ? (
+          <input
+            aria-label="Filtrer par supérette"
+            type="text"
+            placeholder="ID supérette"
+            value={shopFilter}
+            onChange={(event) => {
+              resetPage();
+              setShopFilter(event.target.value);
+            }}
+            className="rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
+        ) : (
+          <select
+            aria-label="Filtrer par supérette"
+            value={shopFilter}
+            onChange={(event) => {
+              resetPage();
+              setShopFilter(event.target.value);
+            }}
+            className="rounded-md border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="">Toutes supérettes</option>
+            {stores.map((store) => (
+              <option key={store.id} value={store.id}>
+                {store.name}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           aria-label="Filtrer par consentement contact"
           value={contactFilter === '' ? '' : String(contactFilter)}
@@ -316,9 +410,20 @@ export default function AdminFeedbacksPage() {
         </select>
       </div>
 
+      {storesError && (
+        <div className="mb-4 rounded-md border border-[var(--status-wait-bg)] bg-[var(--status-wait-bg)] px-4 py-2 text-sm text-[var(--status-wait)]">
+          {storesError}
+        </div>
+      )}
+
       {error && (
         <div role="alert" aria-atomic="true" className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
           {error}
+        </div>
+      )}
+      {actionSuccess && (
+        <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-800">
+          {actionSuccess}
         </div>
       )}
 
@@ -347,29 +452,32 @@ export default function AdminFeedbacksPage() {
               </button>
             </div>
 
-            <p className="mt-5 rounded-md border border-line bg-soft px-3 py-3 text-sm text-ink">{detail.message}</p>
+            <section className="mt-5 rounded-md border border-line bg-soft px-3 py-3">
+              <h3 className="text-sm font-black text-ink">Message complet</h3>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-ink">{detail.message}</p>
+            </section>
 
             <div className="mt-5 flex flex-wrap gap-2">
               {detail.status !== 'read' && (
-                <Button variant="ghost" size="md" disabled={isSaving} onClick={() => void runAction(() => markAdminFeedbackRead(detail.id), 'Impossible de marquer ce retour comme lu.')}>
+                <Button variant="ghost" size="md" disabled={isSaving} onClick={() => void runAction(() => markAdminFeedbackRead(detail.id), 'Retour marqué comme lu.', 'Impossible de marquer ce retour comme lu.')}>
                   <Eye className="h-4 w-4" aria-hidden="true" />
                   Lu
                 </Button>
               )}
               {detail.status !== 'unread' && (
-                <Button variant="ghost" size="md" disabled={isSaving} onClick={() => void runAction(() => markAdminFeedbackUnread(detail.id), 'Impossible de marquer ce retour comme non lu.')}>
+                <Button variant="ghost" size="md" disabled={isSaving} onClick={() => void runAction(() => markAdminFeedbackUnread(detail.id), 'Retour marqué comme non lu.', 'Impossible de marquer ce retour comme non lu.')}>
                   <EyeOff className="h-4 w-4" aria-hidden="true" />
                   Non lu
                 </Button>
               )}
               {detail.status !== 'resolved' && (
-                <Button variant="primary" size="md" disabled={isSaving} onClick={() => void runAction(() => resolveAdminFeedback(detail.id, adminNote.trim()), 'Impossible de résoudre ce retour.')}>
+                <Button variant="primary" size="md" disabled={isSaving} onClick={() => void runAction(() => resolveAdminFeedback(detail.id, adminNote.trim()), 'Retour résolu.', 'Impossible de résoudre ce retour.')}>
                   <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                   Résolu
                 </Button>
               )}
               {detail.status === 'resolved' && (
-                <Button variant="ghost" size="md" disabled={isSaving} onClick={() => void runAction(() => reopenAdminFeedback(detail.id), 'Impossible de réouvrir ce retour.')}>
+                <Button variant="ghost" size="md" disabled={isSaving} onClick={() => void runAction(() => reopenAdminFeedback(detail.id), 'Retour réouvert.', 'Impossible de réouvrir ce retour.')}>
                   <RotateCcw className="h-4 w-4" aria-hidden="true" />
                   Réouvrir
                 </Button>
@@ -379,26 +487,40 @@ export default function AdminFeedbacksPage() {
             <section className="mt-5 rounded-md border border-line bg-soft p-3">
               <h3 className="text-sm font-black text-ink">Note admin</h3>
               <textarea
+                aria-label="Note admin"
                 value={adminNote}
                 onChange={(event) => setAdminNote(event.target.value)}
                 className="mt-2 min-h-24 w-full rounded-md border border-line bg-card px-3 py-2 text-sm text-ink"
               />
             </section>
 
-            <dl className="mt-5 grid gap-3 md:grid-cols-2">
-              <Detail label="Statut" value={STATUS_LABELS[detail.status]} />
-              <Detail label="Utilisateur" value={detail.user.email ?? detail.user.id} />
-              <Detail label="Supérette" value={detail.shop?.name ?? '-'} />
-              <Detail label="Contact" value={detail.contactConsent ? 'Consentement donné' : 'Pas de consentement'} />
-              <Detail label="Page" value={detail.pageUrl ?? '-'} />
-              <Detail label="Route" value={detail.routeName ?? '-'} />
-              <Detail label="Titre page" value={detail.pageTitle ?? '-'} />
-              <Detail label="Locale" value={detail.locale ?? '-'} />
-              <Detail label="Viewport" value={detail.viewportWidth && detail.viewportHeight ? `${detail.viewportWidth} × ${detail.viewportHeight}` : '-'} />
-              <Detail label="User agent" value={detail.userAgent ?? '-'} />
-              <Detail label="Créé le" value={formatDateTime(detail.createdAt)} />
-              <Detail label="Résolu le" value={formatDateTime(detail.resolvedAt)} />
-            </dl>
+            <section className="mt-5">
+              <h3 className="text-sm font-black text-ink">Contexte page et appareil</h3>
+              <dl className="mt-3 grid gap-3 md:grid-cols-2">
+                <Detail label="Statut" value={STATUS_LABELS[detail.status]} />
+                <Detail label="Page" value={detail.pageUrl ?? '-'} />
+                <Detail label="Route" value={detail.routeName ?? '-'} />
+                <Detail label="Titre page" value={detail.pageTitle ?? '-'} />
+                <Detail label="Zone" value={AREA_LABELS[detail.appArea]} />
+                <Detail label="Sous-zone" value={detail.appSubArea ?? '-'} />
+                <Detail label="Locale" value={detail.locale ?? '-'} />
+                <Detail label="Viewport" value={detail.viewportWidth && detail.viewportHeight ? `${detail.viewportWidth} × ${detail.viewportHeight}` : '-'} />
+                <Detail label="User agent" value={detail.userAgent ?? '-'} />
+              </dl>
+            </section>
+
+            <section className="mt-5">
+              <h3 className="text-sm font-black text-ink">Acteurs et traitement</h3>
+              <dl className="mt-3 grid gap-3 md:grid-cols-2">
+                <Detail label="Utilisateur" value={detail.user.email ?? detail.user.id} />
+                <Detail label="Rôle utilisateur" value={ROLE_LABELS[detail.userRole ?? 'client']} />
+                <Detail label="Supérette" value={detail.shop?.name ?? '-'} />
+                <Detail label="Consentement contact" value={detail.contactConsent ? 'Consentement donné' : 'Pas de consentement'} />
+                <Detail label="Lu le" value={formatDateTime(detail.readAt)} />
+                <Detail label="Résolu le" value={formatDateTime(detail.resolvedAt)} />
+                <Detail label="Créé le" value={formatDateTime(detail.createdAt)} />
+              </dl>
+            </section>
           </section>
         </div>
       )}

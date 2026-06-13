@@ -40,6 +40,8 @@ describe('admin feedbacks service', () => {
       appArea: 'merchant',
       shop: 'shop-1',
       contactConsent: true,
+      createdFrom: '2026-06-01',
+      createdTo: '2026-06-12',
     });
 
     expect(mockGet).toHaveBeenCalledWith('/api/admin/feedbacks', {
@@ -52,6 +54,8 @@ describe('admin feedbacks service', () => {
         appArea: 'merchant',
         shop: 'shop-1',
         contactConsent: true,
+        createdFrom: '2026-06-01',
+        createdTo: '2026-06-12',
       },
     });
   });

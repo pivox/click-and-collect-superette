@@ -34,7 +34,7 @@ export default function AdminFeedbackSettingsPage() {
     setIsLoading(true);
     setError(null);
     void getAdminFeedbackSettings()
-      .then(setSettings)
+      .then((data) => setSettings({ ...data, requireAuthenticatedUser: true }))
       .catch((err: unknown) => {
         console.error('[admin-feedback-settings] load failed', err);
         setError('Impossible de charger les paramètres Feedback.');
@@ -59,7 +59,7 @@ export default function AdminFeedbackSettingsPage() {
     setError(null);
     setSaved(false);
     try {
-      setSettings(await updateAdminFeedbackSettings({
+      const updated = await updateAdminFeedbackSettings({
         globalEnabled: settings.globalEnabled,
         clientEnabled: settings.clientEnabled,
         merchantEnabled: settings.merchantEnabled,
@@ -68,7 +68,8 @@ export default function AdminFeedbackSettingsPage() {
         merchantAreaEnabled: settings.merchantAreaEnabled,
         adminAreaEnabled: settings.adminAreaEnabled,
         requireAuthenticatedUser: true,
-      }));
+      });
+      setSettings({ ...updated, requireAuthenticatedUser: true });
       setSaved(true);
     } catch (err) {
       console.error('[admin-feedback-settings] save failed', err);
@@ -98,6 +99,11 @@ export default function AdminFeedbackSettingsPage() {
       {error && (
         <div role="alert" className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
           {error}
+        </div>
+      )}
+      {isLoading && (
+        <div className="mb-4 rounded-md border border-line bg-soft px-4 py-2 text-sm font-semibold text-muted">
+          Chargement des paramètres Feedback...
         </div>
       )}
       {saved && (
@@ -132,8 +138,8 @@ export default function AdminFeedbackSettingsPage() {
         <div className="mt-4 border-t border-line pt-4">
           <SettingToggle
             label="Utilisateurs connectés uniquement"
-            description="Verrouillé pour le MVP."
-            checked={settings.requireAuthenticatedUser}
+            description="Verrouillé à oui pour le MVP."
+            checked
             disabled
             onChange={() => undefined}
           />
@@ -163,6 +169,7 @@ function SettingToggle({
         {description && <span className="mt-1 block text-xs text-muted">{description}</span>}
       </span>
       <input
+        aria-label={label}
         type="checkbox"
         checked={checked}
         disabled={disabled}
