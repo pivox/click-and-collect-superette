@@ -71,7 +71,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
       </div>
-      <FeedbackProvider appArea="admin" enabled={Boolean(user) && pathname !== '/admin/login'} />
+      <FeedbackProvider
+        appArea="admin"
+        enabled={Boolean(user) && pathname !== '/admin/login'}
+        locale="fr"
+      />
     </div>
   );
 }

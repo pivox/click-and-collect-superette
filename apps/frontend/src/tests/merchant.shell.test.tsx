@@ -133,6 +133,19 @@ describe('MerchantShell', () => {
     expect(provider).toHaveAttribute('data-locale', 'ar');
   });
 
+  it('disables merchant feedback on the merchant login route', () => {
+    pathname = '/merchant/login';
+
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Connexion')));
+
+    const provider = screen.getByTestId('merchant-feedback-provider');
+    expect(provider).toHaveAttribute('data-app-area', 'merchant');
+    expect(provider).toHaveAttribute('data-enabled', 'false');
+    expect(provider).toHaveAttribute('data-shop-id', 'store-1');
+    expect(provider).toHaveAttribute('data-locale', 'ar');
+    expect(listMerchantSlots).not.toHaveBeenCalled();
+  });
+
   it('renders Catalogue as the active merchant navigation link', async () => {
     pathname = '/merchant/catalogue/produits';
 

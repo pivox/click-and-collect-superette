@@ -18,13 +18,14 @@ interface FeedbackProviderProps {
   locale?: string;
 }
 
-const AUTH_ROUTES = new Set([
+const FEEDBACK_EXCLUDED_ROUTES = new Set([
   '/login',
   '/register',
   '/forgot-password',
   '/reset-password',
   '/merchant/login',
   '/admin/login',
+  '/offline',
 ]);
 
 const FEEDBACK_LABELS = {
@@ -110,10 +111,20 @@ export function FeedbackProvider({
   const appSubArea = useMemo(() => routeToSubArea(pathname), [pathname]);
   const labels = labelsForLocale(locale);
 
+  const close = useCallback(() => {
+    setIsOpen(false);
+    setError(null);
+    setSuccess(false);
+    setMessage('');
+    setContactConsent(false);
+    setType('bug');
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
+    close();
     setIsAvailable(false);
-    if (!enabled || AUTH_ROUTES.has(pathname)) {
+    if (!enabled || FEEDBACK_EXCLUDED_ROUTES.has(pathname)) {
       return () => {
         cancelled = true;
       };
@@ -134,16 +145,7 @@ export function FeedbackProvider({
     return () => {
       cancelled = true;
     };
-  }, [appArea, appSubArea, enabled, pathname]);
-
-  const close = useCallback(() => {
-    setIsOpen(false);
-    setError(null);
-    setSuccess(false);
-    setMessage('');
-    setContactConsent(false);
-    setType('bug');
-  }, []);
+  }, [appArea, appSubArea, close, enabled, pathname]);
 
   const submit = async () => {
     if (message.trim().length < 5) {
