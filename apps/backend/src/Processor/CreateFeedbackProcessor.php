@@ -11,9 +11,11 @@ use App\Dto\FeedbackCreateInput;
 use App\Entity\FeedbackEntry;
 use App\Entity\Shop;
 use App\Entity\User;
+use App\Enum\CustomerShopStatus;
 use App\Enum\FeedbackAppArea;
 use App\Enum\FeedbackType;
 use App\Provider\FeedbackOutputFactory;
+use App\Repository\CustomerShopRepository;
 use App\Repository\ShopRepository;
 use App\Service\FeedbackSettingsManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,6 +34,7 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
     public function __construct(
         private FeedbackSettingsManager $feedbackSettingsManager,
         private ShopRepository $shopRepository,
+        private CustomerShopRepository $customerShopRepository,
         private FeedbackOutputFactory $outputFactory,
         private EntityManagerInterface $entityManager,
         private Security $security,
@@ -65,7 +68,7 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
             appSubArea: $this->normalizeNullableString($data->appSubArea, 100),
             userRole: $this->feedbackSettingsManager->userRole($user),
             user: $user,
-            shop: $this->resolveShop($data->shopId),
+            shop: $this->resolveShop($data->shopId, $user),
             pageUrl: $this->normalizeNullableString($data->pageUrl, 2048),
             routeName: $this->normalizeNullableString($data->routeName, 150),
             pageTitle: $this->normalizeNullableString($data->pageTitle, 255),
@@ -82,7 +85,7 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
         return $this->outputFactory->fromFeedback($feedback);
     }
 
-    private function resolveShop(?string $shopId): ?Shop
+    private function resolveShop(?string $shopId, User $user): ?Shop
     {
         if (null === $shopId || '' === $shopId) {
             return null;
@@ -91,8 +94,30 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
         if (!$shop instanceof Shop) {
             throw new BadRequestHttpException('FEEDBACK_INVALID_SHOP');
         }
+        if (!$this->canAttachShop($shop, $user)) {
+            throw new AccessDeniedHttpException('FEEDBACK_SHOP_FORBIDDEN');
+        }
 
         return $shop;
+    }
+
+    private function canAttachShop(Shop $shop, User $user): bool
+    {
+        if ($this->security->isGranted('ROLE_ADMIN')) {
+            return true;
+        }
+
+        if ($this->security->isGranted('ROLE_MERCHANT')) {
+            return $shop->getOwner()?->getId()->equals($user->getId()) ?? false;
+        }
+
+        if (!$this->security->isGranted('ROLE_CUSTOMER')) {
+            return false;
+        }
+
+        $relation = $this->customerShopRepository->findOneByCustomerAndShop($user, $shop);
+
+        return null !== $relation && CustomerShopStatus::Active === $relation->getStatus() && $shop->isActive();
     }
 
     private function normalizeNullableString(?string $value, int $maxLength): ?string

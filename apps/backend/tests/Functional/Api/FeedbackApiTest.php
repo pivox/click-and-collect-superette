@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\CustomerShop;
 use App\Entity\FeedbackEntry;
+use App\Enum\CustomerShopSource;
 
 final class FeedbackApiTest extends FunctionalApiTestCase
 {
@@ -137,5 +139,84 @@ final class FeedbackApiTest extends FunctionalApiTestCase
             'appArea' => 'client',
         ], $customer);
         self::assertSame(422, $tooLongResponse->getStatusCode(), (string) $tooLongResponse->getContent());
+    }
+
+    public function testMerchantCannotAttachFeedbackToAnotherMerchantShop(): void
+    {
+        $admin = $this->createUser('admin-feedback-merchant-shop@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createUser('merchant-feedback-own-shop@example.test', ['ROLE_MERCHANT']);
+        $otherMerchant = $this->createUser('merchant-feedback-other-shop@example.test', ['ROLE_MERCHANT']);
+        $ownShop = $this->createShop($merchant);
+        $otherShop = $this->createShop($otherMerchant);
+
+        $this->requestJson('PUT', '/api/admin/feedback/settings', [
+            'globalEnabled' => true,
+            'clientEnabled' => true,
+            'merchantEnabled' => true,
+            'adminEnabled' => true,
+            'clientAreaEnabled' => true,
+            'merchantAreaEnabled' => true,
+            'adminAreaEnabled' => true,
+        ], $admin);
+
+        $forbiddenResponse = $this->requestJson('POST', '/api/feedback', [
+            'type' => 'bug',
+            'message' => 'Le contexte supérette ne doit pas viser un autre marchand.',
+            'appArea' => 'merchant',
+            'shopId' => $otherShop->getId()->toRfc4122(),
+        ], $merchant);
+        self::assertSame(403, $forbiddenResponse->getStatusCode(), (string) $forbiddenResponse->getContent());
+        self::assertCount(0, $this->entityManager->getRepository(FeedbackEntry::class)->findAll());
+
+        $allowedResponse = $this->requestJson('POST', '/api/feedback', [
+            'type' => 'bug',
+            'message' => 'Le contexte supérette du marchand reste accepté.',
+            'appArea' => 'merchant',
+            'shopId' => $ownShop->getId()->toRfc4122(),
+        ], $merchant);
+        self::assertSame(201, $allowedResponse->getStatusCode(), (string) $allowedResponse->getContent());
+    }
+
+    public function testCustomerCannotAttachFeedbackToUnlinkedShop(): void
+    {
+        $admin = $this->createUser('admin-feedback-customer-shop@example.test', ['ROLE_ADMIN']);
+        $customer = $this->createUser('customer-feedback-linked-shop@example.test', ['ROLE_CUSTOMER']);
+        $merchant = $this->createUser('merchant-feedback-linked-shop@example.test', ['ROLE_MERCHANT']);
+        $linkedShop = $this->createShop($merchant);
+        $unlinkedShop = $this->createShop($merchant);
+
+        $relation = (new CustomerShop())
+            ->setCustomer($customer)
+            ->setShop($linkedShop)
+            ->setSource(CustomerShopSource::QrCode);
+        $this->entityManager->persist($relation);
+        $this->entityManager->flush();
+
+        $this->requestJson('PUT', '/api/admin/feedback/settings', [
+            'globalEnabled' => true,
+            'clientEnabled' => true,
+            'merchantEnabled' => true,
+            'adminEnabled' => true,
+            'clientAreaEnabled' => true,
+            'merchantAreaEnabled' => true,
+            'adminAreaEnabled' => true,
+        ], $admin);
+
+        $forbiddenResponse = $this->requestJson('POST', '/api/feedback', [
+            'type' => 'confusing',
+            'message' => 'Le contexte supérette ne doit pas viser une supérette non liée.',
+            'appArea' => 'client',
+            'shopId' => $unlinkedShop->getId()->toRfc4122(),
+        ], $customer);
+        self::assertSame(403, $forbiddenResponse->getStatusCode(), (string) $forbiddenResponse->getContent());
+        self::assertCount(0, $this->entityManager->getRepository(FeedbackEntry::class)->findAll());
+
+        $allowedResponse = $this->requestJson('POST', '/api/feedback', [
+            'type' => 'confusing',
+            'message' => 'Le contexte supérette liée du client reste accepté.',
+            'appArea' => 'client',
+            'shopId' => $linkedShop->getId()->toRfc4122(),
+        ], $customer);
+        self::assertSame(201, $allowedResponse->getStatusCode(), (string) $allowedResponse->getContent());
     }
 }
