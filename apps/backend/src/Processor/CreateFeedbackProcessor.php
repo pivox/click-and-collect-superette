@@ -58,6 +58,10 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
         }
 
         $appArea = FeedbackAppArea::from((string) $data->appArea);
+        $userRole = $this->feedbackSettingsManager->userRole($user);
+        if ($userRole !== $appArea->value) {
+            throw new AccessDeniedHttpException('FEEDBACK_AREA_FORBIDDEN');
+        }
         if (!$this->feedbackSettingsManager->isEnabledFor($user, $appArea)) {
             throw new AccessDeniedHttpException('FEEDBACK_DISABLED');
         }
@@ -71,7 +75,7 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
             message: $message,
             appArea: $appArea,
             appSubArea: $this->normalizeNullableString($data->appSubArea, 100),
-            userRole: $this->feedbackSettingsManager->userRole($user),
+            userRole: $userRole,
             user: $user,
             shop: $this->resolveShop($data->shopId, $user),
             pageUrl: $this->normalizeNullableString($data->pageUrl, 2048),

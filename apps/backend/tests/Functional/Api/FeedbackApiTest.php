@@ -153,6 +153,13 @@ final class FeedbackApiTest extends FunctionalApiTestCase
             'appArea' => 'client',
         ], $customer);
         self::assertSame(422, $tooLongResponse->getStatusCode(), (string) $tooLongResponse->getContent());
+
+        $mismatchedAreaResponse = $this->requestJson('POST', '/api/feedback', [
+            'type' => 'bug',
+            'message' => 'Le client ne doit pas pouvoir cibler la zone admin.',
+            'appArea' => 'admin',
+        ], $customer);
+        self::assertSame(403, $mismatchedAreaResponse->getStatusCode(), (string) $mismatchedAreaResponse->getContent());
     }
 
     public function testMerchantCannotAttachFeedbackToAnotherMerchantShop(): void

@@ -29,6 +29,37 @@ vi.mock('@/lib/services/merchant-slots.service', () => ({
   listMerchantSlots: vi.fn(),
 }));
 
+vi.mock('@/lib/i18n/MerchantLocaleContext', () => ({
+  useMerchantLocale: () => ({
+    locale: 'ar',
+    dir: 'rtl',
+    setLocale: vi.fn(),
+    t: (key: string) => key,
+  }),
+}));
+
+vi.mock('@/components/feedback/FeedbackProvider', () => ({
+  FeedbackProvider: ({
+    appArea,
+    enabled,
+    shopId,
+    locale,
+  }: {
+    appArea: string;
+    enabled: boolean;
+    shopId?: string | null;
+    locale?: string;
+  }) => (
+    <div
+      data-testid="merchant-feedback-provider"
+      data-app-area={appArea}
+      data-enabled={String(enabled)}
+      data-shop-id={shopId ?? ''}
+      data-locale={locale ?? ''}
+    />
+  ),
+}));
+
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -90,6 +121,16 @@ describe('MerchantShell', () => {
 
     expect(await screen.findByText('Contenu marchand')).toBeInTheDocument();
     expect(listMerchantNotifications).toHaveBeenCalledWith({ unread: true });
+  });
+
+  it('passes the active merchant locale to feedback', () => {
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+
+    const provider = screen.getByTestId('merchant-feedback-provider');
+    expect(provider).toHaveAttribute('data-app-area', 'merchant');
+    expect(provider).toHaveAttribute('data-enabled', 'true');
+    expect(provider).toHaveAttribute('data-shop-id', 'store-1');
+    expect(provider).toHaveAttribute('data-locale', 'ar');
   });
 
   it('renders Catalogue as the active merchant navigation link', async () => {
