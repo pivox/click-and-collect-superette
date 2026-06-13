@@ -25,6 +25,7 @@ const AUTH_ROUTES = new Set([
   '/reset-password',
   '/merchant/login',
   '/admin/login',
+  '/offline',
 ]);
 
 const FEEDBACK_LABELS = {
