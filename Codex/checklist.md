@@ -3,8 +3,9 @@
 ## Avant modification
 
 - [ ] `AGENTS.md` lu.
-- [ ] `AI_CONTEXT.md` lu (MVP scope, vocabulaire, statuts de commande, entités).
-- [ ] Documentation métier pertinente dans `docs/product/` lue.
+- [ ] `AI_CONTEXT.md` lu comme source prioritaire de l'état courant, du MVP scope, du vocabulaire, des statuts de commande et des entités.
+- [ ] `README.md` lu.
+- [ ] Documentation métier, sprint ou roadmap pertinente lue.
 - [ ] Hypothèses listées.
 
 ## Code Symfony/API Platform
@@ -29,6 +30,7 @@
 - [ ] Changement petit et relisible.
 - [ ] Pas de dépendance inutile.
 - [ ] Pas de résultat de test inventé.
+- [ ] Commandes PHP/Symfony/Composer exécutées via Docker Compose ou `make` si elles sont nécessaires.
 - [ ] Markdown lisible si documentation.
 
 ## Réponse finale Codex
