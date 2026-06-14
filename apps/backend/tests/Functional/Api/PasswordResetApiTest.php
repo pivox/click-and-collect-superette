@@ -109,6 +109,23 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         self::assertNull($this->tokenSender()->tokenFor('missing.reset-token@example.test'));
     }
 
+    public function testPasswordResetRequestIgnoresSuspendedAccount(): void
+    {
+        $merchant = $this->createUser('merchant.suspended@example.test', ['ROLE_MERCHANT']);
+        $merchant->setActive(false);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', '/api/auth/password-reset/request', [
+            'email' => 'merchant.suspended@example.test',
+        ]);
+
+        // Neutral response, but no token for a suspended (inactive) account.
+        self::assertSame(Response::HTTP_ACCEPTED, $response->getStatusCode());
+        self::assertSame(['message' => PasswordResetRequestProcessor::NEUTRAL_MESSAGE], $this->decodeJson($response));
+        self::assertCount(0, $this->allTokens());
+        self::assertNull($this->tokenSender()->tokenFor('merchant.suspended@example.test'));
+    }
+
     public function testMerchantCanResetPasswordEndToEnd(): void
     {
         $merchant = $this->createUser('merchant.reset-e2e@example.test', ['ROLE_MERCHANT']);

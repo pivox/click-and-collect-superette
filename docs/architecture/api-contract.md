@@ -246,7 +246,8 @@ Règles :
 
 - la demande retourne toujours `202`, email connu ou inconnu ;
 - le token est créé pour tout compte actif existant (client, marchand ou admin) ;
-- aucun token n'est créé pour un email inconnu ou un compte supprimé ;
+- aucun token n'est créé pour un email inconnu, un compte supprimé ou suspendu (inactif) ;
+- le lien de réinitialisation porte le portail d'origine (`&portal=merchant|admin`) pour ramener l'utilisateur au bon écran de connexion ;
 - le token brut n'est jamais stocké en base ;
 - seul le hash du token est persisté ;
 - le token expire après 1 heure par défaut ;

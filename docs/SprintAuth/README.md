@@ -211,7 +211,7 @@ Règles livrées :
 - réponse neutre pour email existant ou inexistant ;
 - email trimé et normalisé avant recherche ;
 - token créé pour tout compte actif existant (client, marchand ou admin) ;
-- aucun token pour un email inconnu ou un compte supprimé ;
+- aucun token pour un email inconnu, un compte supprimé ou suspendu (inactif) ;
 - un nouveau reset consomme les anciens tokens actifs du même utilisateur ;
 - token brut transmis au service d'envoi, token hashé en base.
 

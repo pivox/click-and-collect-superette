@@ -51,8 +51,10 @@ final readonly class PasswordResetRequestProcessor implements ProcessorInterface
         $user = $this->userRepository->findOneBy(['email' => $email]);
 
         // Reset is available to every active account (customer, merchant, admin).
-        // The token/confirm flow is role-agnostic; only soft-deleted accounts are excluded.
-        if (null !== $user && null === $user->getDeletedAt()) {
+        // The token/confirm flow is role-agnostic; soft-deleted and suspended
+        // (inactive) accounts are excluded so a disabled account cannot churn its
+        // credentials while the rest of the app rejects it (MERCHANT_ACCOUNT_INACTIVE).
+        if (null !== $user && null === $user->getDeletedAt() && $user->isActive()) {
             try {
                 $rawToken = $this->tokenManager->createForUser($user);
                 $this->entityManager->flush();

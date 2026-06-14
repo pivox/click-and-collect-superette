@@ -7,11 +7,15 @@ import { isAxiosError } from 'axios';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useHydrated } from '@/lib/hooks/useHydrated';
+import { loginHrefForPortal } from '@/lib/auth/loginPortal';
 import { confirmPasswordReset } from '@/lib/services/auth.service';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
+  // The emailed reset link carries the portal so the post-reset screen can send
+  // the user back to the right login (customer / merchant / admin).
+  const loginHref = loginHrefForPortal(searchParams.get('portal'));
   const isHydrated = useHydrated();
 
   const [password, setPassword] = useState('');
@@ -89,9 +93,15 @@ function ResetPasswordForm() {
           </span>
           <h1 className="mt-1 text-h2 font-black">Mot de passe mis à jour</h1>
         </div>
-        <p className="text-center text-sm text-muted">
+        <p className="mb-4 text-center text-sm text-muted">
           Votre mot de passe a été mis à jour. Vous pouvez maintenant vous connecter.
         </p>
+        <Link
+          href={loginHref}
+          className="block text-center text-sm font-extrabold text-primary hover:underline"
+        >
+          Aller à la connexion
+        </Link>
       </Card>
     );
   }

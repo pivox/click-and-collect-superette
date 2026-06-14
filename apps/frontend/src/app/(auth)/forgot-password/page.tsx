@@ -6,21 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useHydrated } from '@/lib/hooks/useHydrated';
+import { loginHrefForPortal } from '@/lib/auth/loginPortal';
 import { requestPasswordReset } from '@/lib/services/auth.service';
-
-// The reset flow is shared by the customer, merchant and admin portals.
-// The optional `portal` query param keeps the "back to login" link pointing
-// to the portal the user came from (defaults to the customer login).
-function loginHrefForPortal(portal: string | null): string {
-  switch (portal) {
-    case 'admin':
-      return '/admin/login';
-    case 'merchant':
-      return '/merchant/login';
-    default:
-      return '/login';
-  }
-}
 
 function ForgotPasswordForm() {
   const searchParams = useSearchParams();
