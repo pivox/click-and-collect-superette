@@ -107,7 +107,7 @@ export default function AdminLoginPage() {
 
           <p className="text-center text-sm">
             <Link
-              href="/forgot-password"
+              href="/forgot-password?portal=admin"
               className="font-semibold text-muted hover:text-primary hover:underline"
             >
               Mot de passe oublié ?

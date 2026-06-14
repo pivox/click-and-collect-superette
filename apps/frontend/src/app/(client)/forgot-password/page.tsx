@@ -1,13 +1,30 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { Suspense, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useHydrated } from '@/lib/hooks/useHydrated';
 import { requestPasswordReset } from '@/lib/services/auth.service';
 
-export default function ForgotPasswordPage() {
+// The reset flow is shared by the customer, merchant and admin portals.
+// The optional `portal` query param keeps the "back to login" link pointing
+// to the portal the user came from (defaults to the customer login).
+function loginHrefForPortal(portal: string | null): string {
+  switch (portal) {
+    case 'admin':
+      return '/admin/login';
+    case 'merchant':
+      return '/merchant/login';
+    default:
+      return '/login';
+  }
+}
+
+function ForgotPasswordForm() {
+  const searchParams = useSearchParams();
+  const loginHref = loginHrefForPortal(searchParams.get('portal'));
   const isHydrated = useHydrated();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,7 +62,7 @@ export default function ForgotPasswordPage() {
               a été envoyé. Vérifie ta boîte mail.
             </p>
             <Link
-              href="/login"
+              href={loginHref}
               className="block text-sm font-extrabold text-primary hover:underline"
             >
               Retour à la connexion
@@ -79,7 +96,7 @@ export default function ForgotPasswordPage() {
             </Button>
 
             <p className="text-center text-sm text-muted">
-              <Link href="/login" className="font-extrabold text-primary hover:underline">
+              <Link href={loginHref} className="font-extrabold text-primary hover:underline">
                 Retour à la connexion
               </Link>
             </p>
@@ -87,5 +104,13 @@ export default function ForgotPasswordPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense>
+      <ForgotPasswordForm />
+    </Suspense>
   );
 }

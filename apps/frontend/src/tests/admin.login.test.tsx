@@ -59,6 +59,6 @@ describe('AdminLoginPage', () => {
     render(<AdminLoginPage />);
 
     const link = screen.getByRole('link', { name: 'Mot de passe oublié ?' });
-    expect(link).toHaveAttribute('href', '/forgot-password');
+    expect(link).toHaveAttribute('href', '/forgot-password?portal=admin');
   });
 });
