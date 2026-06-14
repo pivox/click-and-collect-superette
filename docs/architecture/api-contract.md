@@ -252,6 +252,7 @@ Règles :
 - seul le hash du token est persisté ;
 - le token expire après 1 heure par défaut ;
 - le token est à usage unique ;
+- la confirmation revérifie l'éligibilité du compte (actif et non supprimé) : un token émis avant une suspension/suppression est refusé (`AUTH_RESET_TOKEN_INVALID`) ;
 - un nouveau reset invalide les anciens tokens actifs du même utilisateur ;
 - le nouveau mot de passe est hashé ;
 - l'ancien mot de passe ne permet plus la connexion après reset.

@@ -245,6 +245,7 @@ Règles livrées :
 - token expiré après 1 heure par défaut (`app.password_reset_token_ttl: 3600`) ;
 - token à usage unique ;
 - token inconnu, expiré ou déjà consommé refusé ;
+- token d'un compte suspendu ou supprimé (après émission) refusé (revérification d'éligibilité à la confirmation) ;
 - nouveau mot de passe hashé avec le password hasher Symfony ;
 - connexion possible avec le nouveau mot de passe ;
 - ancien mot de passe refusé après reset.

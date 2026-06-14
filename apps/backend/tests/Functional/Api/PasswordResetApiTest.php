@@ -126,6 +126,40 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         self::assertNull($this->tokenSender()->tokenFor('merchant.suspended@example.test'));
     }
 
+    public function testConfirmIsRejectedWhenAccountSuspendedAfterTokenIssued(): void
+    {
+        $merchant = $this->createUser('merchant.suspend-after@example.test', ['ROLE_MERCHANT']);
+        $merchant->setPassword(
+            self::getContainer()->get(UserPasswordHasherInterface::class)->hashPassword($merchant, 'secret123'),
+        );
+        $this->entityManager->flush();
+
+        // Token issued while the account is still active.
+        $rawToken = $this->createResetToken($merchant);
+
+        // Account is suspended before the emailed link is used.
+        $merchant->setActive(false);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', '/api/auth/password-reset/confirm', [
+            'token' => $rawToken,
+            'new_password' => 'newSecret123',
+        ]);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+        self::assertStringContainsString('AUTH_RESET_TOKEN_INVALID', (string) $response->getContent());
+
+        // Password is unchanged: the original one still authenticates after re-activation.
+        $merchant->setActive(true);
+        $this->entityManager->flush();
+
+        $loginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant.suspend-after@example.test',
+            'password' => 'secret123',
+        ]);
+        self::assertSame(Response::HTTP_OK, $loginResponse->getStatusCode());
+    }
+
     public function testMerchantCanResetPasswordEndToEnd(): void
     {
         $merchant = $this->createUser('merchant.reset-e2e@example.test', ['ROLE_MERCHANT']);
