@@ -2,12 +2,12 @@
 
 ## Workflow 1 — Implémentation Symfony/API Platform
 
-1. Lire `AGENTS.md`, `AI_CONTEXT.md` et la documentation métier concernée.
+1. Lire `AGENTS.md`, `AI_CONTEXT.md`, `README.md` et la documentation métier, sprint ou roadmap concernée.
 2. Identifier les entités, DTO, opérations API et règles de sécurité.
 3. Implémenter par petits commits logiques.
 4. Ajouter ou mettre à jour les migrations Doctrine.
 5. Ajouter tests unitaires ou fonctionnels.
-6. Lancer les vérifications disponibles.
+6. Lancer les vérifications disponibles via Docker Compose ou les cibles `make`.
 7. Résumer les changements et limites.
 
 ## Workflow 2 — Nouvelle ressource API
@@ -51,12 +51,12 @@ Quand deux routes exposent deux jeux de données différents :
 2. Identifier la cause racine.
 3. Modifier le minimum nécessaire.
 4. Ajouter un test de non-régression.
-5. Lancer les vérifications disponibles.
+5. Lancer les vérifications disponibles via Docker Compose ou les cibles `make`.
 6. Expliquer le risque restant.
 
 ## Workflow 6 — Revue de PR
 
-1. Lire le contexte métier.
+1. Lire `AI_CONTEXT.md` comme source de l'état projet courant, puis le contexte métier concerné.
 2. Vérifier MVP scope.
 3. Vérifier sécurité par rôle.
 4. Vérifier cohérence API.

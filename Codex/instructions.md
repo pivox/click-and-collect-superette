@@ -6,10 +6,12 @@ Transformer le cadrage produit en code maintenable, testé et compatible Symfony
 
 ## Règles générales
 
-- Lire `AGENTS.md` et `AI_CONTEXT.md` avant d'agir (MVP scope, vocabulaire, statuts, entités y sont définis).
+- Lire `AGENTS.md`, puis `AI_CONTEXT.md` avant d'agir. `AI_CONTEXT.md` est la source prioritaire pour l'état courant du projet, le périmètre MVP, le vocabulaire métier, les statuts et les entités.
+- Lire ensuite `README.md` et la documentation produit, sprint ou roadmap pertinente avant toute PR.
 - Favoriser des changements petits et faciles à relire.
 - Ne pas inventer de dépendances, commandes ou résultats de tests.
 - Ne pas modifier plusieurs domaines métier sans raison claire.
+- Exécuter les commandes PHP/Symfony/Composer via Docker Compose ou les cibles `make` du dépôt, pas via le PHP hôte.
 
 ## Règles de développement
 
