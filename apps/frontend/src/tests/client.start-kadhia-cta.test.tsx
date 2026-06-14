@@ -54,6 +54,7 @@ describe('StartKadhiaCta', () => {
 
   it('navigue vers le catalogue au clic sans conflit', async () => {
     render(<StartKadhiaCta shop={SHOP} />);
+    await waitFor(() => expect(screen.getByRole('button')).toBeEnabled());
     act(() => screen.getByRole('button').click());
     await waitFor(() => expect(push).toHaveBeenCalledWith('/stores/shop-1/catalog'));
   });
@@ -64,6 +65,7 @@ describe('StartKadhiaCta', () => {
     });
     vi.mocked(hasActiveKadhia).mockReturnValue(true);
     render(<StartKadhiaCta shop={SHOP} />);
+    await waitFor(() => expect(screen.getByRole('button')).toBeEnabled());
     act(() => screen.getByRole('button').click());
     await waitFor(() => expect(screen.getByText('Changer de supérette ?')).toBeTruthy());
   });
@@ -74,6 +76,7 @@ describe('StartKadhiaCta', () => {
     });
     vi.mocked(hasActiveKadhia).mockReturnValue(true);
     render(<StartKadhiaCta shop={SHOP} />);
+    await waitFor(() => expect(screen.getByRole('button')).toBeEnabled());
     act(() => screen.getByRole('button').click());
     await waitFor(() => screen.getByRole('button', { name: 'Changer quand même' }));
     act(() => screen.getByRole('button', { name: 'Changer quand même' }).click());
@@ -87,6 +90,7 @@ describe('StartKadhiaCta', () => {
     });
     vi.mocked(hasActiveKadhia).mockReturnValue(true);
     render(<StartKadhiaCta shop={SHOP} />);
+    await waitFor(() => expect(screen.getByRole('button')).toBeEnabled());
     act(() => screen.getByRole('button').click());
     await waitFor(() => screen.getByRole('button', { name: 'Annuler' }));
     act(() => screen.getByRole('button', { name: 'Annuler' }).click());
@@ -96,6 +100,15 @@ describe('StartKadhiaCta', () => {
   });
 
   // ─── CTA contextuel (P0 — continuer une Kadhia draft) ──────────────────────
+
+  it('reste désactivé tant que le décompte des drafts n’est pas résolu', async () => {
+    let resolve!: (count: number) => void;
+    vi.mocked(countStoreDraftKadhias).mockReturnValue(new Promise((r) => { resolve = r; }));
+    render(<StartKadhiaCta shop={SHOP} />);
+    expect(screen.getByRole('button')).toBeDisabled();
+    act(() => resolve(0));
+    await waitFor(() => expect(screen.getByRole('button')).toBeEnabled());
+  });
 
   it('aucune draft : le bouton reste "Commencer ma Kadhia" et navigue vers le catalogue', async () => {
     vi.mocked(countStoreDraftKadhias).mockResolvedValue(0);

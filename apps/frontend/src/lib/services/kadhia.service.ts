@@ -277,8 +277,11 @@ export async function getCurrentKadhia(shopId: string): Promise<KadhiaResult> {
  * can drive the contextual CTA ("Commencer" vs "Continuer"/"Reprendre") safely.
  *
  * Mock mode reads the in-memory mock without writing it (0 or 1).
- * Real mode lists the store kadhias; 401 (anonymous visitor) / 404 / 405 → 0,
- * other errors propagate so the caller can fall back gracefully.
+ * Real mode asks the API for the draft-filtered count: status=draft returns an
+ * accurate `total` regardless of pagination (the collection is paged at 20, so
+ * filtering client-side on page 1 would miss drafts hidden behind submitted ones).
+ * 401 (anonymous visitor) / 404 / 405 → 0, other errors propagate so the caller
+ * can fall back gracefully.
  */
 export async function countStoreDraftKadhias(shopId: string): Promise<number> {
   if (USE_MOCKS) {
@@ -288,10 +291,10 @@ export async function countStoreDraftKadhias(shopId: string): Promise<number> {
 
   try {
     const { data } = await apiClient.get<{ items: ApiListItem[]; total: number }>(
-      `/api/me/stores/${shopId}/kadhias`,
+      `/api/me/stores/${shopId}/kadhias?status=draft`,
       { skipAuthRedirect: true },
     );
-    return data.items.filter((k) => k.status === "draft").length;
+    return data.total;
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } }).response?.status;
     if (status === 401 || status === 404 || status === 405) return 0;

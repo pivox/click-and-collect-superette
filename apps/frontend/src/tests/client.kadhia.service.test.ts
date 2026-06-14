@@ -126,22 +126,19 @@ describe('listMyKadhias', () => {
 describe('countStoreDraftKadhias', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('compte uniquement les Kadhia en statut draft de la supérette', async () => {
+  it('demande le décompte filtré status=draft et retourne le total (robuste à la pagination)', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
       data: {
-        items: [
-          { ...RAW_LIST_ITEM, id: 'k-1', status: 'draft' },
-          { ...RAW_LIST_ITEM, id: 'k-2', status: 'submitted' },
-          { ...RAW_LIST_ITEM, id: 'k-3', status: 'draft' },
-        ],
-        total: 3,
+        // total reflète l'ensemble des drafts, pas seulement la page courante
+        items: [{ ...RAW_LIST_ITEM, id: 'k-1', status: 'draft' }],
+        total: 23,
       },
     });
 
     const count = await countStoreDraftKadhias('store-1');
 
-    expect(apiClient.get).toHaveBeenCalledWith('/api/me/stores/store-1/kadhias', { skipAuthRedirect: true });
-    expect(count).toBe(2);
+    expect(apiClient.get).toHaveBeenCalledWith('/api/me/stores/store-1/kadhias?status=draft', { skipAuthRedirect: true });
+    expect(count).toBe(23);
   });
 
   it('retourne 0 pour un visiteur anonyme (401)', async () => {

@@ -93,7 +93,9 @@ export function StartKadhiaCta({ shop }: StartKadhiaCtaProps) {
       <button
         type="button"
         onClick={handleClick}
-        disabled={isNavigating}
+        // Disabled until the draft count resolves: clicking early would route to
+        // the catalog even for ≥2 drafts (where the target should be /kadhia).
+        disabled={isNavigating || draftCount === null}
         aria-busy={draftCount === null}
         className={getButtonClassName({ full: true })}
       >
