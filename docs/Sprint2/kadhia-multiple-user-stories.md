@@ -66,6 +66,27 @@ Voir US-022-A pour le parcours client après acceptation partielle.
 
 ---
 
+## CTA principal contextuel — reprendre une Kadhia draft
+
+Règle UX (P0 — issue #527) : **le CTA principal de la fiche supérette reprend une Kadhia
+draft existante avant d'en créer une nouvelle.** Le bouton ne crée jamais de Kadhia : la
+création reste explicite (ajout d'un produit / bouton « Commencer » du catalogue). Le
+décompte des drafts est purement en lecture (`GET /api/me/stores/{storeId}/kadhias`,
+filtré sur `status === "draft"`).
+
+| Drafts de la supérette | Libellé du bouton | Au clic |
+| --- | --- | --- |
+| 0 | « Commencer ma Kadhia » | Ouvre le catalogue (création explicite si ajout) |
+| 1 | « Continuer ma Kadhia » | Ouvre le catalogue (la draft unique est auto-activée) |
+| ≥ 2 | « Reprendre une Kadhia » | Ouvre « Mes Kadhia » (onglet « En cours ») pour choisir |
+
+Le modèle multi-Kadhia est préservé : aucune fusion ni suppression automatique, les Kadhia
+`submitted` restent visibles, et la création d'une nouvelle Kadhia reste possible quand
+aucune draft exploitable n'existe. En cas d'erreur réseau du décompte, le bouton retombe sur
+« Commencer ma Kadhia » sans créer de Kadhia fantôme.
+
+---
+
 ## US-003-A — Créer une Kadhia
 
 ### En tant que

@@ -10,7 +10,7 @@ vi.mock('@/lib/services', async (importOriginal) => {
   return { ...actual, USE_MOCKS: false };
 });
 
-import { createKadhiaShareLink, joinKadhiaShareLink, listMyKadhias } from '@/lib/services/kadhia.service';
+import { countStoreDraftKadhias, createKadhiaShareLink, joinKadhiaShareLink, listMyKadhias } from '@/lib/services/kadhia.service';
 
 const RAW_LIST_ITEM = {
   id: 'k-1',
@@ -120,6 +120,40 @@ describe('listMyKadhias', () => {
     const result = await listMyKadhias();
 
     expect(result.items[0].notes).toBeUndefined();
+  });
+});
+
+describe('countStoreDraftKadhias', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('compte uniquement les Kadhia en statut draft de la supérette', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        items: [
+          { ...RAW_LIST_ITEM, id: 'k-1', status: 'draft' },
+          { ...RAW_LIST_ITEM, id: 'k-2', status: 'submitted' },
+          { ...RAW_LIST_ITEM, id: 'k-3', status: 'draft' },
+        ],
+        total: 3,
+      },
+    });
+
+    const count = await countStoreDraftKadhias('store-1');
+
+    expect(apiClient.get).toHaveBeenCalledWith('/api/me/stores/store-1/kadhias', { skipAuthRedirect: true });
+    expect(count).toBe(2);
+  });
+
+  it('retourne 0 pour un visiteur anonyme (401)', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue({ response: { status: 401 } });
+
+    expect(await countStoreDraftKadhias('store-1')).toBe(0);
+  });
+
+  it('propage les autres erreurs réseau', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue({ response: { status: 500 } });
+
+    await expect(countStoreDraftKadhias('store-1')).rejects.toEqual({ response: { status: 500 } });
   });
 });
 

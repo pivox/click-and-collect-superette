@@ -272,6 +272,34 @@ export async function getCurrentKadhia(shopId: string): Promise<KadhiaResult> {
 }
 
 /**
+ * Counts the draft Kadhias the customer already has for a store.
+ * Read-only on purpose: unlike getCurrentKadhia it never creates a Kadhia, so it
+ * can drive the contextual CTA ("Commencer" vs "Continuer"/"Reprendre") safely.
+ *
+ * Mock mode reads the in-memory mock without writing it (0 or 1).
+ * Real mode lists the store kadhias; 401 (anonymous visitor) / 404 / 405 → 0,
+ * other errors propagate so the caller can fall back gracefully.
+ */
+export async function countStoreDraftKadhias(shopId: string): Promise<number> {
+  if (USE_MOCKS) {
+    const existing = readMock();
+    return mockDelay(existing?.shopId === shopId && existing.status === "draft" ? 1 : 0);
+  }
+
+  try {
+    const { data } = await apiClient.get<{ items: ApiListItem[]; total: number }>(
+      `/api/me/stores/${shopId}/kadhias`,
+      { skipAuthRedirect: true },
+    );
+    return data.items.filter((k) => k.status === "draft").length;
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+    if (status === 401 || status === 404 || status === 405) return 0;
+    throw err;
+  }
+}
+
+/**
  * Adds or updates a line in the active Kadhia.
  * `absoluteQty` is the desired final quantity (caller computes existing + 1 for increments).
  * The PUT endpoint returns the full updated Kadhia — no extra GET needed.
