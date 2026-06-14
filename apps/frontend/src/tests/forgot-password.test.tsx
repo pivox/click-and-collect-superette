@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ForgotPasswordPage from '@/app/(client)/forgot-password/page';
+import ForgotPasswordPage from '@/app/(auth)/forgot-password/page';
 
 const searchParams = { value: new URLSearchParams() };
 
