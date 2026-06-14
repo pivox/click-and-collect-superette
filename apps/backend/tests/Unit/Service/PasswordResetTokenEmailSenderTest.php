@@ -29,6 +29,36 @@ final class PasswordResetTokenEmailSenderTest extends TestCase
             'https://app.kadhia.test/reset-password?token=raw+token+%2B+symbols',
             $sender->sent[0]->text,
         );
+        // Customers use the default login: no portal hint in the link.
+        self::assertStringNotContainsString('portal=', $sender->sent[0]->text);
+    }
+
+    public function testAppendsMerchantPortalToResetLink(): void
+    {
+        $sender = new CapturingTransactionalEmailSender();
+        $user = (new User())
+            ->setEmail('merchant@example.test')
+            ->setName('Merchant Test')
+            ->setRoles(['ROLE_MERCHANT'])
+            ->setPassword('secret');
+
+        (new PasswordResetTokenEmailSender('https://app.kadhia.test', $sender))->send($user, 'tok');
+
+        self::assertStringContainsString('/reset-password?token=tok&portal=merchant', $sender->sent[0]->text);
+    }
+
+    public function testAppendsAdminPortalToResetLink(): void
+    {
+        $sender = new CapturingTransactionalEmailSender();
+        $user = (new User())
+            ->setEmail('admin@example.test')
+            ->setName('Admin Test')
+            ->setRoles(['ROLE_ADMIN'])
+            ->setPassword('secret');
+
+        (new PasswordResetTokenEmailSender('https://app.kadhia.test', $sender))->send($user, 'tok');
+
+        self::assertStringContainsString('/reset-password?token=tok&portal=admin', $sender->sent[0]->text);
     }
 }
 

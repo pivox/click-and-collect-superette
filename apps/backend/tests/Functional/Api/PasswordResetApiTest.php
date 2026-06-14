@@ -71,10 +71,11 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         self::assertSame($knownResponse->getContent(), $unknownResponse->getContent());
     }
 
-    public function testPasswordResetRequestCreatesTokenOnlyForExistingCustomer(): void
+    public function testPasswordResetRequestCreatesTokenForCustomerMerchantAndAdmin(): void
     {
         $this->createCustomer('client.reset-token@example.test');
         $this->createUser('merchant.reset-token@example.test', ['ROLE_MERCHANT']);
+        $this->createUser('admin.reset-token@example.test', ['ROLE_ADMIN']);
 
         $this->requestJson('POST', '/api/auth/password-reset/request', [
             'email' => 'client.reset-token@example.test',
@@ -85,12 +86,146 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         $this->requestJson('POST', '/api/auth/password-reset/request', [
             'email' => 'merchant.reset-token@example.test',
         ]);
+        $this->requestJson('POST', '/api/auth/password-reset/request', [
+            'email' => 'admin.reset-token@example.test',
+        ]);
 
+        // A token is created for every existing account, regardless of role.
         $tokens = $this->allTokens();
-        self::assertCount(1, $tokens);
-        self::assertSame('client.reset-token@example.test', $tokens[0]->getUser()->getEmail());
+        self::assertCount(3, $tokens);
+
+        $tokenEmails = array_map(
+            static fn (PasswordResetToken $token): string => $token->getUser()->getEmail(),
+            $tokens,
+        );
+        self::assertContains('client.reset-token@example.test', $tokenEmails);
+        self::assertContains('merchant.reset-token@example.test', $tokenEmails);
+        self::assertContains('admin.reset-token@example.test', $tokenEmails);
+
         self::assertIsString($this->tokenSender()->tokenFor('client.reset-token@example.test'));
-        self::assertNull($this->tokenSender()->tokenFor('merchant.reset-token@example.test'));
+        self::assertIsString($this->tokenSender()->tokenFor('merchant.reset-token@example.test'));
+        self::assertIsString($this->tokenSender()->tokenFor('admin.reset-token@example.test'));
+        // Unknown email never produces a token (no account enumeration).
+        self::assertNull($this->tokenSender()->tokenFor('missing.reset-token@example.test'));
+    }
+
+    public function testPasswordResetRequestIgnoresSuspendedAccount(): void
+    {
+        $merchant = $this->createUser('merchant.suspended@example.test', ['ROLE_MERCHANT']);
+        $merchant->setActive(false);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', '/api/auth/password-reset/request', [
+            'email' => 'merchant.suspended@example.test',
+        ]);
+
+        // Neutral response, but no token for a suspended (inactive) account.
+        self::assertSame(Response::HTTP_ACCEPTED, $response->getStatusCode());
+        self::assertSame(['message' => PasswordResetRequestProcessor::NEUTRAL_MESSAGE], $this->decodeJson($response));
+        self::assertCount(0, $this->allTokens());
+        self::assertNull($this->tokenSender()->tokenFor('merchant.suspended@example.test'));
+    }
+
+    public function testConfirmIsRejectedWhenAccountSuspendedAfterTokenIssued(): void
+    {
+        $merchant = $this->createUser('merchant.suspend-after@example.test', ['ROLE_MERCHANT']);
+        $merchant->setPassword(
+            self::getContainer()->get(UserPasswordHasherInterface::class)->hashPassword($merchant, 'secret123'),
+        );
+        $this->entityManager->flush();
+
+        // Token issued while the account is still active.
+        $rawToken = $this->createResetToken($merchant);
+
+        // Account is suspended before the emailed link is used.
+        $merchant->setActive(false);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', '/api/auth/password-reset/confirm', [
+            'token' => $rawToken,
+            'new_password' => 'newSecret123',
+        ]);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+        self::assertStringContainsString('AUTH_RESET_TOKEN_INVALID', (string) $response->getContent());
+
+        // Password is unchanged: the original one still authenticates after re-activation.
+        $merchant->setActive(true);
+        $this->entityManager->flush();
+
+        $loginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant.suspend-after@example.test',
+            'password' => 'secret123',
+        ]);
+        self::assertSame(Response::HTTP_OK, $loginResponse->getStatusCode());
+    }
+
+    public function testMerchantCanResetPasswordEndToEnd(): void
+    {
+        $merchant = $this->createUser('merchant.reset-e2e@example.test', ['ROLE_MERCHANT']);
+        $merchant->setPassword(
+            self::getContainer()->get(UserPasswordHasherInterface::class)->hashPassword($merchant, 'secret123'),
+        );
+        $this->entityManager->flush();
+
+        $this->requestJson('POST', '/api/auth/password-reset/request', [
+            'email' => 'merchant.reset-e2e@example.test',
+        ]);
+
+        $rawToken = $this->tokenSender()->tokenFor('merchant.reset-e2e@example.test');
+        self::assertIsString($rawToken);
+
+        $confirmResponse = $this->requestJson('POST', '/api/auth/password-reset/confirm', [
+            'token' => $rawToken,
+            'new_password' => 'newSecret123',
+        ]);
+        self::assertSame(Response::HTTP_NO_CONTENT, $confirmResponse->getStatusCode());
+
+        $newLoginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant.reset-e2e@example.test',
+            'password' => 'newSecret123',
+        ]);
+        $oldLoginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant.reset-e2e@example.test',
+            'password' => 'secret123',
+        ]);
+
+        self::assertSame(Response::HTTP_OK, $newLoginResponse->getStatusCode());
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $oldLoginResponse->getStatusCode());
+    }
+
+    public function testAdminCanResetPasswordEndToEnd(): void
+    {
+        $admin = $this->createUser('admin.reset-e2e@example.test', ['ROLE_ADMIN']);
+        $admin->setPassword(
+            self::getContainer()->get(UserPasswordHasherInterface::class)->hashPassword($admin, 'secret123'),
+        );
+        $this->entityManager->flush();
+
+        $this->requestJson('POST', '/api/auth/password-reset/request', [
+            'email' => 'admin.reset-e2e@example.test',
+        ]);
+
+        $rawToken = $this->tokenSender()->tokenFor('admin.reset-e2e@example.test');
+        self::assertIsString($rawToken);
+
+        $confirmResponse = $this->requestJson('POST', '/api/auth/password-reset/confirm', [
+            'token' => $rawToken,
+            'new_password' => 'newSecret123',
+        ]);
+        self::assertSame(Response::HTTP_NO_CONTENT, $confirmResponse->getStatusCode());
+
+        $newLoginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'admin.reset-e2e@example.test',
+            'password' => 'newSecret123',
+        ]);
+        $oldLoginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'admin.reset-e2e@example.test',
+            'password' => 'secret123',
+        ]);
+
+        self::assertSame(Response::HTTP_OK, $newLoginResponse->getStatusCode());
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $oldLoginResponse->getStatusCode());
     }
 
     public function testDocumentedForgotPasswordAliasRequestsReset(): void

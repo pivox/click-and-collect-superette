@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { useHydrated } from '@/lib/hooks/useHydrated';
@@ -77,6 +78,15 @@ export default function MerchantLoginPage() {
           <Button full type="submit" disabled={!isHydrated || isSubmitting}>
             {isSubmitting ? 'Connexion…' : 'Se connecter'}
           </Button>
+
+          <p className="text-center text-sm">
+            <Link
+              href="/forgot-password?portal=merchant"
+              className="font-semibold text-muted hover:text-primary hover:underline"
+            >
+              Mot de passe oublié ?
+            </Link>
+          </p>
         </form>
       </div>
     </div>

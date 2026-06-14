@@ -1,5 +1,6 @@
 'use client';
 import { isAxiosError } from 'axios';
+import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { useAdminAuth } from '@/lib/auth/AdminAuthContext';
 import { Button } from '@/components/ui/Button';
@@ -103,6 +104,15 @@ export default function AdminLoginPage() {
           <Button full type="submit" disabled={!isHydrated || isSubmitting}>
             {isSubmitting ? 'Connexion…' : 'Se connecter'}
           </Button>
+
+          <p className="text-center text-sm">
+            <Link
+              href="/forgot-password?portal=admin"
+              className="font-semibold text-muted hover:text-primary hover:underline"
+            >
+              Mot de passe oublié ?
+            </Link>
+          </p>
         </form>
       </div>
     </div>

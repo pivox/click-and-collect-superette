@@ -1,24 +1,28 @@
 'use client';
 
 import { Suspense, useState, type FormEvent } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { isAxiosError } from 'axios';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useHydrated } from '@/lib/hooks/useHydrated';
+import { loginHrefForPortal } from '@/lib/auth/loginPortal';
 import { confirmPasswordReset } from '@/lib/services/auth.service';
 
 function ResetPasswordForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
+  // The emailed reset link carries the portal so the post-reset screen can send
+  // the user back to the right login (customer / merchant / admin).
+  const loginHref = loginHrefForPortal(searchParams.get('portal'));
   const isHydrated = useHydrated();
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDone, setIsDone] = useState(false);
 
   if (!token) {
     return (
@@ -58,8 +62,10 @@ function ResetPasswordForm() {
     setIsSubmitting(true);
     try {
       await confirmPasswordReset(token, password);
-      sessionStorage.setItem('login:flash', 'Mot de passe mis à jour. Tu peux te connecter.');
-      router.push('/login');
+      // Role-agnostic success: the reset link is shared by client, merchant and
+      // admin, so we show an inline confirmation instead of redirecting to a
+      // specific portal login.
+      setIsDone(true);
     } catch (err) {
       if (isAxiosError(err)) {
         const status = err.response?.status;
@@ -77,6 +83,28 @@ function ResetPasswordForm() {
       setIsSubmitting(false);
     }
   };
+
+  if (isDone) {
+    return (
+      <Card className="w-full max-w-sm">
+        <div className="mb-6 text-center">
+          <span className="text-xs font-extrabold uppercase tracking-widest text-primary">
+            Kadhia
+          </span>
+          <h1 className="mt-1 text-h2 font-black">Mot de passe mis à jour</h1>
+        </div>
+        <p className="mb-4 text-center text-sm text-muted">
+          Votre mot de passe a été mis à jour. Vous pouvez maintenant vous connecter.
+        </p>
+        <Link
+          href={loginHref}
+          className="block text-center text-sm font-extrabold text-primary hover:underline"
+        >
+          Aller à la connexion
+        </Link>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-sm">

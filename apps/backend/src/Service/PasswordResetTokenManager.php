@@ -54,6 +54,14 @@ final readonly class PasswordResetTokenManager
         }
 
         $user = $token->getUser();
+
+        // Re-check eligibility at consume time: a token issued while the account
+        // was active must not let a since-suspended or soft-deleted account change
+        // its credentials (TOCTOU). Generic error to avoid leaking account state.
+        if (null !== $user->getDeletedAt() || !$user->isActive()) {
+            throw new BadRequestHttpException('AUTH_RESET_TOKEN_INVALID');
+        }
+
         $user->setPassword($this->passwordHasher->hashPassword($user, $newPassword));
         $token->consume();
     }

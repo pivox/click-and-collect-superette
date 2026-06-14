@@ -54,4 +54,11 @@ describe('AdminLoginPage', () => {
       'Accès réservé aux administrateurs.',
     );
   });
+
+  it('propose un lien « Mot de passe oublié » vers /forgot-password', () => {
+    render(<AdminLoginPage />);
+
+    const link = screen.getByRole('link', { name: 'Mot de passe oublié ?' });
+    expect(link).toHaveAttribute('href', '/forgot-password?portal=admin');
+  });
 });
