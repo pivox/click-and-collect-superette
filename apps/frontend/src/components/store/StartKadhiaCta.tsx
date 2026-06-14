@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getButtonClassName } from '@/components/ui/Button';
 import { StoreSwitchWarning } from '@/components/store/StoreSwitchWarning';
 import { useSelectedStore } from '@/lib/store/SelectedStoreContext';
+import { useClientLocale } from '@/lib/i18n/ClientLocaleContext';
 import { useHydrated } from '@/lib/hooks/useHydrated';
 import { hasActiveKadhia } from '@/lib/store/hasActiveKadhia';
 import { countStoreDraftKadhias } from '@/lib/services/kadhia.service';
@@ -16,6 +17,7 @@ interface StartKadhiaCtaProps {
 export function StartKadhiaCta({ shop }: StartKadhiaCtaProps) {
   const router = useRouter();
   const { selectedStore, selectStore } = useSelectedStore();
+  const { t } = useClientLocale();
   const isHydrated = useHydrated();
   const [showWarning, setShowWarning] = useState(false);
   // null = still resolving how many draft Kadhias exist for this store.
@@ -71,14 +73,13 @@ export function StartKadhiaCta({ shop }: StartKadhiaCtaProps) {
     navigate();
   }
 
-  // 3 contextual states; neutral default while the draft count is loading.
-  const label = draftCount === null
-    ? 'Commencer ma Kadhia'
-    : draftCount === 0
-      ? 'Commencer ma Kadhia'
-      : draftCount === 1
-        ? 'Continuer ma Kadhia'
-        : 'Reprendre une Kadhia';
+  // 3 contextual states; neutral "start" default while the draft count loads (null → 0).
+  const count = draftCount ?? 0;
+  const label = count === 0
+    ? t('client.storeDetail.ctaStart')
+    : count === 1
+      ? t('client.storeDetail.ctaContinue')
+      : t('client.storeDetail.ctaResume');
 
   return (
     <>

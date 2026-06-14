@@ -131,6 +131,14 @@ describe('StartKadhiaCta', () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith('/stores/shop-1/catalog'));
   });
 
+  it('respecte la locale : libellé en arabe quand client:lang = ar', async () => {
+    window.localStorage.setItem('client:lang', 'ar');
+    vi.mocked(countStoreDraftKadhias).mockResolvedValue(1);
+    render(<StartKadhiaCta shop={SHOP} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'أكمل Kadhia' })).toBeTruthy());
+    window.localStorage.removeItem('client:lang');
+  });
+
   it('double-clic : ne déclenche qu’une seule navigation', async () => {
     render(<StartKadhiaCta shop={SHOP} />);
     await waitFor(() => screen.getByRole('button', { name: 'Commencer ma Kadhia' }));

@@ -80,6 +80,9 @@ filtré sur `status === "draft"`).
 | 1 | « Continuer ma Kadhia » | Ouvre le catalogue (la draft unique est auto-activée) |
 | ≥ 2 | « Reprendre une Kadhia » | Ouvre « Mes Kadhia » (onglet « En cours ») pour choisir |
 
+Les libellés sont internationalisés (FR/AR avec RTL) via les clés
+`client.storeDetail.ctaStart` / `ctaContinue` / `ctaResume`.
+
 Le modèle multi-Kadhia est préservé : aucune fusion ni suppression automatique, les Kadhia
 `submitted` restent visibles, et la création d'une nouvelle Kadhia reste possible quand
 aucune draft exploitable n'existe. En cas d'erreur réseau du décompte, le bouton retombe sur
