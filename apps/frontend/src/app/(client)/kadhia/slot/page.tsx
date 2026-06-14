@@ -60,6 +60,8 @@ function resolveSubmitErrorKey(err: unknown): string {
       return "client.slot.errors.kadhiaNotFound";
     case "STORE_SUSPENDED_FOR_SUBSCRIPTION":
       return "client.slot.errors.storeSuspended";
+    case "PARTIAL_ACCEPTANCE_EXPIRED":
+      return "client.slot.errors.partialAcceptanceExpired";
     default:
       return "client.slot.errors.generic";
   }

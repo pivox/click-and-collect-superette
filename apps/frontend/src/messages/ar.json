@@ -249,6 +249,7 @@
         "productUnavailable": "أحد منتجات Kadhia لم يعد متوفراً. عُد إلى Kadhia لإزالته.",
         "kadhiaNotFound": "لم يتم العثور على Kadhia نشطة. عُد إلى الكتالوج لإنشاء واحدة.",
         "storeSuspended": "هذه supérette لا تقبل مؤقتاً Kadhia جديدة. ستبقى Kadhia الخاصة بك محفوظة.",
+        "partialAcceptanceExpired": "انتهت مهلة إعادة إرسال Kadhia المعدّلة. ابدأ من الكتالوج بإنشاء Kadhia جديدة.",
         "generic": "تعذّر إرسال الطلب. تم الاحتفاظ بـ Kadhia، يمكنك إعادة المحاولة."
       }
     },

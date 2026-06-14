@@ -249,6 +249,7 @@
         "productUnavailable": "Un produit de ta Kadhia n'est plus disponible. Reviens à ta Kadhia pour le retirer.",
         "kadhiaNotFound": "Aucune Kadhia active trouvée. Retourne au catalogue pour en créer une.",
         "storeSuspended": "Cette supérette ne prend temporairement plus de nouvelles Kadhia. Votre Kadhia reste disponible.",
+        "partialAcceptanceExpired": "Le délai pour re-soumettre cette Kadhia modifiée est dépassé. Repars du catalogue avec une nouvelle Kadhia.",
         "generic": "La commande n'a pas pu être envoyée. Ta Kadhia est conservée, tu peux réessayer."
       }
     },

@@ -100,4 +100,19 @@ describe('SlotPage (S14-004)', () => {
     });
     expect(readLocalKadhia).toHaveBeenCalled();
   });
+
+  it("affiche l'expiration d'une acceptation partielle sans message générique", async () => {
+    vi.mocked(submitKadhia).mockRejectedValue({
+      response: { data: { detail: 'PARTIAL_ACCEPTANCE_EXPIRED' } },
+    });
+
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Envoyer la commande' }));
+
+    expect(
+      await screen.findByText("Le délai pour re-soumettre cette Kadhia modifiée est dépassé. Repars du catalogue avec une nouvelle Kadhia."),
+    ).toBeTruthy();
+    expect(screen.queryByText("La commande n'a pas pu être envoyée. Ta Kadhia est conservée, tu peux réessayer.")).toBeNull();
+  });
 });
