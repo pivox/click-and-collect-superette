@@ -10,7 +10,13 @@ vi.mock('@/lib/services', async (importOriginal) => {
   return { ...actual, USE_MOCKS: false };
 });
 
-import { countStoreDraftKadhias, createKadhiaShareLink, joinKadhiaShareLink, listMyKadhias } from '@/lib/services/kadhia.service';
+import {
+  countStoreDraftKadhias,
+  createKadhiaShareLink,
+  joinKadhiaShareLink,
+  listMyKadhias,
+  submitKadhia,
+} from '@/lib/services/kadhia.service';
 
 const RAW_LIST_ITEM = {
   id: 'k-1',
@@ -193,5 +199,36 @@ describe('partage de Kadhia', () => {
       storeId: 'store-1',
       joined: true,
     });
+  });
+});
+
+describe('submitKadhia', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
+
+  it('utilise le contexte de navigation quand la clé active de la supérette est absente', async () => {
+    window.localStorage.setItem('kadhia:context', JSON.stringify({ shopId: 'store-1', kadhiaId: 'k-context' }));
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        id: 'order-1',
+        order_number_display: '#0007',
+      },
+    });
+
+    const result = await submitKadhia({
+      shopId: 'store-1',
+      pickupSlotId: 'slot-1',
+      customerNote: 'Préparer les fruits séparément',
+    });
+
+    expect(apiClient.post).toHaveBeenCalledWith('/api/me/kadhias/k-context/submit', {
+      pickup_slot_id: 'slot-1',
+      notes: 'Préparer les fruits séparément',
+    });
+    expect(window.localStorage.getItem('kadhia:active:store-1')).toBeNull();
+    expect(window.localStorage.getItem('kadhia:context')).toBeNull();
+    expect(result).toEqual({ orderId: 'order-1', orderCode: '#0007' });
   });
 });

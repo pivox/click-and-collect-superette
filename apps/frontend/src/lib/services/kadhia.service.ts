@@ -57,6 +57,13 @@ function writeContext(ctx: KadhiaContext | null): void {
   else window.localStorage.setItem(CONTEXT_KEY, JSON.stringify(ctx));
 }
 
+function readSubmitKadhiaId(shopId: string): string | null {
+  const activeId = readActiveId(shopId);
+  if (activeId) return activeId;
+  const ctx = readContext();
+  return ctx?.shopId === shopId ? ctx.kadhiaId : null;
+}
+
 // ─── API response types ───────────────────────────────────────────────────────
 
 type ApiLine = {
@@ -587,7 +594,7 @@ export async function submitKadhia(params: SubmitKadhiaParams): Promise<Submitte
     return mockDelay({ orderId: MOCK_ORDER.id, orderCode: MOCK_ORDER.code });
   }
 
-  const kadhiaId = readActiveId(shopId);
+  const kadhiaId = readSubmitKadhiaId(shopId);
   if (!kadhiaId) throw new Error("KADHIA_NOT_FOUND");
 
   const { data: order } = await apiClient.post<{
