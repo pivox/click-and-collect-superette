@@ -126,7 +126,7 @@ export default function SlotPage() {
   }, [day, isLoading, user, shopId]);
 
   const handleSubmit = async () => {
-    if (!activeId || !shopId) return;
+    if (!activeId || !shopId || canRestartKadhia) return;
     setIsSubmitting(true);
     setSubmitError(null);
     setCanRestartKadhia(false);
@@ -240,7 +240,7 @@ export default function SlotPage() {
         )}
         <Button
           full
-          disabled={!activeId || !shopId || isSubmitting}
+          disabled={!activeId || !shopId || isSubmitting || canRestartKadhia}
           onClick={handleSubmit}
         >
           {isSubmitting ? t('client.slot.submitting') : t('client.slot.submit')}

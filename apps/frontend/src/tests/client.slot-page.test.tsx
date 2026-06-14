@@ -117,6 +117,7 @@ describe('SlotPage (S14-004)', () => {
     ).toBeTruthy();
     expect(discardKadhia).toHaveBeenCalledWith('shop-1');
     expect(screen.getByRole('button', { name: 'Revenir au catalogue' })).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Envoyer la commande' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByText("La commande n'a pas pu être envoyée. Ta Kadhia est conservée, tu peux réessayer.")).toBeNull();
   });
 });
