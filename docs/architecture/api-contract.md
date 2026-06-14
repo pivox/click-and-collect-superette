@@ -211,11 +211,15 @@ POST /api/auth/forgot-password
 POST /api/auth/reset-password
 ```
 
+Couverture : **client, marchand et admin** (tout compte actif). Le flux
+demande/confirmation est identique quel que soit le rôle ; le lien de
+réinitialisation est commun aux trois portails.
+
 Payload request :
 
 ```json
 {
-  "email": "client@example.com"
+  "email": "compte@example.com"
 }
 ```
 
@@ -241,7 +245,8 @@ Réponse confirm : `204 No Content`.
 Règles :
 
 - la demande retourne toujours `202`, email connu ou inconnu ;
-- le token est créé uniquement pour un compte client existant ;
+- le token est créé pour tout compte actif existant (client, marchand ou admin) ;
+- aucun token n'est créé pour un email inconnu ou un compte supprimé ;
 - le token brut n'est jamais stocké en base ;
 - seul le hash du token est persisté ;
 - le token expire après 1 heure par défaut ;

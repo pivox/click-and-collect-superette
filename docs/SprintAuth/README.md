@@ -210,9 +210,17 @@ Règles livrées :
 
 - réponse neutre pour email existant ou inexistant ;
 - email trimé et normalisé avant recherche ;
-- token créé uniquement pour un compte client existant ;
+- token créé pour tout compte actif existant (client, marchand ou admin) ;
+- aucun token pour un email inconnu ou un compte supprimé ;
 - un nouveau reset consomme les anciens tokens actifs du même utilisateur ;
 - token brut transmis au service d'envoi, token hashé en base.
+
+> Mise à jour : le « mot de passe oublié » couvre désormais **client, marchand
+> et admin** (priorité de stabilisation MVP, issue #527). Le flux et les règles
+> de sécurité sont identiques pour les trois rôles : réponse neutre, token
+> opaque hashé (SHA-256), expiration 1 h, usage unique. Côté frontend, les pages
+> de connexion marchand et admin exposent un lien « Mot de passe oublié ? » vers
+> la page partagée `/forgot-password`.
 
 ---
 
@@ -297,7 +305,8 @@ Ces tests couvrent notamment :
 - accès profil réservé à `ROLE_CUSTOMER` ;
 - PATCH profil limité aux champs autorisés ;
 - demande de reset neutre ;
-- création de token uniquement pour les comptes clients ;
+- création de token pour les comptes client, marchand et admin existants ;
+- absence de token pour un email inconnu (pas d'énumération de comptes) ;
 - stockage hashé du token ;
 - expiration, consommation unique et invalidation des anciens tokens ;
 - login avec nouveau mot de passe et refus de l'ancien après reset.
