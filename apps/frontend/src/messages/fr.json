@@ -71,7 +71,10 @@
       "paymentOnSite": "Sur place",
       "slot": "Créneau",
       "from": "Dès",
-      "rating": "Note"
+      "rating": "Note",
+      "ctaStart": "Commencer ma Kadhia",
+      "ctaContinue": "Continuer ma Kadhia",
+      "ctaResume": "Reprendre une Kadhia"
     },
     "profile": {
       "title": "Mon compte",

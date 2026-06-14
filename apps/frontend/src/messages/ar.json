@@ -71,7 +71,10 @@
       "paymentOnSite": "في الموقع",
       "slot": "موعد",
       "from": "من",
-      "rating": "التقييم"
+      "rating": "التقييم",
+      "ctaStart": "ابدأ Kadhia",
+      "ctaContinue": "أكمل Kadhia",
+      "ctaResume": "استأنف Kadhia"
     },
     "profile": {
       "title": "حسابي",
