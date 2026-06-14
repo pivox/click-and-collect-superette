@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '@/lib/api';
 
 vi.mock('@/lib/api', () => ({
-  apiClient: { get: vi.fn(), post: vi.fn() },
+  apiClient: { delete: vi.fn(), get: vi.fn(), post: vi.fn() },
 }));
 
 vi.mock('@/lib/services', async (importOriginal) => {
@@ -13,6 +13,7 @@ vi.mock('@/lib/services', async (importOriginal) => {
 import {
   countStoreDraftKadhias,
   createKadhiaShareLink,
+  discardKadhia,
   joinKadhiaShareLink,
   listMyKadhias,
   submitKadhia,
@@ -230,5 +231,23 @@ describe('submitKadhia', () => {
     expect(window.localStorage.getItem('kadhia:active:store-1')).toBeNull();
     expect(window.localStorage.getItem('kadhia:context')).toBeNull();
     expect(result).toEqual({ orderId: 'order-1', orderCode: '#0007' });
+  });
+});
+
+describe('discardKadhia', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
+
+  it('supprime la Kadhia depuis le contexte quand la clé active est absente', async () => {
+    window.localStorage.setItem('kadhia:context', JSON.stringify({ shopId: 'store-1', kadhiaId: 'k-context' }));
+    vi.mocked(apiClient.delete).mockResolvedValue({});
+
+    await discardKadhia('store-1');
+
+    expect(apiClient.delete).toHaveBeenCalledWith('/api/me/kadhias/k-context');
+    expect(window.localStorage.getItem('kadhia:active:store-1')).toBeNull();
+    expect(window.localStorage.getItem('kadhia:context')).toBeNull();
   });
 });

@@ -234,6 +234,7 @@
       "defaultNote": "Si un produit est absent, remplacer par une marque proche.",
       "submit": "Envoyer la commande",
       "submitting": "Envoi en cours…",
+      "restartFromCatalog": "Revenir au catalogue",
       "period": {
         "morning": "Matin",
         "noon": "Midi",

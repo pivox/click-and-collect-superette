@@ -567,7 +567,7 @@ export async function discardKadhia(shopId: string): Promise<void> {
     writeMock(null);
     return mockDelay(undefined);
   }
-  const kadhiaId = readActiveId(shopId);
+  const kadhiaId = readSubmitKadhiaId(shopId);
   if (kadhiaId) {
     await apiClient.delete(`/api/me/kadhias/${kadhiaId}`);
     writeActiveId(shopId, null);

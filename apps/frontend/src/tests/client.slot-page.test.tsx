@@ -7,6 +7,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/lib/services', () => ({
+  discardKadhia: vi.fn(),
   listSlotsForShop: vi.fn(),
   submitKadhia: vi.fn(),
   readLocalKadhia: vi.fn(),
@@ -17,7 +18,7 @@ vi.mock('@/lib/auth/ClientAuthContext', () => ({
 }));
 
 import SlotPage from '@/app/(client)/kadhia/slot/page';
-import { listSlotsForShop, readLocalKadhia, submitKadhia } from '@/lib/services';
+import { discardKadhia, listSlotsForShop, readLocalKadhia, submitKadhia } from '@/lib/services';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 import { ClientLocaleProvider } from '@/lib/i18n/ClientLocaleContext';
 import type { PickupSlot } from '@/types';
@@ -64,6 +65,7 @@ describe('SlotPage (S14-004)', () => {
       typeof readLocalKadhia
     >);
     vi.mocked(listSlotsForShop).mockResolvedValue([morningSlot()]);
+    vi.mocked(discardKadhia).mockResolvedValue(undefined);
   });
 
   it('affiche les libellés du créneau en français par défaut', async () => {
@@ -113,6 +115,8 @@ describe('SlotPage (S14-004)', () => {
     expect(
       await screen.findByText("Le délai pour re-soumettre cette Kadhia modifiée est dépassé. Repars du catalogue avec une nouvelle Kadhia."),
     ).toBeTruthy();
+    expect(discardKadhia).toHaveBeenCalledWith('shop-1');
+    expect(screen.getByRole('button', { name: 'Revenir au catalogue' })).toBeTruthy();
     expect(screen.queryByText("La commande n'a pas pu être envoyée. Ta Kadhia est conservée, tu peux réessayer.")).toBeNull();
   });
 });

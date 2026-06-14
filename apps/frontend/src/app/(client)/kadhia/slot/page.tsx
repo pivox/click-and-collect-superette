@@ -7,7 +7,7 @@ import { Pill, PillRow } from "@/components/ui/Pill";
 import { SlotTile } from "@/components/ui/SlotTile";
 import { Button } from "@/components/ui/Button";
 import { StickyBottom } from "@/components/layout/StickyBottom";
-import { listSlotsForShop, submitKadhia, readLocalKadhia } from "@/lib/services";
+import { discardKadhia, listSlotsForShop, submitKadhia, readLocalKadhia } from "@/lib/services";
 import { formatTime } from "@/lib/format";
 import type { PickupSlot } from "@/types";
 
@@ -67,6 +67,10 @@ function resolveSubmitErrorKey(err: unknown): string {
   }
 }
 
+function isPartialAcceptanceExpired(err: unknown): boolean {
+  return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail === "PARTIAL_ACCEPTANCE_EXPIRED";
+}
+
 function afterTomorrowLabel(locale: string): string {
   const d = new Date();
   d.setDate(d.getDate() + 2);
@@ -87,6 +91,7 @@ export default function SlotPage() {
   const [note, setNote] = useState(() => t("client.slot.defaultNote"));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [canRestartKadhia, setCanRestartKadhia] = useState(false);
   const [slotsError, setSlotsError] = useState(false);
 
   useEffect(() => {
@@ -124,6 +129,7 @@ export default function SlotPage() {
     if (!activeId || !shopId) return;
     setIsSubmitting(true);
     setSubmitError(null);
+    setCanRestartKadhia(false);
     try {
       const result = await submitKadhia({
         shopId,
@@ -132,6 +138,15 @@ export default function SlotPage() {
       });
       router.push(`/orders/${result.orderId}`);
     } catch (err: unknown) {
+      if (isPartialAcceptanceExpired(err)) {
+        try {
+          await discardKadhia(shopId);
+        } catch (discardErr) {
+          console.error("[slot] failed to discard expired partial Kadhia", { shopId, discardErr });
+        }
+        setKadhiaId(null);
+        setCanRestartKadhia(true);
+      }
       setSubmitError(resolveSubmitErrorKey(err));
     } finally {
       setIsSubmitting(false);
@@ -211,6 +226,17 @@ export default function SlotPage() {
           <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
             {t(submitError)}
           </p>
+        )}
+        {canRestartKadhia && shopId && (
+          <Button
+            full
+            type="button"
+            variant="ghost"
+            className="mb-2"
+            onClick={() => router.push(`/stores/${shopId}/catalog`)}
+          >
+            {t("client.slot.restartFromCatalog")}
+          </Button>
         )}
         <Button
           full
