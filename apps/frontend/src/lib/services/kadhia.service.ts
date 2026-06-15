@@ -568,12 +568,15 @@ export async function discardKadhia(shopId: string): Promise<void> {
     return mockDelay(undefined);
   }
   const kadhiaId = readSubmitKadhiaId(shopId);
-  if (kadhiaId) {
-    await apiClient.delete(`/api/me/kadhias/${kadhiaId}`);
+  try {
+    if (kadhiaId) {
+      await apiClient.delete(`/api/me/kadhias/${kadhiaId}`);
+    }
+  } finally {
     writeActiveId(shopId, null);
+    const ctx = readContext();
+    if (ctx?.shopId === shopId) writeContext(null);
   }
-  const ctx = readContext();
-  if (ctx?.shopId === shopId) writeContext(null);
 }
 
 export interface SubmitKadhiaParams {
