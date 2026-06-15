@@ -102,7 +102,7 @@ class FeedbackSetting
 
     public function isEnabledFor(string $userRole, FeedbackAppArea $appArea): bool
     {
-        if (!$this->globalEnabled || !$this->requireAuthenticatedUser) {
+        if (!$this->globalEnabled) {
             return false;
         }
 

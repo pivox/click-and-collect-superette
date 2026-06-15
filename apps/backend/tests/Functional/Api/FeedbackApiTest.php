@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
-use App\Entity\CustomerShop;
 use App\Entity\FeedbackEntry;
-use App\Enum\CustomerShopSource;
 
 final class FeedbackApiTest extends FunctionalApiTestCase
 {
@@ -198,20 +196,13 @@ final class FeedbackApiTest extends FunctionalApiTestCase
         self::assertSame(201, $allowedResponse->getStatusCode(), (string) $allowedResponse->getContent());
     }
 
-    public function testCustomerCannotAttachFeedbackToUnlinkedShop(): void
+    public function testCustomerCanAttachFeedbackToAnyActiveShop(): void
     {
         $admin = $this->createUser('admin-feedback-customer-shop@example.test', ['ROLE_ADMIN']);
-        $customer = $this->createUser('customer-feedback-linked-shop@example.test', ['ROLE_CUSTOMER']);
-        $merchant = $this->createUser('merchant-feedback-linked-shop@example.test', ['ROLE_MERCHANT']);
-        $linkedShop = $this->createShop($merchant);
-        $unlinkedShop = $this->createShop($merchant);
-
-        $relation = (new CustomerShop())
-            ->setCustomer($customer)
-            ->setShop($linkedShop)
-            ->setSource(CustomerShopSource::QrCode);
-        $this->entityManager->persist($relation);
-        $this->entityManager->flush();
+        $customer = $this->createUser('customer-feedback-any-shop@example.test', ['ROLE_CUSTOMER']);
+        $merchant = $this->createUser('merchant-feedback-any-shop@example.test', ['ROLE_MERCHANT']);
+        $activeShop = $this->createShop($merchant);
+        $shopWithoutRelation = $this->createShop($merchant);
 
         $this->requestJson('PUT', '/api/admin/feedback/settings', [
             'globalEnabled' => true,
@@ -223,21 +214,20 @@ final class FeedbackApiTest extends FunctionalApiTestCase
             'adminAreaEnabled' => true,
         ], $admin);
 
-        $forbiddenResponse = $this->requestJson('POST', '/api/feedback', [
+        $responseWithRelation = $this->requestJson('POST', '/api/feedback', [
             'type' => 'confusing',
-            'message' => 'Le contexte supérette ne doit pas viser une supérette non liée.',
+            'message' => 'Le bouton de confirmation de retrait est ambigu.',
             'appArea' => 'client',
-            'shopId' => $unlinkedShop->getId()->toRfc4122(),
+            'shopId' => $activeShop->getId()->toRfc4122(),
         ], $customer);
-        self::assertSame(403, $forbiddenResponse->getStatusCode(), (string) $forbiddenResponse->getContent());
-        self::assertCount(0, $this->entityManager->getRepository(FeedbackEntry::class)->findAll());
+        self::assertSame(201, $responseWithRelation->getStatusCode(), (string) $responseWithRelation->getContent());
 
-        $allowedResponse = $this->requestJson('POST', '/api/feedback', [
-            'type' => 'confusing',
-            'message' => 'Le contexte supérette liée du client reste accepté.',
+        $responseWithoutRelation = $this->requestJson('POST', '/api/feedback', [
+            'type' => 'bug',
+            'message' => 'Le catalogue ne se charge pas sur cette supérette.',
             'appArea' => 'client',
-            'shopId' => $linkedShop->getId()->toRfc4122(),
+            'shopId' => $shopWithoutRelation->getId()->toRfc4122(),
         ], $customer);
-        self::assertSame(201, $allowedResponse->getStatusCode(), (string) $allowedResponse->getContent());
+        self::assertSame(201, $responseWithoutRelation->getStatusCode(), (string) $responseWithoutRelation->getContent());
     }
 }

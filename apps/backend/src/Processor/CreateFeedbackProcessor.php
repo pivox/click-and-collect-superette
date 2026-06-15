@@ -11,11 +11,9 @@ use App\Dto\FeedbackCreateInput;
 use App\Entity\FeedbackEntry;
 use App\Entity\Shop;
 use App\Entity\User;
-use App\Enum\CustomerShopStatus;
 use App\Enum\FeedbackAppArea;
 use App\Enum\FeedbackType;
 use App\Provider\FeedbackOutputFactory;
-use App\Repository\CustomerShopRepository;
 use App\Repository\ShopRepository;
 use App\Service\FeedbackSettingsManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -35,7 +33,6 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
     public function __construct(
         private FeedbackSettingsManager $feedbackSettingsManager,
         private ShopRepository $shopRepository,
-        private CustomerShopRepository $customerShopRepository,
         private FeedbackOutputFactory $outputFactory,
         private EntityManagerInterface $entityManager,
         private Security $security,
@@ -124,9 +121,7 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
             return false;
         }
 
-        $relation = $this->customerShopRepository->findOneByCustomerAndShop($user, $shop);
-
-        return null !== $relation && CustomerShopStatus::Active === $relation->getStatus() && $shop->isActive();
+        return $shop->isActive();
     }
 
     private function normalizeNullableString(?string $value, int $maxLength): ?string

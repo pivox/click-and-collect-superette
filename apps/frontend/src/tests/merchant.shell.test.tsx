@@ -7,18 +7,20 @@ import { listMerchantSlots } from '@/lib/services/merchant-slots.service';
 
 let pathname = '/merchant';
 
+const merchantAuthContext = {
+  merchant: {
+    email: 'marchand@kadhia.tn',
+    store: { id: 'store-1', name: 'Supérette Ezzahra', active: true },
+  } as { email: string; store: { id: string; name: string; active: boolean } } | null,
+  logout: vi.fn(),
+};
+
 vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
 }));
 
 vi.mock('@/lib/auth/MerchantAuthContext', () => ({
-  useMerchantAuth: () => ({
-    merchant: {
-      email: 'marchand@kadhia.tn',
-      store: { id: 'store-1', name: 'Supérette Ezzahra', active: true },
-    },
-    logout: vi.fn(),
-  }),
+  useMerchantAuth: () => merchantAuthContext,
 }));
 
 vi.mock('@/lib/services/merchant-notifications.service', () => ({
@@ -73,6 +75,10 @@ function createDeferred<T>() {
 describe('MerchantShell', () => {
   beforeEach(() => {
     pathname = '/merchant';
+    merchantAuthContext.merchant = {
+      email: 'marchand@kadhia.tn',
+      store: { id: 'store-1', name: 'Supérette Ezzahra', active: true },
+    };
     vi.clearAllMocks();
     vi.mocked(listMerchantNotifications).mockResolvedValue({
       items: [],
@@ -144,6 +150,14 @@ describe('MerchantShell', () => {
     expect(provider).toHaveAttribute('data-shop-id', 'store-1');
     expect(provider).toHaveAttribute('data-locale', 'ar');
     expect(listMerchantSlots).not.toHaveBeenCalled();
+  });
+
+  it('disables merchant feedback when no merchant is authenticated', () => {
+    merchantAuthContext.merchant = null;
+
+    render(React.createElement(MerchantShell, null, React.createElement('p', null, 'Page')));
+
+    expect(screen.getByTestId('merchant-feedback-provider')).toHaveAttribute('data-enabled', 'false');
   });
 
   it('renders Catalogue as the active merchant navigation link', async () => {
