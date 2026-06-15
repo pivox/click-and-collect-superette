@@ -84,6 +84,6 @@ describe('feedback service', () => {
       viewportWidth: 390,
       viewportHeight: 844,
       contactConsent: true,
-    });
+    }, { skipAuthRedirect: true });
   });
 });

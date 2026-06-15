@@ -177,7 +177,7 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
       </div>
       <FeedbackProvider
         appArea="merchant"
-        enabled={pathname !== '/merchant/login'}
+        enabled={Boolean(merchant) && pathname !== '/merchant/login'}
         locale={locale}
         shopId={storeId || null}
       />
