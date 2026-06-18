@@ -46,6 +46,9 @@ final readonly class MerchantMeOutput
         #[Groups(['merchant_me:read'])]
         #[SerializedName('onboarding_completed')]
         public bool $onboardingCompleted,
+        #[Groups(['merchant_me:read'])]
+        #[SerializedName('password_change_required')]
+        public bool $passwordChangeRequired,
     ) {
     }
 
@@ -60,6 +63,7 @@ final readonly class MerchantMeOutput
             phone: $merchant->getPhone(),
             store: MerchantMeStoreOutput::fromShop($shop),
             onboardingCompleted: null !== $merchant->getOnboardingCompletedAt(),
+            passwordChangeRequired: $merchant->isPasswordChangeRequired(),
         );
     }
 }

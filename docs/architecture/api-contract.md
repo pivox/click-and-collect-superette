@@ -180,6 +180,7 @@ Routes conservées pour éviter de dupliquer le parcours marchand existant :
 GET   /api/merchant/me
 PATCH /api/merchant/me
 PATCH /api/merchant/me/password
+POST  /api/merchant/first-login/change-password
 ```
 
 Décision API : les routes cibles `/api/merchant/account/profile` et
@@ -204,7 +205,8 @@ Réponse `GET /api/merchant/me` :
     "name": "Supérette Ali",
     "active": true
   },
-  "onboarding_completed": true
+  "onboarding_completed": true,
+  "password_change_required": false
 }
 ```
 
@@ -253,6 +255,8 @@ Règles :
 
 - route réservée au marchand connecté (`ROLE_MERCHANT`) ;
 - compte marchand inactif refusé ;
+- `password_change_required` indique que le marchand doit remplacer son mot de
+  passe provisoire avant d'accéder aux pages métier ;
 - email affiché en lecture seule et non modifiable via ce endpoint ;
 - `name` est recalculé depuis `first_name` + `last_name` ;
 - aucun rôle, mot de passe, hash, token, propriétaire de supérette ou champ
@@ -288,6 +292,64 @@ Règles :
 - réponse neutre, sans secret ;
 - aucun mot de passe, hash, token, reset token ou invitation token n'est retourné
   ou journalisé.
+
+### Première connexion marchand avec mot de passe provisoire
+
+Statut : **livré pour le mode `temporary_password` uniquement**.
+
+```http
+POST /api/merchant/first-login/change-password
+```
+
+Payload :
+
+```json
+{
+  "current_password": "motDePasseProvisoire",
+  "new_password": "nouveauSecret456",
+  "new_password_confirmation": "nouveauSecret456"
+}
+```
+
+Réponse succès : `204 No Content`.
+
+Règles :
+
+- route réservée au marchand connecté (`ROLE_MERCHANT`) ;
+- compte marchand actif requis ;
+- `User.passwordChangeRequired` doit être `true` ;
+- `current_password` est obligatoire et doit correspondre au mot de passe
+  provisoire courant ;
+- `new_password` est obligatoire, longueur minimale 8 caractères ;
+- `new_password_confirmation` doit être identique à `new_password` ;
+- le nouveau mot de passe est hashé avant stockage ;
+- `password_change_required` repasse à `false` après succès ;
+- réponse neutre, sans secret.
+
+Le champ `password_change_required` passe à `true` lors de :
+
+- `POST /api/admin/merchant-onboarding` en mode `temporary_password` ;
+- `POST /api/admin/merchants/{merchantId}/temporary-password`.
+
+Le champ repasse à `false` après un changement de mot de passe réussi via
+`POST /api/merchant/first-login/change-password` ou via le changement connecté
+classique `PATCH /api/merchant/me/password`.
+
+Tant que `password_change_required = true`, le marchand peut uniquement utiliser :
+
+- `POST /api/auth/login` ;
+- `GET /api/merchant/me` ;
+- `POST /api/merchant/first-login/change-password`.
+
+Les endpoints métier `/api/merchant/*` restants sont bloqués côté backend avec
+un `403` dont le détail est `MERCHANT_PASSWORD_CHANGE_REQUIRED`, notamment le
+dashboard, les commandes, le catalogue, les créneaux, le retrait, le QR code et
+les notifications marchand.
+
+Différence avec `PATCH /api/merchant/me/password` : le changement classique est
+destiné à un marchand déjà finalisé ; la première connexion exige en plus
+`password_change_required = true` et une confirmation du nouveau mot de passe.
+L'invitation email reste hors périmètre de cette tranche.
 
 ### Suppression du compte client
 
@@ -1746,6 +1808,7 @@ Règles :
 - refuse un email déjà utilisé ;
 - `first_login_mode` supporté : `temporary_password` ;
 - le mot de passe temporaire est généré robuste, hashé, retourné uniquement dans cette réponse immédiate et jamais journalisé ;
+- `password_change_required` est initialisé à `true` pour forcer la première connexion ;
 - aucun endpoint de lecture ne retourne `temporary_password`, `passwordHash`, token ou secret ;
 - `product_group_ids` est optionnel ; chaque groupement doit être publié et visible marchand ;
 - le préchargement catalogue est idempotent : un produit déjà présent n'est pas dupliqué, y compris s'il apparaît dans plusieurs groupements ;
@@ -1760,8 +1823,6 @@ Codes retour :
 - `404` — groupement produit introuvable ou non éligible ;
 - `409` — email déjà utilisé ;
 - `422` — validation échouée.
-
-Limite actuelle : le modèle `User` ne supporte pas de champ explicite `password_change_required`; le changement obligatoire au prochain login n'est donc pas appliqué par cet endpoint.
 
 #### POST /api/admin/merchants — Créer un compte marchand
 
@@ -1842,6 +1903,7 @@ Règles :
 - le mot de passe temporaire est affiché une seule fois dans cette réponse ;
 - le mot de passe temporaire n'est jamais stocké en clair ;
 - l'admin ne voit jamais le mot de passe actuel ;
+- `password_change_required` est remis à `true` pour forcer le marchand à définir un mot de passe définitif ;
 - `passwordHash`, token et secret ne sont jamais exposés ;
 - l'action est auditée avec `merchant.temporary_password.reset` sans inclure le mot de passe temporaire dans le journal.
 
@@ -1852,8 +1914,6 @@ Codes retour :
 - `403` — rôle insuffisant ;
 - `404` — marchand introuvable ;
 - `422` — cible existante mais non marchande.
-
-Limite actuelle : le modèle `User` ne supporte pas de champ explicite `password_change_required`; le changement obligatoire au prochain login n'est donc pas appliqué par cet endpoint.
 
 #### PATCH /api/admin/merchants/{merchantId}/suspend — Suspendre un compte marchand
 

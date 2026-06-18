@@ -21,6 +21,10 @@ export interface MerchantPasswordChange {
   newPassword: string;
 }
 
+export interface MerchantFirstLoginPasswordChange extends MerchantPasswordChange {
+  newPasswordConfirmation: string;
+}
+
 interface ApiMerchantAccount {
   user_id: string;
   email: string;
@@ -74,5 +78,19 @@ export async function changeMerchantPassword(input: MerchantPasswordChange): Pro
   await apiClient.patch('/api/merchant/me/password', {
     current_password: input.currentPassword,
     new_password: input.newPassword,
+  });
+}
+
+export async function changeMerchantFirstLoginPassword(
+  input: MerchantFirstLoginPasswordChange,
+): Promise<void> {
+  if (USE_MOCKS) {
+    await mockDelay(null);
+    return;
+  }
+  await apiClient.post('/api/merchant/first-login/change-password', {
+    current_password: input.currentPassword,
+    new_password: input.newPassword,
+    new_password_confirmation: input.newPasswordConfirmation,
   });
 }

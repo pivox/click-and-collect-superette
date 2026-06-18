@@ -492,6 +492,7 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
     {
         $admin = $this->createUser('admin-temporary-password@example.test', ['ROLE_ADMIN']);
         $merchant = $this->createMerchant('merchant-temporary-password@example.test', new \DateTimeImmutable());
+        $this->createShop($merchant);
         $this->setHashedPassword($merchant, 'oldSecret123');
 
         $response = $this->requestJson(
@@ -518,6 +519,10 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertInstanceOf(User::class, $storedMerchant);
         self::assertFalse($this->passwordHasher()->isPasswordValid($storedMerchant, 'oldSecret123'));
         self::assertTrue($this->passwordHasher()->isPasswordValid($storedMerchant, $payload['temporary_password']));
+
+        $meResponse = $this->requestJson('GET', '/api/merchant/me', null, $storedMerchant);
+        self::assertSame(200, $meResponse->getStatusCode());
+        self::assertTrue($this->decodeJson($meResponse)['password_change_required']);
     }
 
     public function testTemporaryPasswordReplacesOldMerchantPasswordForLogin(): void
@@ -546,6 +551,7 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
 
         self::assertSame(401, $oldLoginResponse->getStatusCode());
         self::assertSame(200, $newLoginResponse->getStatusCode());
+        self::assertTrue($this->decodeJson($newLoginResponse)['password_change_required']);
     }
 
     public function testTemporaryPasswordResetCreatesAuditLogWithoutPlainPassword(): void

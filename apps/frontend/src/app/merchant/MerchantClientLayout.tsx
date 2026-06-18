@@ -11,12 +11,23 @@ function MerchantContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isLogin = pathname === '/merchant/login';
+  const isFirstLogin = pathname === '/merchant/premiere-connexion';
 
   useEffect(() => {
     if (!isLoading && !merchant && !error && !isLogin) {
       router.push('/merchant/login');
     }
   }, [merchant, isLoading, error, isLogin, router]);
+
+  useEffect(() => {
+    if (isLoading || !merchant) return;
+    if (merchant.password_change_required && !isFirstLogin) {
+      router.push('/merchant/premiere-connexion');
+    }
+    if (!merchant.password_change_required && isFirstLogin) {
+      router.push('/merchant');
+    }
+  }, [merchant, isLoading, isFirstLogin, router]);
 
   if (isLoading) {
     return (
@@ -26,7 +37,7 @@ function MerchantContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isLogin) return <>{children}</>;
+  if (isLogin || isFirstLogin) return <>{children}</>;
 
   if (error) {
     return (
@@ -40,6 +51,8 @@ function MerchantContent({ children }: { children: React.ReactNode }) {
   }
 
   if (!merchant) return null;
+
+  if (merchant.password_change_required) return null;
 
   return <MerchantShell>{children}</MerchantShell>;
 }

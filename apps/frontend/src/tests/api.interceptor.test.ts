@@ -55,4 +55,19 @@ describe('apiClient response interceptor', () => {
     expect(localStorage.getItem('jwt_token')).toBe('client-token');
     expect(window.location.pathname).toBe('/stores/shop-1/catalog');
   });
+
+  it('redirects merchant to first-login page on MERCHANT_PASSWORD_CHANGE_REQUIRED', async () => {
+    const rejected = await getRejectedHandler();
+    const error = {
+      response: { status: 403, data: { detail: 'MERCHANT_PASSWORD_CHANGE_REQUIRED' } },
+      config: {},
+    };
+    localStorage.setItem('merchant_token', 'merchant-token');
+    window.history.pushState({}, '', '/merchant/commandes');
+
+    await expect(rejected?.(error)).rejects.toBe(error);
+
+    expect(localStorage.getItem('merchant_token')).toBe('merchant-token');
+    expect(window.location.pathname).toBe('/merchant/premiere-connexion');
+  });
 });

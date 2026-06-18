@@ -305,6 +305,7 @@ marchands déjà utilisés par le front, sans créer de doublon.
 GET   /api/merchant/me
 PATCH /api/merchant/me
 PATCH /api/merchant/me/password
+POST  /api/merchant/first-login/change-password
 ```
 
 Contrat appliqué :
@@ -318,6 +319,8 @@ Contrat appliqué :
 - email non modifiable depuis `/api/merchant/me` ;
 - mot de passe changé via `/api/merchant/me/password` avec ancien mot de passe
   obligatoire, nouveau mot de passe validé et hashé, réponse `204` ;
+- `password_change_required` est exposé par `GET /api/merchant/me` pour orienter
+  le marchand vers la finalisation de son accès ;
 - champs interdits/refusés : `roles`, `active`/`is_active`, `status`, owner
   shop, `shop_id`, `password`, `passwordHash`, `plainPassword`, reset token,
   invitation token, temporary password, `deletedAt`, `lastLoginAt` ;
@@ -341,18 +344,28 @@ Implémentation MVP :
 - `POST /api/admin/merchant-onboarding` crée le compte marchand, la supérette et le rattachement `Shop.owner` dans une transaction unique ;
 - le mode de première connexion supporté dans cette tranche est `temporary_password` ;
 - le mot de passe provisoire est retourné uniquement dans la réponse immédiate ;
+- `password_change_required` passe à `true` lors de la création par mot de passe provisoire ;
 - l'endpoint peut appliquer zéro, un ou plusieurs groupements produits publiés et visibles marchand ;
 - le résumé de préchargement retourne les compteurs `added_count`, `already_existing_count`, `ignored_count` et les erreurs métier.
 
 ### 9.3 Première connexion
 
 ```http
-POST /api/admin/merchant-invitations/{merchantId}/send
-POST /api/admin/merchants/{merchantId}/temporary-access
-POST /api/auth/merchant-first-login/finalize
+POST /api/merchant/first-login/change-password
 ```
 
-Les noms exacts peuvent être adaptés aux conventions du backend.
+Implémentation livrée pour le mode mot de passe provisoire uniquement :
+
+- le marchand se connecte avec le mot de passe provisoire ;
+- `/api/merchant/me` et la réponse login exposent `password_change_required` ;
+- tant que `password_change_required = true`, les endpoints métier marchand sont
+  bloqués côté backend avec `MERCHANT_PASSWORD_CHANGE_REQUIRED` ;
+- le marchand appelle `POST /api/merchant/first-login/change-password` avec
+  `current_password`, `new_password` et `new_password_confirmation` ;
+- après succès, le mot de passe définitif est hashé, `password_change_required`
+  repasse à `false` et le dashboard marchand redevient accessible ;
+- aucun secret, hash, token d'invitation ni mot de passe provisoire n'est exposé
+  hors réponse immédiate admin.
 
 Note d'implémentation partielle #530 :
 
@@ -362,7 +375,9 @@ POST /api/admin/merchants/{merchantId}/temporary-password
 
 Cet endpoint permet à l'admin de générer un mot de passe temporaire pour un marchand existant. Le mot de passe temporaire est affiché une seule fois dans la réponse, n'est jamais stocké en clair et n'est jamais écrit dans le journal d'audit. L'admin ne peut pas voir le mot de passe actuel.
 
-Limite actuelle : le modèle `User` ne porte pas encore de champ `password_change_required`; le changement obligatoire au prochain login reste donc hors de cette implémentation partielle et devra passer par le bloc première connexion complet.
+Le reset remet aussi `password_change_required` à `true`.
+
+Limite restante : l'invitation email n'est pas traitée dans cette tranche.
 
 ### 9.4 Préchargement catalogue admin
 

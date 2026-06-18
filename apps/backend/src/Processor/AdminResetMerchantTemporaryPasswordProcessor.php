@@ -48,6 +48,7 @@ final readonly class AdminResetMerchantTemporaryPasswordProcessor implements Pro
 
         $temporaryPassword = bin2hex(random_bytes(18));
         $user->setPassword($this->passwordHasher->hashPassword($user, $temporaryPassword));
+        $user->setPasswordChangeRequired(true);
 
         $this->auditLogger->log(
             action: 'merchant.temporary_password.reset',
