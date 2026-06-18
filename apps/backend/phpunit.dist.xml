@@ -16,8 +16,10 @@
         <ini name="memory_limit" value="512M" />
         <env name="APP_ENV" value="test" force="true" />
         <env name="APP_DEBUG" value="1" force="true" />
+        <env name="FRONTEND_URL" value="http://localhost:3000" force="true" />
         <server name="APP_ENV" value="test" force="true" />
         <server name="APP_DEBUG" value="1" force="true" />
+        <server name="FRONTEND_URL" value="http://localhost:3000" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
 
