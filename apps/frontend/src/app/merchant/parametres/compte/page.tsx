@@ -41,7 +41,9 @@ export default function MerchantAccountPage() {
         initialLastName={merchant?.last_name ?? ''}
         initialPhone={merchant?.phone ?? ''}
         initialEmail={merchant?.email ?? ''}
-        onSaved={refresh}
+        onSaved={async () => {
+          await refresh();
+        }}
       />
       <PasswordForm />
     </div>
