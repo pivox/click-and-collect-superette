@@ -75,14 +75,45 @@ final readonly class MerchantInvitationTokenManager
 
     public function complete(string $rawToken, string $newPassword): MerchantInvitationToken
     {
-        $token = $this->verify($rawToken);
-        $merchant = $token->getMerchant();
-        $merchant
-            ->setPassword($this->passwordHasher->hashPassword($merchant, $newPassword))
-            ->setPasswordChangeRequired(false);
-        $token->markUsed();
+        $connection = $this->entityManager->getConnection();
+        $connection->beginTransaction();
 
-        return $token;
+        try {
+            $token = $this->verify($rawToken);
+            $now = new \DateTimeImmutable();
+
+            $updatedRows = $connection->executeStatement(
+                'UPDATE merchant_invitation_tokens SET used_at = :usedAt WHERE id = :id AND used_at IS NULL AND revoked_at IS NULL AND expires_at > :now',
+                [
+                    'usedAt' => $now,
+                    'id' => $token->getId(),
+                    'now' => $now,
+                ],
+                [
+                    'usedAt' => 'datetime_immutable',
+                    'id' => 'uuid',
+                    'now' => 'datetime_immutable',
+                ],
+            );
+
+            if (1 !== $updatedRows) {
+                throw new BadRequestHttpException('MERCHANT_INVITATION_TOKEN_ALREADY_USED');
+            }
+
+            $merchant = $token->getMerchant();
+            $merchant
+                ->setPassword($this->passwordHasher->hashPassword($merchant, $newPassword))
+                ->setPasswordChangeRequired(false);
+            $token->markUsed($now);
+            $this->entityManager->flush();
+            $connection->commit();
+
+            return $token;
+        } catch (\Throwable $e) {
+            $connection->rollBack();
+
+            throw $e;
+        }
     }
 
     public static function hashToken(string $rawToken): string

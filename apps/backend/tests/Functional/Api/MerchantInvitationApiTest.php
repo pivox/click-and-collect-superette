@@ -100,6 +100,26 @@ final class MerchantInvitationApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('ADMIN_MERCHANT_INVITATION_TARGET_NOT_MERCHANT', (string) $response->getContent());
     }
 
+    public function testCreateInvitationRejectsInactiveMerchant(): void
+    {
+        $admin = $this->createUser('admin-invitation-inactive@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchantWithPassword('merchant-invitation-inactive@example.test', 'oldSecret123');
+        $merchant->setActive(false);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/admin/merchants/%s/invitation', $merchant->getId()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertStringContainsString('ADMIN_MERCHANT_INVITATION_TARGET_NOT_ELIGIBLE', (string) $response->getContent());
+        self::assertCount(0, $this->allInvitationTokens());
+        self::assertNull($this->invitationSender()->tokenFor($merchant->getEmail()));
+    }
+
     public function testPublicVerifyAcceptsValidInvitationTokenWithoutExposingSecret(): void
     {
         $rawToken = $this->createInvitationFor('merchant-invitation-verify@example.test');
@@ -223,6 +243,38 @@ final class MerchantInvitationApiTest extends FunctionalApiTestCase
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
         self::assertStringContainsString('MERCHANT_INVITATION_TOKEN_ALREADY_USED', (string) $response->getContent());
+    }
+
+    public function testAlreadyConsumedInvitationDoesNotChangePassword(): void
+    {
+        $merchant = $this->createMerchantWithPassword('merchant-invitation-consumed-race@example.test', 'oldSecret123');
+        $rawToken = $this->createInvitationFor($merchant->getEmail(), $merchant);
+        $this->entityManager->getConnection()->executeStatement(
+            'UPDATE merchant_invitation_tokens SET used_at = :usedAt WHERE token_hash = :tokenHash',
+            [
+                'usedAt' => new \DateTimeImmutable(),
+                'tokenHash' => MerchantInvitationTokenManager::hashToken($rawToken),
+            ],
+            [
+                'usedAt' => 'datetime_immutable',
+            ],
+        );
+
+        $response = $this->requestJson('POST', '/api/auth/merchant-invitations/complete', [
+            'token' => $rawToken,
+            'new_password' => 'definitiveSecret456',
+            'new_password_confirmation' => 'definitiveSecret456',
+        ]);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+        self::assertStringContainsString('MERCHANT_INVITATION_TOKEN_ALREADY_USED', (string) $response->getContent());
+
+        $this->entityManager->clear();
+        $storedMerchant = $this->entityManager->getRepository(User::class)->find($merchant->getId());
+        self::assertInstanceOf(User::class, $storedMerchant);
+        $hasher = self::getContainer()->get(UserPasswordHasherInterface::class);
+        self::assertTrue($hasher->isPasswordValid($storedMerchant, 'oldSecret123'));
+        self::assertFalse($hasher->isPasswordValid($storedMerchant, 'definitiveSecret456'));
     }
 
     public function testRevokedInvitationTokenIsRejected(): void

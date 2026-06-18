@@ -385,6 +385,7 @@ Implémentation invitation email #512 :
 
 - l'admin peut envoyer une invitation à un marchand existant via
   `POST /api/admin/merchants/{merchantId}/invitation` ;
+- la cible doit être un marchand actif et non supprimé ;
 - l'admin peut renvoyer une invitation via
   `POST /api/admin/merchants/{merchantId}/invitation/resend` ;
 - le renvoi révoque toute invitation pending précédente pour éviter plusieurs
@@ -400,8 +401,8 @@ Implémentation invitation email #512 :
   `new_password` et `new_password_confirmation` ;
 - les tokens expirés, utilisés, révoqués, invalides ou liés à un compte non
   éligible sont refusés ;
-- après succès, le mot de passe est hashé, le token est marqué utilisé et
-  `password_change_required` repasse à `false` ;
+- après succès, le token est consommé atomiquement, le mot de passe est hashé
+  et `password_change_required` repasse à `false` ;
 - les actions admin sont auditées avec `merchant.invitation.create` et
   `merchant.invitation.resend`, sans token, hash, mot de passe ni secret.
 

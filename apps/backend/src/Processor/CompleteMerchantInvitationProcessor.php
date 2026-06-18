@@ -8,7 +8,6 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\MerchantInvitationCompleteInput;
 use App\Service\MerchantInvitationTokenManager;
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -20,7 +19,6 @@ final readonly class CompleteMerchantInvitationProcessor implements ProcessorInt
 {
     public function __construct(
         private MerchantInvitationTokenManager $tokenManager,
-        private EntityManagerInterface $entityManager,
         #[Autowire(service: 'monolog.logger.admin')]
         private LoggerInterface $logger,
     ) {
@@ -41,7 +39,6 @@ final readonly class CompleteMerchantInvitationProcessor implements ProcessorInt
         }
 
         $token = $this->tokenManager->complete($data->token, $data->newPassword);
-        $this->entityManager->flush();
 
         $this->logger->info('merchant.invitation_completed', [
             'merchant_id' => $token->getMerchant()->getId()->toRfc4122(),

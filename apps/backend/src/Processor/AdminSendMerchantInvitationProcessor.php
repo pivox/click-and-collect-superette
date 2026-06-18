@@ -90,6 +90,9 @@ final readonly class AdminSendMerchantInvitationProcessor implements ProcessorIn
         if (!\in_array('ROLE_MERCHANT', $merchant->getRoles(), true)) {
             throw new UnprocessableEntityHttpException('ADMIN_MERCHANT_INVITATION_TARGET_NOT_MERCHANT');
         }
+        if (!$merchant->isActive() || null !== $merchant->getDeletedAt()) {
+            throw new UnprocessableEntityHttpException('ADMIN_MERCHANT_INVITATION_TARGET_NOT_ELIGIBLE');
+        }
 
         return $merchant;
     }

@@ -1903,7 +1903,7 @@ Réponse `200` :
 Règles :
 
 - réservé à `ROLE_ADMIN` ;
-- l'identifiant doit cibler un utilisateur existant avec le rôle `ROLE_MERCHANT` ;
+- l'identifiant doit cibler un utilisateur existant avec le rôle `ROLE_MERCHANT`, actif et non supprimé ;
 - remplace le hash de mot de passe existant ;
 - l'ancien mot de passe ne fonctionne plus après reset ;
 - le mot de passe temporaire est affiché une seule fois dans cette réponse ;
@@ -1919,7 +1919,7 @@ Codes retour :
 - `401` — non authentifié ;
 - `403` — rôle insuffisant ;
 - `404` — marchand introuvable ;
-- `422` — cible existante mais non marchande.
+- `422` — cible existante mais non marchande, inactive ou supprimée.
 
 #### POST /api/admin/merchants/{merchantId}/invitation — Envoyer une invitation marchand
 
@@ -2034,6 +2034,7 @@ Règles :
 
 - aucun JWT requis ;
 - le token doit être valide, non expiré, non utilisé et non révoqué ;
+- le passage à l'état utilisé est atomique avant changement de mot de passe pour garantir l'usage unique même en double soumission concurrente ;
 - le compte cible doit être un marchand actif et non supprimé ;
 - le nouveau mot de passe respecte les règles existantes (`min 8`) ;
 - la confirmation doit correspondre ;
