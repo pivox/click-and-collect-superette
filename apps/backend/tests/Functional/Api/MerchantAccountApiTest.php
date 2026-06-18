@@ -80,6 +80,29 @@ final class MerchantAccountApiTest extends FunctionalApiTestCase
         self::assertArrayNotHasKey('deleted_at', $payload);
     }
 
+    public function testPartialSplitNameUpdateDoesNotOverwriteExistingDisplayName(): void
+    {
+        $merchant = $this->createMerchantWithPassword('merchant-acc@example.test', 'secret123');
+        self::assertNull($merchant->getFirstName());
+        self::assertNull($merchant->getLastName());
+        self::assertSame('Test User', $merchant->getName());
+
+        $response = $this->requestJson('PATCH', '/api/merchant/me', ['first_name' => 'Ali'], $merchant);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame('Ali', $payload['first_name']);
+        self::assertNull($payload['last_name']);
+        self::assertSame('Test User', $payload['name']);
+
+        $this->entityManager->clear();
+        $stored = $this->entityManager->getRepository(User::class)->find($merchant->getId());
+        self::assertInstanceOf(User::class, $stored);
+        self::assertSame('Ali', $stored->getFirstName());
+        self::assertNull($stored->getLastName());
+        self::assertSame('Test User', $stored->getName());
+    }
+
     #[DataProvider('forbiddenProfileFieldProvider')]
     public function testSensitiveProfileFieldsAreRejected(string $field, mixed $value): void
     {

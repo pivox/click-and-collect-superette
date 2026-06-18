@@ -135,10 +135,13 @@ final readonly class UpdateMerchantAccountProcessor implements ProcessorInterfac
 
     private function refreshDisplayName(User $merchant): void
     {
-        $name = trim(implode(' ', array_filter([
-            $merchant->getFirstName(),
-            $merchant->getLastName(),
-        ], static fn (?string $part): bool => null !== $part && '' !== trim($part))));
+        $firstName = $merchant->getFirstName();
+        $lastName = $merchant->getLastName();
+        if (null === $firstName || '' === trim($firstName) || null === $lastName || '' === trim($lastName)) {
+            return;
+        }
+
+        $name = trim($firstName.' '.$lastName);
 
         if ('' !== $name) {
             if (mb_strlen($name) > self::MAX_DISPLAY_NAME_LENGTH) {
