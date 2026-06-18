@@ -252,7 +252,7 @@ describe('discardKadhia', () => {
     expect(window.localStorage.getItem('kadhia:context')).toBeNull();
   });
 
-  it('nettoie le cache local même si la suppression backend est refusée', async () => {
+  it("conserve le cache local si la suppression normale est refusée", async () => {
     window.localStorage.setItem('kadhia:active:store-1', 'k-shared');
     window.localStorage.setItem('kadhia:context', JSON.stringify({ shopId: 'store-1', kadhiaId: 'k-shared' }));
     vi.mocked(apiClient.delete).mockRejectedValue(new Error('Forbidden'));
@@ -260,8 +260,8 @@ describe('discardKadhia', () => {
     await expect(discardKadhia('store-1')).rejects.toThrow('Forbidden');
 
     expect(apiClient.delete).toHaveBeenCalledWith('/api/me/kadhias/k-shared');
-    expect(window.localStorage.getItem('kadhia:active:store-1')).toBeNull();
-    expect(window.localStorage.getItem('kadhia:context')).toBeNull();
+    expect(window.localStorage.getItem('kadhia:active:store-1')).toBe('k-shared');
+    expect(window.localStorage.getItem('kadhia:context')).toBe(JSON.stringify({ shopId: 'store-1', kadhiaId: 'k-shared' }));
   });
 
   it("n'auto-réactive pas une Kadhia partagée expirée après redémarrage forcé", async () => {

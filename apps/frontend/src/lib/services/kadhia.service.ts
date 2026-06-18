@@ -605,15 +605,22 @@ export async function discardKadhia(shopId: string, options: DiscardKadhiaOption
     return mockDelay(undefined);
   }
   const kadhiaId = readSubmitKadhiaId(shopId);
+  let shouldClearLocal = !kadhiaId;
   try {
     if (kadhiaId) {
       await apiClient.delete(`/api/me/kadhias/${kadhiaId}`);
     }
+    shouldClearLocal = true;
   } finally {
-    if (options.suppressReactivation && kadhiaId) suppressKadhiaForRestart(shopId, kadhiaId);
-    writeActiveId(shopId, null);
-    const ctx = readContext();
-    if (ctx?.shopId === shopId) writeContext(null);
+    if (options.suppressReactivation && kadhiaId) {
+      suppressKadhiaForRestart(shopId, kadhiaId);
+      shouldClearLocal = true;
+    }
+    if (shouldClearLocal) {
+      writeActiveId(shopId, null);
+      const ctx = readContext();
+      if (ctx?.shopId === shopId) writeContext(null);
+    }
   }
 }
 
