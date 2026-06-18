@@ -1,512 +1,290 @@
 # Prompts — S15 première connexion marchand
 
-Ce fichier regroupe les prompts à exécuter un par un pour terminer l’epic #501 — Première connexion marchand.
+Ce fichier unique contient les prompts à exécuter, dans l’ordre, pour terminer l’epic **#501 — Première connexion marchand**.
 
-Issues concernées :
+Issues restantes :
 
-- #512 — Activation email marchand
-- #513 — Accès temporaire première connexion marchand
-- #515 — Écran invitation première connexion
-- #517 — QA première connexion marchand
-- #501 — Clôture epic première connexion marchand
+1. **#512 — Activation email marchand**
+2. **#513 — Accès temporaire première connexion marchand**
+3. **#515 — Écran invitation première connexion**
+4. **#517 — QA première connexion marchand**
+5. **#501 — Clôture epic première connexion marchand**
 
-## Protocole obligatoire entre chaque prompt
+---
 
-À respecter strictement pour chaque issue.
+## 0. Règles globales d’exécution
 
-1. Toujours partir de `main` à jour.
-2. Créer une branche dédiée à une seule issue.
-3. Lire l’issue GitHub concernée, les PRs déjà mergées liées (#541, #544, #545), la documentation Sprint 15, le contrat API et le code existant avant de coder.
-4. Ne jamais mélanger plusieurs issues dans une même PR, sauf si le prompt le demande explicitement.
-5. Faire une PR petite, atomique, testée et documentée.
-6. Ouvrir la PR en **Ready for review**, jamais en draft.
-7. La description de PR doit contenir : résumé, issue(s) liée(s), périmètre livré, hors périmètre, vérifications exécutées, risques ou limites.
-8. Après ouverture de la PR, attendre les retours de Codex.
-9. Lire tous les retours Codex : commentaires de conversation, review globale et commentaires inline.
-10. Corriger chaque point demandé.
-11. Répondre à chaque commentaire avec ce qui a été fait.
-12. Marquer chaque thread résolu uniquement après correction réelle.
-13. Pousser les corrections sur la même branche.
-14. Attendre une nouvelle validation Codex.
-15. Répéter la boucle tant que Codex n’a pas validé la PR.
-16. Une fois validée, merger la PR.
-17. Mettre à jour le `main` local :
+Ces règles s’appliquent à tous les prompts de ce fichier.
+
+### 0.1 Ordre strict
+
+- Exécuter les prompts dans l’ordre du fichier.
+- Ne jamais passer au prompt suivant tant que la PR courante n’est pas mergée.
+- Ne jamais regrouper plusieurs issues dans une seule PR, sauf si le prompt le demande explicitement.
+- Chaque PR doit rester atomique, lisible et limitée à son issue.
+
+### 0.2 État local obligatoire avant chaque prompt
+
+Avant chaque prompt :
+
+```bash
+git checkout main
+git pull --ff-only origin main
+git status
+```
+
+Règles :
+
+- Le working tree doit être propre avant de commencer.
+- Ne jamais commencer sur une branche sale.
+- Ne jamais coder directement sur `main`.
+- Créer une branche dédiée avec un nom explicite, par exemple `codex/s15-031-merchant-email-invitation`.
+- Vérifier les issues et PRs existantes avant de coder pour éviter les doublons.
+
+### 0.3 Lecture obligatoire avant codage
+
+Avant de modifier le code :
+
+- lire l’issue concernée ;
+- lire les PRs déjà mergées liées : #541, #544, #545 ;
+- lire les issues parentes/enfants utiles : #501, #512, #513, #515, #517 ;
+- lire le contrat API ;
+- lire la documentation Sprint 15 ;
+- lire le code existant avant de proposer une nouvelle structure ;
+- vérifier les conventions de tests backend/frontend ;
+- vérifier les patterns existants API Platform, Symfony, Next.js et tests.
+
+### 0.4 Règles quota et contexte
+
+- Si le quota restant descend à **3 % ou moins**, mettre le travail en pause.
+- Ne pas lancer de nouvelle commande lourde, nouvelle PR, nouvelle review ou nouveau prompt avec un quota à 3 % ou moins.
+- Attendre que le quota se régénère avant de reprendre.
+- Après régénération, relire le dernier état : branche, PR, fichiers modifiés, tests exécutés, commentaires Codex, prochaine action.
+- Reprendre exactement au point d’arrêt.
+- Si le contexte dépasse **90 %**, lancer une compression/compact avant de continuer.
+- La compression doit contenir : issue en cours, branche, PR, décisions prises, fichiers modifiés, tests exécutés, retours Codex, points restants, prochaine action.
+- Après compression, vérifier que le contexte compacté suffit pour continuer sans perte d’information.
+
+### 0.5 Cycle PR obligatoire
+
+Pour chaque prompt :
+
+1. Implémenter l’issue.
+2. Exécuter les tests ciblés.
+3. Exécuter les vérifications minimales utiles : lint, typecheck, phpunit/vitest selon périmètre.
+4. Mettre à jour la documentation concernée.
+5. Ouvrir une PR en **Ready for review**, jamais en draft.
+6. La PR doit contenir : résumé, issue liée, périmètre livré, hors périmètre, tests exécutés, risques/limites.
+7. Attendre les retours Codex.
+8. Lire tous les retours Codex : conversation, review globale, inline comments.
+9. Corriger chaque retour.
+10. Répondre à chaque commentaire avec ce qui a été fait.
+11. Marquer un thread résolu uniquement après correction réelle.
+12. Attendre que Codex valide la PR.
+13. Merger uniquement après validation Codex.
+14. Revenir sur `main` et mettre à jour :
 
 ```bash
 git checkout main
 git pull --ff-only origin main
 ```
 
-18. Supprimer la branche locale si elle n’est plus utile.
-19. Compacter le contexte de travail avec un résumé clair de ce qui vient d’être livré.
-20. Passer seulement ensuite au prompt suivant.
+15. Supprimer la branche locale si elle n’est plus utile.
+16. Compacter le contexte avec le résumé de la PR mergée.
+17. Passer au prompt suivant.
 
-Important : ne pas passer au prompt suivant tant que la PR précédente n’est pas mergée et que le `main` local n’est pas à jour.
+### 0.6 Règles anti-dérive
+
+- Ne pas ajouter de feature hors issue.
+- Ne pas réécrire une architecture complète si une extension locale suffit.
+- Ne pas modifier paiement, livraison, marketplace, QR/share ou Messenger sauf demande explicite de l’issue.
+- Ne pas rouvrir #543 sauf si un test strict impose une correction de configuration.
+- Ne pas modifier les secrets, tokens, mots de passe ou logs sans vérifier la sécurité.
+- Ne jamais exposer token brut, password hash, mot de passe temporaire ancien ou secret dans une réponse API, log ou test snapshot.
+- Ne pas fermer #501 tant que #512, #513, #515 et #517 ne sont pas terminées ou explicitement justifiées.
+
+### 0.7 Règles de reprise après interruption
+
+Si le travail est interrompu :
+
+1. Vérifier la branche courante.
+2. Vérifier `git status`.
+3. Relire la dernière PR ouverte.
+4. Relire les derniers retours Codex.
+5. Relancer uniquement les tests nécessaires pour confirmer l’état.
+6. Continuer depuis le dernier point stable.
+7. Ne pas recommencer l’issue depuis zéro si le travail est déjà engagé.
+
+### 0.8 Règles de validation finale avant merge
+
+Avant merge :
+
+- tous les tests annoncés dans la PR doivent être exécutés ;
+- aucun commentaire Codex non traité ;
+- aucun thread non résolu si une correction est attendue ;
+- la documentation doit être alignée avec le comportement réel ;
+- la PR doit fermer uniquement l’issue réellement couverte ;
+- les limites connues doivent être écrites dans la description de PR.
 
 ---
 
-## Prompt 1 — Issue #512 — Activation email marchand
+## Prompt 1 — #512 Activation email marchand
 
 ```text
-Tu es l’assistant technique du projet Click & Collect Supérette.
+Tu es l’assistant technique du projet Click & Collect Supérette. Réponds en français.
 
-Langue : français.
+Objectif : implémenter #512 — Activation email marchand.
 
-Objectif : implémenter l’issue #512 — Activation email marchand.
+Contexte : #501 reste ouverte. #541 livre l’onboarding admin. #544 livre le mode `temporary_password`, mais laisse l’invitation email hors périmètre. Ne pas refaire le mode mot de passe provisoire.
 
-Contexte :
-- L’epic #501 première connexion marchand reste ouverte.
-- Le mode `temporary_password` est déjà livré par la PR #544.
-- L’onboarding admin est livré par la PR #541.
-- L’invitation email est explicitement hors périmètre de #544 et reste à implémenter.
-- Ne pas refaire le flow `temporary_password` déjà livré.
+But : permettre à un admin d’inviter un marchand à définir son mot de passe via un lien email sécurisé.
 
-But fonctionnel :
-Permettre à un admin d’inviter un marchand à définir son mot de passe via un lien email sécurisé.
+Périmètre :
+- création d’une invitation par admin ;
+- token opaque, robuste et non prédictible ;
+- token hashé en base, jamais stocké en clair ;
+- expiration configurable ;
+- usage unique ;
+- renvoi possible ;
+- renvoi qui invalide ou remplace proprement l’invitation active précédente ;
+- définition du mot de passe définitif par le marchand ;
+- refus des invitations expirées, utilisées, révoquées ou invalides ;
+- audit/trace des actions importantes ;
+- aucune exposition de secret, hash ou token en réponse API.
 
-Périmètre fonctionnel attendu :
-1. Un admin peut créer une invitation de première connexion pour un marchand.
-2. L’invitation contient un token opaque, robuste, non prédictible.
-3. Le token ne doit jamais être stocké en clair en base.
-4. Le token doit être expirant.
-5. Le token doit être à usage unique.
-6. Le renvoi d’invitation doit être possible.
-7. Le renvoi doit invalider ou remplacer proprement l’invitation active précédente.
-8. Le marchand peut définir son mot de passe définitif via le token.
-9. Une invitation expirée doit être refusée.
-10. Une invitation déjà utilisée doit être refusée.
-11. Les actions importantes doivent être tracées/auditées.
-12. Aucun secret, token brut, password hash ou information sensible ne doit être exposé après génération.
+Avant codage : lire `User`, `Shop`, les resources/processors admin, le flow `passwordChangeRequired` de #544, l’onboarding #541, le reset temporaire admin, les conventions API Platform, les tests fonctionnels, l’audit/log et l’infrastructure mail existante.
 
-Travail de découverte obligatoire avant codage :
-- Lire les entités `User`, `Shop`, les processors/admin resources existants et le flow `passwordChangeRequired` livré par #544.
-- Lire le code d’onboarding admin livré par #541.
-- Lire le reset de mot de passe temporaire admin existant.
-- Identifier les conventions API Platform du projet.
-- Identifier les conventions de tests fonctionnels backend.
-- Identifier la stratégie d’audit/log existante.
-- Identifier l’infrastructure mail existante. Si elle n’existe pas, créer une abstraction minimale, isolée et testable, sans coupler le métier à un provider externe.
+Design attendu : modèle persistant dédié ou modèle existant adapté avec marchand cible, hash du token, expiration, utilisation, création, auteur admin si disponible, statut ou équivalent. Génération cryptographiquement sûre. Comparaison sûre. Pas d’invitations actives concurrentes ambiguës.
 
-Design technique attendu :
-- Créer un modèle persistant dédié à l’invitation ou utiliser un modèle existant si déjà présent, mais sans détourner une entité non adaptée.
-- Champs attendus ou équivalents : marchand cible, hash du token, date d’expiration, date d’utilisation, date de création, auteur admin si disponible, statut ou informations permettant de distinguer actif/expiré/utilisé/révoqué.
-- Prévoir une configuration de durée d’expiration avec une valeur par défaut raisonnable.
-- Générer le token avec une source cryptographiquement sûre.
-- Hasher le token avant stockage.
-- Comparer le token reçu avec le hash stocké sans exposer le token brut.
-- S’assurer qu’il n’existe pas deux invitations actives concurrentes ambiguës pour le même marchand.
-- Prévoir une stratégie claire pour le renvoi : soit révocation des anciennes invitations actives, soit remplacement atomique.
-- Réutiliser le mécanisme `passwordChangeRequired` si cohérent, sans casser le mode mot de passe provisoire.
+Endpoints attendus ou équivalents : endpoint admin créer/envoyer, endpoint admin renvoyer, endpoint public/marchand vérifier/finaliser, endpoint de définition du mot de passe à partir du token.
 
-Endpoints attendus ou équivalents selon les conventions du projet :
-- Endpoint admin pour créer/envoyer une invitation marchand.
-- Endpoint admin pour renvoyer une invitation marchand si nécessaire.
-- Endpoint public ou marchand pour vérifier/finaliser l’invitation.
-- Endpoint de finalisation permettant de définir le mot de passe définitif à partir du token.
+Email : envoyer un lien frontend construit depuis la configuration existante, sans URL de production en dur, sans réouvrir #543. Contenu simple : objectif, expiration, consigne de sécurité.
 
-Contraintes de sécurité :
-- Admin requis sur les endpoints admin.
-- Token brut visible uniquement au moment de génération et uniquement pour composer le lien email.
-- Token brut jamais loggé.
-- Token brut jamais stocké en base.
-- Mot de passe définitif validé selon les règles existantes du projet.
-- Réponses d’erreur claires côté front mais sans fuite inutile d’informations sensibles.
-- Une invitation utilisée ne peut jamais être réutilisée.
-- Une invitation expirée ne peut jamais activer un compte.
-- Une invitation révoquée/remplacée ne peut jamais être utilisée.
+Tests obligatoires : création admin OK, refus sans admin, stockage hashé, finalisation token valide, refus expiré/utilisé/invalide, renvoi qui remplace ou invalide, login avec mot de passe définitif, secrets non exposés, audit/trace.
 
-Email :
-- Envoyer un email d’invitation contenant un lien frontend construit proprement à partir de la configuration existante.
-- Ne pas hardcoder d’URL de production.
-- Si `FRONTEND_URL` est utilisé, respecter les règles existantes et ne pas réouvrir le sujet #543.
-- Le contenu doit être simple : nom du marchand si disponible, objectif du lien, expiration, consigne de sécurité.
+Documentation : contrat API, doc Sprint 15, notes sécurité si nécessaire.
 
-Tests obligatoires :
-- Création d’invitation par admin OK.
-- Création refusée sans rôle admin.
-- Token stocké hashé, jamais en clair.
-- Finalisation avec token valide OK.
-- Finalisation avec token expiré refusée.
-- Finalisation avec token déjà utilisé refusée.
-- Finalisation avec token invalide refusée.
-- Renvoi d’invitation remplace/invalide l’ancienne selon la règle retenue.
-- Après finalisation, le marchand peut utiliser son mot de passe définitif.
-- Les secrets ne sont pas exposés dans les réponses API.
-- Les actions importantes sont auditées ou tracées.
+Hors périmètre : ne pas refaire `temporary_password`, ne pas refaire onboarding admin, ne pas modifier QR/share/FRONTEND_URL hors lien invitation, pas de MFA/2FA, paiement, marketplace, livraison, ne pas fermer #501.
 
-Documentation à mettre à jour :
-- Contrat API concerné.
-- Documentation Sprint 15 ou document équivalent.
-- Notes de sécurité si nécessaire.
+Livrable : PR dédiée à #512, Ready for review, description complète avec `Closes #512`, `Refs #501`, tests, limites, hors périmètre.
 
-Hors périmètre :
-- Ne pas refaire le flow `temporary_password`.
-- Ne pas refaire l’onboarding admin.
-- Ne pas modifier les règles QR/share/FRONTEND_URL hors strict besoin de construire le lien.
-- Ne pas ajouter MFA/2FA.
-- Ne pas ajouter paiement, marketplace ou livraison.
-- Ne pas fermer #501 dans cette PR.
-
-Livrable :
-- Une PR dédiée à #512.
-- PR ouverte en Ready for review, pas en draft.
-- Description de PR complète avec : résumé, `Closes #512`, `Refs #501`, tests exécutés, limites et hors périmètre.
-
-Après ouverture de PR :
-- Attendre les retours Codex.
-- Lire tous les commentaires Codex.
-- Corriger chaque point.
-- Répondre à chaque commentaire.
-- Marquer les threads résolus après correction.
-- Attendre validation Codex.
-- Une fois validée, merger.
-- Mettre `main` local à jour.
-- Compacter le contexte.
-- Passer seulement ensuite au prompt #513.
+Après PR : attendre Codex, lire, corriger, répondre, marquer résolu, attendre validation, merger, mettre `main` à jour, compacter, passer au prompt #513.
 ```
 
 ---
 
-## Prompt 2 — Issue #513 — Accès temporaire première connexion marchand
+## Prompt 2 — #513 Accès temporaire première connexion marchand
 
 ```text
-Tu es l’assistant technique du projet Click & Collect Supérette.
+Tu es l’assistant technique du projet Click & Collect Supérette. Réponds en français.
 
-Langue : français.
+Objectif : terminer #513 — Accès temporaire première connexion marchand.
 
-Objectif : terminer l’issue #513 — Accès temporaire première connexion marchand.
+Contexte : #541 génère le mot de passe temporaire one-shot. #544 livre `passwordChangeRequired`, le changement obligatoire, le blocage dashboard/API et `/merchant/premiere-connexion`. #513 reste ouverte pour expiration configurable, régénération complète et refus d’accès expiré.
 
-Contexte :
-- Le mode mot de passe provisoire existe déjà via #541 et #544.
-- #541 a livré la génération one-shot côté admin.
-- #544 a livré `passwordChangeRequired`, le changement obligatoire au premier login, le blocage dashboard/API métier et la page `/merchant/premiere-connexion`.
-- L’issue #513 reste ouverte car l’expiration configurable, la régénération complète et le refus d’un accès temporaire expiré doivent être vérifiés ou finalisés.
+But : sécuriser complètement le mode mot de passe provisoire.
 
-But fonctionnel :
-Sécuriser complètement le mode mot de passe provisoire en ajoutant ou validant l’expiration configurable, la régénération et le refus d’un accès temporaire expiré.
+Avant codage : lire #541, #544, le code de reset temporaire, `MerchantAdminApiTest`, `MerchantFirstLoginApiTest`, `MerchantAccountApiTest`, les champs existants sur `User`, les conventions d’audit/log.
 
-Travail de découverte obligatoire avant codage :
-- Lire la PR #541 et le code actuel de génération/reset du mot de passe temporaire.
-- Lire la PR #544 et le code `passwordChangeRequired`.
-- Lire les tests existants liés à `MerchantAdminApiTest`, `MerchantFirstLoginApiTest`, `MerchantAccountApiTest` et équivalents.
-- Vérifier si des champs d’expiration existent déjà sur `User` ou une autre entité.
-- Vérifier les conventions d’audit/log admin.
+Périmètre : génération/régénération admin, expiration configurable, remplacement de l’accès précédent, affichage one-shot, aucun stockage en clair, changement obligatoire vers mot de passe définitif, refus d’accès expiré, audit/trace.
 
-Périmètre attendu :
-1. L’admin peut générer ou régénérer un accès temporaire.
-2. L’accès temporaire a une expiration configurable.
-3. La régénération remplace l’accès précédent.
-4. Le mot de passe temporaire reste affiché une seule fois.
-5. Le mot de passe temporaire n’est jamais stocké en clair.
-6. Le marchand doit définir un mot de passe définitif après connexion temporaire.
-7. Un accès temporaire expiré est refusé.
-8. Les actions importantes sont tracées.
+Design attendu : ajouter les champs nécessaires si absents (`temporaryPasswordExpiresAt`, `temporaryPasswordGeneratedAt` ou équivalent). Distinguer mot de passe provisoire, mot de passe définitif et invitation email. Après finalisation définitive, l’expiration passée ne doit plus bloquer le compte. Régénération admin : remettre `passwordChangeRequired` à true et remplacer l’ancien accès.
 
-Design technique attendu :
-- Ajouter les champs nécessaires si absents, par exemple `temporaryPasswordExpiresAt`, `temporaryPasswordGeneratedAt`, ou équivalent.
-- Ne pas rendre le modèle confus : distinguer clairement mot de passe provisoire, mot de passe définitif et invitation email.
-- Si le marchand a déjà défini son mot de passe définitif, l’expiration de l’ancien accès temporaire ne doit plus bloquer le compte.
-- Lors d’une régénération admin, remettre `passwordChangeRequired` à `true` et remplacer l’accès temporaire précédent.
-- Prévoir une configuration de durée par défaut, par exemple via env/config Symfony, sans hardcoder partout.
+Comportement : temporaire valide → connexion puis changement obligatoire ; temporaire expiré → refus clair ; régénération → ancien accès remplacé ; après définitif → accès normal.
 
-Comportement attendu :
-- Connexion avec mot de passe temporaire valide : autorisée, puis redirection/changement obligatoire déjà porté par #544.
-- Connexion avec mot de passe temporaire expiré : refus clair, code d’erreur stable, pas d’accès dashboard.
-- Régénération admin : nouveau mot de passe provisoire valide, ancien accès remplacé.
-- Après définition du mot de passe définitif : accès normal, `passwordChangeRequired = false`, aucun blocage par l’expiration temporaire passée.
+Tests obligatoires : génération admin, one-shot, secrets non exposés, connexion temporaire valide, expiré refusé, régénération remplace, ancien accès refusé si testable, accès normal après finalisation, audit/trace.
 
-Tests obligatoires :
-- Génération accès temporaire par admin OK.
-- Mot de passe temporaire retourné une seule fois.
-- Hash/secrets non exposés.
-- Connexion avec accès temporaire valide OK puis changement obligatoire.
-- Connexion avec accès temporaire expiré refusée.
-- Régénération remplace l’ancien accès.
-- Ancien accès après régénération refusé si le design permet de le tester.
-- Après finalisation du mot de passe définitif, le marchand accède normalement.
-- Audit ou trace des actions importantes.
+Documentation : contrat API admin, doc Sprint 15/runbook, durée d’expiration configurable.
 
-Documentation à mettre à jour :
-- Contrat API admin lié au mot de passe temporaire.
-- Documentation Sprint 15 ou runbook admin.
-- Mentionner la durée d’expiration configurable.
+Hors périmètre : ne pas implémenter invitation email, ne pas modifier #515, ne pas fermer #501, ne pas refaire onboarding admin.
 
-Hors périmètre :
-- Ne pas implémenter l’invitation email si #512 n’est pas la PR courante.
-- Ne pas modifier le flow front invitation email #515.
-- Ne pas fermer #501 dans cette PR.
-- Ne pas refaire l’onboarding admin.
+Livrable : PR dédiée à #513, Ready for review, description complète avec `Closes #513`, `Refs #501`, tests, limites, hors périmètre.
 
-Livrable :
-- Une PR dédiée à #513.
-- PR ouverte en Ready for review, pas en draft.
-- Description de PR complète avec : résumé, `Closes #513`, `Refs #501`, tests exécutés, limites et hors périmètre.
-
-Après ouverture de PR :
-- Attendre les retours Codex.
-- Lire tous les commentaires Codex.
-- Corriger chaque point.
-- Répondre à chaque commentaire.
-- Marquer les threads résolus après correction.
-- Attendre validation Codex.
-- Une fois validée, merger.
-- Mettre `main` local à jour.
-- Compacter le contexte.
-- Passer seulement ensuite au prompt #515.
+Après PR : attendre Codex, lire, corriger, répondre, marquer résolu, attendre validation, merger, mettre `main` à jour, compacter, passer au prompt #515.
 ```
 
 ---
 
-## Prompt 3 — Issue #515 — Écran invitation première connexion
+## Prompt 3 — #515 Écran invitation première connexion
 
 ```text
-Tu es l’assistant technique du projet Click & Collect Supérette.
+Tu es l’assistant technique du projet Click & Collect Supérette. Réponds en français.
 
-Langue : français.
+Objectif : implémenter #515 — Écran invitation première connexion.
 
-Objectif : implémenter l’issue #515 — Écran invitation première connexion.
+Préconditions : #512 mergée, `main` local à jour, endpoints backend d’invitation disponibles.
 
-Précondition :
-- La PR #512 doit être mergée avant de commencer.
-- Le `main` local doit être à jour.
-- Les endpoints backend d’invitation email doivent être disponibles.
+But : créer l’écran frontend permettant à un marchand invité par email de définir son mot de passe définitif via le lien d’invitation.
 
-But fonctionnel :
-Créer l’écran frontend permettant à un marchand invité par email de définir son mot de passe définitif via le lien d’invitation.
+Avant codage : lire #515, la PR #512, le contrat API, `/merchant/premiere-connexion` de #544, les services frontend auth marchand, les tests `merchant*.test.tsx`, les conventions Next.js.
 
-Travail de découverte obligatoire avant codage :
-- Lire l’issue #515.
-- Lire la PR #512 mergée et le contrat API final.
-- Lire la page `/merchant/premiere-connexion` déjà livrée par #544 pour réutiliser les patterns UX et techniques.
-- Lire les services frontend d’auth marchand.
-- Lire les tests frontend existants `merchant*.test.tsx`.
-- Identifier les conventions de routing Next.js du projet.
+Périmètre : page de finalisation d’invitation, récupération du token depuis l’URL, formulaire mot de passe + confirmation, validations front simples, appel API de finalisation, erreurs token invalide/expiré/utilisé/mot de passe invalide, redirection après succès, responsive, cohérence design.
 
-Périmètre attendu :
-1. Créer la page de finalisation d’invitation.
-2. Récupérer le token depuis l’URL selon le contrat retenu par #512.
-3. Afficher un formulaire de nouveau mot de passe.
-4. Afficher un champ de confirmation du mot de passe.
-5. Valider côté front les erreurs simples avant appel API.
-6. Appeler l’endpoint backend de finalisation invitation.
-7. Afficher les erreurs API : token invalide, expiré, déjà utilisé, mot de passe invalide.
-8. Rediriger après succès vers le parcours prévu : login marchand ou espace marchand selon le contrat backend.
-9. L’écran doit être responsive.
-10. L’écran doit rester cohérent avec le design existant du projet.
+Contraintes UX : message clair, ne pas afficher le token, ne pas exposer d’informations sensibles, gérer loading/succès/token manquant/lien expiré/déjà utilisé, proposer une action utile en erreur.
 
-Contraintes UX :
-- Message clair : “Définir mon mot de passe marchand” ou équivalent.
-- Ne pas afficher le token.
-- Ne pas exposer d’informations sensibles dans les erreurs.
-- Gérer l’état loading.
-- Gérer l’état succès.
-- Gérer l’état token manquant.
-- Gérer l’état lien expiré ou déjà utilisé.
-- Prévoir une action utile en cas d’erreur : retourner au login ou demander une nouvelle invitation selon le produit existant.
+Contraintes techniques : réutiliser composants/services/conventions existants, factoriser si simple avec `/merchant/premiere-connexion`, ne pas casser `temporary_password`.
 
-Contraintes techniques :
-- Réutiliser les composants, services API et conventions existantes.
-- Ne pas dupliquer inutilement la logique du formulaire `/merchant/premiere-connexion` si une factorisation simple est possible.
-- Ne pas casser le flow `temporary_password` existant.
-- Respecter les conventions de tests frontend du projet.
+Tests obligatoires : rendu page, validation mot de passe/confirmation, confirmation différente, succès token valide, messages expiré/utilisé/invalide/manquant, erreur API générique, responsive ou structure selon pratiques.
 
-Tests obligatoires :
-- La page se rend correctement.
-- Le formulaire exige mot de passe + confirmation.
-- Une confirmation différente affiche une erreur.
-- Un token valide permet d’appeler l’API et affiche/redirige le succès.
-- Token expiré : message clair.
-- Token déjà utilisé : message clair.
-- Token invalide/manquant : message clair.
-- Erreur API générique : message clair.
-- Responsive ou structure testée selon les pratiques existantes.
+Documentation : parcours marchand/frontend et Sprint 15 si nécessaire.
 
-Documentation :
-- Mettre à jour la documentation frontend/parcours marchand si elle existe.
-- Mettre à jour la documentation Sprint 15 si nécessaire.
+Hors périmètre : ne pas modifier backend #512 sauf bug bloquant, ne pas refaire mot de passe provisoire, pas de MFA/2FA, ne pas fermer #501.
 
-Hors périmètre :
-- Ne pas modifier les endpoints backend #512 sauf bug bloquant découvert.
-- Ne pas refaire le flow mot de passe provisoire.
-- Ne pas ajouter MFA/2FA.
-- Ne pas fermer #501 dans cette PR.
+Livrable : PR dédiée à #515, Ready for review, description complète avec `Closes #515`, `Refs #501`, tests, limites, hors périmètre.
 
-Livrable :
-- Une PR dédiée à #515.
-- PR ouverte en Ready for review, pas en draft.
-- Description de PR complète avec : résumé, `Closes #515`, `Refs #501`, tests exécutés, limites et hors périmètre.
-
-Après ouverture de PR :
-- Attendre les retours Codex.
-- Lire tous les commentaires Codex.
-- Corriger chaque point.
-- Répondre à chaque commentaire.
-- Marquer les threads résolus après correction.
-- Attendre validation Codex.
-- Une fois validée, merger.
-- Mettre `main` local à jour.
-- Compacter le contexte.
-- Passer seulement ensuite au prompt #517.
+Après PR : attendre Codex, lire, corriger, répondre, marquer résolu, attendre validation, merger, mettre `main` à jour, compacter, passer au prompt #517.
 ```
 
 ---
 
-## Prompt 4 — Issue #517 — QA première connexion marchand
+## Prompt 4 — #517 QA première connexion marchand
 
 ```text
-Tu es l’assistant technique du projet Click & Collect Supérette.
+Tu es l’assistant technique du projet Click & Collect Supérette. Réponds en français.
 
-Langue : français.
+Objectif : implémenter #517 — QA première connexion marchand.
 
-Objectif : implémenter l’issue #517 — QA première connexion marchand.
+Préconditions : #512 mergée, #513 mergée ou clarifiée, #515 mergée, `main` local à jour.
 
-Préconditions :
-- #512 doit être mergée.
-- #513 doit être mergée ou explicitement clarifiée.
-- #515 doit être mergée.
-- Le `main` local doit être à jour.
+But : ajouter une couverture de non-régression complète pour les deux modes : invitation email et accès temporaire/mot de passe provisoire.
 
-But :
-Ajouter une couverture de non-régression complète pour les deux modes de première connexion marchand :
-1. invitation email ;
-2. accès temporaire / mot de passe provisoire.
+Avant codage : lire #517, #541, #544, #512, #513, #515, les tests backend onboarding/marchand/login/première connexion, les tests frontend `merchant*.test.tsx` et admin drawer/page. Identifier les trous réels avant d’ajouter des tests.
 
-Travail de découverte obligatoire avant codage :
-- Lire l’issue #517.
-- Lire les PRs mergées #541, #544, #512, #513 et #515.
-- Lire les tests backend existants liés à l’onboarding admin, au marchand, au login et à la première connexion.
-- Lire les tests frontend `merchant*.test.tsx` et admin drawer/page.
-- Identifier les trous de couverture réels avant d’ajouter des tests.
+Périmètre QA : invitation marchand, accès temporaire, finalisation mot de passe, expiration, réutilisation refusée, statut actif après finalisation, blocage dashboard/API avant finalisation, accès normal après finalisation.
 
-Périmètre QA attendu :
-- Invitation marchand.
-- Accès temporaire marchand.
-- Finalisation du mot de passe.
-- Expiration.
-- Réutilisation refusée.
-- Statut actif ou équivalent après finalisation.
-- Blocage dashboard/API métier avant finalisation.
-- Accès normal après finalisation.
+Tests backend à couvrir : création invitation, finalisation valide, expirée refusée, utilisée refusée, invalide refusée, renvoi conforme à la règle retenue, accès temporaire valide, accès temporaire expiré, régénération, blocage routes métier avant finalisation, accès après finalisation, secrets non exposés.
 
-Tests backend obligatoires ou à compléter :
-1. Admin crée une invitation email.
-2. Invitation email valide finalise le mot de passe.
-3. Invitation expirée refusée.
-4. Invitation déjà utilisée refusée.
-5. Invitation invalide refusée.
-6. Renvoi d’invitation invalide l’ancien token ou respecte la règle retenue.
-7. Accès temporaire valide impose le changement de mot de passe.
-8. Accès temporaire expiré refusé.
-9. Régénération accès temporaire remplace l’ancien accès.
-10. Un marchand non finalisé ne peut pas accéder aux routes métier.
-11. Un marchand finalisé peut accéder aux routes métier.
-12. Les secrets ne sont pas exposés dans les réponses.
+Tests frontend à couvrir : écran invitation succès, expiré, utilisé, invalide/manquant, première connexion mot de passe provisoire si manque, redirections auth, messages d’erreur.
 
-Tests frontend obligatoires ou à compléter :
-1. Écran invitation email : succès.
-2. Écran invitation email : token expiré.
-3. Écran invitation email : token déjà utilisé.
-4. Écran invitation email : token invalide/manquant.
-5. Écran première connexion mot de passe provisoire : succès déjà existant ou à compléter.
-6. Redirections auth cohérentes.
-7. Messages d’erreur compréhensibles.
+Contraintes : pas de feature non demandée, corriger seulement les bugs bloquants révélés par tests, créer une issue dédiée si bug hors scope, tests déterministes, pas de vrai provider email externe, sécurité non permissive.
 
-Contraintes :
-- Ne pas ajouter de feature non demandée.
-- Corriger uniquement les bugs bloquants révélés par les tests.
-- Si un bug est découvert et dépasse le scope QA, documenter clairement et créer une issue dédiée plutôt que mélanger.
-- Garder les tests déterministes.
-- Ne pas dépendre d’un vrai provider email externe.
-- Ne pas rendre les tests permissifs sur la sécurité.
+Documentation : doc QA/Sprint 15 avec scénarios couverts ; PR citant tous les tests exécutés.
 
-Documentation :
-- Mettre à jour la documentation QA/Sprint 15 avec la liste des scénarios couverts.
-- La PR doit citer tous les tests exécutés.
+Livrable : PR dédiée à #517, Ready for review, description complète avec `Closes #517`, `Refs #501`, tests, limites, hors périmètre.
 
-Livrable :
-- Une PR dédiée à #517.
-- PR ouverte en Ready for review, pas en draft.
-- Description de PR complète avec : résumé, `Closes #517`, `Refs #501`, tests exécutés, limites et hors périmètre.
-
-Après ouverture de PR :
-- Attendre les retours Codex.
-- Lire tous les commentaires Codex.
-- Corriger chaque point.
-- Répondre à chaque commentaire.
-- Marquer les threads résolus après correction.
-- Attendre validation Codex.
-- Une fois validée, merger.
-- Mettre `main` local à jour.
-- Compacter le contexte.
-- Passer seulement ensuite au prompt #501.
+Après PR : attendre Codex, lire, corriger, répondre, marquer résolu, attendre validation, merger, mettre `main` à jour, compacter, passer au prompt #501.
 ```
 
 ---
 
-## Prompt 5 — Issue #501 — Clôture epic première connexion marchand
+## Prompt 5 — #501 Clôture epic première connexion marchand
 
 ```text
-Tu es l’assistant technique du projet Click & Collect Supérette.
+Tu es l’assistant technique du projet Click & Collect Supérette. Réponds en français.
 
-Langue : français.
+Objectif : clôturer proprement #501 — Première connexion marchand.
 
-Objectif : clôturer proprement l’epic #501 — Première connexion marchand.
+Préconditions : #512, #513, #515 et #517 sont mergées et fermées, ou explicitement justifiées ; `main` local à jour.
 
-Préconditions obligatoires :
-- #512 est mergée et fermée.
-- #513 est mergée et fermée, ou explicitement fermée avec justification produit si son reste était déjà couvert.
-- #515 est mergée et fermée.
-- #517 est mergée et fermée.
-- Le `main` local est à jour.
+But : vérifier que les deux modes de première connexion sont terminés, documentés et testés.
 
-But :
-Vérifier que les deux modes de première connexion marchand sont réellement terminés, documentés et testés, puis préparer la clôture de #501.
+Vérifications : lien invitation fonctionnel, lien expirant, lien à usage unique, connexion avec mot de passe provisoire, redirection obligatoire vers définition du mot de passe, aucune page métier avant finalisation, secrets jamais exposés après génération, documentation alignée, tests #517 couvrant les deux modes, #527 non bloquant.
 
-Travail de vérification :
-- Lire #501.
-- Lire les PRs finales #512, #513, #515, #517.
-- Vérifier que les critères de sortie de #501 sont couverts :
-  - le marchand invité peut définir son mot de passe via un lien ;
-  - le lien expire ;
-  - le lien est à usage unique ;
-  - le marchand peut se connecter avec un mot de passe provisoire ;
-  - le mot de passe provisoire force une redirection vers définition du mot de passe ;
-  - aucune page métier marchand n’est accessible avant finalisation ;
-  - les tokens et mots de passe provisoires ne sont jamais exposés après génération.
-- Vérifier que la documentation est alignée avec le comportement réel.
-- Vérifier que les tests de #517 couvrent les deux modes.
-- Vérifier que l’issue #527 ou le suivi prioritaire n’indique plus ce bloc comme ouvert, sauf mention historique.
+Périmètre : pas de feature. Mise à jour documentaire seulement si nécessaire. Préparer un commentaire GitHub de clôture avec résumé des PRs et tests.
 
-Périmètre attendu :
-- Pas de nouvelle feature.
-- Mise à jour documentaire uniquement si nécessaire.
-- Nettoyage des références obsolètes dans la documentation Sprint 15 ou QA si nécessaire.
-- Ajout d’un petit rapport de clôture si utile.
-- Préparer un commentaire GitHub de clôture pour #501 avec le résumé des PRs et les tests.
+Décision : si tous les critères sont couverts, fermer #501 comme completed après validation ; sinon ne pas fermer et créer/mettre à jour une issue enfant précise.
 
-Commentaire GitHub recommandé pour #501 :
-- Résumer les deux modes livrés.
-- Lister les PRs qui couvrent les critères.
-- Mentionner les tests principaux.
-- Mentionner les limites restantes si elles existent, mais ne pas fermer si une limite bloque un critère de sortie.
+Livrable : PR documentaire dédiée à #501 si nécessaire, Ready for review ; sinon commentaire de clôture prêt à coller et fermeture après validation humaine.
 
-Critère de décision :
-- Si tous les critères #501 sont couverts : fermer #501 comme completed après merge de la PR documentaire éventuelle.
-- Si un critère n’est pas couvert : ne pas fermer #501 ; créer ou mettre à jour une issue enfant précise.
-
-Livrable :
-- Si une mise à jour documentaire est nécessaire : ouvrir une PR dédiée à #501 en Ready for review.
-- Si aucune modification code/doc n’est nécessaire : préparer le commentaire de clôture et fermer #501 uniquement après validation humaine.
-
-Après ouverture de PR éventuelle :
-- Attendre les retours Codex.
-- Lire tous les commentaires Codex.
-- Corriger chaque point.
-- Répondre à chaque commentaire.
-- Marquer les threads résolus après correction.
-- Attendre validation Codex.
-- Une fois validée, merger.
-- Mettre `main` local à jour.
-- Compacter le contexte final.
-- Fermer #501 seulement après validation que tous les critères de sortie sont couverts.
+Après PR éventuelle : attendre Codex, lire, corriger, répondre, marquer résolu, attendre validation, merger, mettre `main` à jour, compacter le contexte final, fermer #501 seulement si tous les critères sont couverts.
 ```
