@@ -3,6 +3,8 @@ import type {
   Merchant,
   MerchantListResponse,
   MerchantTemporaryPasswordResponse,
+  MerchantOnboardingPayload,
+  MerchantOnboardingResponse,
   MerchantCrmStatus,
   CreateMerchantPayload,
   UpdateMerchantPayload,
@@ -36,6 +38,16 @@ export async function getMerchant(id: string): Promise<Merchant> {
 
 export async function createMerchant(payload: CreateMerchantPayload): Promise<Merchant> {
   const { data } = await apiClient.post<Merchant>('/api/admin/merchants', payload);
+  return data;
+}
+
+export async function createMerchantOnboarding(
+  payload: MerchantOnboardingPayload,
+): Promise<MerchantOnboardingResponse> {
+  const { data } = await apiClient.post<MerchantOnboardingResponse>(
+    '/api/admin/merchant-onboarding',
+    payload,
+  );
   return data;
 }
 

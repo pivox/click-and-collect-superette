@@ -5,11 +5,13 @@ import { AdminDrawer } from '@/components/admin/ui/AdminDrawer';
 import { MerchantCrmSection } from '@/components/admin/marchands/MerchantCrmSection';
 import { Button } from '@/components/ui/Button';
 import {
-  createMerchant,
+  createMerchantOnboarding,
   resetMerchantTemporaryPassword,
   updateMerchant,
 } from '@/lib/services/admin/merchants.service';
-import type { Merchant } from '@/lib/types/admin/merchants.types';
+import { listProductGroups } from '@/lib/services/admin/product-groups.service';
+import type { Merchant, MerchantOnboardingResponse } from '@/lib/types/admin/merchants.types';
+import type { ProductGroup } from '@/lib/types/admin/referentiel.types';
 
 interface MerchantDrawerProps {
   open: boolean;
@@ -25,6 +27,14 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [shopName, setShopName] = useState('');
+  const [shopAddress, setShopAddress] = useState('');
+  const [shopCity, setShopCity] = useState('');
+  const [shopPhone, setShopPhone] = useState('');
+  const [productGroups, setProductGroups] = useState<ProductGroup[]>([]);
+  const [selectedProductGroupIds, setSelectedProductGroupIds] = useState<string[]>([]);
+  const [productGroupError, setProductGroupError] = useState<string | null>(null);
+  const [onboardingResult, setOnboardingResult] = useState<MerchantOnboardingResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
@@ -52,6 +62,13 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
       setEmail('');
       setPhone('');
     }
+    setShopName('');
+    setShopAddress('');
+    setShopCity('');
+    setShopPhone('');
+    setSelectedProductGroupIds([]);
+    setProductGroupError(null);
+    setOnboardingResult(null);
     setError(null);
     setTemporaryPassword(null);
     setResetError(null);
@@ -59,10 +76,38 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     setIsResettingPassword(false);
   }, [merchant, open]);
 
+  useEffect(() => {
+    if (!open || merchant) return;
+
+    let cancelled = false;
+    setProductGroupError(null);
+    void loadPublishedMerchantProductGroups()
+      .then((groups) => {
+        if (cancelled) return;
+        setProductGroups(groups);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setProductGroups([]);
+        setProductGroupError('Impossible de charger les groupements produits.');
+      });
+
+    return () => { cancelled = true; };
+  }, [merchant, open]);
+
   const handleSubmit = async () => {
+    if (!merchant && onboardingResult) {
+      handleClose();
+      return;
+    }
     if (!firstName.trim()) { setError('Le prénom est obligatoire.'); return; }
     if (!lastName.trim()) { setError('Le nom est obligatoire.'); return; }
     if (!merchant && !email.trim()) { setError("L'email est obligatoire."); return; }
+    if (!merchant && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("L'email est invalide.");
+      return;
+    }
+    if (!merchant && !shopName.trim()) { setError('Le nom de la supérette est obligatoire.'); return; }
 
     setIsSubmitting(true);
     setError(null);
@@ -76,20 +121,32 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
           last_name: lastName.trim(),
           phone: phone.trim() || undefined,
         });
+        setTemporaryPassword(null);
+        onSaved();
       } else {
-        // @SerializedName on backend DTO → snake_case keys in payload
-        await createMerchant({
-          email: email.trim(),
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          phone: phone.trim() || undefined,
+        const result = await createMerchantOnboarding({
+          merchant: {
+            email: email.trim(),
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            phone: phone.trim() || undefined,
+          },
+          shop: {
+            name: shopName.trim(),
+            address: shopAddress.trim() || undefined,
+            city: shopCity.trim() || undefined,
+            phone: shopPhone.trim() || undefined,
+          },
+          first_login_mode: 'temporary_password',
+          product_group_ids: selectedProductGroupIds,
         });
+        setOnboardingResult(result);
+        setTemporaryPassword(result.first_login.temporary_password ?? null);
       }
-      setTemporaryPassword(null);
-      onSaved();
     } catch (e) {
+      const detail = axios.isAxiosError(e) ? String(e.response?.data?.detail ?? '') : '';
       setError(
-        axios.isAxiosError(e) && e.response?.status === 409
+        axios.isAxiosError(e) && (e.response?.status === 409 || detail.includes('ADMIN_MERCHANT_EMAIL_ALREADY_EXISTS'))
           ? 'Un compte avec cet email existe déjà.'
           : 'Une erreur est survenue. Réessayez.',
       );
@@ -101,10 +158,23 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
   const handleClose = () => {
     resetRequestSeq.current += 1;
     setTemporaryPassword(null);
+    setOnboardingResult(null);
     setResetError(null);
     setCopyMessage(null);
     setIsResettingPassword(false);
+    if (!merchant && onboardingResult) {
+      onSaved();
+      return;
+    }
     onClose();
+  };
+
+  const toggleProductGroup = (groupId: string) => {
+    setSelectedProductGroupIds((current) => (
+      current.includes(groupId)
+        ? current.filter((id) => id !== groupId)
+        : [...current, groupId]
+    ));
   };
 
   const handleResetTemporaryPassword = async () => {
@@ -172,6 +242,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
       title={merchant ? 'Modifier le marchand' : 'Nouveau marchand'}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
+      size={merchant ? 'md' : 'lg'}
     >
       <div className="space-y-4">
         {error && (
@@ -179,59 +250,201 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
             {error}
           </div>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-sm font-semibold">Prénom *</label>
-            <input
-              type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              maxLength={100}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold">Nom *</label>
-            <input
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              maxLength={100}
-              className={inputClass}
-            />
-          </div>
-        </div>
-        {!merchant && (
-          <div>
-            <label className="mb-1 block text-sm font-semibold">Email *</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              maxLength={200}
-              className={inputClass}
-            />
-          </div>
-        )}
-        {merchant && (
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-muted">Email</label>
-            <p className="rounded-md border border-line bg-soft px-3 py-2 text-sm text-muted">
-              {merchant.email}
+        {onboardingResult && (
+          <section className="rounded-md border border-green-200 bg-green-50 px-4 py-3" aria-live="polite">
+            <h3 className="text-sm font-black text-green-900">Onboarding créé</h3>
+            <p className="mt-1 text-sm text-green-800">
+              {onboardingResult.merchant.email} est rattaché à {onboardingResult.shop.name}.
             </p>
-          </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-green-900">
+              <span>{formatCount(onboardingResult.catalog_preload.added_count, 'ajouté', 'ajoutés')}</span>
+              <span>{formatCount(onboardingResult.catalog_preload.already_existing_count, 'déjà présent', 'déjà présents')}</span>
+              <span>{formatCount(onboardingResult.catalog_preload.ignored_count, 'ignoré', 'ignorés')}</span>
+            </div>
+          </section>
         )}
-        <div>
-          <label className="mb-1 block text-sm font-semibold">Téléphone</label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            maxLength={30}
-            placeholder="+216 XX XXX XXX"
-            className={inputClass}
-          />
-        </div>
+        {!merchant && temporaryPassword && (
+          <section className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3" aria-live="polite">
+            <p className="text-xs font-black uppercase text-amber-900">Mot de passe temporaire</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <code className="rounded border border-amber-200 bg-white px-2 py-1 text-sm font-bold text-ink">
+                {temporaryPassword}
+              </code>
+              <Button
+                type="button"
+                variant="ghost"
+                size="md"
+                onClick={() => void handleCopyTemporaryPassword()}
+              >
+                Copier
+              </Button>
+            </div>
+            <p className="mt-2 text-sm text-amber-900">
+              Ce mot de passe ne sera plus affiché après fermeture.
+            </p>
+            {copyMessage && <p className="mt-2 text-sm text-muted">{copyMessage}</p>}
+          </section>
+        )}
+        <section className="space-y-3">
+          {!merchant && <h3 className="text-sm font-black text-ink">Informations marchand</h3>}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="merchant-first-name" className="mb-1 block text-sm font-semibold">Prénom *</label>
+              <input
+                id="merchant-first-name"
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                maxLength={100}
+                className={inputClass}
+                disabled={!!onboardingResult}
+              />
+            </div>
+            <div>
+              <label htmlFor="merchant-last-name" className="mb-1 block text-sm font-semibold">Nom *</label>
+              <input
+                id="merchant-last-name"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                maxLength={100}
+                className={inputClass}
+                disabled={!!onboardingResult}
+              />
+            </div>
+          </div>
+          {!merchant && (
+            <div>
+              <label htmlFor="merchant-email" className="mb-1 block text-sm font-semibold">Email *</label>
+              <input
+                id="merchant-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                maxLength={200}
+                className={inputClass}
+                disabled={!!onboardingResult}
+              />
+            </div>
+          )}
+          {merchant && (
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-muted">Email</label>
+              <p className="rounded-md border border-line bg-soft px-3 py-2 text-sm text-muted">
+                {merchant.email}
+              </p>
+            </div>
+          )}
+          <div>
+            <label htmlFor="merchant-phone" className="mb-1 block text-sm font-semibold">Téléphone</label>
+            <input
+              id="merchant-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              maxLength={30}
+              placeholder="+216 XX XXX XXX"
+              className={inputClass}
+              disabled={!!onboardingResult}
+            />
+          </div>
+        </section>
+        {!merchant && (
+          <>
+            <section className="space-y-3 border-t border-line pt-4">
+              <h3 className="text-sm font-black text-ink">Informations supérette</h3>
+              <div>
+                <label htmlFor="shop-name" className="mb-1 block text-sm font-semibold">Nom supérette *</label>
+                <input
+                  id="shop-name"
+                  type="text"
+                  value={shopName}
+                  onChange={(e) => setShopName(e.target.value)}
+                  maxLength={160}
+                  className={inputClass}
+                  disabled={!!onboardingResult}
+                />
+              </div>
+              <div>
+                <label htmlFor="shop-address" className="mb-1 block text-sm font-semibold">Adresse supérette</label>
+                <input
+                  id="shop-address"
+                  type="text"
+                  value={shopAddress}
+                  onChange={(e) => setShopAddress(e.target.value)}
+                  maxLength={255}
+                  className={inputClass}
+                  disabled={!!onboardingResult}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="shop-city" className="mb-1 block text-sm font-semibold">Ville</label>
+                  <input
+                    id="shop-city"
+                    type="text"
+                    value={shopCity}
+                    onChange={(e) => setShopCity(e.target.value)}
+                    maxLength={100}
+                    className={inputClass}
+                    disabled={!!onboardingResult}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="shop-phone" className="mb-1 block text-sm font-semibold">Téléphone supérette</label>
+                  <input
+                    id="shop-phone"
+                    type="tel"
+                    value={shopPhone}
+                    onChange={(e) => setShopPhone(e.target.value)}
+                    maxLength={20}
+                    className={inputClass}
+                    disabled={!!onboardingResult}
+                  />
+                </div>
+              </div>
+            </section>
+            <section className="space-y-3 border-t border-line pt-4">
+              <h3 className="text-sm font-black text-ink">Première connexion</h3>
+              <label className="flex items-start gap-2 rounded-md border border-line bg-soft px-3 py-2 text-sm">
+                <input type="radio" checked readOnly className="mt-1" />
+                <span>
+                  <span className="block font-semibold text-ink">Mot de passe provisoire</span>
+                  <span className="block text-muted">Affiché une seule fois après création.</span>
+                </span>
+              </label>
+            </section>
+            <section className="space-y-3 border-t border-line pt-4">
+              <h3 className="text-sm font-black text-ink">Préchargement catalogue</h3>
+              {productGroupError && (
+                <div className="rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+                  {productGroupError}
+                </div>
+              )}
+              {productGroups.length === 0 && !productGroupError && (
+                <p className="text-sm text-muted">Aucun groupement publié disponible.</p>
+              )}
+              {productGroups.map((group) => (
+                <label
+                  key={group.id}
+                  className="flex items-center justify-between gap-3 rounded-md border border-line px-3 py-2 text-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      aria-label={group.name_fr}
+                      checked={selectedProductGroupIds.includes(group.id)}
+                      onChange={() => toggleProductGroup(group.id)}
+                      disabled={!!onboardingResult}
+                    />
+                    <span className="font-semibold text-ink">{group.name_fr}</span>
+                  </span>
+                  <span className="text-xs text-muted">{group.items_count} produits</span>
+                </label>
+              ))}
+            </section>
+          </>
+        )}
         {isSubscriptionSuspended && (
           <section className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
             <h3 className="text-sm font-black text-amber-900">Suspension douce abonnement</h3>
@@ -400,6 +613,26 @@ function formatAverageResponse(value: number | null): string {
   }
 
   return `${value} min`;
+}
+
+function formatCount(value: number, singular: string, plural: string): string {
+  return `${value} ${value > 1 ? plural : singular}`;
+}
+
+async function loadPublishedMerchantProductGroups(): Promise<ProductGroup[]> {
+  const limit = 50;
+  let page = 1;
+  let total = 0;
+  const groups: ProductGroup[] = [];
+
+  do {
+    const response = await listProductGroups({ status: 'published', limit, page });
+    groups.push(...response.items.filter((group) => group.visibility === 'merchant'));
+    total = response.total;
+    page += 1;
+  } while ((page - 1) * limit < total);
+
+  return groups;
 }
 
 function formatLastActivity(status: string | null): string {
