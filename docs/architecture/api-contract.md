@@ -349,7 +349,11 @@ les notifications marchand.
 Différence avec `PATCH /api/merchant/me/password` : le changement classique est
 destiné à un marchand déjà finalisé ; la première connexion exige en plus
 `password_change_required = true` et une confirmation du nouveau mot de passe.
-L'invitation email reste hors périmètre de cette tranche.
+
+Le mode invitation email est documenté plus bas dans la section administration
+marchand : création/renvoi par admin, vérification publique et finalisation du
+mot de passe via token. L'écran frontend d'invitation reste hors périmètre de
+cette tranche backend.
 
 ### Suppression du compte client
 
@@ -1729,6 +1733,8 @@ POST  /api/admin/merchant-onboarding
 POST  /api/admin/merchants
 PATCH /api/admin/merchants/{merchantId}
 POST  /api/admin/merchants/{merchantId}/temporary-password
+POST  /api/admin/merchants/{merchantId}/invitation
+POST  /api/admin/merchants/{merchantId}/invitation/resend
 PATCH /api/admin/merchants/{merchantId}/suspend
 PATCH /api/admin/merchants/{merchantId}/activate
 ```
@@ -1856,9 +1862,9 @@ Codes retour :
 Remarques :
 
 - Un mot de passe temporaire est généré automatiquement (jamais exposé dans la réponse).
-- Aucun email d'invitation n'est envoyé dans le MVP.
+- Aucun email d'invitation n'est envoyé automatiquement par cet endpoint.
 - Le rôle `ROLE_MERCHANT` est attribué automatiquement.
-- **Compte dormant** : le marchand créé ne peut pas encore se connecter de manière autonome depuis la réponse de création. L'admin peut ensuite générer un nouveau mot de passe temporaire via l'endpoint dédié ci-dessous.
+- **Compte dormant** : le marchand créé ne peut pas encore se connecter de manière autonome depuis la réponse de création. L'admin peut ensuite générer un nouveau mot de passe temporaire ou envoyer une invitation email via les endpoints dédiés ci-dessous.
 
 #### PATCH /api/admin/merchants/{merchantId} — Mettre à jour un compte marchand
 
@@ -1897,7 +1903,7 @@ Réponse `200` :
 Règles :
 
 - réservé à `ROLE_ADMIN` ;
-- l'identifiant doit cibler un utilisateur existant avec le rôle `ROLE_MERCHANT` ;
+- l'identifiant doit cibler un utilisateur existant avec le rôle `ROLE_MERCHANT`, actif et non supprimé ;
 - remplace le hash de mot de passe existant ;
 - l'ancien mot de passe ne fonctionne plus après reset ;
 - le mot de passe temporaire est affiché une seule fois dans cette réponse ;
@@ -1913,7 +1919,138 @@ Codes retour :
 - `401` — non authentifié ;
 - `403` — rôle insuffisant ;
 - `404` — marchand introuvable ;
+- `422` — cible existante mais non marchande, inactive ou supprimée.
+
+#### POST /api/admin/merchants/{merchantId}/invitation — Envoyer une invitation marchand
+
+Aucun body requis.
+
+Réponse `201` :
+
+```json
+{
+  "merchant_id": "merchant-uuid",
+  "status": "sent",
+  "expires_at": "2026-06-25T10:00:00+00:00"
+}
+```
+
+Règles :
+
+- réservé à `ROLE_ADMIN` ;
+- l'identifiant doit cibler un utilisateur existant avec le rôle `ROLE_MERCHANT` ;
+- crée un token opaque robuste, hashé en base avec SHA-256 ;
+- le token brut n'est jamais stocké en clair ;
+- le token brut n'est jamais retourné dans la réponse API ;
+- le token brut est uniquement présent dans le lien envoyé par email transactionnel ;
+- l'expiration est configurable avec `MERCHANT_INVITATION_TOKEN_TTL` (défaut : `604800` secondes, soit 7 jours) ;
+- toute invitation pending précédente du marchand est révoquée avant création de la nouvelle ;
+- l'action est auditée avec `merchant.invitation.create` sans token, hash, mot de passe ni secret dans `metadata` ou `summary`.
+
+Codes retour :
+
+- `201` — invitation créée et email envoyé ;
+- `401` — non authentifié ;
+- `403` — rôle insuffisant ;
+- `404` — marchand introuvable ;
 - `422` — cible existante mais non marchande.
+
+#### POST /api/admin/merchants/{merchantId}/invitation/resend — Renvoyer une invitation marchand
+
+Aucun body requis.
+
+Réponse `200` :
+
+```json
+{
+  "merchant_id": "merchant-uuid",
+  "status": "sent",
+  "expires_at": "2026-06-25T10:00:00+00:00"
+}
+```
+
+Règles :
+
+- mêmes contraintes que la création d'invitation ;
+- révoque l'invitation pending précédente pour éviter deux liens actifs ambigus ;
+- génère et envoie un nouveau lien ;
+- l'action est auditée avec `merchant.invitation.resend` sans secret.
+
+Codes retour : `200`, `401`, `403`, `404`, `422`.
+
+#### POST /api/auth/merchant-invitations/verify — Vérifier une invitation marchand
+
+Endpoint public utilisé par l'écran de première connexion par invitation.
+
+Payload :
+
+```json
+{
+  "token": "token-recu-par-email"
+}
+```
+
+Réponse `200` :
+
+```json
+{
+  "status": "valid",
+  "expires_at": "2026-06-25T10:00:00+00:00"
+}
+```
+
+Règles :
+
+- aucun JWT requis ;
+- le token est hashé côté serveur avant recherche ;
+- le token invalide, expiré, utilisé, révoqué ou lié à un compte non éligible est refusé ;
+- la réponse ne retourne jamais le token, son hash, un mot de passe, un rôle ou une donnée interne.
+
+Codes retour :
+
+- `200` — invitation valide ;
+- `400` — token invalide, expiré, utilisé ou révoqué ;
+- `422` — payload invalide.
+
+Codes métier possibles : `MERCHANT_INVITATION_TOKEN_INVALID`, `MERCHANT_INVITATION_TOKEN_EXPIRED`, `MERCHANT_INVITATION_TOKEN_ALREADY_USED`, `MERCHANT_INVITATION_TOKEN_REVOKED`.
+
+#### POST /api/auth/merchant-invitations/complete — Définir le mot de passe depuis invitation
+
+Endpoint public utilisé après clic sur le lien d'invitation.
+
+Payload :
+
+```json
+{
+  "token": "token-recu-par-email",
+  "new_password": "nouveau-mot-de-passe",
+  "new_password_confirmation": "nouveau-mot-de-passe"
+}
+```
+
+Réponse `204` : corps vide.
+
+Règles :
+
+- aucun JWT requis ;
+- le token doit être valide, non expiré, non utilisé et non révoqué ;
+- le passage à l'état utilisé est atomique avant changement de mot de passe pour garantir l'usage unique même en double soumission concurrente ;
+- le compte cible doit être un marchand actif et non supprimé ;
+- le nouveau mot de passe respecte les règles existantes (`min 8`) ;
+- la confirmation doit correspondre ;
+- le nouveau mot de passe est hashé ;
+- `password_change_required` repasse à `false` après succès ;
+- le token est marqué utilisé ;
+- l'ancien mot de passe ne fonctionne plus après succès ;
+- aucun secret n'est retourné.
+
+Codes retour :
+
+- `204` — mot de passe défini ;
+- `400` — token invalide, expiré, utilisé, révoqué ou compte non éligible ;
+- `422` — payload invalide, mot de passe trop faible ou confirmation différente.
+
+Codes métier possibles : `MERCHANT_INVITATION_TOKEN_INVALID`, `MERCHANT_INVITATION_TOKEN_EXPIRED`, `MERCHANT_INVITATION_TOKEN_ALREADY_USED`, `MERCHANT_INVITATION_TOKEN_REVOKED`, `AUTH_WEAK_PASSWORD`, `MERCHANT_INVITATION_PASSWORD_CONFIRMATION_MISMATCH`.
 
 #### PATCH /api/admin/merchants/{merchantId}/suspend — Suspendre un compte marchand
 
@@ -2543,7 +2680,7 @@ Règles :
 - `metadata` ne contient jamais de mot de passe, token ou secret ;
 - `summary` contient un résumé lisible prêt à afficher côté backoffice ;
 - `user_agent` est tronqué à 500 caractères avant persistance ;
-- actions loggées : `merchant.create`, `merchant.update`, `merchant.suspend`, `merchant.activate`, `merchant.temporary_password.reset`, `store.create`, `store.update`, `store.activate`, `store.deactivate`, `store.qr_regenerate`, `store.archive`, `product_reference.create`, `product_reference.update`, `product_reference.archive`, `product_proposal.approve`, `product_proposal.reject`.
+- actions loggées : `merchant.create`, `merchant.update`, `merchant.suspend`, `merchant.activate`, `merchant.temporary_password.reset`, `merchant.invitation.create`, `merchant.invitation.resend`, `store.create`, `store.update`, `store.activate`, `store.deactivate`, `store.qr_regenerate`, `store.archive`, `product_reference.create`, `product_reference.update`, `product_reference.archive`, `product_proposal.approve`, `product_proposal.reject`.
 
 ---
 
