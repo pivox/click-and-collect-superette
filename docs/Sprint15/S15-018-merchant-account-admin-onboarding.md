@@ -316,6 +316,14 @@ POST /api/admin/merchant-onboarding
 
 Le endpoint combiné doit rester une orchestration transactionnelle, pas un contrôleur monolithique.
 
+Implémentation MVP :
+
+- `POST /api/admin/merchant-onboarding` crée le compte marchand, la supérette et le rattachement `Shop.owner` dans une transaction unique ;
+- le mode de première connexion supporté dans cette tranche est `temporary_password` ;
+- le mot de passe provisoire est retourné uniquement dans la réponse immédiate ;
+- l'endpoint peut appliquer zéro, un ou plusieurs groupements produits publiés et visibles marchand ;
+- le résumé de préchargement retourne les compteurs `added_count`, `already_existing_count`, `ignored_count` et les erreurs métier.
+
 ### 9.3 Première connexion
 
 ```http
@@ -338,24 +346,26 @@ Limite actuelle : le modèle `User` ne porte pas encore de champ `password_chang
 
 ### 9.4 Préchargement catalogue admin
 
-À cadrer selon le service existant d'import groupement.
+Implémenté dans l'orchestration admin via le service d'import groupement partagé.
 
-Option possible :
+Option autonome encore non livrée :
 
 ```http
 POST /api/admin/stores/{storeId}/product-groups/apply
 ```
 
-Ou inclusion dans l'orchestration :
+Inclusion livrée dans l'orchestration :
 
 ```json
 {
   "merchant": {},
   "shop": {},
-  "firstLoginMode": "email_invitation",
-  "productGroupIds": ["uuid-1", "uuid-2"]
+  "first_login_mode": "temporary_password",
+  "product_group_ids": ["uuid-1", "uuid-2"]
 }
 ```
+
+Règles appliquées : pas de doublon catalogue, pas de doublon entre groupements, produits ajoutés avec prix à compléter et invisibles côté client.
 
 ---
 

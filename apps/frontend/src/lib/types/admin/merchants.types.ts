@@ -1,5 +1,6 @@
 // API responses use snake_case (backend @SerializedName annotations)
 // Create/Update payloads: some fields use snake_case because the backend DTO has @SerializedName
+import type { Store } from '@/lib/types/admin/stores.types';
 
 export interface Merchant {
   id: string;
@@ -82,6 +83,44 @@ export interface MerchantListResponse {
 export interface MerchantTemporaryPasswordResponse {
   merchant_id: string;
   temporary_password: string;
+}
+
+export interface MerchantOnboardingPayload {
+  merchant: {
+    email: string;
+    first_name: string;
+    last_name: string;
+    phone?: string;
+  };
+  shop: {
+    name: string;
+    address?: string;
+    city?: string;
+    phone?: string;
+  };
+  first_login_mode: 'temporary_password';
+  product_group_ids: string[];
+}
+
+export interface MerchantOnboardingResponse {
+  id: string;
+  merchant: Merchant;
+  shop: Store;
+  first_login: {
+    mode: 'temporary_password';
+    temporary_password?: string | null;
+  };
+  catalog_preload: {
+    added_count: number;
+    already_existing_count: number;
+    ignored_count: number;
+    errors: Array<{
+      product_reference_id: string;
+      code: string;
+      message: string;
+      product_group_id?: string | null;
+    }>;
+  };
 }
 
 // AdminCreateMerchantInput has @SerializedName on first_name/last_name/is_active → snake_case in payload

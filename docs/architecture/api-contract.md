@@ -1544,12 +1544,105 @@ Statut : **S5-001 lecture livrée ; S5-004 mutations livrées. Sprint 5 complet.
 ```http
 GET   /api/admin/merchants?page=1&limit=20
 GET   /api/admin/merchants/{merchantId}
+POST  /api/admin/merchant-onboarding
 POST  /api/admin/merchants
 PATCH /api/admin/merchants/{merchantId}
 POST  /api/admin/merchants/{merchantId}/temporary-password
 PATCH /api/admin/merchants/{merchantId}/suspend
 PATCH /api/admin/merchants/{merchantId}/activate
 ```
+
+#### POST /api/admin/merchant-onboarding — Créer marchand + supérette
+
+Payload :
+
+```json
+{
+  "merchant": {
+    "email": "merchant@example.test",
+    "first_name": "Ali",
+    "last_name": "Ben Salah",
+    "phone": "+21600000000"
+  },
+  "shop": {
+    "name": "Supérette Ali",
+    "address": "12 rue de Tunis",
+    "city": "Tunis",
+    "phone": "+21600000001"
+  },
+  "first_login_mode": "temporary_password",
+  "product_group_ids": ["product-group-uuid"]
+}
+```
+
+Réponse `201` :
+
+```json
+{
+  "merchant": {
+    "id": "merchant-uuid",
+    "email": "merchant@example.test",
+    "first_name": "Ali",
+    "last_name": "Ben Salah",
+    "phone": "+21600000000",
+    "is_active": true,
+    "created_at": "2026-06-18T10:00:00+00:00",
+    "stores_count": 1
+  },
+  "shop": {
+    "id": "shop-uuid",
+    "name": "Supérette Ali",
+    "slug": "superette-ali",
+    "address": "12 rue de Tunis",
+    "city": "Tunis",
+    "phone": "+21600000001",
+    "is_active": true,
+    "owner": {
+      "id": "merchant-uuid",
+      "email": "merchant@example.test",
+      "first_name": "Ali",
+      "last_name": "Ben Salah"
+    }
+  },
+  "first_login": {
+    "mode": "temporary_password",
+    "temporary_password": "visible-une-seule-fois"
+  },
+  "catalog_preload": {
+    "added_count": 10,
+    "already_existing_count": 2,
+    "ignored_count": 1,
+    "errors": []
+  }
+}
+```
+
+Règles :
+
+- réservé à `ROLE_ADMIN` ;
+- orchestre la création dans une transaction unique ;
+- crée un utilisateur `ROLE_MERCHANT` actif ;
+- crée une supérette active ;
+- rattache explicitement `Shop.owner` au marchand créé ;
+- refuse un email déjà utilisé ;
+- `first_login_mode` supporté : `temporary_password` ;
+- le mot de passe temporaire est généré robuste, hashé, retourné uniquement dans cette réponse immédiate et jamais journalisé ;
+- aucun endpoint de lecture ne retourne `temporary_password`, `passwordHash`, token ou secret ;
+- `product_group_ids` est optionnel ; chaque groupement doit être publié et visible marchand ;
+- le préchargement catalogue est idempotent : un produit déjà présent n'est pas dupliqué, y compris s'il apparaît dans plusieurs groupements ;
+- les produits ajoutés depuis groupement sont créés avec prix `0.000`, invisibles côté client, disponibles et modifiables ensuite par le marchand ;
+- actions auditées : `merchant.create`, `shop.create`, `merchant.owner.attach`, `merchant.temporary_password.create`, `catalog.preload.apply` quand des groupements sont appliqués.
+
+Codes retour :
+
+- `201` — onboarding créé ;
+- `401` — non authentifié ;
+- `403` — rôle insuffisant ;
+- `404` — groupement produit introuvable ou non éligible ;
+- `409` — email déjà utilisé ;
+- `422` — validation échouée.
+
+Limite actuelle : le modèle `User` ne supporte pas de champ explicite `password_change_required`; le changement obligatoire au prochain login n'est donc pas appliqué par cet endpoint.
 
 #### POST /api/admin/merchants — Créer un compte marchand
 
