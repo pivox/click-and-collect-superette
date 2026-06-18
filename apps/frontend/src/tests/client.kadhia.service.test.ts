@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '@/lib/api';
 
 vi.mock('@/lib/api', () => ({
-  apiClient: { get: vi.fn(), post: vi.fn() },
+  apiClient: { delete: vi.fn(), get: vi.fn(), post: vi.fn() },
 }));
 
 vi.mock('@/lib/services', async (importOriginal) => {
@@ -13,6 +13,8 @@ vi.mock('@/lib/services', async (importOriginal) => {
 import {
   countStoreDraftKadhias,
   createKadhiaShareLink,
+  discardKadhia,
+  getCurrentKadhia,
   joinKadhiaShareLink,
   listMyKadhias,
   submitKadhia,
@@ -30,7 +32,10 @@ const RAW_LIST_ITEM = {
 };
 
 describe('listMyKadhias', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
 
   it('appelle /api/me/kadhias sans paramètres quand appelé sans arguments', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
@@ -127,10 +132,39 @@ describe('listMyKadhias', () => {
 
     expect(result.items[0].notes).toBeUndefined();
   });
+
+  it("masque une Kadhia draft supprimée du redémarrage forcé", async () => {
+    window.localStorage.setItem('kadhia:active:store-1', 'k-shared');
+    vi.mocked(apiClient.delete).mockRejectedValueOnce({ response: { status: 404 } });
+
+    await expect(discardKadhia('store-1', { suppressReactivation: true })).rejects.toEqual({
+      response: { status: 404 },
+    });
+
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        items: [
+          { ...RAW_LIST_ITEM, id: 'k-shared', status: 'draft' },
+          { ...RAW_LIST_ITEM, id: 'k-completed', status: 'completed' },
+        ],
+        total: 2,
+        page: 1,
+        pages: 1,
+      },
+    });
+
+    const result = await listMyKadhias();
+
+    expect(result.items.map((item) => item.id)).toEqual(['k-completed']);
+    expect(result.total).toBe(1);
+  });
 });
 
 describe('countStoreDraftKadhias', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
 
   it('demande le décompte filtré status=draft et retourne le total (robuste à la pagination)', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
@@ -149,6 +183,24 @@ describe('countStoreDraftKadhias', () => {
 
   it('retourne 0 pour un visiteur anonyme (401)', async () => {
     vi.mocked(apiClient.get).mockRejectedValue({ response: { status: 401 } });
+
+    expect(await countStoreDraftKadhias('store-1')).toBe(0);
+  });
+
+  it("ignore une Kadhia draft supprimée du redémarrage forcé", async () => {
+    window.localStorage.setItem('kadhia:active:store-1', 'k-shared');
+    vi.mocked(apiClient.delete).mockRejectedValueOnce({ response: { status: 404 } });
+
+    await expect(discardKadhia('store-1', { suppressReactivation: true })).rejects.toEqual({
+      response: { status: 404 },
+    });
+
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        items: [{ ...RAW_LIST_ITEM, id: 'k-shared', status: 'draft' }],
+        total: 1,
+      },
+    });
 
     expect(await countStoreDraftKadhias('store-1')).toBe(0);
   });
@@ -230,5 +282,56 @@ describe('submitKadhia', () => {
     expect(window.localStorage.getItem('kadhia:active:store-1')).toBeNull();
     expect(window.localStorage.getItem('kadhia:context')).toBeNull();
     expect(result).toEqual({ orderId: 'order-1', orderCode: '#0007' });
+  });
+});
+
+describe('discardKadhia', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
+
+  it('supprime la Kadhia depuis le contexte quand la clé active est absente', async () => {
+    window.localStorage.setItem('kadhia:context', JSON.stringify({ shopId: 'store-1', kadhiaId: 'k-context' }));
+    vi.mocked(apiClient.delete).mockResolvedValue({});
+
+    await discardKadhia('store-1');
+
+    expect(apiClient.delete).toHaveBeenCalledWith('/api/me/kadhias/k-context');
+    expect(window.localStorage.getItem('kadhia:active:store-1')).toBeNull();
+    expect(window.localStorage.getItem('kadhia:context')).toBeNull();
+  });
+
+  it("conserve le cache local si la suppression normale est refusée", async () => {
+    window.localStorage.setItem('kadhia:active:store-1', 'k-shared');
+    window.localStorage.setItem('kadhia:context', JSON.stringify({ shopId: 'store-1', kadhiaId: 'k-shared' }));
+    vi.mocked(apiClient.delete).mockRejectedValue(new Error('Forbidden'));
+
+    await expect(discardKadhia('store-1')).rejects.toThrow('Forbidden');
+
+    expect(apiClient.delete).toHaveBeenCalledWith('/api/me/kadhias/k-shared');
+    expect(window.localStorage.getItem('kadhia:active:store-1')).toBe('k-shared');
+    expect(window.localStorage.getItem('kadhia:context')).toBe(JSON.stringify({ shopId: 'store-1', kadhiaId: 'k-shared' }));
+  });
+
+  it("n'auto-réactive pas une Kadhia partagée expirée après redémarrage forcé", async () => {
+    window.localStorage.setItem('kadhia:active:store-1', 'k-shared');
+    window.localStorage.setItem('kadhia:context', JSON.stringify({ shopId: 'store-1', kadhiaId: 'k-shared' }));
+    vi.mocked(apiClient.delete).mockRejectedValue({ response: { status: 404 } });
+
+    await expect(discardKadhia('store-1', { suppressReactivation: true })).rejects.toEqual({
+      response: { status: 404 },
+    });
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: {
+        items: [{ ...RAW_LIST_ITEM, id: 'k-shared', status: 'draft' }],
+        total: 1,
+      },
+    });
+
+    await expect(getCurrentKadhia('store-1')).resolves.toEqual({ type: 'none' });
+    expect(apiClient.get).toHaveBeenCalledWith('/api/me/stores/store-1/kadhias', { skipAuthRedirect: true });
+    expect(apiClient.get).not.toHaveBeenCalledWith('/api/me/kadhias/k-shared', { skipAuthRedirect: true });
   });
 });
