@@ -12,7 +12,7 @@ Nature : audit fonctionnel et technique, sans correction applicative.
 Top 5 risques MVP :
 
 1. La suite backend complète échoue en environnement local alors que les tests frontend et le lint passent.
-2. La suite backend complète a été lancée avec un override local non commité de `FRONTEND_URL`, ce qui réduit la lisibilité du résultat QA.
+2. Les failures QR/share de la suite backend complète nécessitent une réanalyse, car PHPUnit force `FRONTEND_URL` à `localhost`.
 3. Les tests admin de génération de mot de passe temporaire marchand passent isolément mais échouent dans la suite complète, ce qui indique un risque d'ordre de tests ou d'état partagé.
 4. Les parcours complets client + marchand + admin n'ont pas été rejoués en live avec données seedées pendant cet audit.
 5. Les sessions front reposent sur `localStorage`/cookies par portail; la séparation réelle client / marchand / admin est protégée côté API, mais l'UX des tokens périmés ou mal rangés reste à durcir.
@@ -23,7 +23,7 @@ Top 5 bugs bloquants :
 2. BUG-MVP-001 : la suite backend complète échoue sur 8 failures.
 3. BUG-MVP-002 : les tests admin `temporary-password` échouent dans la suite complète mais passent isolément.
 4. À vérifier : aucun parcours navigateur complet n'a été exécuté dans cette passe pour confirmer absence de blocage runtime.
-5. Note QA locale : les tests QR / partage Kadhia doivent être relus avec la configuration `FRONTEND_URL` commitée.
+5. Note QA locale : les tests QR / partage Kadhia doivent être relus avec la commande et la configuration exactes de l'audit.
 
 ## 2. Méthodologie
 
@@ -131,7 +131,7 @@ Ce qui n'a pas pu être vérifié sans environnement live :
 | Refus commande | Refuser une commande | Marchand | OK | bloquante | `MerchantRejectOrderProcessor`, `MerchantOrderApiTest` | Non |
 | Acceptation partielle | Accepter partiellement | Marchand/Client | OK | bloquante | `MerchantPartiallyAcceptOrderProcessor`, `SubmitOrderApiTest` | Non |
 | Préparation ligne par ligne | Marquer lignes préparées | Marchand | OK | majeure | `MerchantPrepareOrderLineProcessor`, `MerchantOrderApiTest` | Non |
-| QR retrait | Session QR client | Client/Marchand | À vérifier | majeure | `PickupSession`, tests pickup ; résultat full suite à relire avec la configuration `FRONTEND_URL` commitée | Note QA locale |
+| QR retrait | Session QR client | Client/Marchand | À vérifier | majeure | `PickupSession`, tests pickup ; failures QR/share à réanalyser avec la commande exacte | Note QA locale |
 | Code retrait 4 chiffres | Affichage et validation code | Client/Marchand | OK | majeure | `Order::markReady`, `MerchantPickupCodeApiTest`, `merchant.retrait.test.tsx` | Non |
 | Validation manuelle marchand | Valider sans QR/code | Marchand | OK | majeure | `MerchantValidateManuallyProcessor`, `merchant-pickup.service.ts`, `MerchantPickupCodeApiTest` | Non |
 | Notifications client | In-app client | Client | OK | mineure | `CustomerNotificationApiTest`, `client-notifications.service.ts` | Non |
@@ -156,8 +156,7 @@ Ce qui n'a pas pu être vérifié sans environnement live :
   - `apps/backend/tests/Functional/Api/KadhiaApiTest.php`
   - `apps/backend/tests/Functional/Api/MerchantAdminApiTest.php`
   - `apps/backend/tests/Functional/Api/MerchantStoreQrApiTest.php`
-  - `docker-compose.yml` modifié localement pour `FRONTEND_URL=http://192.168.1.48:3000`
-- Endpoint suspect : plusieurs, voir BUG-MVP-002 ; les failures QR/share relèvent d'un override local de configuration.
+- Endpoint suspect : plusieurs, voir BUG-MVP-002 et NOTE-QA-001.
 - Risque métier : confiance réduite avant démo ; une CI rouge peut masquer une vraie régression MVP.
 - Proposition d'issue GitHub : `[P1] Stabiliser la suite backend complète avant démo MVP`
 - Priorité : P1
@@ -186,25 +185,27 @@ Ce qui n'a pas pu être vérifié sans environnement live :
 - Proposition d'issue GitHub : `[P1] Isoler les failures order-dependent du reset mot de passe temporaire marchand`
 - Priorité : P1
 
-### NOTE-QA-001 — URLs QR / partage et override local de `FRONTEND_URL`
+### NOTE-QA-001 — Failures QR / partage à réanalyser
 
 - Domaine : QR magasin / partage Kadhia / configuration.
-- Gravité : note QA locale, pas un bug applicatif confirmé.
+- Gravité : note QA locale, cause non confirmée.
 - Rôle concerné : client, marchand, admin.
-- Préconditions : `FRONTEND_URL=http://192.168.1.48:3000` dans l'environnement backend local.
+- Préconditions : suite backend complète dans l'environnement Docker Compose local audité.
 - Étapes de reproduction :
   1. Exécuter `docker compose exec backend php bin/phpunit`.
   2. Observer les failures `KadhiaApiTest::testCreateShareLinkReturnsReusableActiveLinkForMember`.
   3. Observer les failures `MerchantStoreQrApiTest::testMerchantOwnerReadsQrCode` et `testTargetUrlIsAbsoluteFrontendStoreUrl`.
-- Résultat attendu : avec la configuration commitée, URLs en `http://localhost:3000/...` selon tests.
-- Résultat observé : avec l'override local non commité, URLs en `http://192.168.1.48:3000/...`.
+- Résultat attendu : URLs en `http://localhost:3000/...` selon tests et selon `apps/backend/phpunit.dist.xml`, qui force `FRONTEND_URL`.
+- Résultat observé : assertions QR/share en échec dans la suite complète auditée.
 - Fichiers suspects :
-  - `docker-compose.yml` modifié localement
+  - `apps/backend/tests/Functional/Api/KadhiaApiTest.php`
+  - `apps/backend/tests/Functional/Api/MerchantStoreQrApiTest.php`
+  - `apps/backend/phpunit.dist.xml`
 - Endpoint suspect :
   - `POST /api/me/kadhias/{kadhiaId}/share-links`
   - `GET /api/merchant/stores/{storeId}/qr-code`
-- Analyse : `KadhiaShareLinkService` et `MerchantStoreQrTargetUrlFactory` doivent utiliser l'origine configurée. L'écart observé vient donc de l'environnement de test local, pas d'un défaut produit confirmé.
-- Action : relancer les tests avec la configuration commitée ou documenter explicitement l'override LAN avant d'ouvrir une issue produit.
+- Analyse : l'attribution à un override local `docker-compose.yml` n'est pas retenue, car PHPUnit force `FRONTEND_URL` à `http://localhost:3000` pour la commande documentée. Il faut conserver ce point comme anomalie QA à reproduire précisément, pas comme bug produit confirmé.
+- Action : relancer les tests QR/share isolés puis en suite complète, conserver les logs complets, et n'ouvrir une issue produit que si la cause est reproductible hors artefact d'audit.
 - Priorité : aucune issue P1 proposée à ce stade.
 
 ## 5. Points techniques à risque
@@ -247,15 +248,15 @@ Body :
 - Tests attendus : `MerchantAdminApiTest` seul et suite complète.
 - Hors périmètre : email d'invitation marchand.
 
-### Suivi QA : relire les tests QR/share avec la configuration `FRONTEND_URL` commitée
+### Suivi QA : reproduire précisément les failures QR/share
 
 Body :
 
 - Contexte : les QR magasin et liens de partage Kadhia utilisent volontairement `FRONTEND_URL`.
-- Problème : l'audit local a utilisé un override LAN non commité, ce qui a produit des URLs différentes des assertions `localhost`.
-- Étapes de reproduction : relancer les tests QR/share avec la configuration commitée, puis seulement avec un override LAN documenté si nécessaire.
-- Attendu : résultats QA séparant clairement comportement attendu et override local.
-- Critères d'acceptation : conclusion du rapport confirmée avec la configuration commitée ou correction du rapport si les tests passent.
+- Problème : l'audit mentionne des failures QR/share dans la suite complète, mais la cause exacte n'est pas établie.
+- Étapes de reproduction : relancer `KadhiaApiTest` et `MerchantStoreQrApiTest` isolés puis en suite complète, en conservant la commande exacte et les logs d'assertion.
+- Attendu : cause confirmée ou retrait de ce point du rapport.
+- Critères d'acceptation : conclusion du rapport alignée avec les logs reproductibles.
 - Tests attendus : `KadhiaApiTest` et `MerchantStoreQrApiTest`.
 - Hors périmètre : génération graphique du QR.
 
@@ -351,12 +352,12 @@ Ce qui bloque :
 
 - La suite backend complète n'est pas verte dans l'environnement audité.
 - Les failures `temporary-password` sont instables selon exécution complète vs isolée.
-- Les résultats QR/share doivent être relus avec la configuration `FRONTEND_URL` commitée, car l'audit a utilisé un override local non commité.
+- Les failures QR/share doivent être reproduites précisément avant d'être qualifiées comme bug produit.
 
 À faire avant prochaine démo :
 
 - Rendre `docker compose exec backend php bin/phpunit` vert ou documenter précisément l'écart d'environnement.
-- Relancer les tests QR/share avec la configuration `FRONTEND_URL` commitée avant d'ouvrir une issue produit.
+- Relancer les tests QR/share isolés puis en suite complète avec logs complets avant d'ouvrir une issue produit.
 - Rejouer un parcours live client + marchand + admin avec preuves.
 
 Ce qui peut attendre :
