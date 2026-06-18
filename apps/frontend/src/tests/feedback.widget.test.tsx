@@ -187,6 +187,50 @@ describe('FeedbackProvider', () => {
     );
   });
 
+  it('shows an API refusal message and logs safe feedback error metadata', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const apiError = {
+      response: {
+        status: 403,
+        data: {
+          detail: 'FEEDBACK_SHOP_FORBIDDEN',
+        },
+      },
+      config: {
+        method: 'post',
+        url: '/api/feedback',
+        headers: {
+          Authorization: 'Bearer secret-token',
+        },
+      },
+    };
+    vi.mocked(createFeedback).mockRejectedValueOnce(apiError);
+
+    render(<FeedbackProvider appArea="client" enabled shopId="inactive-shop" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Retour' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Votre retour' });
+    fireEvent.change(within(dialog).getByLabelText('Message'), {
+      target: { value: 'Le catalogue de cette supérette ne répond pas.' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Envoyer' }));
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'Votre retour n’est pas autorisé pour cette page ou cette supérette.',
+    );
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith('[feedback] submit failed', {
+        status: 403,
+        code: 'FEEDBACK_SHOP_FORBIDDEN',
+        method: 'post',
+        url: '/api/feedback',
+      });
+    });
+    expect(consoleSpy).not.toHaveBeenCalledWith('[feedback] submit failed', apiError);
+    consoleSpy.mockRestore();
+  });
+
   it('closes and clears the draft when the page context changes', async () => {
     const { rerender } = render(
       <FeedbackProvider appArea="merchant" enabled shopId="shop-1" locale="fr" />,

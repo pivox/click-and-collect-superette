@@ -403,7 +403,7 @@ Payload :
 
 ```json
 {
-  "feedbackType": "bug",
+  "type": "bug",
   "message": "Le bouton valider n'est pas clair sur cette page.",
   "contactConsent": true,
   "pageUrl": "https://app.clickcollect.tn/merchant/orders/123",
