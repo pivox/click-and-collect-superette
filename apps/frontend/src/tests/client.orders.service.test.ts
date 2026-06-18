@@ -44,7 +44,8 @@ const RAW_ORDER = {
     starts_at: '2026-05-28T10:00:00+01:00',
     ends_at: '2026-05-28T10:30:00+01:00',
   },
-  notes: null,
+  notes: 'Remplacer par une marque proche si besoin.',
+  rejection_reason: 'Rupture de stock sur deux produits.',
   lines: [],
   created_at: '2026-05-28T10:00:00Z',
   updated_at: '2026-05-28T10:00:00Z',
@@ -111,6 +112,8 @@ describe('listOrders', () => {
       status: 'ready',
       totalAmountTnd: '12.500',
       code: '#0042',
+      customerNote: 'Remplacer par une marque proche si besoin.',
+      rejectionReason: 'Rupture de stock sur deux produits.',
     });
     expect(apiClient.get).toHaveBeenCalledWith('/api/me/orders?page=1&limit=10');
   });
@@ -140,6 +143,8 @@ describe('getOrder', () => {
     expect(order!.code).toBe('#0042');
     expect(order!.totalAmountTnd).toBe('12.500');
     expect(order!.shopName).toBe('Supérette El Amen');
+    expect(order!.customerNote).toBe('Remplacer par une marque proche si besoin.');
+    expect(order!.rejectionReason).toBe('Rupture de stock sur deux produits.');
     expect(order!.pickupSlot).toMatchObject({
       id: 'slot-uuid-1',
       startsAt: '2026-05-28T10:00:00+01:00',
