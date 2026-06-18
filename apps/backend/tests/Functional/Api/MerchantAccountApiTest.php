@@ -132,6 +132,25 @@ final class MerchantAccountApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
     }
 
+    public function testGeneratedDisplayNameLongerThanUserNameLimitReturns422(): void
+    {
+        $merchant = $this->createMerchantWithPassword('merchant-acc@example.test', 'secret123');
+        $firstName = str_repeat('A', 100);
+        $lastName = str_repeat('B', 100);
+
+        $response = $this->requestJson('PATCH', '/api/merchant/me', [
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+        ], $merchant);
+
+        self::assertSame(422, $response->getStatusCode());
+
+        $this->entityManager->clear();
+        $stored = $this->entityManager->getRepository(User::class)->find($merchant->getId());
+        self::assertInstanceOf(User::class, $stored);
+        self::assertSame('Test User', $stored->getName());
+    }
+
     public function testMerchantCanChangePassword(): void
     {
         $merchant = $this->createMerchantWithPassword('merchant-acc@example.test', 'secret123');

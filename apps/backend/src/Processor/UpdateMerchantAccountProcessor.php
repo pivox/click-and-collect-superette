@@ -20,6 +20,8 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  */
 final readonly class UpdateMerchantAccountProcessor implements ProcessorInterface
 {
+    private const MAX_DISPLAY_NAME_LENGTH = 100;
+
     public function __construct(
         private Security $security,
         private EntityManagerInterface $entityManager,
@@ -139,6 +141,9 @@ final readonly class UpdateMerchantAccountProcessor implements ProcessorInterfac
         ], static fn (?string $part): bool => null !== $part && '' !== trim($part))));
 
         if ('' !== $name) {
+            if (mb_strlen($name) > self::MAX_DISPLAY_NAME_LENGTH) {
+                throw new UnprocessableEntityHttpException('MERCHANT_ACCOUNT_NAME_TOO_LONG');
+            }
             $merchant->setName($name);
         }
     }
