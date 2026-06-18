@@ -119,6 +119,16 @@ type ApiListItem = {
   notes?: string | null;
 };
 
+function filterSuppressedDrafts(items: ApiListItem[]): { items: ApiListItem[]; suppressedCount: number } {
+  let suppressedCount = 0;
+  const visibleItems = items.filter((item) => {
+    const isSuppressedDraft = item.status === "draft" && readSuppressedIds(item.store_id).has(item.id);
+    if (isSuppressedDraft) suppressedCount += 1;
+    return !isSuppressedDraft;
+  });
+  return { items: visibleItems, suppressedCount };
+}
+
 // ─── Exported types ───────────────────────────────────────────────────────────
 
 export interface KadhiaListItem {
@@ -334,7 +344,8 @@ export async function countStoreDraftKadhias(shopId: string): Promise<number> {
       `/api/me/stores/${shopId}/kadhias?status=draft`,
       { skipAuthRedirect: true },
     );
-    return data.total;
+    const { suppressedCount } = filterSuppressedDrafts(data.items);
+    return Math.max(0, data.total - suppressedCount);
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } }).response?.status;
     if (status === 401 || status === 404 || status === 405) return 0;
@@ -452,8 +463,9 @@ export async function listMyKadhias(status?: string, page = 1): Promise<KadhiaLi
   const { data } = await apiClient.get<{ items: ApiListItem[]; total: number; page: number; pages: number }>(
     `/api/me/kadhias${query}`,
   );
+  const { items, suppressedCount } = filterSuppressedDrafts(data.items);
   return {
-    items: data.items.map((k) => ({
+    items: items.map((k) => ({
       id: k.id,
       storeId: k.store_id,
       storeName: k.store_name,
@@ -463,7 +475,7 @@ export async function listMyKadhias(status?: string, page = 1): Promise<KadhiaLi
       updatedAt: k.updated_at,
       notes: k.notes,
     })),
-    total: data.total,
+    total: Math.max(0, data.total - suppressedCount),
     page: data.page,
     pages: data.pages,
   };

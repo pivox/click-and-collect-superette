@@ -32,7 +32,10 @@ const RAW_LIST_ITEM = {
 };
 
 describe('listMyKadhias', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
 
   it('appelle /api/me/kadhias sans paramètres quand appelé sans arguments', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
@@ -129,10 +132,39 @@ describe('listMyKadhias', () => {
 
     expect(result.items[0].notes).toBeUndefined();
   });
+
+  it("masque une Kadhia draft supprimée du redémarrage forcé", async () => {
+    window.localStorage.setItem('kadhia:active:store-1', 'k-shared');
+    vi.mocked(apiClient.delete).mockRejectedValueOnce({ response: { status: 404 } });
+
+    await expect(discardKadhia('store-1', { suppressReactivation: true })).rejects.toEqual({
+      response: { status: 404 },
+    });
+
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        items: [
+          { ...RAW_LIST_ITEM, id: 'k-shared', status: 'draft' },
+          { ...RAW_LIST_ITEM, id: 'k-completed', status: 'completed' },
+        ],
+        total: 2,
+        page: 1,
+        pages: 1,
+      },
+    });
+
+    const result = await listMyKadhias();
+
+    expect(result.items.map((item) => item.id)).toEqual(['k-completed']);
+    expect(result.total).toBe(1);
+  });
 });
 
 describe('countStoreDraftKadhias', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
 
   it('demande le décompte filtré status=draft et retourne le total (robuste à la pagination)', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
@@ -151,6 +183,24 @@ describe('countStoreDraftKadhias', () => {
 
   it('retourne 0 pour un visiteur anonyme (401)', async () => {
     vi.mocked(apiClient.get).mockRejectedValue({ response: { status: 401 } });
+
+    expect(await countStoreDraftKadhias('store-1')).toBe(0);
+  });
+
+  it("ignore une Kadhia draft supprimée du redémarrage forcé", async () => {
+    window.localStorage.setItem('kadhia:active:store-1', 'k-shared');
+    vi.mocked(apiClient.delete).mockRejectedValueOnce({ response: { status: 404 } });
+
+    await expect(discardKadhia('store-1', { suppressReactivation: true })).rejects.toEqual({
+      response: { status: 404 },
+    });
+
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        items: [{ ...RAW_LIST_ITEM, id: 'k-shared', status: 'draft' }],
+        total: 1,
+      },
+    });
 
     expect(await countStoreDraftKadhias('store-1')).toBe(0);
   });
