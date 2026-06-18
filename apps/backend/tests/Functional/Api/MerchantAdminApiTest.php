@@ -20,6 +20,7 @@ use App\Enum\OrderStatus;
 use App\Enum\SubscriptionLifecycle;
 use App\Enum\SubscriptionPricingPhase;
 use App\Service\MerchantOperationalJournalCalculator;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Uid\Uuid;
 
 final class MerchantAdminApiTest extends FunctionalApiTestCase
@@ -487,6 +488,138 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertArrayNotHasKey('password', $payload);
     }
 
+    public function testAdminCanGenerateTemporaryPasswordForMerchant(): void
+    {
+        $admin = $this->createUser('admin-temporary-password@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-temporary-password@example.test', new \DateTimeImmutable());
+        $this->setHashedPassword($merchant, 'oldSecret123');
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/admin/merchants/%s/temporary-password', $merchant->getId()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertSame($merchant->getId()->toRfc4122(), $payload['merchant_id']);
+        self::assertIsString($payload['temporary_password']);
+        self::assertGreaterThanOrEqual(32, \strlen($payload['temporary_password']));
+
+        $content = (string) $response->getContent();
+        self::assertStringNotContainsStringIgnoringCase('password_hash', $content);
+        self::assertStringNotContainsStringIgnoringCase('passwordHash', $content);
+        self::assertStringNotContainsStringIgnoringCase('token', $content);
+        self::assertStringNotContainsStringIgnoringCase('secret', $content);
+
+        $this->entityManager->clear();
+        $storedMerchant = $this->entityManager->getRepository(User::class)->find($merchant->getId());
+        self::assertInstanceOf(User::class, $storedMerchant);
+        self::assertFalse($this->passwordHasher()->isPasswordValid($storedMerchant, 'oldSecret123'));
+        self::assertTrue($this->passwordHasher()->isPasswordValid($storedMerchant, $payload['temporary_password']));
+    }
+
+    public function testTemporaryPasswordReplacesOldMerchantPasswordForLogin(): void
+    {
+        $admin = $this->createUser('admin-temporary-password-login@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-temporary-password-login@example.test', new \DateTimeImmutable());
+        $this->setHashedPassword($merchant, 'oldSecret123');
+
+        $resetResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/admin/merchants/%s/temporary-password', $merchant->getId()),
+            [],
+            $admin,
+        );
+
+        $temporaryPassword = $this->decodeJson($resetResponse)['temporary_password'];
+
+        $oldLoginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant-temporary-password-login@example.test',
+            'password' => 'oldSecret123',
+        ]);
+        $newLoginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant-temporary-password-login@example.test',
+            'password' => $temporaryPassword,
+        ]);
+
+        self::assertSame(401, $oldLoginResponse->getStatusCode());
+        self::assertSame(200, $newLoginResponse->getStatusCode());
+    }
+
+    public function testTemporaryPasswordResetCreatesAuditLogWithoutPlainPassword(): void
+    {
+        $admin = $this->createUser('admin-temporary-password-audit@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-temporary-password-audit@example.test', new \DateTimeImmutable());
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/admin/merchants/%s/temporary-password', $merchant->getId()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+        $temporaryPassword = $this->decodeJson($response)['temporary_password'];
+
+        $auditLog = $this->entityManager->getRepository(AdminAuditLog::class)->findOneBy([
+            'action' => 'merchant.temporary_password.reset',
+            'resourceType' => 'merchant',
+            'resourceId' => $merchant->getId()->toRfc4122(),
+        ]);
+
+        self::assertNotNull($auditLog);
+        self::assertSame('merchant.temporary_password.reset', $auditLog->getAction());
+        self::assertSame($merchant->getEmail(), $auditLog->getMetadata()['email'] ?? null);
+        self::assertStringNotContainsString($temporaryPassword, json_encode($auditLog->getMetadata(), \JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString($temporaryPassword, (string) $auditLog->getSummary());
+    }
+
+    public function testNonAdminCannotGenerateTemporaryMerchantPassword(): void
+    {
+        $customer = $this->createUser('customer-temporary-password-forbidden@example.test', ['ROLE_CUSTOMER']);
+        $merchant = $this->createMerchant('merchant-temporary-password-forbidden@example.test', new \DateTimeImmutable());
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/admin/merchants/%s/temporary-password', $merchant->getId()),
+            [],
+            $customer,
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    public function testMissingMerchantTemporaryPasswordResetReturns404(): void
+    {
+        $admin = $this->createUser('admin-temporary-password-missing@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/admin/merchants/%s/temporary-password', Uuid::v4()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testExistingNonMerchantTemporaryPasswordResetReturns422(): void
+    {
+        $admin = $this->createUser('admin-temporary-password-non-merchant@example.test', ['ROLE_ADMIN']);
+        $customer = $this->createUser('customer-temporary-password-non-merchant@example.test', ['ROLE_CUSTOMER']);
+
+        $response = $this->requestJson(
+            'POST',
+            \sprintf('/api/admin/merchants/%s/temporary-password', $customer->getId()),
+            [],
+            $admin,
+        );
+
+        self::assertSame(422, $response->getStatusCode());
+    }
+
     public function testAdminSuspendsMerchant(): void
     {
         $admin = $this->createUser('admin-suspends-merchant@example.test', ['ROLE_ADMIN']);
@@ -708,6 +841,17 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $merchant;
+    }
+
+    private function setHashedPassword(User $user, string $plainPassword): void
+    {
+        $user->setPassword($this->passwordHasher()->hashPassword($user, $plainPassword));
+        $this->entityManager->flush();
+    }
+
+    private function passwordHasher(): UserPasswordHasherInterface
+    {
+        return self::getContainer()->get(UserPasswordHasherInterface::class);
     }
 
     private function createPickupSlot(Shop $shop, \DateTimeImmutable $startsAt, \DateTimeImmutable $endsAt): PickupSlot

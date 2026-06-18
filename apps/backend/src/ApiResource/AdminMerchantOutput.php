@@ -15,6 +15,7 @@ use App\Dto\AdminMerchantCrmUpdateInput;
 use App\Dto\AdminUpdateMerchantInput;
 use App\Processor\AdminActivateMerchantProcessor;
 use App\Processor\AdminAddMerchantCrmContactProcessor;
+use App\Processor\AdminResetMerchantTemporaryPasswordProcessor;
 use App\Processor\AdminSuspendMerchantProcessor;
 use App\Processor\AdminUpdateMerchantCrmProcessor;
 use App\Processor\AdminUpdateMerchantProcessor;
@@ -69,6 +70,20 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             normalizationContext: ['groups' => ['admin_merchant:read']],
             provider: AdminMerchantItemProvider::class,
             processor: AdminActivateMerchantProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+        ),
+        new Post(
+            uriTemplate: '/admin/merchants/{merchantId<[0-9a-fA-F\-]{32,36}>}/temporary-password',
+            uriVariables: [
+                'merchantId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            status: 200,
+            formats: ['json' => ['application/json']],
+            input: false,
+            output: AdminMerchantTemporaryPasswordOutput::class,
+            read: false,
+            normalizationContext: ['groups' => ['admin_merchant_temporary_password:read']],
+            processor: AdminResetMerchantTemporaryPasswordProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
         ),
         new Patch(

@@ -2,6 +2,7 @@ import { apiClient } from '@/lib/api';
 import type {
   Merchant,
   MerchantListResponse,
+  MerchantTemporaryPasswordResponse,
   MerchantCrmStatus,
   CreateMerchantPayload,
   UpdateMerchantPayload,
@@ -40,6 +41,14 @@ export async function createMerchant(payload: CreateMerchantPayload): Promise<Me
 
 export async function updateMerchant(id: string, payload: UpdateMerchantPayload): Promise<Merchant> {
   const { data } = await apiClient.patch<Merchant>(`/api/admin/merchants/${id}`, payload);
+  return data;
+}
+
+export async function resetMerchantTemporaryPassword(id: string): Promise<MerchantTemporaryPasswordResponse> {
+  const { data } = await apiClient.post<MerchantTemporaryPasswordResponse>(
+    `/api/admin/merchants/${id}/temporary-password`,
+    {},
+  );
   return data;
 }
 

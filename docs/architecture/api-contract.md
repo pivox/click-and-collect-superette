@@ -1546,6 +1546,7 @@ GET   /api/admin/merchants?page=1&limit=20
 GET   /api/admin/merchants/{merchantId}
 POST  /api/admin/merchants
 PATCH /api/admin/merchants/{merchantId}
+POST  /api/admin/merchants/{merchantId}/temporary-password
 PATCH /api/admin/merchants/{merchantId}/suspend
 PATCH /api/admin/merchants/{merchantId}/activate
 ```
@@ -1584,7 +1585,7 @@ Remarques :
 - Un mot de passe temporaire est généré automatiquement (jamais exposé dans la réponse).
 - Aucun email d'invitation n'est envoyé dans le MVP.
 - Le rôle `ROLE_MERCHANT` est attribué automatiquement.
-- **Compte dormant** : le marchand créé ne peut pas encore se connecter de manière autonome. Un mécanisme d'invitation ou de reset password sera livré dans une PR ultérieure (hors périmètre S5-004).
+- **Compte dormant** : le marchand créé ne peut pas encore se connecter de manière autonome depuis la réponse de création. L'admin peut ensuite générer un nouveau mot de passe temporaire via l'endpoint dédié ci-dessous.
 
 #### PATCH /api/admin/merchants/{merchantId} — Mettre à jour un compte marchand
 
@@ -1606,6 +1607,41 @@ Codes retour :
 - `403` — rôle insuffisant ;
 - `404` — marchand introuvable ;
 - `422` — validation échouée.
+
+#### POST /api/admin/merchants/{merchantId}/temporary-password — Réinitialiser le mot de passe temporaire
+
+Aucun body requis.
+
+Réponse `200` :
+
+```json
+{
+  "merchant_id": "merchant-uuid",
+  "temporary_password": "mot-de-passe-temporaire"
+}
+```
+
+Règles :
+
+- réservé à `ROLE_ADMIN` ;
+- l'identifiant doit cibler un utilisateur existant avec le rôle `ROLE_MERCHANT` ;
+- remplace le hash de mot de passe existant ;
+- l'ancien mot de passe ne fonctionne plus après reset ;
+- le mot de passe temporaire est affiché une seule fois dans cette réponse ;
+- le mot de passe temporaire n'est jamais stocké en clair ;
+- l'admin ne voit jamais le mot de passe actuel ;
+- `passwordHash`, token et secret ne sont jamais exposés ;
+- l'action est auditée avec `merchant.temporary_password.reset` sans inclure le mot de passe temporaire dans le journal.
+
+Codes retour :
+
+- `200` — mot de passe temporaire généré ;
+- `401` — non authentifié ;
+- `403` — rôle insuffisant ;
+- `404` — marchand introuvable ;
+- `422` — cible existante mais non marchande.
+
+Limite actuelle : le modèle `User` ne supporte pas de champ explicite `password_change_required`; le changement obligatoire au prochain login n'est donc pas appliqué par cet endpoint.
 
 #### PATCH /api/admin/merchants/{merchantId}/suspend — Suspendre un compte marchand
 
@@ -2235,7 +2271,7 @@ Règles :
 - `metadata` ne contient jamais de mot de passe, token ou secret ;
 - `summary` contient un résumé lisible prêt à afficher côté backoffice ;
 - `user_agent` est tronqué à 500 caractères avant persistance ;
-- actions loggées : `merchant.create`, `merchant.update`, `merchant.suspend`, `merchant.activate`, `store.create`, `store.update`, `store.activate`, `store.deactivate`, `store.qr_regenerate`, `store.archive`, `product_reference.create`, `product_reference.update`, `product_reference.archive`, `product_proposal.approve`, `product_proposal.reject`.
+- actions loggées : `merchant.create`, `merchant.update`, `merchant.suspend`, `merchant.activate`, `merchant.temporary_password.reset`, `store.create`, `store.update`, `store.activate`, `store.deactivate`, `store.qr_regenerate`, `store.archive`, `product_reference.create`, `product_reference.update`, `product_reference.archive`, `product_proposal.approve`, `product_proposal.reject`.
 
 ---
 
