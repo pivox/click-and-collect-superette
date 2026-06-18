@@ -89,4 +89,43 @@ describe('OrderTrackingPage', () => {
       expect(getOrder).toHaveBeenCalledWith('order-uuid-1');
     });
   });
+
+  it('affiche la raison et les articles refusés pour une commande partiellement acceptée', async () => {
+    vi.mocked(getOrder).mockResolvedValue({
+      ...makeOrder('partially_accepted'),
+      rejectionReason: 'Rupture de stock.',
+      kadhiaId: 'kadhia-uuid-1',
+      rejectedLines: [
+        {
+          id: 'line-rejected-1',
+          productOffer: {
+            id: 'mp-rejected',
+            productReferenceId: 'mp-rejected',
+            nameFr: 'Yaourt nature',
+            nameAr: null,
+            brand: '',
+            volume: null,
+            unit: null,
+            priceTnd: '1.800',
+            isAvailable: true,
+            photoUrl: null,
+            category: 'epicerie',
+          },
+          quantity: 1,
+          unitPriceTnd: '1.800',
+          lineTotalTnd: '1.800',
+        },
+      ],
+    } as Order & { rejectedLines: Order['lines'] });
+
+    renderPage('order-uuid-1');
+
+    expect(await screen.findByText('Commande partiellement acceptée')).toBeTruthy();
+    expect(screen.getByText('Rupture de stock.')).toBeTruthy();
+    expect(screen.getByText('Yaourt nature')).toBeTruthy();
+    expect(screen.getByText(/Kadhia contient uniquement les articles conservés/i)).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: /Voir ma Kadhia/i })[0].getAttribute('href')).toBe(
+      '/kadhia/kadhia-uuid-1?context=partially_accepted',
+    );
+  });
 });

@@ -6,6 +6,8 @@ namespace App\Tests\Functional\Api;
 
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\Kadhia;
+use App\Entity\KadhiaLine;
 use App\Entity\MerchantProduct;
 use App\Entity\Order;
 use App\Entity\OrderLine;
@@ -13,6 +15,7 @@ use App\Entity\PickupSlot;
 use App\Entity\ProductReference;
 use App\Entity\Shop;
 use App\Entity\User;
+use App\Enum\KadhiaStatus;
 use App\Enum\ProductReferenceStatus;
 use App\Service\PickupSlotDisplayTime;
 use Symfony\Component\Uid\Uuid;
@@ -127,6 +130,39 @@ final class OrderHistoryApiTest extends FunctionalApiTestCase
         self::assertArrayHasKey('merchant_product_id', $payload['lines'][0]);
     }
 
+    public function testGetPartiallyAcceptedOrderExposesRejectionReasonAndRejectedLines(): void
+    {
+        $customer = $this->createUser('history-partial@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop();
+        $acceptedProduct = $this->createMerchantProduct($shop, '2.500', 'Lait Vitalait 1L');
+        $rejectedProduct = $this->createMerchantProduct($shop, '1.800', 'Yaourt nature');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$acceptedProduct, $rejectedProduct]);
+        $slot = $this->createPickupSlot($shop);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+
+        $order->partiallyAccept('Rupture de stock.');
+        foreach ($kadhia->getLines()->toArray() as $line) {
+            if ($line instanceof KadhiaLine && $line->getMerchantProduct()->getId()->equals($rejectedProduct->getId())) {
+                $kadhia->removeLine($line);
+            }
+        }
+        $kadhia->setStatus(KadhiaStatus::Draft);
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('GET', \sprintf('/api/me/orders/%s', $order->getId()->toRfc4122()), user: $customer);
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+
+        self::assertSame('partially_accepted', $payload['status']);
+        self::assertSame('Rupture de stock.', $payload['rejection_reason']);
+        self::assertCount(2, $payload['lines']);
+        self::assertCount(1, $payload['rejected_lines']);
+        self::assertSame($rejectedProduct->getId()->toRfc4122(), $payload['rejected_lines'][0]['merchant_product_id']);
+        self::assertSame('Yaourt nature', $payload['rejected_lines'][0]['product_name']);
+        self::assertSame(1, $payload['rejected_lines'][0]['quantity']);
+    }
+
     public function testGetOrderByIdNotFoundReturns404(): void
     {
         $customer = $this->createUser('history-notfound@example.test', ['ROLE_CUSTOMER']);
@@ -188,13 +224,7 @@ final class OrderHistoryApiTest extends FunctionalApiTestCase
             ->setStatus(ProductReferenceStatus::Approved);
         $this->entityManager->persist($ref);
 
-        $product = (new MerchantProduct())
-            ->setShop($shop)
-            ->setProductReference($ref)
-            ->setPriceTnd('2.500')
-            ->setAvailable(true)
-            ->setVisible(true);
-        $this->entityManager->persist($product);
+        $product = $this->createMerchantProductFromReference($shop, $ref, '2.500');
 
         $now = new \DateTimeImmutable();
         $slot = (new PickupSlot())
@@ -224,5 +254,109 @@ final class OrderHistoryApiTest extends FunctionalApiTestCase
         $this->entityManager->flush();
 
         return $order;
+    }
+
+    private function createPickupSlot(Shop $shop): PickupSlot
+    {
+        $now = new \DateTimeImmutable();
+        $slot = (new PickupSlot())
+            ->setShop($shop)
+            ->setStartsAt($now->modify('+1 hour'))
+            ->setEndsAt($now->modify('+2 hours'))
+            ->setCapacity(5);
+
+        $this->entityManager->persist($slot);
+        $this->entityManager->flush();
+
+        return $slot;
+    }
+
+    /**
+     * @param list<MerchantProduct> $products
+     */
+    private function createSubmittedKadhiaWithLines(User $customer, Shop $shop, array $products): Kadhia
+    {
+        $kadhia = (new Kadhia())
+            ->setCustomer($customer)
+            ->setShop($shop)
+            ->setStatus(KadhiaStatus::Submitted);
+        $this->entityManager->persist($kadhia);
+
+        foreach ($products as $product) {
+            $line = (new KadhiaLine())
+                ->setMerchantProduct($product)
+                ->setQuantity(1)
+                ->setUnitPriceTnd($product->getPriceTnd());
+            $kadhia->addLine($line);
+            $this->entityManager->persist($line);
+        }
+
+        $this->entityManager->flush();
+
+        return $kadhia;
+    }
+
+    private function createSubmittedOrderFromKadhia(User $customer, Shop $shop, Kadhia $kadhia, PickupSlot $slot): Order
+    {
+        $order = (new Order())
+            ->setCustomer($customer)
+            ->setShop($shop)
+            ->setKadhia($kadhia)
+            ->setPickupSlot($slot);
+        $order->submit();
+        $this->entityManager->persist($order);
+
+        foreach ($kadhia->getLines() as $kadhiaLine) {
+            $line = (new OrderLine())
+                ->setMerchantProduct($kadhiaLine->getMerchantProduct())
+                ->setQuantity($kadhiaLine->getQuantity())
+                ->setUnitPriceTnd($kadhiaLine->getUnitPriceTnd())
+                ->setLineTotalTnd(bcmul((string) $kadhiaLine->getQuantity(), $kadhiaLine->getUnitPriceTnd(), 3));
+            $order->addLine($line);
+            $this->entityManager->persist($line);
+        }
+
+        $order->recomputeTotal();
+        $this->entityManager->flush();
+
+        return $order;
+    }
+
+    private function createMerchantProduct(Shop $shop, string $priceTnd, string $nameFr): MerchantProduct
+    {
+        $uniqueId = Uuid::v4();
+
+        $brand = (new Brand())
+            ->setCanonicalName('Marque '.$nameFr)
+            ->setSlug('marque-history-'.$uniqueId);
+        $this->entityManager->persist($brand);
+
+        $category = (new Category())
+            ->setNameFr('Catégorie '.$nameFr)
+            ->setSlug('categorie-history-'.$uniqueId);
+        $this->entityManager->persist($category);
+
+        $ref = (new ProductReference())
+            ->setNameFr($nameFr)
+            ->setBrand($brand)
+            ->setCategory($category)
+            ->setStatus(ProductReferenceStatus::Approved);
+        $this->entityManager->persist($ref);
+
+        return $this->createMerchantProductFromReference($shop, $ref, $priceTnd);
+    }
+
+    private function createMerchantProductFromReference(Shop $shop, ProductReference $ref, string $priceTnd): MerchantProduct
+    {
+        $product = (new MerchantProduct())
+            ->setShop($shop)
+            ->setProductReference($ref)
+            ->setPriceTnd($priceTnd)
+            ->setAvailable(true)
+            ->setVisible(true);
+        $this->entityManager->persist($product);
+        $this->entityManager->flush();
+
+        return $product;
     }
 }

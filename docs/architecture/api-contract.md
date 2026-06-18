@@ -542,6 +542,51 @@ Réponse :
 GET /api/me/orders/{id}
 ```
 
+Réponse `200` :
+
+```json
+{
+  "id": "order-uuid",
+  "kadhia_id": "kadhia-uuid",
+  "store_id": "store-uuid",
+  "store_name": "Supérette El Amen",
+  "status": "partially_accepted",
+  "total_tnd": "4.300",
+  "pickup_slot_id": "slot-uuid",
+  "pickup_slot": {
+    "id": "slot-uuid",
+    "starts_at": "2026-06-18T17:00:00+01:00",
+    "ends_at": "2026-06-18T17:30:00+01:00"
+  },
+  "notes": null,
+  "rejection_reason": "Rupture de stock.",
+  "lines": [
+    {
+      "merchant_product_id": "product-uuid-1",
+      "product_name": "Lait Vitalait 1L",
+      "quantity": 1,
+      "unit_price_tnd": "2.500",
+      "line_total_tnd": "2.500"
+    }
+  ],
+  "rejected_lines": [
+    {
+      "merchant_product_id": "product-uuid-2",
+      "product_name": "Yaourt nature",
+      "quantity": 1,
+      "unit_price_tnd": "1.800",
+      "line_total_tnd": "1.800"
+    }
+  ],
+  "created_at": "2026-06-18T14:00:00+01:00",
+  "updated_at": "2026-06-18T14:05:00+01:00",
+  "pickup_code": null
+}
+```
+
+Pour `partially_accepted`, `rejected_lines` liste les lignes de la commande
+retirées de la Kadhia draft. Pour les autres statuts, la liste est vide.
+
 ### Annuler une commande
 
 Statut : **livré Sprint 3**.

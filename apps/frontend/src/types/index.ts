@@ -137,6 +137,8 @@ export interface Order {
   /** Order code shown to user, e.g. "#0042" or a legacy short code. */
   code: string;
   lines: KadhiaLine[];
+  /** Original order lines removed from the draft Kadhia after partial acceptance. */
+  rejectedLines?: KadhiaLine[];
   /** Optional note left by customer to the merchant. */
   customerNote?: string | null;
   /** 4-digit pickup code, visible only when status === 'ready'. */

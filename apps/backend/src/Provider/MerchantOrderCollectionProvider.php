@@ -100,6 +100,7 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
         $lines = array_map(
             static fn (OrderLine $l): \App\ApiResource\OrderLineOutput => new \App\ApiResource\OrderLineOutput(
                 merchantProductId: $l->getMerchantProduct()->getId()->toRfc4122(),
+                productName: $l->getMerchantProduct()->getDisplayNameFr(),
                 quantity: $l->getQuantity(),
                 unitPriceTnd: $l->getUnitPriceTnd(),
                 lineTotalTnd: $l->getLineTotalTnd(),

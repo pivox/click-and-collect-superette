@@ -1,8 +1,10 @@
 import type {
   CustomerOrderStatusSnapshot,
   CustomerPickupSessionConfirmation,
+  KadhiaLine,
   Order,
   PickupSession,
+  ProductOffer,
   TimelineStep,
 } from "@/types";
 import { MOCK_ORDER, MOCK_ORDER_PARTIALLY_ACCEPTED, MOCK_ORDER_SUBMITTED, MOCK_ORDERS_ALL } from "@/lib/mock/orders.mock";
@@ -29,10 +31,20 @@ interface RawOrder {
     ends_at: string;
   } | null;
   notes: string | null;
-  lines: unknown[];
+  rejection_reason?: string | null;
+  lines: RawOrderLine[];
+  rejected_lines?: RawOrderLine[];
   created_at: string;
   updated_at: string;
   pickup_code?: string | null;
+}
+
+interface RawOrderLine {
+  merchant_product_id: string;
+  product_name?: string | null;
+  quantity: number;
+  unit_price_tnd: string;
+  line_total_tnd: string;
 }
 
 interface RawPickupSession {
@@ -90,6 +102,31 @@ export interface OrderListResult {
 
 const MOCK_PICKUP_SESSION_TOKEN = "11111111-1111-4111-8111-111111111111";
 
+function mapRawOrderLine(raw: RawOrderLine): KadhiaLine {
+  const name = raw.product_name ?? raw.merchant_product_id;
+  const productOffer: ProductOffer = {
+    id: raw.merchant_product_id,
+    productReferenceId: raw.merchant_product_id,
+    nameFr: name,
+    nameAr: null,
+    brand: "",
+    volume: null,
+    unit: null,
+    priceTnd: raw.unit_price_tnd,
+    isAvailable: true,
+    photoUrl: null,
+    category: "",
+  };
+
+  return {
+    id: raw.merchant_product_id,
+    productOffer,
+    quantity: raw.quantity,
+    unitPriceTnd: raw.unit_price_tnd,
+    lineTotalTnd: raw.line_total_tnd,
+  };
+}
+
 function mapRawOrder(raw: RawOrder): Order {
   return {
     id: raw.id,
@@ -112,10 +149,11 @@ function mapRawOrder(raw: RawOrder): Order {
     acceptedAt: null,
     readyAt: null,
     completedAt: null,
-    rejectionReason: null,
+    rejectionReason: raw.rejection_reason ?? null,
     code: displayOrderCode(raw),
     customerNote: raw.notes ?? null,
-    lines: [],
+    lines: raw.lines.map(mapRawOrderLine),
+    rejectedLines: (raw.rejected_lines ?? []).map(mapRawOrderLine),
     pickupCode: raw.pickup_code ?? null,
     kadhiaId: raw.kadhia_id ?? null,
   };

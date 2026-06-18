@@ -148,6 +148,50 @@ describe('getOrder', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/api/me/orders/order-uuid-1');
   });
 
+  it('mappe la raison et les articles refusés d’une commande partiellement acceptée', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        ...RAW_ORDER,
+        status: 'partially_accepted',
+        rejection_reason: 'Rupture de stock.',
+        lines: [
+          {
+            merchant_product_id: 'mp-accepted',
+            product_name: 'Lait Vitalait 1L',
+            quantity: 1,
+            unit_price_tnd: '2.500',
+            line_total_tnd: '2.500',
+          },
+          {
+            merchant_product_id: 'mp-rejected',
+            product_name: 'Yaourt nature',
+            quantity: 1,
+            unit_price_tnd: '1.800',
+            line_total_tnd: '1.800',
+          },
+        ],
+        rejected_lines: [
+          {
+            merchant_product_id: 'mp-rejected',
+            product_name: 'Yaourt nature',
+            quantity: 1,
+            unit_price_tnd: '1.800',
+            line_total_tnd: '1.800',
+          },
+        ],
+      },
+    });
+
+    const order = await getOrder('order-uuid-1');
+
+    expect(order?.rejectionReason).toBe('Rupture de stock.');
+    expect(order?.lines).toHaveLength(2);
+    expect(order?.lines[1].productOffer.nameFr).toBe('Yaourt nature');
+    const rejectedLines = order?.rejectedLines ?? [];
+    expect(rejectedLines).toHaveLength(1);
+    expect(rejectedLines[0].productOffer.nameFr).toBe('Yaourt nature');
+  });
+
   it('retourne null sur une réponse 404', async () => {
     vi.mocked(apiClient.get).mockRejectedValue(makeAxiosError(404));
     const order = await getOrder('order-uuid-missing');

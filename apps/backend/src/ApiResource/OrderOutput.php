@@ -55,6 +55,7 @@ final readonly class OrderOutput
     /**
      * @param array{id: string, starts_at: string, ends_at: string}|null $pickupSlot
      * @param list<OrderLineOutput>                                      $lines
+     * @param list<OrderLineOutput>                                      $rejectedLines
      */
     public function __construct(
         #[ApiProperty(identifier: true)]
@@ -96,6 +97,12 @@ final readonly class OrderOutput
         public ?string $notes,
         #[Groups(['order:read'])]
         public array $lines,
+        #[Groups(['order:read'])]
+        #[SerializedName('rejection_reason')]
+        public ?string $rejectionReason,
+        #[Groups(['order:read'])]
+        #[SerializedName('rejected_lines')]
+        public array $rejectedLines,
         #[Groups(['order:read'])]
         #[SerializedName('created_at')]
         public string $createdAt,
