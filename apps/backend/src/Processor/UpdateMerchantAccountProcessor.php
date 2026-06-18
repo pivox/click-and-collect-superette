@@ -9,14 +9,10 @@ use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\MerchantAccountOutput;
 use App\Dto\MerchantMeUpdateInput;
 use App\Entity\User;
-use App\Repository\UserRepository;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
-use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
@@ -24,12 +20,12 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  */
 final readonly class UpdateMerchantAccountProcessor implements ProcessorInterface
 {
+    private const MAX_DISPLAY_NAME_LENGTH = 100;
+
     public function __construct(
         private Security $security,
-        private UserRepository $userRepository,
         private EntityManagerInterface $entityManager,
         private RequestStack $requestStack,
-        private JWTTokenManagerInterface $jwtTokenManager,
     ) {
     }
 
@@ -46,41 +42,24 @@ final readonly class UpdateMerchantAccountProcessor implements ProcessorInterfac
         $merchant = $this->currentMerchant();
         $payload = $this->currentPayload();
 
-        if (\array_key_exists('name', $payload) && null !== $data->name) {
-            $name = trim($data->name);
-            if ('' === $name) {
-                throw new UnprocessableEntityHttpException('MERCHANT_ACCOUNT_NAME_BLANK');
-            }
-            $merchant->setName($name);
+        $this->rejectForbiddenFields($payload);
+
+        if (\array_key_exists('first_name', $payload) && null !== $data->firstName) {
+            $merchant->setFirstName($data->firstName);
         }
 
-        $emailChanged = false;
-        if (\array_key_exists('email', $payload) && null !== $data->email) {
-            $email = strtolower(trim($data->email));
-            if ('' === $email) {
-                throw new UnprocessableEntityHttpException('MERCHANT_ACCOUNT_EMAIL_BLANK');
-            }
-            if ($email !== $merchant->getEmail()) {
-                if (null !== $this->userRepository->findOneBy(['email' => $email])) {
-                    throw new ConflictHttpException('MERCHANT_EMAIL_ALREADY_EXISTS');
-                }
-                $merchant->setEmail($email);
-                $emailChanged = true;
-            }
+        if (\array_key_exists('last_name', $payload) && null !== $data->lastName) {
+            $merchant->setLastName($data->lastName);
         }
 
-        try {
-            $this->entityManager->flush();
-        } catch (UniqueConstraintViolationException) {
-            throw new ConflictHttpException('MERCHANT_EMAIL_ALREADY_EXISTS');
+        if (\array_key_exists('phone', $payload)) {
+            $merchant->setPhone($data->phone);
         }
 
-        // The JWT identity claim is the email (see lexik config + security.yaml
-        // provider). After an email change the current token can no longer
-        // resolve the user, so re-issue one and return it for the client to swap.
-        $token = $emailChanged ? $this->jwtTokenManager->create($merchant) : null;
+        $this->refreshDisplayName($merchant);
+        $this->entityManager->flush();
 
-        return MerchantAccountOutput::fromUser($merchant, $token);
+        return MerchantAccountOutput::fromUser($merchant);
     }
 
     private function currentMerchant(): User
@@ -109,5 +88,66 @@ final readonly class UpdateMerchantAccountProcessor implements ProcessorInterfac
         $payload = json_decode($request->getContent(), true);
 
         return \is_array($payload) ? $payload : [];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function rejectForbiddenFields(array $payload): void
+    {
+        $forbiddenFields = [
+            'id',
+            'user_id',
+            'name',
+            'email',
+            'roles',
+            'active',
+            'is_active',
+            'status',
+            'owner',
+            'shopOwner',
+            'shop_owner',
+            'shopId',
+            'shop_id',
+            'password',
+            'passwordHash',
+            'password_hash',
+            'plainPassword',
+            'plain_password',
+            'resetToken',
+            'reset_token',
+            'invitationToken',
+            'invitation_token',
+            'temporaryPassword',
+            'temporary_password',
+            'deletedAt',
+            'deleted_at',
+            'lastLoginAt',
+            'last_login_at',
+        ];
+
+        foreach ($forbiddenFields as $field) {
+            if (\array_key_exists($field, $payload)) {
+                throw new UnprocessableEntityHttpException('MERCHANT_ACCOUNT_FIELD_FORBIDDEN');
+            }
+        }
+    }
+
+    private function refreshDisplayName(User $merchant): void
+    {
+        $firstName = $merchant->getFirstName();
+        $lastName = $merchant->getLastName();
+        if (null === $firstName || '' === trim($firstName) || null === $lastName || '' === trim($lastName)) {
+            return;
+        }
+
+        $name = trim($firstName.' '.$lastName);
+
+        if ('' !== $name) {
+            if (mb_strlen($name) > self::MAX_DISPLAY_NAME_LENGTH) {
+                throw new UnprocessableEntityHttpException('MERCHANT_ACCOUNT_NAME_TOO_LONG');
+            }
+            $merchant->setName($name);
+        }
     }
 }

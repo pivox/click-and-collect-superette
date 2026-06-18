@@ -170,6 +170,125 @@ Champs non modifiables :
 - `roles` ;
 - `password`.
 
+### Compte marchand connecté
+
+Statut : **livré**.
+
+Routes conservées pour éviter de dupliquer le parcours marchand existant :
+
+```http
+GET   /api/merchant/me
+PATCH /api/merchant/me
+PATCH /api/merchant/me/password
+```
+
+Décision API : les routes cibles `/api/merchant/account/profile` et
+`/api/merchant/account/change-password` ne sont pas créées dans cette tranche,
+car les endpoints existants couvrent le besoin une fois durcis. Le compte
+marchand correspond à `User`; la supérette correspond à `Shop`. La mise à jour
+du compte marchand ne modifie jamais le profil de la supérette, son propriétaire
+ou son catalogue.
+
+Réponse `GET /api/merchant/me` :
+
+```json
+{
+  "user_id": "merchant-user-uuid",
+  "email": "marchand@example.com",
+  "name": "Ali Ben Salah",
+  "first_name": "Ali",
+  "last_name": "Ben Salah",
+  "phone": "+21620111222",
+  "store": {
+    "id": "shop-uuid",
+    "name": "Supérette Ali",
+    "active": true
+  },
+  "onboarding_completed": true
+}
+```
+
+Payload `PATCH /api/merchant/me` :
+
+```json
+{
+  "first_name": "Ali",
+  "last_name": "Ben Salah",
+  "phone": "+21620111222"
+}
+```
+
+Réponse `200` :
+
+```json
+{
+  "user_id": "merchant-user-uuid",
+  "email": "marchand@example.com",
+  "name": "Ali Ben Salah",
+  "first_name": "Ali",
+  "last_name": "Ben Salah",
+  "phone": "+21620111222"
+}
+```
+
+Champs modifiables :
+
+- `first_name` ;
+- `last_name` ;
+- `phone`.
+
+Champs non modifiables ou refusés :
+
+- `id`, `user_id`, `name` ;
+- `email` ;
+- `roles` ;
+- `active`, `is_active`, `status` ;
+- `owner`, `shopOwner`, `shop_owner`, `shopId`, `shop_id` ;
+- `password`, `passwordHash`, `password_hash`, `plainPassword`, `plain_password` ;
+- `resetToken`, `reset_token`, `invitationToken`, `invitation_token` ;
+- `temporaryPassword`, `temporary_password` ;
+- `deletedAt`, `deleted_at`, `lastLoginAt`, `last_login_at`.
+
+Règles :
+
+- route réservée au marchand connecté (`ROLE_MERCHANT`) ;
+- compte marchand inactif refusé ;
+- email affiché en lecture seule et non modifiable via ce endpoint ;
+- `name` est recalculé depuis `first_name` + `last_name` ;
+- aucun rôle, mot de passe, hash, token, propriétaire de supérette ou champ
+  interne d'administration n'est exposé dans la réponse profil compte.
+
+### Changement de mot de passe marchand
+
+Statut : **livré**.
+
+```http
+PATCH /api/merchant/me/password
+```
+
+Payload :
+
+```json
+{
+  "current_password": "ancienSecret123",
+  "new_password": "nouveauSecret456"
+}
+```
+
+Réponse succès : `204 No Content`.
+
+Règles :
+
+- route réservée au marchand connecté (`ROLE_MERCHANT`) ;
+- compte marchand inactif refusé ;
+- ancien mot de passe obligatoire et vérifié ;
+- nouveau mot de passe obligatoire, longueur minimale 8 caractères ;
+- nouveau mot de passe hashé avant stockage ;
+- l'ancien mot de passe ne permet plus la connexion après changement ;
+- réponse neutre, sans secret ;
+- aucun mot de passe, hash, token, reset token ou invitation token n'est retourné
+  ou journalisé.
+
 ### Suppression du compte client
 
 Statut : **livré backend S7-003**.

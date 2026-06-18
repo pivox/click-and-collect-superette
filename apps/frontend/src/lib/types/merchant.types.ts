@@ -18,7 +18,9 @@ export interface MerchantMe {
   user_id: string;
   email: string;
   name: string;
-  roles: string[];
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
   store: MerchantStoreContext;
   onboarding_completed: boolean;
 }

@@ -25,9 +25,6 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 )]
 final readonly class MerchantMeOutput
 {
-    /**
-     * @param list<string> $roles
-     */
     public function __construct(
         #[Groups(['merchant_me:read'])]
         #[SerializedName('user_id')]
@@ -37,7 +34,13 @@ final readonly class MerchantMeOutput
         #[Groups(['merchant_me:read'])]
         public string $name,
         #[Groups(['merchant_me:read'])]
-        public array $roles,
+        #[SerializedName('first_name')]
+        public ?string $firstName,
+        #[Groups(['merchant_me:read'])]
+        #[SerializedName('last_name')]
+        public ?string $lastName,
+        #[Groups(['merchant_me:read'])]
+        public ?string $phone,
         #[Groups(['merchant_me:read'])]
         public MerchantMeStoreOutput $store,
         #[Groups(['merchant_me:read'])]
@@ -52,20 +55,11 @@ final readonly class MerchantMeOutput
             userId: $merchant->getId()->toRfc4122(),
             email: $merchant->getEmail(),
             name: $merchant->getName(),
-            roles: self::merchantRoles($merchant),
+            firstName: $merchant->getFirstName(),
+            lastName: $merchant->getLastName(),
+            phone: $merchant->getPhone(),
             store: MerchantMeStoreOutput::fromShop($shop),
             onboardingCompleted: null !== $merchant->getOnboardingCompletedAt(),
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function merchantRoles(User $merchant): array
-    {
-        return array_values(array_filter(
-            $merchant->getRoles(),
-            static fn (string $role): bool => 'ROLE_USER' !== $role,
-        ));
     }
 }

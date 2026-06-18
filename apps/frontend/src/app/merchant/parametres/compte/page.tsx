@@ -10,8 +10,8 @@ import {
   updateMerchantAccount,
 } from '@/lib/services/merchant-account.service';
 
-// MS-003 (MVP-3): the merchant manages their own account — display name and
-// email (with uniqueness) — and changes their password (current + new).
+// MS-003 (MVP-3): the merchant manages their own User account separately from
+// the supérette profile. Email and security fields are not editable here.
 
 function responseStatus(err: unknown): number | undefined {
   return typeof err === 'object' && err !== null && 'response' in err
@@ -32,12 +32,14 @@ export default function MerchantAccountPage() {
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Paramètres
         </Link>
-        <h1 className="text-2xl font-black text-ink">Compte</h1>
-        <p className="text-sm text-muted">Gérez vos informations de connexion.</p>
+        <h1 className="text-2xl font-black text-ink">Mon compte marchand</h1>
+        <p className="text-sm text-muted">Gérez vos informations de compte et votre accès.</p>
       </div>
 
       <AccountForm
-        initialName={merchant?.name ?? ''}
+        initialFirstName={merchant?.first_name ?? ''}
+        initialLastName={merchant?.last_name ?? ''}
+        initialPhone={merchant?.phone ?? ''}
         initialEmail={merchant?.email ?? ''}
         onSaved={refresh}
       />
@@ -47,23 +49,32 @@ export default function MerchantAccountPage() {
 }
 
 function AccountForm({
-  initialName,
+  initialFirstName,
+  initialLastName,
+  initialPhone,
   initialEmail,
   onSaved,
 }: {
-  initialName: string;
+  initialFirstName: string;
+  initialLastName: string;
+  initialPhone: string;
   initialEmail: string;
   onSaved: () => Promise<void>;
 }) {
-  const [name, setName] = useState(initialName);
-  const [email, setEmail] = useState(initialEmail);
+  const [firstName, setFirstName] = useState(initialFirstName);
+  const [lastName, setLastName] = useState(initialLastName);
+  const [phone, setPhone] = useState(initialPhone);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (name.trim() === '') {
+    if (firstName.trim() === '') {
+      setError('Le prénom est obligatoire.');
+      return;
+    }
+    if (lastName.trim() === '') {
       setError('Le nom est obligatoire.');
       return;
     }
@@ -71,7 +82,11 @@ function AccountForm({
     setError(null);
     setSaved(false);
     try {
-      await updateMerchantAccount({ name: name.trim(), email: email.trim() });
+      await updateMerchantAccount({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim() === '' ? null : phone.trim(),
+      });
       setSaved(true);
       try {
         await onSaved();
@@ -91,30 +106,51 @@ function AccountForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-line bg-card p-4">
-      <h2 className="font-bold text-ink">Informations</h2>
+      <h2 className="font-bold text-ink">Informations du compte</h2>
       <Field
-        id="account-name"
-        label="Nom affiché"
+        id="account-first-name"
+        label="Prénom"
         required
-        value={name}
+        value={firstName}
         onChange={(v) => {
-          setName(v);
+          setFirstName(v);
           setSaved(false);
         }}
         maxLength={100}
       />
       <Field
+        id="account-last-name"
+        label="Nom"
+        required
+        value={lastName}
+        onChange={(v) => {
+          setLastName(v);
+          setSaved(false);
+        }}
+        maxLength={100}
+      />
+      <Field
+        id="account-phone"
+        label="Téléphone"
+        value={phone}
+        onChange={(v) => {
+          setPhone(v);
+          setSaved(false);
+        }}
+        maxLength={20}
+      />
+      <Field
         id="account-email"
         label="Email"
         type="email"
-        required
-        value={email}
-        onChange={(v) => {
-          setEmail(v);
-          setSaved(false);
-        }}
+        value={initialEmail}
+        onChange={() => undefined}
         maxLength={180}
+        readOnly
       />
+      <p className="text-xs text-muted">
+        L’email de connexion n’est pas modifiable depuis cette page.
+      </p>
       {error && <p role="alert" aria-atomic="true" className="text-sm text-red-600">{error}</p>}
       {saved && <p className="text-sm text-green-700">Informations enregistrées.</p>}
       <Button type="submit" disabled={saving}>
@@ -210,6 +246,7 @@ function Field({
   type = 'text',
   required = false,
   maxLength,
+  readOnly = false,
 }: {
   id: string;
   label: string;
@@ -218,6 +255,7 @@ function Field({
   type?: string;
   required?: boolean;
   maxLength?: number;
+  readOnly?: boolean;
 }) {
   return (
     <div>
@@ -231,8 +269,9 @@ function Field({
         value={value}
         required={required}
         maxLength={maxLength}
+        readOnly={readOnly}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+        className="w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 read-only:bg-soft read-only:text-muted"
       />
     </div>
   );

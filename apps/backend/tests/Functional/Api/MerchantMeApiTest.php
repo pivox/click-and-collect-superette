@@ -9,6 +9,10 @@ final class MerchantMeApiTest extends FunctionalApiTestCase
     public function testMerchantCanReadTheirCurrentActiveStoreContext(): void
     {
         $merchant = $this->createUser('merchant-me@example.test', ['ROLE_MERCHANT']);
+        $merchant
+            ->setFirstName('Ali')
+            ->setLastName('Ben Salah')
+            ->setPhone('+21620111222');
         $shop = $this->createShop($merchant);
         $shop->setName('Supérette Ezzahra');
         $this->entityManager->flush();
@@ -21,7 +25,10 @@ final class MerchantMeApiTest extends FunctionalApiTestCase
         self::assertSame($merchant->getId()->toRfc4122(), $payload['user_id']);
         self::assertSame('merchant-me@example.test', $payload['email']);
         self::assertSame('Test User', $payload['name']);
-        self::assertSame(['ROLE_MERCHANT'], $payload['roles']);
+        self::assertSame('Ali', $payload['first_name']);
+        self::assertSame('Ben Salah', $payload['last_name']);
+        self::assertSame('+21620111222', $payload['phone']);
+        self::assertArrayNotHasKey('roles', $payload);
         self::assertSame(
             [
                 'id' => $shop->getId()->toRfc4122(),
