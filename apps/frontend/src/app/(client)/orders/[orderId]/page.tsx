@@ -137,6 +137,7 @@ export default function OrderTrackingPage({
   const kadhiaHref = order.kadhiaId
     ? `/kadhia/${order.kadhiaId}?context=partially_accepted`
     : "/kadhia";
+  const rejectedLines = order.rejectedLines ?? [];
 
   return (
     <>
@@ -147,14 +148,38 @@ export default function OrderTrackingPage({
       />
 
       {order.status === "partially_accepted" && (
-        <div className="mb-4 rounded-lg border px-4 py-3" style={{ background: "var(--status-wait-bg)", borderColor: "var(--status-wait)" }}>
-          <p className="text-sm font-bold" style={{ color: "var(--status-wait)" }}>
+        <section className="mb-4 rounded-lg border px-4 py-3" style={{ background: "var(--status-wait-bg)", borderColor: "var(--status-wait)" }}>
+          <h2 className="text-sm font-bold" style={{ color: "var(--status-wait)" }}>
             {t("client.orders.partialTitle")}
-          </p>
+          </h2>
           <p className="mt-1 text-sm" style={{ color: "var(--status-wait)" }}>
             {t("client.orders.partialBody")}
           </p>
-        </div>
+          {order.rejectionReason && (
+            <p className="mt-3 rounded-md bg-white/70 px-3 py-2 text-sm text-ink">
+              <span className="font-bold">{t("client.orders.partialReason")}</span>{" "}
+              {order.rejectionReason}
+            </p>
+          )}
+          {rejectedLines.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs font-extrabold uppercase text-muted">
+                {t("client.orders.rejectedItems")}
+              </p>
+              <ul className="mt-2 grid gap-2">
+                {rejectedLines.map((line) => (
+                  <li
+                    key={line.id}
+                    className="flex items-center justify-between gap-3 rounded-md bg-white/70 px-3 py-2 text-sm"
+                  >
+                    <span className="font-bold text-ink">{line.productOffer.nameFr}</span>
+                    <span className="shrink-0 text-muted">x{line.quantity}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
       )}
 
       <div className="md:grid md:grid-cols-2 md:gap-5 md:items-start">

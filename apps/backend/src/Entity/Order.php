@@ -54,6 +54,12 @@ class Order
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $rejectionReason = null;
 
+    /**
+     * @var list<string>
+     */
+    #[ORM\Column(type: 'json')]
+    private array $partialAcceptanceRejectedMerchantProductIds = [];
+
     /** @var Collection<int, OrderLine> */
     #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'order', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $lines;
@@ -242,13 +248,17 @@ class Order
         $this->status = OrderStatus::Accepted;
     }
 
-    public function partiallyAccept(?string $reason = null): void
+    /**
+     * @param list<string> $rejectedMerchantProductIds
+     */
+    public function partiallyAccept(?string $reason = null, array $rejectedMerchantProductIds = []): void
     {
         if (OrderStatus::Submitted !== $this->status) {
             throw new \LogicException('ORDER_NOT_SUBMITTED');
         }
         $this->status = OrderStatus::PartiallyAccepted;
         $this->rejectionReason = $reason;
+        $this->partialAcceptanceRejectedMerchantProductIds = array_values(array_unique($rejectedMerchantProductIds));
     }
 
     public function resubmit(): void
@@ -258,11 +268,20 @@ class Order
         }
         $this->status = OrderStatus::Submitted;
         $this->rejectionReason = null;
+        $this->partialAcceptanceRejectedMerchantProductIds = [];
     }
 
     public function getRejectionReason(): ?string
     {
         return $this->rejectionReason;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getPartialAcceptanceRejectedMerchantProductIds(): array
+    {
+        return $this->partialAcceptanceRejectedMerchantProductIds;
     }
 
     public function reject(?string $reason = null): void

@@ -23,6 +23,7 @@ function makeSimpleOrder(
     rejectionReason: null,
     customerNote: null,
     lines: [],
+    rejectedLines: [],
     pickupCode: null,
     kadhiaId: null,
   };
@@ -66,6 +67,7 @@ export const MOCK_ORDER: Order = {
       lineTotalTnd: "2.700",
     },
   ],
+  rejectedLines: [],
   pickupCode: "4281",
 };
 
@@ -99,6 +101,7 @@ export const MOCK_ORDER_SUBMITTED: Order = {
       lineTotalTnd: "1.700",
     },
   ],
+  rejectedLines: [],
   pickupCode: null,
 };
 
@@ -109,13 +112,13 @@ export const MOCK_ORDER_PARTIALLY_ACCEPTED: Order = {
   shopName: "Superette El Amel",
   kadhiaId: "kdh-demo-partial",
   status: "partially_accepted",
-  totalAmountTnd: "4.850",
+  totalAmountTnd: "3.000",
   pickupSlot: MOCK_SLOTS_TODAY[0],
   submittedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
   acceptedAt: null,
   readyAt: null,
   completedAt: null,
-  rejectionReason: null,
+  rejectionReason: "Yaourt nature indisponible aujourd'hui.",
   customerNote: null,
   lines: [
     {
@@ -125,6 +128,8 @@ export const MOCK_ORDER_PARTIALLY_ACCEPTED: Order = {
       unitPriceTnd: "3.000",
       lineTotalTnd: "3.000",
     },
+  ],
+  rejectedLines: [
     {
       id: "line-p2",
       productOffer: MOCK_PRODUCTS[1],

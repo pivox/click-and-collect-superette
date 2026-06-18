@@ -14,6 +14,9 @@ final readonly class OrderLineOutput
         #[SerializedName('merchant_product_id')]
         public string $merchantProductId,
         #[Groups(['order:read', 'merchant_order:read'])]
+        #[SerializedName('product_name')]
+        public ?string $productName,
+        #[Groups(['order:read', 'merchant_order:read'])]
         public int $quantity,
         #[Groups(['order:read', 'merchant_order:read'])]
         #[SerializedName('unit_price_tnd')]
