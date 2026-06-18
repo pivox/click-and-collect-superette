@@ -126,10 +126,41 @@ describe('MerchantDrawer', () => {
     expect(screen.getByText('Préchargement catalogue')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(listProductGroups).toHaveBeenCalledWith({ status: 'published', limit: 50 });
+      expect(listProductGroups).toHaveBeenCalledWith({ status: 'published', limit: 50, page: 1 });
     });
     expect(await screen.findByLabelText('Premières nécessités')).toBeInTheDocument();
     expect(screen.getByLabelText('Petit déjeuner')).toBeInTheDocument();
+  });
+
+  it('charge les groupements marchand publiés au-delà de la première page admin', async () => {
+    const adminOnlyGroups = Array.from({ length: 50 }, (_, index): ProductGroup => ({
+      ...GROUPS[0],
+      id: `admin-only-${index}`,
+      name_fr: `Admin only ${index}`,
+      visibility: 'admin_only',
+    }));
+    vi.mocked(listProductGroups)
+      .mockResolvedValueOnce({
+        id: 'admin-product-groups',
+        items: adminOnlyGroups,
+        page: 1,
+        limit: 50,
+        total: 51,
+      })
+      .mockResolvedValueOnce({
+        id: 'admin-product-groups',
+        items: [{ ...GROUPS[1], id: 'group-page-2', name_fr: 'Page suivante marchand' }],
+        page: 2,
+        limit: 50,
+        total: 51,
+      });
+
+    renderDrawer(null);
+
+    expect(await screen.findByLabelText('Page suivante marchand')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Admin only 0')).not.toBeInTheDocument();
+    expect(listProductGroups).toHaveBeenNthCalledWith(1, { status: 'published', limit: 50, page: 1 });
+    expect(listProductGroups).toHaveBeenNthCalledWith(2, { status: 'published', limit: 50, page: 2 });
   });
 
   it('soumet l’onboarding marchand avec supérette, groupements et affiche le résumé one-shot', async () => {

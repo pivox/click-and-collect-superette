@@ -81,10 +81,10 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
 
     let cancelled = false;
     setProductGroupError(null);
-    void listProductGroups({ status: 'published', limit: 50 })
-      .then((response) => {
+    void loadPublishedMerchantProductGroups()
+      .then((groups) => {
         if (cancelled) return;
-        setProductGroups(response.items.filter((group) => group.visibility === 'merchant'));
+        setProductGroups(groups);
       })
       .catch(() => {
         if (cancelled) return;
@@ -617,6 +617,22 @@ function formatAverageResponse(value: number | null): string {
 
 function formatCount(value: number, singular: string, plural: string): string {
   return `${value} ${value > 1 ? plural : singular}`;
+}
+
+async function loadPublishedMerchantProductGroups(): Promise<ProductGroup[]> {
+  const limit = 50;
+  let page = 1;
+  let total = 0;
+  const groups: ProductGroup[] = [];
+
+  do {
+    const response = await listProductGroups({ status: 'published', limit, page });
+    groups.push(...response.items.filter((group) => group.visibility === 'merchant'));
+    total = response.total;
+    page += 1;
+  } while ((page - 1) * limit < total);
+
+  return groups;
 }
 
 function formatLastActivity(status: string | null): string {
