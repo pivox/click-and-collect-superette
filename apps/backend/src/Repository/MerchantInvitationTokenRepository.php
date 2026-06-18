@@ -26,8 +26,16 @@ final class MerchantInvitationTokenRepository extends ServiceEntityRepository
 
     public function revokePendingInvitationsForMerchant(User $merchant, \DateTimeImmutable $now): void
     {
-        foreach ($this->findBy(['merchant' => $merchant, 'usedAt' => null, 'revokedAt' => null]) as $token) {
-            $token->revoke($now);
-        }
+        $this->getEntityManager()->getConnection()->executeStatement(
+            'UPDATE merchant_invitation_tokens SET revoked_at = :revokedAt WHERE merchant_id = :merchantId AND used_at IS NULL AND revoked_at IS NULL',
+            [
+                'revokedAt' => $now,
+                'merchantId' => $merchant->getId(),
+            ],
+            [
+                'revokedAt' => 'datetime_immutable',
+                'merchantId' => 'uuid',
+            ],
+        );
     }
 }

@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Repository\MerchantInvitationTokenRepository;
 use App\Service\MerchantInvitationTokenManager;
 use App\Tests\Support\MerchantInvitation\TestMerchantInvitationSender;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -294,6 +295,27 @@ final class MerchantInvitationApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('MERCHANT_INVITATION_TOKEN_REVOKED', (string) $firstCompleteResponse->getContent());
 
         self::assertNotNull($this->findAuditLog('merchant.invitation.resend', $merchant));
+    }
+
+    public function testDatabaseRejectsConcurrentPendingInvitationsForSameMerchant(): void
+    {
+        $merchant = $this->createMerchantWithPassword('merchant-invitation-concurrent@example.test', 'oldSecret123');
+        $first = new MerchantInvitationToken(
+            merchant: $merchant,
+            tokenHash: MerchantInvitationTokenManager::hashToken('first-concurrent-token'),
+            expiresAt: new \DateTimeImmutable('+1 hour'),
+        );
+        $second = new MerchantInvitationToken(
+            merchant: $merchant,
+            tokenHash: MerchantInvitationTokenManager::hashToken('second-concurrent-token'),
+            expiresAt: new \DateTimeImmutable('+1 hour'),
+        );
+
+        $this->entityManager->persist($first);
+        $this->entityManager->persist($second);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+        $this->entityManager->flush();
     }
 
     private function createMerchantWithPassword(string $email, string $plainPassword): User

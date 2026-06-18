@@ -10,7 +10,7 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: MerchantInvitationTokenRepository::class)]
 #[ORM\Table(name: 'merchant_invitation_tokens')]
-#[ORM\Index(name: 'IDX_MERCHANT_INVITATION_MERCHANT_PENDING', columns: ['merchant_id', 'used_at', 'revoked_at'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_MERCHANT_INVITATION_PENDING_MERCHANT', columns: ['merchant_id'], options: ['where' => 'used_at IS NULL AND revoked_at IS NULL'])]
 #[ORM\Index(name: 'IDX_MERCHANT_INVITATION_EXPIRES_AT', columns: ['expires_at'])]
 class MerchantInvitationToken
 {
