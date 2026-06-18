@@ -66,21 +66,20 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
             throw new UnprocessableEntityHttpException('ADMIN_MERCHANT_EMAIL_ALREADY_EXISTS');
         }
 
+        $firstName = $this->normalizeRequiredString($data->merchant->firstName, 'ADMIN_MERCHANT_FIRST_NAME_BLANK');
+        $lastName = $this->normalizeRequiredString($data->merchant->lastName, 'ADMIN_MERCHANT_LAST_NAME_BLANK');
         $temporaryPassword = bin2hex(random_bytes(18));
         $merchant = (new User())
             ->setEmail($email)
             ->setRoles(['ROLE_MERCHANT'])
-            ->setFirstName($this->normalizeRequiredString($data->merchant->firstName))
-            ->setLastName($this->normalizeRequiredString($data->merchant->lastName))
-            ->setName($this->normalizeRequiredString($data->merchant->firstName).' '.$this->normalizeRequiredString($data->merchant->lastName))
+            ->setFirstName($firstName)
+            ->setLastName($lastName)
+            ->setName($firstName.' '.$lastName)
             ->setPhone($this->normalizeNullableString($data->merchant->phone))
             ->setActive(true);
         $merchant->setPassword($this->passwordHasher->hashPassword($merchant, $temporaryPassword));
 
-        $shopName = $this->normalizeRequiredString($data->shop->name);
-        if ('' === $shopName) {
-            throw new UnprocessableEntityHttpException('ADMIN_STORE_NAME_BLANK');
-        }
+        $shopName = $this->normalizeRequiredString($data->shop->name, 'ADMIN_STORE_NAME_BLANK');
 
         $shop = (new Shop())
             ->setName($shopName)
@@ -222,9 +221,14 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
         return '' === $slug ? 'store' : mb_substr($slug, 0, 180);
     }
 
-    private function normalizeRequiredString(string $value): string
+    private function normalizeRequiredString(string $value, string $errorCode): string
     {
-        return trim($value);
+        $normalized = trim($value);
+        if ('' === $normalized) {
+            throw new UnprocessableEntityHttpException($errorCode);
+        }
+
+        return $normalized;
     }
 
     private function normalizeNullableString(?string $value): ?string

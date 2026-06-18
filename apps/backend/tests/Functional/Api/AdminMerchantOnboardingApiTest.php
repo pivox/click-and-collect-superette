@@ -152,6 +152,29 @@ final class AdminMerchantOnboardingApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
     }
 
+    public function testWhitespaceMerchantNameReturnsValidationError(): void
+    {
+        $admin = $this->createUser('admin-onboarding-whitespace-name@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('POST', '/api/admin/merchant-onboarding', [
+            'merchant' => [
+                'email' => 'whitespace-name-onboarding@example.test',
+                'first_name' => '   ',
+                'last_name' => '   ',
+            ],
+            'shop' => [
+                'name' => 'Supérette nom invalide',
+            ],
+            'first_login_mode' => 'temporary_password',
+            'product_group_ids' => [],
+        ], user: $admin);
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertNull($this->entityManager->getRepository(User::class)->findOneBy([
+            'email' => 'whitespace-name-onboarding@example.test',
+        ]));
+    }
+
     public function testAnotherMerchantCannotAccessCreatedStore(): void
     {
         $admin = $this->createUser('admin-onboarding-owner-acl@example.test', ['ROLE_ADMIN']);
