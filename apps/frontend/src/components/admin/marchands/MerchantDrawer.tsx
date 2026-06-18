@@ -33,10 +33,14 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const resetRequestSeq = useRef(0);
   const currentMerchantIdRef = useRef<string | null>(null);
+  const renderedMerchantId = open && merchant ? merchant.id : null;
+
+  if (currentMerchantIdRef.current !== renderedMerchantId) {
+    currentMerchantIdRef.current = renderedMerchantId;
+    resetRequestSeq.current += 1;
+  }
 
   useEffect(() => {
-    currentMerchantIdRef.current = open && merchant ? merchant.id : null;
-    resetRequestSeq.current += 1;
     if (merchant) {
       setFirstName(merchant.first_name ?? '');
       setLastName(merchant.last_name ?? '');
