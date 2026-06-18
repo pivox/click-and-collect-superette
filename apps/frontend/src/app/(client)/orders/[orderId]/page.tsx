@@ -52,7 +52,7 @@ export default function OrderTrackingPage({
 }) {
   const { orderId } = params;
   const { user, isLoading: authLoading } = useClientAuth();
-  const { t } = useClientLocale();
+  const { locale, t } = useClientLocale();
   const [order, setOrder] = useState<Order | null>(null);
   const [fetchDone, setFetchDone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -138,6 +138,8 @@ export default function OrderTrackingPage({
     ? `/kadhia/${order.kadhiaId}?context=partially_accepted`
     : "/kadhia";
   const rejectedLines = order.rejectedLines ?? [];
+  const merchantNoteTitle = locale === "ar" ? "ملاحظة التاجر" : "Note du marchand";
+  const showMerchantNote = Boolean(order.rejectionReason) && order.status !== "partially_accepted";
 
   return (
     <>
@@ -243,12 +245,19 @@ export default function OrderTrackingPage({
           </section>
         </div>
 
-        {/* Colonne droite : note + CTA */}
+        {/* Colonne droite : notes + CTA */}
         <div>
           {order.customerNote && (
             <section className="mt-4 md:mt-0">
               <h3 className="mb-2.5 text-h3 font-extrabold">{t("client.orders.yourNote")}</h3>
               <Card className="text-sm text-muted">{order.customerNote}</Card>
+            </section>
+          )}
+
+          {showMerchantNote && (
+            <section className="mt-4">
+              <h3 className="mb-2.5 text-h3 font-extrabold">{merchantNoteTitle}</h3>
+              <Card className="text-sm text-muted">{order.rejectionReason}</Card>
             </section>
           )}
 

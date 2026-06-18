@@ -128,4 +128,19 @@ describe('OrderTrackingPage', () => {
       '/kadhia/kadhia-uuid-1?context=partially_accepted',
     );
   });
+
+  it('affiche les notes client et marchand sans les confondre', async () => {
+    vi.mocked(getOrder).mockResolvedValue({
+      ...makeOrder('rejected'),
+      customerNote: 'Si possible, remplacer par une marque proche.',
+      rejectionReason: 'Produit indisponible chez le marchand.',
+    });
+
+    renderPage('order-uuid-1');
+
+    expect(await screen.findByText('Ta note')).toBeTruthy();
+    expect(screen.getByText('Si possible, remplacer par une marque proche.')).toBeTruthy();
+    expect(screen.getByText('Note du marchand')).toBeTruthy();
+    expect(screen.getByText('Produit indisponible chez le marchand.')).toBeTruthy();
+  });
 });

@@ -162,7 +162,7 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      <section className="mt-5 grid gap-4 md:grid-cols-2">
+      <section className="mt-5 grid gap-4 md:grid-cols-3">
         <div className="rounded-md bg-card p-5 shadow-card">
           <h2 className="font-black">Client</h2>
           <p className="mt-2 text-sm text-muted">{order.customer_name ?? 'Nom non renseigné'}</p>
@@ -171,8 +171,14 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
           </p>
         </div>
         <div className="rounded-md bg-card p-5 shadow-card">
-          <h2 className="font-black">Notes client</h2>
-          <p className="mt-2 text-sm text-muted">{order.notes ?? 'Aucune note.'}</p>
+          <h2 className="font-black">Note client</h2>
+          <p className="mt-2 text-sm text-muted">{order.notes ?? 'Aucune note client.'}</p>
+        </div>
+        <div className="rounded-md bg-card p-5 shadow-card">
+          <h2 className="font-black">Note marchand</h2>
+          <p className="mt-2 text-sm text-muted">
+            {order.rejection_reason ?? 'Aucune note marchand.'}
+          </p>
         </div>
       </section>
 
