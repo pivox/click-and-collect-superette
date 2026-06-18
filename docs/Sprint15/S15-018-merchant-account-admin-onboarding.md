@@ -298,13 +298,33 @@ Note : la numérotation de ces quatre issues peut être ajustée si l'équipe so
 
 ### 9.1 Compte marchand connecté
 
+Décision d'implémentation #503 à #506 : conserver et durcir les endpoints
+marchands déjà utilisés par le front, sans créer de doublon.
+
 ```http
-GET   /api/merchant/account/profile
-PATCH /api/merchant/account/profile
-POST  /api/merchant/account/change-password
+GET   /api/merchant/me
+PATCH /api/merchant/me
+PATCH /api/merchant/me/password
 ```
 
-Option acceptable : mutualiser proprement avec `/api/me/profile` si l'architecture actuelle le permet sans casser le parcours client.
+Contrat appliqué :
+
+- `User` = compte marchand : email de connexion, prénom, nom, téléphone,
+  mot de passe hashé, statut interne ;
+- `Shop` = supérette : nom public, adresse, téléphone visible client, QR code,
+  apparence et catalogue ;
+- le profil compte marchand ne modifie jamais la supérette ni son owner ;
+- champs modifiables par le marchand : `first_name`, `last_name`, `phone` ;
+- email non modifiable depuis `/api/merchant/me` ;
+- mot de passe changé via `/api/merchant/me/password` avec ancien mot de passe
+  obligatoire, nouveau mot de passe validé et hashé, réponse `204` ;
+- champs interdits/refusés : `roles`, `active`/`is_active`, `status`, owner
+  shop, `shop_id`, `password`, `passwordHash`, `plainPassword`, reset token,
+  invitation token, temporary password, `deletedAt`, `lastLoginAt` ;
+- les réponses profil compte n'exposent aucun rôle, token, hash, mot de passe,
+  owner shop ou champ interne admin ;
+- la préférence de langue marchand reste gérée côté interface (`merchant:lang`)
+  tant qu'aucun champ `language`/`locale` n'existe sur `User`.
 
 ### 9.2 Onboarding admin
 

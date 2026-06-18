@@ -47,9 +47,6 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 )]
 final readonly class MerchantAccountOutput
 {
-    /**
-     * @param list<string> $roles
-     */
     public function __construct(
         #[Groups(['merchant_account:read'])]
         #[SerializedName('user_id')]
@@ -59,25 +56,25 @@ final readonly class MerchantAccountOutput
         #[Groups(['merchant_account:read'])]
         public string $name,
         #[Groups(['merchant_account:read'])]
-        public array $roles,
-        // Re-issued JWT, present only when the email (the JWT identity claim)
-        // changed — lets the client swap its token without re-logging in.
+        #[SerializedName('first_name')]
+        public ?string $firstName,
         #[Groups(['merchant_account:read'])]
-        public ?string $token = null,
+        #[SerializedName('last_name')]
+        public ?string $lastName,
+        #[Groups(['merchant_account:read'])]
+        public ?string $phone,
     ) {
     }
 
-    public static function fromUser(User $merchant, ?string $token = null): self
+    public static function fromUser(User $merchant): self
     {
         return new self(
             userId: $merchant->getId()->toRfc4122(),
             email: $merchant->getEmail(),
             name: $merchant->getName(),
-            roles: array_values(array_filter(
-                $merchant->getRoles(),
-                static fn (string $role): bool => 'ROLE_USER' !== $role,
-            )),
-            token: $token,
+            firstName: $merchant->getFirstName(),
+            lastName: $merchant->getLastName(),
+            phone: $merchant->getPhone(),
         );
     }
 }

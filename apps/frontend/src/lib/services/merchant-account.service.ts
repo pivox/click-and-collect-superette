@@ -5,12 +5,15 @@ export interface MerchantAccount {
   userId: string;
   email: string;
   name: string;
-  roles: string[];
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
 }
 
 export interface MerchantAccountUpdate {
-  name: string;
-  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
 }
 
 export interface MerchantPasswordChange {
@@ -22,9 +25,9 @@ interface ApiMerchantAccount {
   user_id: string;
   email: string;
   name: string;
-  roles: string[];
-  // Re-issued JWT, returned only when the email changed (the JWT identity claim).
-  token?: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
 }
 
 function mapApi(data: ApiMerchantAccount): MerchantAccount {
@@ -32,7 +35,9 @@ function mapApi(data: ApiMerchantAccount): MerchantAccount {
     userId: data.user_id,
     email: data.email,
     name: data.name,
-    roles: data.roles ?? [],
+    firstName: data.first_name ?? null,
+    lastName: data.last_name ?? null,
+    phone: data.phone ?? null,
   };
 }
 
@@ -40,27 +45,24 @@ let mockAccount: MerchantAccount = {
   userId: 'user-1',
   email: 'marchand@kadhia.tn',
   name: 'Marchand Test',
-  roles: ['ROLE_MERCHANT'],
+  firstName: 'Marchand',
+  lastName: 'Test',
+  phone: '+21620111222',
 };
 
 export async function updateMerchantAccount(
   input: MerchantAccountUpdate,
 ): Promise<MerchantAccount> {
   if (USE_MOCKS) {
-    mockAccount = { ...mockAccount, name: input.name, email: input.email };
+    const name = [input.firstName, input.lastName].filter(Boolean).join(' ');
+    mockAccount = { ...mockAccount, ...input, name };
     return mockDelay({ ...mockAccount });
   }
   const { data } = await apiClient.patch<ApiMerchantAccount>('/api/merchant/me', {
-    name: input.name,
-    email: input.email,
+    first_name: input.firstName,
+    last_name: input.lastName,
+    phone: input.phone,
   });
-  // When the email changed the backend re-issues a JWT (identity claim = email).
-  // Swap the stored token before the caller refreshes the context, otherwise the
-  // next request would 401 with the now-stale token.
-  if (data.token && typeof window !== 'undefined') {
-    localStorage.setItem('merchant_token', data.token);
-    document.cookie = `merchant_token=${data.token}; path=/merchant; SameSite=Lax; Max-Age=${60 * 60 * 8}`;
-  }
   return mapApi(data);
 }
 

@@ -374,8 +374,8 @@
         "description": "Nom, adresse, téléphone, logo et image de couverture vus par le client."
       },
       "account": {
-        "title": "Compte",
-        "description": "Email, nom affiché et changement de mot de passe."
+        "title": "Mon compte",
+        "description": "Prénom, nom, téléphone et changement de mot de passe."
       },
       "language": {
         "title": "Langue de l’interface",
