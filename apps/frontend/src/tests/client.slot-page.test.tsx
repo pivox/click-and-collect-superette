@@ -115,7 +115,7 @@ describe('SlotPage (S14-004)', () => {
     expect(
       await screen.findByText("Le délai pour re-soumettre cette Kadhia modifiée est dépassé. Repars du catalogue avec une nouvelle Kadhia."),
     ).toBeTruthy();
-    expect(discardKadhia).toHaveBeenCalledWith('shop-1');
+    expect(discardKadhia).toHaveBeenCalledWith('shop-1', { suppressReactivation: true });
     expect(screen.getByRole('button', { name: 'Revenir au catalogue' })).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Envoyer la commande' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByText("La commande n'a pas pu être envoyée. Ta Kadhia est conservée, tu peux réessayer.")).toBeNull();

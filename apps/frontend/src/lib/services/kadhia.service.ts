@@ -14,6 +14,7 @@ import { mapCatalogApiItem, type CatalogApiItem } from "./catalog.service";
 const MOCK_KEY = "kadhia:current";
 const ACTIVE_PREFIX = "kadhia:active:";
 const CONTEXT_KEY = "kadhia:context";
+const SUPPRESSED_PREFIX = "kadhia:suppressed:";
 
 // ─── mock-mode helpers (unchanged behaviour) ─────────────────────────────────
 
@@ -55,6 +56,29 @@ function writeContext(ctx: KadhiaContext | null): void {
   if (typeof window === "undefined") return;
   if (!ctx) window.localStorage.removeItem(CONTEXT_KEY);
   else window.localStorage.setItem(CONTEXT_KEY, JSON.stringify(ctx));
+}
+
+function readSuppressedIds(shopId: string): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const ids = JSON.parse(window.localStorage.getItem(`${SUPPRESSED_PREFIX}${shopId}`) ?? "[]");
+    return new Set(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeSuppressedIds(shopId: string, ids: Set<string>): void {
+  if (typeof window === "undefined") return;
+  const key = `${SUPPRESSED_PREFIX}${shopId}`;
+  if (ids.size === 0) window.localStorage.removeItem(key);
+  else window.localStorage.setItem(key, JSON.stringify(Array.from(ids)));
+}
+
+function suppressKadhiaForRestart(shopId: string, kadhiaId: string): void {
+  const ids = readSuppressedIds(shopId);
+  ids.add(kadhiaId);
+  writeSuppressedIds(shopId, ids);
 }
 
 function readSubmitKadhiaId(shopId: string): string | null {
@@ -231,7 +255,11 @@ export async function getCurrentKadhia(shopId: string): Promise<KadhiaResult> {
 
   // 1. Check localStorage hint
   const activeId = readActiveId(shopId);
-  if (activeId) {
+  const suppressedIds = readSuppressedIds(shopId);
+  if (activeId && suppressedIds.has(activeId)) {
+    writeActiveId(shopId, null);
+    writeContext(null);
+  } else if (activeId) {
     try {
       const { data } = await apiClient.get<ApiKadhia>(`/api/me/kadhias/${activeId}`, optional);
       const kadhia = mapKadhia(data);
@@ -252,7 +280,12 @@ export async function getCurrentKadhia(shopId: string): Promise<KadhiaResult> {
     `/api/me/stores/${shopId}/kadhias`,
     optional,
   );
-  const drafts = list.items.filter((k) => k.status === "draft");
+  const returnedIds = new Set(list.items.map((k) => k.id));
+  const keptSuppressedIds = new Set(Array.from(suppressedIds).filter((id) => returnedIds.has(id)));
+  if (keptSuppressedIds.size !== suppressedIds.size) {
+    writeSuppressedIds(shopId, keptSuppressedIds);
+  }
+  const drafts = list.items.filter((k) => k.status === "draft" && !keptSuppressedIds.has(k.id));
 
   if (drafts.length === 0) return { type: "none" };
 
@@ -562,7 +595,11 @@ export async function clearKadhia(): Promise<void> {
   writeMock(null);
 }
 
-export async function discardKadhia(shopId: string): Promise<void> {
+export interface DiscardKadhiaOptions {
+  suppressReactivation?: boolean;
+}
+
+export async function discardKadhia(shopId: string, options: DiscardKadhiaOptions = {}): Promise<void> {
   if (USE_MOCKS) {
     writeMock(null);
     return mockDelay(undefined);
@@ -573,6 +610,7 @@ export async function discardKadhia(shopId: string): Promise<void> {
       await apiClient.delete(`/api/me/kadhias/${kadhiaId}`);
     }
   } finally {
+    if (options.suppressReactivation && kadhiaId) suppressKadhiaForRestart(shopId, kadhiaId);
     writeActiveId(shopId, null);
     const ctx = readContext();
     if (ctx?.shopId === shopId) writeContext(null);

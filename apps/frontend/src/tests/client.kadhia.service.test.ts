@@ -14,6 +14,7 @@ import {
   countStoreDraftKadhias,
   createKadhiaShareLink,
   discardKadhia,
+  getCurrentKadhia,
   joinKadhiaShareLink,
   listMyKadhias,
   submitKadhia,
@@ -261,5 +262,26 @@ describe('discardKadhia', () => {
     expect(apiClient.delete).toHaveBeenCalledWith('/api/me/kadhias/k-shared');
     expect(window.localStorage.getItem('kadhia:active:store-1')).toBeNull();
     expect(window.localStorage.getItem('kadhia:context')).toBeNull();
+  });
+
+  it("n'auto-réactive pas une Kadhia partagée expirée après redémarrage forcé", async () => {
+    window.localStorage.setItem('kadhia:active:store-1', 'k-shared');
+    window.localStorage.setItem('kadhia:context', JSON.stringify({ shopId: 'store-1', kadhiaId: 'k-shared' }));
+    vi.mocked(apiClient.delete).mockRejectedValue({ response: { status: 404 } });
+
+    await expect(discardKadhia('store-1', { suppressReactivation: true })).rejects.toEqual({
+      response: { status: 404 },
+    });
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: {
+        items: [{ ...RAW_LIST_ITEM, id: 'k-shared', status: 'draft' }],
+        total: 1,
+      },
+    });
+
+    await expect(getCurrentKadhia('store-1')).resolves.toEqual({ type: 'none' });
+    expect(apiClient.get).toHaveBeenCalledWith('/api/me/stores/store-1/kadhias', { skipAuthRedirect: true });
+    expect(apiClient.get).not.toHaveBeenCalledWith('/api/me/kadhias/k-shared', { skipAuthRedirect: true });
   });
 });

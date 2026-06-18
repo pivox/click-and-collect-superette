@@ -140,7 +140,7 @@ export default function SlotPage() {
     } catch (err: unknown) {
       if (isPartialAcceptanceExpired(err)) {
         try {
-          await discardKadhia(shopId);
+          await discardKadhia(shopId, { suppressReactivation: true });
         } catch (discardErr) {
           console.error("[slot] failed to discard expired partial Kadhia", { shopId, discardErr });
         }
