@@ -14,8 +14,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
 final readonly class MerchantPasswordChangeRequiredSubscriber implements EventSubscriberInterface
 {
     private const ALLOWED_PATHS = [
-        '/api/merchant/me',
-        '/api/merchant/first-login/change-password',
+        'GET /api/merchant/me',
+        'POST /api/merchant/first-login/change-password',
     ];
 
     public function __construct(private Security $security)
@@ -44,7 +44,12 @@ final readonly class MerchantPasswordChangeRequiredSubscriber implements EventSu
         if (!str_starts_with($path, '/api/merchant')) {
             return;
         }
-        if ('OPTIONS' === $request->getMethod() || \in_array($path, self::ALLOWED_PATHS, true)) {
+        if ('OPTIONS' === $request->getMethod()) {
+            return;
+        }
+
+        $methodAndPath = $request->getMethod().' '.$path;
+        if (\in_array($methodAndPath, self::ALLOWED_PATHS, true)) {
             return;
         }
         if (!$this->security->isGranted('ROLE_MERCHANT')) {

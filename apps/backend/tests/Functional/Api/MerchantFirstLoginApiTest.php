@@ -42,6 +42,18 @@ final class MerchantFirstLoginApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('MERCHANT_PASSWORD_CHANGE_REQUIRED', (string) $response->getContent());
     }
 
+    public function testMerchantWithRequiredPasswordChangeCannotPatchMerchantMe(): void
+    {
+        [$merchant] = $this->createOnboardedMerchant('merchant-first-login-patch-me@example.test');
+
+        $response = $this->requestJson('PATCH', '/api/merchant/me', [
+            'first_name' => 'Noura',
+        ], $merchant);
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertStringContainsString('MERCHANT_PASSWORD_CHANGE_REQUIRED', (string) $response->getContent());
+    }
+
     public function testWrongTemporaryPasswordIsRejected(): void
     {
         [$merchant] = $this->createOnboardedMerchant('merchant-first-login-wrong@example.test');
