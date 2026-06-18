@@ -76,6 +76,7 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
             ->setLastName($lastName)
             ->setName($firstName.' '.$lastName)
             ->setPhone($this->normalizeNullableString($data->merchant->phone))
+            ->setPasswordChangeRequired(true)
             ->setActive(true);
         $merchant->setPassword($this->passwordHasher->hashPassword($merchant, $temporaryPassword));
 

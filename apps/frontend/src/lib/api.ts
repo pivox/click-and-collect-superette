@@ -50,6 +50,16 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (
+      error.response?.status === 403 &&
+      error.response?.data?.detail === 'MERCHANT_PASSWORD_CHANGE_REQUIRED' &&
+      typeof window !== 'undefined' &&
+      window.location.pathname.startsWith('/merchant') &&
+      window.location.pathname !== '/merchant/premiere-connexion'
+    ) {
+      window.location.href = '/merchant/premiere-connexion';
+    }
+
+    if (
       error.response?.status === 401 &&
       typeof window !== 'undefined' &&
       !error.config?.skipAuthRedirect

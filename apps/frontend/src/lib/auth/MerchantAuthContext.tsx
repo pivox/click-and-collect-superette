@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   getMerchantMe,
   loginMerchant,
@@ -14,7 +14,7 @@ interface MerchantAuthContextValue {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<MerchantMe>;
 }
 
 const MerchantAuthContext = createContext<MerchantAuthContextValue | null>(null);
@@ -35,11 +35,13 @@ export function MerchantAuthProvider({ children }: { children: React.ReactNode }
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   const refresh = async () => {
     const context = await getMerchantMe();
     setMerchant(context);
     setError(null);
+    return context;
   };
 
   useEffect(() => {
@@ -76,12 +78,12 @@ export function MerchantAuthProvider({ children }: { children: React.ReactNode }
     localStorage.setItem('merchant_token', user.token);
     document.cookie = `merchant_token=${user.token}; path=/merchant; SameSite=Lax; Max-Age=${60 * 60 * 8}`;
     try {
-      await refresh();
+      const context = await refresh();
+      router.push(context.password_change_required ? '/merchant/premiere-connexion' : '/merchant');
     } catch (err) {
       clearMerchantToken();
       throw new Error(merchantErrorMessage(responseStatus(err)));
     }
-    router.push('/merchant');
   };
 
   const logout = () => {
@@ -90,6 +92,17 @@ export function MerchantAuthProvider({ children }: { children: React.ReactNode }
     setError(null);
     router.push('/merchant/login');
   };
+
+  useEffect(() => {
+    if (!merchant) return;
+    if (merchant.password_change_required && pathname !== '/merchant/premiere-connexion') {
+      router.push('/merchant/premiere-connexion');
+      return;
+    }
+    if (!merchant.password_change_required && pathname === '/merchant/premiere-connexion') {
+      router.push('/merchant');
+    }
+  }, [merchant, pathname, router]);
 
   return (
     <MerchantAuthContext.Provider value={{ merchant, isLoading, error, login, logout, refresh }}>

@@ -31,6 +31,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private string $password;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $passwordChangeRequired = false;
+
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
     private string $name;
@@ -122,6 +125,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPassword(string $password): static
     {
         $this->password = $password;
+
+        return $this;
+    }
+
+    public function isPasswordChangeRequired(): bool
+    {
+        return $this->passwordChangeRequired;
+    }
+
+    public function setPasswordChangeRequired(bool $passwordChangeRequired): static
+    {
+        $this->passwordChangeRequired = $passwordChangeRequired;
 
         return $this;
     }

@@ -23,6 +23,7 @@ export interface MerchantMe {
   phone: string | null;
   store: MerchantStoreContext;
   onboarding_completed: boolean;
+  password_change_required: boolean;
 }
 
 export interface MerchantDashboardPickupSlot {

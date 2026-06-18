@@ -50,6 +50,10 @@ final readonly class LastLoginAtSubscriber implements EventSubscriberInterface
         $this->logger->debug('security.login.event', ['user_id' => $user->getId()->toRfc4122()]);
 
         try {
+            $data = $event->getData();
+            $data['password_change_required'] = $user->isPasswordChangeRequired();
+            $event->setData($data);
+
             $user->setLastLoginAt(new \DateTimeImmutable());
             // User is already managed here; this flush persists the login timestamp.
             $this->entityManager->flush();

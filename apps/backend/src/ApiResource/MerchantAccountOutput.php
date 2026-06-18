@@ -6,9 +6,12 @@ namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use App\Dto\MerchantFirstLoginPasswordChangeInput;
 use App\Dto\MerchantMeUpdateInput;
 use App\Dto\MerchantPasswordChangeInput;
 use App\Entity\User;
+use App\Processor\ChangeMerchantFirstLoginPasswordProcessor;
 use App\Processor\ChangeMerchantPasswordProcessor;
 use App\Processor\UpdateMerchantAccountProcessor;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -42,6 +45,17 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             read: false,
             processor: ChangeMerchantPasswordProcessor::class,
             security: "is_granted('ROLE_MERCHANT')",
+        ),
+        new Post(
+            uriTemplate: '/merchant/first-login/change-password',
+            formats: ['json' => ['application/json']],
+            status: 204,
+            input: MerchantFirstLoginPasswordChangeInput::class,
+            output: false,
+            read: false,
+            processor: ChangeMerchantFirstLoginPasswordProcessor::class,
+            security: "is_granted('ROLE_MERCHANT')",
+            validate: true,
         ),
     ],
 )]

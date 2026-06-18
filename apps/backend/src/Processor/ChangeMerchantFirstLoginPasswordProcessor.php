@@ -6,7 +6,7 @@ namespace App\Processor;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Dto\MerchantPasswordChangeInput;
+use App\Dto\MerchantFirstLoginPasswordChangeInput;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -15,9 +15,9 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * @implements ProcessorInterface<MerchantPasswordChangeInput, null>
+ * @implements ProcessorInterface<MerchantFirstLoginPasswordChangeInput, null>
  */
-final readonly class ChangeMerchantPasswordProcessor implements ProcessorInterface
+final readonly class ChangeMerchantFirstLoginPasswordProcessor implements ProcessorInterface
 {
     public function __construct(
         private Security $security,
@@ -32,8 +32,8 @@ final readonly class ChangeMerchantPasswordProcessor implements ProcessorInterfa
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): null
     {
-        if (!$data instanceof MerchantPasswordChangeInput) {
-            throw new \InvalidArgumentException('MerchantPasswordChangeInput expected.');
+        if (!$data instanceof MerchantFirstLoginPasswordChangeInput) {
+            throw new \InvalidArgumentException('MerchantFirstLoginPasswordChangeInput expected.');
         }
 
         $merchant = $this->security->getUser();
@@ -43,7 +43,12 @@ final readonly class ChangeMerchantPasswordProcessor implements ProcessorInterfa
         if (!$merchant->isActive()) {
             throw new AccessDeniedHttpException('MERCHANT_ACCOUNT_INACTIVE');
         }
-
+        if (!$merchant->isPasswordChangeRequired()) {
+            throw new AccessDeniedHttpException('MERCHANT_PASSWORD_CHANGE_NOT_REQUIRED');
+        }
+        if ($data->newPassword !== $data->newPasswordConfirmation) {
+            throw new UnprocessableEntityHttpException('MERCHANT_PASSWORD_CONFIRMATION_MISMATCH');
+        }
         if (!$this->passwordHasher->isPasswordValid($merchant, $data->currentPassword)) {
             throw new UnprocessableEntityHttpException('MERCHANT_CURRENT_PASSWORD_INVALID');
         }
