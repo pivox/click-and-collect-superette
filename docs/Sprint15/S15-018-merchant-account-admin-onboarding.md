@@ -114,7 +114,7 @@ Deux modes sont prévus :
 
 ```text
 Mode 1 — Invitation email
-Le marchand reçoit un lien et définit son accès.
+Le marchand reçoit un lien expirant à usage unique et définit son accès.
 
 Mode 2 — Accès temporaire terrain
 L'admin ou le commercial remet un accès temporaire au marchand.
@@ -352,6 +352,10 @@ Implémentation MVP :
 
 ```http
 POST /api/merchant/first-login/change-password
+POST /api/admin/merchants/{merchantId}/invitation
+POST /api/admin/merchants/{merchantId}/invitation/resend
+POST /api/auth/merchant-invitations/verify
+POST /api/auth/merchant-invitations/complete
 ```
 
 Implémentation livrée pour le mode mot de passe provisoire uniquement :
@@ -377,7 +381,33 @@ Cet endpoint permet à l'admin de générer un mot de passe temporaire pour un m
 
 Le reset remet aussi `password_change_required` à `true`.
 
-Limite restante : l'invitation email n'est pas traitée dans cette tranche.
+Implémentation invitation email #512 :
+
+- l'admin peut envoyer une invitation à un marchand existant via
+  `POST /api/admin/merchants/{merchantId}/invitation` ;
+- l'admin peut renvoyer une invitation via
+  `POST /api/admin/merchants/{merchantId}/invitation/resend` ;
+- le renvoi révoque toute invitation pending précédente pour éviter plusieurs
+  liens actifs concurrents ;
+- le token brut est opaque, généré aléatoirement, envoyé uniquement par email
+  et stocké uniquement sous forme de hash SHA-256 ;
+- l'expiration est configurable via `MERCHANT_INVITATION_TOKEN_TTL`, avec un
+  défaut de 7 jours ;
+- le marchand peut vérifier le lien via
+  `POST /api/auth/merchant-invitations/verify` ;
+- le marchand définit son mot de passe définitif via
+  `POST /api/auth/merchant-invitations/complete` avec `token`,
+  `new_password` et `new_password_confirmation` ;
+- les tokens expirés, utilisés, révoqués, invalides ou liés à un compte non
+  éligible sont refusés ;
+- après succès, le mot de passe est hashé, le token est marqué utilisé et
+  `password_change_required` repasse à `false` ;
+- les actions admin sont auditées avec `merchant.invitation.create` et
+  `merchant.invitation.resend`, sans token, hash, mot de passe ni secret.
+
+Limites restantes : l'écran frontend d'invitation (#515), l'expiration complète
+du mode accès temporaire terrain (#513) et la QA transverse première connexion
+(#517) restent hors périmètre de cette tranche.
 
 ### 9.4 Préchargement catalogue admin
 

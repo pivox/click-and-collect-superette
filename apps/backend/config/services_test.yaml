@@ -11,3 +11,9 @@ services:
     App\Service\PasswordResetTokenSenderInterface:
         alias: App\Tests\Support\PasswordReset\TestPasswordResetTokenSender
         public: true
+
+    App\Tests\Support\MerchantInvitation\TestMerchantInvitationSender: ~
+
+    App\Service\MerchantInvitationSenderInterface:
+        alias: App\Tests\Support\MerchantInvitation\TestMerchantInvitationSender
+        public: true
