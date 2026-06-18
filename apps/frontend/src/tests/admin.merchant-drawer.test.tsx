@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MerchantDrawer } from '@/components/admin/marchands/MerchantDrawer';
 import {
@@ -46,6 +46,15 @@ function renderDrawer(
   );
 
   return { onClose, onSaved };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+
+  return { promise, resolve };
 }
 
 describe('MerchantDrawer', () => {
@@ -153,6 +162,28 @@ describe('MerchantDrawer', () => {
     expect(screen.queryByText('TempPass-1234567890')).not.toBeInTheDocument();
   });
 
+  it('ignore une réponse de reset obsolète après changement de marchand', async () => {
+    const reset = deferred<{ merchant_id: string; temporary_password: string }>();
+    vi.mocked(resetMerchantTemporaryPassword).mockReturnValue(reset.promise);
+    const otherMerchant = { ...MERCHANT, id: 'merchant-2', email: 'noura@example.test' };
+    const { rerender } = render(
+      <MerchantDrawer open onClose={vi.fn()} merchant={MERCHANT} onSaved={vi.fn()} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser le mot de passe' }));
+    rerender(<MerchantDrawer open onClose={vi.fn()} merchant={otherMerchant} onSaved={vi.fn()} />);
+
+    await act(async () => {
+      reset.resolve({
+        merchant_id: MERCHANT.id,
+        temporary_password: 'TempPass-merchant-a',
+      });
+    });
+
+    expect(screen.getByText('noura@example.test')).toBeInTheDocument();
+    expect(screen.queryByText('TempPass-merchant-a')).not.toBeInTheDocument();
+  });
+
   it('affiche une erreur proprement quand le reset échoue', async () => {
     vi.mocked(resetMerchantTemporaryPassword).mockRejectedValue(new Error('boom'));
     renderDrawer();
@@ -183,5 +214,23 @@ describe('MerchantDrawer', () => {
       expect(onSaved).toHaveBeenCalled();
     });
     expect(screen.queryByText('TempPass-1234567890')).not.toBeInTheDocument();
+  });
+
+  it('conserve le mot de passe temporaire quand la sauvegarde échoue', async () => {
+    vi.mocked(resetMerchantTemporaryPassword).mockResolvedValue({
+      merchant_id: MERCHANT.id,
+      temporary_password: 'TempPass-1234567890',
+    });
+    vi.mocked(updateMerchant).mockRejectedValue(new Error('boom'));
+    render(
+      <MerchantDrawer open onClose={vi.fn()} merchant={MERCHANT} onSaved={vi.fn()} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser le mot de passe' }));
+    expect(await screen.findByText('TempPass-1234567890')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    expect(await screen.findByText('Une erreur est survenue. Réessayez.')).toBeInTheDocument();
+    expect(screen.getByText('TempPass-1234567890')).toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { AdminDrawer } from '@/components/admin/ui/AdminDrawer';
 import { MerchantCrmSection } from '@/components/admin/marchands/MerchantCrmSection';
@@ -31,8 +31,12 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
   const [resetError, setResetError] = useState<string | null>(null);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const resetRequestSeq = useRef(0);
+  const currentMerchantIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    currentMerchantIdRef.current = open && merchant ? merchant.id : null;
+    resetRequestSeq.current += 1;
     if (merchant) {
       setFirstName(merchant.first_name ?? '');
       setLastName(merchant.last_name ?? '');
@@ -48,6 +52,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     setTemporaryPassword(null);
     setResetError(null);
     setCopyMessage(null);
+    setIsResettingPassword(false);
   }, [merchant, open]);
 
   const handleSubmit = async () => {
@@ -57,7 +62,6 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
 
     setIsSubmitting(true);
     setError(null);
-    setTemporaryPassword(null);
     setResetError(null);
     setCopyMessage(null);
     try {
@@ -77,6 +81,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
           phone: phone.trim() || undefined,
         });
       }
+      setTemporaryPassword(null);
       onSaved();
     } catch (e) {
       setError(
@@ -90,9 +95,11 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
   };
 
   const handleClose = () => {
+    resetRequestSeq.current += 1;
     setTemporaryPassword(null);
     setResetError(null);
     setCopyMessage(null);
+    setIsResettingPassword(false);
     onClose();
   };
 
@@ -107,14 +114,34 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     setTemporaryPassword(null);
     setResetError(null);
     setCopyMessage(null);
+    const requestedMerchantId = merchant.id;
+    const requestSeq = resetRequestSeq.current + 1;
+    resetRequestSeq.current = requestSeq;
     try {
       const response = await resetMerchantTemporaryPassword(merchant.id);
+      if (
+        resetRequestSeq.current !== requestSeq ||
+        currentMerchantIdRef.current !== requestedMerchantId
+      ) {
+        return;
+      }
       setTemporaryPassword(response.temporary_password);
     } catch {
+      if (
+        resetRequestSeq.current !== requestSeq ||
+        currentMerchantIdRef.current !== requestedMerchantId
+      ) {
+        return;
+      }
       setTemporaryPassword(null);
       setResetError('Impossible de réinitialiser le mot de passe.');
     } finally {
-      setIsResettingPassword(false);
+      if (
+        resetRequestSeq.current === requestSeq &&
+        currentMerchantIdRef.current === requestedMerchantId
+      ) {
+        setIsResettingPassword(false);
+      }
     }
   };
 
