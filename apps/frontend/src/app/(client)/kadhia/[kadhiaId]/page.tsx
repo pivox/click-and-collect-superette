@@ -231,7 +231,7 @@ export default function KadhiaDetailPage({
   const searchParams = useSearchParams();
   const isPartialContext = searchParams.get("context") === "partially_accepted";
   const { user, isLoading } = useClientAuth();
-  const { t } = useClientLocale();
+  const { locale, t } = useClientLocale();
   const [kadhia, setKadhia] = useState<Kadhia | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [quantityError, setQuantityError] = useState(false);
@@ -330,6 +330,17 @@ export default function KadhiaDetailPage({
   const isDraft = kadhia.status === "draft";
   const articleCount = kadhia.lines.reduce((a, l) => a + l.quantity, 0);
   const catalogHref = `/stores/${kadhia.shopId}/catalog`;
+  const addMoreCopy = locale === "ar"
+    ? {
+        title: "هل تحتاج إلى منتجات أخرى؟",
+        body: "ارجع إلى كتالوج هذه Supérette بدون فقدان Kadhia الحالية.",
+        action: "إضافة عناصر أخرى",
+      }
+    : {
+        title: "Besoin d’autres articles ?",
+        body: "Retourne au catalogue de cette supérette sans perdre ta Kadhia en cours.",
+        action: "Ajouter d’autres articles",
+      };
 
   return (
     <>
@@ -372,6 +383,28 @@ export default function KadhiaDetailPage({
         <>
           <KadhiaNote kadhia={kadhia} onSaved={setKadhia} />
           {isDraft && <KadhiaShareAction kadhiaId={kadhia.id} />}
+
+          {isDraft && (
+            <Card className="mt-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold text-ink">{addMoreCopy.title}</p>
+                  <p className="mt-1 text-sm text-muted">{addMoreCopy.body}</p>
+                </div>
+                <Link
+                  href={catalogHref}
+                  aria-label={addMoreCopy.action}
+                  className={getButtonClassName({
+                    variant: "secondary",
+                    size: "md",
+                    className: "shrink-0",
+                  })}
+                >
+                  {addMoreCopy.action}
+                </Link>
+              </div>
+            </Card>
+          )}
 
           <section className="mt-4 grid gap-2.5">
             {kadhia.lines.map((l) => (
