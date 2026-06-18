@@ -584,8 +584,11 @@ Réponse `200` :
 }
 ```
 
-Pour `partially_accepted`, `rejected_lines` liste les lignes de la commande
-retirées de la Kadhia draft. Pour les autres statuts, la liste est vide.
+Pour `partially_accepted`, `rejected_lines` liste les lignes refusées par le
+marchand au moment de l'acceptation partielle. Cette liste vient du snapshot de
+produits refusés stocké sur la commande, pas de l'état courant de la Kadhia
+draft, car le client peut ensuite modifier cette Kadhia. Pour les autres
+statuts, la liste est vide.
 
 ### Annuler une commande
 

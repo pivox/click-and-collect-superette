@@ -151,10 +151,11 @@ final class OrderTest extends TestCase
     {
         $order = new Order();
         $order->submit();
-        $order->partiallyAccept('Produit indisponible');
+        $order->partiallyAccept('Produit indisponible', ['product-b']);
 
         self::assertSame(OrderStatus::PartiallyAccepted, $order->getStatus());
         self::assertSame('Produit indisponible', $order->getRejectionReason());
+        self::assertSame(['product-b'], $order->getPartialAcceptanceRejectedMerchantProductIds());
     }
 
     public function testPartiallyAcceptStoresNullReasonWhenNoReasonIsProvided(): void
@@ -178,11 +179,12 @@ final class OrderTest extends TestCase
     {
         $order = new Order();
         $order->submit();
-        $order->partiallyAccept('Produit indisponible');
+        $order->partiallyAccept('Produit indisponible', ['product-b']);
         $order->resubmit();
 
         self::assertSame(OrderStatus::Submitted, $order->getStatus());
         self::assertNull($order->getRejectionReason());
+        self::assertSame([], $order->getPartialAcceptanceRejectedMerchantProductIds());
     }
 
     public function testStartPreparingTransitionsAcceptedToPreparing(): void

@@ -66,20 +66,22 @@ final readonly class OrderOutputFactory
      */
     private function rejectedLinesFor(Order $order): array
     {
-        $kadhia = $order->getKadhia();
-        if (OrderStatus::PartiallyAccepted !== $order->getStatus() || null === $kadhia) {
+        if (OrderStatus::PartiallyAccepted !== $order->getStatus()) {
             return [];
         }
 
-        $acceptedProductIds = [];
-        foreach ($kadhia->getLines() as $line) {
-            $acceptedProductIds[$line->getMerchantProduct()->getId()->toRfc4122()] = true;
+        $rejectedProductIds = array_fill_keys(
+            $order->getPartialAcceptanceRejectedMerchantProductIds(),
+            true,
+        );
+        if ([] === $rejectedProductIds) {
+            return [];
         }
 
         $rejectedLines = [];
         foreach ($order->getLines() as $line) {
             $merchantProductId = $line->getMerchantProduct()->getId()->toRfc4122();
-            if (!isset($acceptedProductIds[$merchantProductId])) {
+            if (isset($rejectedProductIds[$merchantProductId])) {
                 $rejectedLines[] = self::lineToOutput($line);
             }
         }

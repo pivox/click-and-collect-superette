@@ -120,7 +120,7 @@ final readonly class MerchantPartiallyAcceptOrderProcessor implements ProcessorI
 
         try {
             $this->entityManager->wrapInTransaction(function () use ($order, $kadhia, $rejectedProductIds, $data): void {
-                $order->partiallyAccept($data->notes);
+                $order->partiallyAccept($data->notes, $rejectedProductIds);
 
                 foreach ($kadhia->getLines()->toArray() as $line) {
                     if (!$line instanceof KadhiaLine) {

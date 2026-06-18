@@ -140,7 +140,7 @@ final class OrderHistoryApiTest extends FunctionalApiTestCase
         $slot = $this->createPickupSlot($shop);
         $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
 
-        $order->partiallyAccept('Rupture de stock.');
+        $order->partiallyAccept('Rupture de stock.', [$rejectedProduct->getId()->toRfc4122()]);
         foreach ($kadhia->getLines()->toArray() as $line) {
             if ($line instanceof KadhiaLine && $line->getMerchantProduct()->getId()->equals($rejectedProduct->getId())) {
                 $kadhia->removeLine($line);

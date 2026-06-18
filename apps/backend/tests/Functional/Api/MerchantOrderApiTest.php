@@ -903,6 +903,54 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertSame(1, $updatedSlot->getBookedCount());
     }
 
+    public function testPartiallyAcceptedCustomerDetailKeepsOriginalRejectedLinesAfterKadhiaEdits(): void
+    {
+        $merchant = $this->createUser('merchant-partial-client-detail@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $slot = $this->createPickupSlot($shop, '+5 hours', '+6 hours');
+        $customer = $this->createUser('customer-partial-client-detail@example.test', ['ROLE_CUSTOMER']);
+        $productA = $this->createMerchantProduct($shop, '2.000', 'Lait Vitalait 1L');
+        $productB = $this->createMerchantProduct($shop, '1.500', 'Yaourt nature');
+        $productC = $this->createMerchantProduct($shop, '3.000', 'Café moulu');
+        $kadhia = $this->createSubmittedKadhiaWithLines($customer, $shop, [$productA, $productB, $productC]);
+        $order = $this->createSubmittedOrderFromKadhia($customer, $shop, $kadhia, $slot);
+
+        $partialResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/merchant/stores/%s/orders/%s/partially-accept', $shop->getId(), $order->getId()),
+            [
+                'rejected_merchant_product_ids' => [$productB->getId()->toRfc4122()],
+                'notes' => 'Produit indisponible',
+            ],
+            $merchant,
+        );
+
+        self::assertSame(200, $partialResponse->getStatusCode());
+
+        foreach ($kadhia->getLines()->toArray() as $line) {
+            if ($line instanceof KadhiaLine && $line->getMerchantProduct()->getId()->equals($productA->getId())) {
+                $kadhia->removeLine($line);
+                break;
+            }
+        }
+        $this->entityManager->flush();
+
+        $clientResponse = $this->requestJson(
+            'GET',
+            \sprintf('/api/me/orders/%s', $order->getId()),
+            user: $customer,
+        );
+
+        self::assertSame(200, $clientResponse->getStatusCode());
+        $payload = $this->decodeJson($clientResponse);
+
+        self::assertSame('partially_accepted', $payload['status']);
+        self::assertSame('Produit indisponible', $payload['rejection_reason']);
+        self::assertCount(1, $payload['rejected_lines']);
+        self::assertSame($productB->getId()->toRfc4122(), $payload['rejected_lines'][0]['merchant_product_id']);
+        self::assertSame('Yaourt nature', $payload['rejected_lines'][0]['product_name']);
+    }
+
     public function testPartiallyAcceptOrderRejectsEmptyRejectedLines(): void
     {
         $merchant = $this->createUser('merchant-partial-empty@example.test', ['ROLE_MERCHANT']);
