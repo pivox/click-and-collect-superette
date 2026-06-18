@@ -79,6 +79,11 @@ export interface MerchantListResponse {
   total: number;
 }
 
+export interface MerchantTemporaryPasswordResponse {
+  merchant_id: string;
+  temporary_password: string;
+}
+
 // AdminCreateMerchantInput has @SerializedName on first_name/last_name/is_active → snake_case in payload
 export interface CreateMerchantPayload {
   email: string;

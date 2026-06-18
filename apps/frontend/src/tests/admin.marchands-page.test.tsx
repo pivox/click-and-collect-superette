@@ -12,6 +12,7 @@ vi.mock('@/lib/services/admin/merchants.service', () => ({
   getMerchant: vi.fn(),
   createMerchant: vi.fn(),
   updateMerchant: vi.fn(),
+  resetMerchantTemporaryPassword: vi.fn(),
   suspendMerchant: vi.fn(),
   activateMerchant: vi.fn(),
   updateMerchantCrm: vi.fn(),

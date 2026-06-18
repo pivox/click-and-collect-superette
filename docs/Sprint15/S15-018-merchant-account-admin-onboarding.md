@@ -326,6 +326,16 @@ POST /api/auth/merchant-first-login/finalize
 
 Les noms exacts peuvent être adaptés aux conventions du backend.
 
+Note d'implémentation partielle #530 :
+
+```http
+POST /api/admin/merchants/{merchantId}/temporary-password
+```
+
+Cet endpoint permet à l'admin de générer un mot de passe temporaire pour un marchand existant. Le mot de passe temporaire est affiché une seule fois dans la réponse, n'est jamais stocké en clair et n'est jamais écrit dans le journal d'audit. L'admin ne peut pas voir le mot de passe actuel.
+
+Limite actuelle : le modèle `User` ne porte pas encore de champ `password_change_required`; le changement obligatoire au prochain login reste donc hors de cette implémentation partielle et devra passer par le bloc première connexion complet.
+
 ### 9.4 Préchargement catalogue admin
 
 À cadrer selon le service existant d'import groupement.

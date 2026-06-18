@@ -1,9 +1,14 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { AdminDrawer } from '@/components/admin/ui/AdminDrawer';
 import { MerchantCrmSection } from '@/components/admin/marchands/MerchantCrmSection';
-import { createMerchant, updateMerchant } from '@/lib/services/admin/merchants.service';
+import { Button } from '@/components/ui/Button';
+import {
+  createMerchant,
+  resetMerchantTemporaryPassword,
+  updateMerchant,
+} from '@/lib/services/admin/merchants.service';
 import type { Merchant } from '@/lib/types/admin/merchants.types';
 
 interface MerchantDrawerProps {
@@ -22,6 +27,18 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const resetRequestSeq = useRef(0);
+  const currentMerchantIdRef = useRef<string | null>(null);
+  const renderedMerchantId = open && merchant ? merchant.id : null;
+
+  if (currentMerchantIdRef.current !== renderedMerchantId) {
+    currentMerchantIdRef.current = renderedMerchantId;
+    resetRequestSeq.current += 1;
+  }
 
   useEffect(() => {
     if (merchant) {
@@ -36,6 +53,10 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
       setPhone('');
     }
     setError(null);
+    setTemporaryPassword(null);
+    setResetError(null);
+    setCopyMessage(null);
+    setIsResettingPassword(false);
   }, [merchant, open]);
 
   const handleSubmit = async () => {
@@ -45,6 +66,8 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
 
     setIsSubmitting(true);
     setError(null);
+    setResetError(null);
+    setCopyMessage(null);
     try {
       if (merchant) {
         // email not updatable (not in AdminUpdateMerchantInput)
@@ -62,6 +85,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
           phone: phone.trim() || undefined,
         });
       }
+      setTemporaryPassword(null);
       onSaved();
     } catch (e) {
       setError(
@@ -74,6 +98,68 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     }
   };
 
+  const handleClose = () => {
+    resetRequestSeq.current += 1;
+    setTemporaryPassword(null);
+    setResetError(null);
+    setCopyMessage(null);
+    setIsResettingPassword(false);
+    onClose();
+  };
+
+  const handleResetTemporaryPassword = async () => {
+    if (!merchant) return;
+    const confirmed = window.confirm(
+      'Réinitialiser le mot de passe de ce marchand ? L’ancien mot de passe ne fonctionnera plus.',
+    );
+    if (!confirmed) return;
+
+    setIsResettingPassword(true);
+    setTemporaryPassword(null);
+    setResetError(null);
+    setCopyMessage(null);
+    const requestedMerchantId = merchant.id;
+    const requestSeq = resetRequestSeq.current + 1;
+    resetRequestSeq.current = requestSeq;
+    try {
+      const response = await resetMerchantTemporaryPassword(merchant.id);
+      if (
+        resetRequestSeq.current !== requestSeq ||
+        currentMerchantIdRef.current !== requestedMerchantId
+      ) {
+        return;
+      }
+      setTemporaryPassword(response.temporary_password);
+    } catch {
+      if (
+        resetRequestSeq.current !== requestSeq ||
+        currentMerchantIdRef.current !== requestedMerchantId
+      ) {
+        return;
+      }
+      setTemporaryPassword(null);
+      setResetError('Impossible de réinitialiser le mot de passe.');
+    } finally {
+      if (
+        resetRequestSeq.current === requestSeq &&
+        currentMerchantIdRef.current === requestedMerchantId
+      ) {
+        setIsResettingPassword(false);
+      }
+    }
+  };
+
+  const handleCopyTemporaryPassword = async () => {
+    if (!temporaryPassword) return;
+
+    try {
+      await navigator.clipboard.writeText(temporaryPassword);
+      setCopyMessage('Mot de passe copié.');
+    } catch {
+      setCopyMessage('Copie impossible.');
+    }
+  };
+
   const inputClass =
     'w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
   const opsJournal = merchant?.ops_journal ?? null;
@@ -82,7 +168,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
   return (
     <AdminDrawer
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={merchant ? 'Modifier le marchand' : 'Nouveau marchand'}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
@@ -152,6 +238,54 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
             <p className="mt-1 text-sm text-amber-800">
               Les nouvelles Kadhia sont bloquées, le catalogue et l’historique restent conservés.
             </p>
+          </section>
+        )}
+        {merchant && (
+          <section className="rounded-md border border-line bg-soft px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-black text-ink">Accès marchand</h3>
+                <p className="mt-1 text-sm text-muted">
+                  L’admin ne voit jamais le mot de passe actuel.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="md"
+                onClick={() => void handleResetTemporaryPassword()}
+                disabled={isResettingPassword}
+              >
+                {isResettingPassword ? 'Réinitialisation…' : 'Réinitialiser le mot de passe'}
+              </Button>
+            </div>
+            {resetError && (
+              <div className="mt-3 rounded-md bg-status-cancel-bg px-3 py-2 text-sm text-status-cancel">
+                {resetError}
+              </div>
+            )}
+            {temporaryPassword && (
+              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-3" aria-live="polite">
+                <p className="text-xs font-black uppercase text-amber-900">Mot de passe temporaire</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <code className="rounded border border-amber-200 bg-white px-2 py-1 text-sm font-bold text-ink">
+                    {temporaryPassword}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="md"
+                    onClick={() => void handleCopyTemporaryPassword()}
+                  >
+                    Copier
+                  </Button>
+                </div>
+                <p className="mt-2 text-sm text-amber-900">
+                  Ce mot de passe ne sera plus affiché après fermeture.
+                </p>
+                {copyMessage && <p className="mt-2 text-sm text-muted">{copyMessage}</p>}
+              </div>
+            )}
           </section>
         )}
         {merchant && (
