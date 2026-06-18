@@ -29,7 +29,10 @@ export async function createFeedback(payload: FeedbackCreatePayload): Promise<Fe
   const body = Object.fromEntries(
     Object.entries(payload).filter(([, value]) => value !== undefined && value !== null && value !== ''),
   );
-  const { data } = await apiClient.post<FeedbackEntry>('/api/feedback', body, { skipAuthRedirect: true });
+  const response = await apiClient.post<FeedbackEntry>('/api/feedback', body, { skipAuthRedirect: true });
+  if (response.status !== 201) {
+    throw new Error('FEEDBACK_UNEXPECTED_STATUS');
+  }
 
-  return data;
+  return response.data;
 }

@@ -85,7 +85,7 @@ Objectif : enregistrer un retour utilisateur contextualisé.
 
 ```json
 {
-  "feedbackType": "bug",
+  "type": "bug",
   "message": "Le bouton valider n'est pas clair sur cette page.",
   "contactConsent": true,
   "pageUrl": "https://app.clickcollect.tn/merchant/orders/123",
@@ -108,6 +108,7 @@ Objectif : enregistrer un retour utilisateur contextualisé.
 {
   "id": "feedback-uuid",
   "status": "unread",
+  "type": "bug",
   "contactConsent": true,
   "createdAt": "2026-06-12T12:00:00+02:00"
 }
@@ -190,7 +191,7 @@ GET /api/admin/feedbacks?page=1&limit=20&status=unread&role=ROLE_MERCHANT&appAre
 ```text
 status = unread|read|resolved
 role = ROLE_CUSTOMER|ROLE_MERCHANT|ROLE_ADMIN
-feedbackType = bug|idea|confusing|other
+type = bug|idea|confusing|other
 appArea = client|merchant|admin
 appSubArea
 storeId
@@ -207,7 +208,7 @@ createdTo
     {
       "id": "feedback-uuid",
       "status": "unread",
-      "feedbackType": "bug",
+      "type": "bug",
       "contactConsent": true,
       "role": "ROLE_MERCHANT",
       "appArea": "merchant",
@@ -248,7 +249,7 @@ GET /api/admin/feedbacks/{feedbackId}
 {
   "id": "feedback-uuid",
   "status": "read",
-  "feedbackType": "bug",
+  "type": "bug",
   "message": "Le bouton valider n'est pas clair sur cette page.",
   "contactConsent": true,
   "role": "ROLE_MERCHANT",

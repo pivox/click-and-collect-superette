@@ -42,6 +42,11 @@ const FEEDBACK_LABELS = {
     submit: 'Envoyer',
     minLengthError: 'Votre retour doit contenir au moins 5 caractères.',
     submitError: 'Impossible d’envoyer votre retour. Réessayez.',
+    authError: 'Reconnectez-vous pour envoyer votre retour.',
+    forbiddenError: 'Votre retour n’est pas autorisé pour cette page ou cette supérette.',
+    disabledError: 'Le module Retour n’est pas disponible sur cette page.',
+    validationError: 'Vérifiez le message de votre retour puis réessayez.',
+    unconfirmedError: 'Votre retour n’a pas été confirmé par le serveur. Réessayez.',
     typeLabels: {
       bug: 'Bug',
       idea: 'Idée',
@@ -62,6 +67,11 @@ const FEEDBACK_LABELS = {
     submit: 'إرسال',
     minLengthError: 'يجب أن تحتوي ملاحظتك على 5 أحرف على الأقل.',
     submitError: 'تعذر إرسال ملاحظتك. حاول مرة أخرى.',
+    authError: 'سجّل الدخول من جديد لإرسال ملاحظتك.',
+    forbiddenError: 'لا يمكن إرسال ملاحظتك من هذه الصفحة أو هذه المغازة.',
+    disabledError: 'خدمة الملاحظات غير متاحة في هذه الصفحة.',
+    validationError: 'تحقق من نص الملاحظة ثم حاول مرة أخرى.',
+    unconfirmedError: 'لم يؤكد الخادم إرسال ملاحظتك. حاول مرة أخرى.',
     typeLabels: {
       bug: 'خلل',
       idea: 'فكرة',
@@ -82,8 +92,25 @@ const FEEDBACK_LABELS = {
   submit: string;
   minLengthError: string;
   submitError: string;
+  authError: string;
+  forbiddenError: string;
+  disabledError: string;
+  validationError: string;
+  unconfirmedError: string;
   typeLabels: Record<FeedbackType, string>;
 }>;
+
+interface FeedbackErrorLike {
+  response?: {
+    status?: number;
+    data?: unknown;
+  };
+  config?: {
+    method?: string;
+    url?: string;
+  };
+  message?: string;
+}
 
 function labelsForLocale(locale: string): (typeof FEEDBACK_LABELS)['fr'] {
   return locale === 'ar' ? FEEDBACK_LABELS.ar : FEEDBACK_LABELS.fr;
@@ -173,8 +200,8 @@ export function FeedbackProvider({
       setMessage('');
       setContactConsent(false);
     } catch (err) {
-      console.error('[feedback] submit failed', err);
-      setError(labels.submitError);
+      console.error('[feedback] submit failed', safeFeedbackErrorLog(err));
+      setError(feedbackSubmitErrorMessage(err, labels));
     } finally {
       setIsSending(false);
     }
@@ -307,4 +334,82 @@ function routeToSubArea(pathname: string): string {
     .replace(/^_+|_+$/g, '');
 
   return normalized || 'home';
+}
+
+function feedbackSubmitErrorMessage(
+  err: unknown,
+  labels: (typeof FEEDBACK_LABELS)['fr'],
+): string {
+  const status = feedbackErrorStatus(err);
+  const code = feedbackErrorCode(err);
+
+  if (status === 401) {
+    return labels.authError;
+  }
+  if (status === 400 || status === 422) {
+    return labels.validationError;
+  }
+  if (
+    status === 403 &&
+    (code === 'FEEDBACK_DISABLED' ||
+      code === 'FEEDBACK_DISABLED_FOR_ROLE' ||
+      code === 'FEEDBACK_DISABLED_FOR_AREA' ||
+      code === 'FEEDBACK_AREA_FORBIDDEN')
+  ) {
+    return labels.disabledError;
+  }
+  if (status === 403) {
+    return labels.forbiddenError;
+  }
+  if (code === 'FEEDBACK_UNEXPECTED_STATUS') {
+    return labels.unconfirmedError;
+  }
+
+  return labels.submitError;
+}
+
+function safeFeedbackErrorLog(err: unknown): Record<string, string | number | undefined> {
+  return compactLogFields({
+    status: feedbackErrorStatus(err),
+    code: feedbackErrorCode(err),
+    method: feedbackErrorConfig(err)?.method,
+    url: feedbackErrorConfig(err)?.url,
+  });
+}
+
+function feedbackErrorStatus(err: unknown): number | undefined {
+  return feedbackErrorObject(err)?.response?.status;
+}
+
+function feedbackErrorCode(err: unknown): string | undefined {
+  if (err instanceof Error && err.message === 'FEEDBACK_UNEXPECTED_STATUS') {
+    return err.message;
+  }
+
+  const data = feedbackErrorObject(err)?.response?.data;
+  if (typeof data === 'string') {
+    return data;
+  }
+  if (!data || typeof data !== 'object') {
+    return undefined;
+  }
+
+  const record = data as Record<string, unknown>;
+  const candidate = record.detail ?? record.code ?? record.message;
+
+  return typeof candidate === 'string' ? candidate : undefined;
+}
+
+function feedbackErrorConfig(err: unknown): FeedbackErrorLike['config'] | undefined {
+  return feedbackErrorObject(err)?.config;
+}
+
+function feedbackErrorObject(err: unknown): FeedbackErrorLike | undefined {
+  return err && typeof err === 'object' ? (err as FeedbackErrorLike) : undefined;
+}
+
+function compactLogFields<T extends Record<string, string | number | undefined>>(fields: T): T {
+  return Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined && value !== ''),
+  ) as T;
 }

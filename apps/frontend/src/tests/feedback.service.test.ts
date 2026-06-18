@@ -45,6 +45,7 @@ describe('feedback service', () => {
 
   it('posts a feedback payload with page and viewport context', async () => {
     mockPost.mockResolvedValue({
+      status: 201,
       data: {
         id: 'feedback-1',
         status: 'unread',
@@ -85,5 +86,29 @@ describe('feedback service', () => {
       viewportHeight: 844,
       contactConsent: true,
     }, { skipAuthRedirect: true });
+  });
+
+  it('rejects feedback creation when the API does not return HTTP 201', async () => {
+    mockPost.mockResolvedValue({
+      status: 200,
+      data: {
+        id: 'feedback-1',
+        status: 'unread',
+        type: 'bug',
+        appArea: 'client',
+        appSubArea: 'client_kadhia',
+        user: { id: 'user-1' },
+        shop: null,
+        contactConsent: false,
+        createdAt: '2026-06-13T12:00:00+01:00',
+      },
+    });
+
+    await expect(createFeedback({
+      type: 'bug',
+      message: 'Le bouton Kadhia ne répond pas.',
+      appArea: 'client',
+      contactConsent: false,
+    })).rejects.toThrow('FEEDBACK_UNEXPECTED_STATUS');
   });
 });
