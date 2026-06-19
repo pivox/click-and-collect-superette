@@ -35,7 +35,7 @@ final readonly class KadhiaShareLinkService
     public function getOrCreateActiveLink(Kadhia $kadhia, User $creator): array
     {
         try {
-            /** @var array{0: KadhiaShareLink, 1: string} */
+            /* @var array{0: KadhiaShareLink, 1: string} */
             return $this->entityManager->wrapInTransaction(function () use ($kadhia, $creator): array {
                 $now = \DateTimeImmutable::createFromInterface($this->clock->now());
                 $activeRows = $this->kadhiaShareLinkRepository->findActiveRowsForKadhia($kadhia);
