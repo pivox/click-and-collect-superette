@@ -176,6 +176,44 @@ final class AdminMerchantOnboardingApiTest extends FunctionalApiTestCase
         self::assertNull($this->findAuditLog('merchant.temporary_password.create'));
     }
 
+    public function testAdminCreatesMerchantAndStoreWhenEmailInvitationDeliveryFailsWithoutExposingSecret(): void
+    {
+        $admin = $this->createUser('admin-onboarding-email-delivery-failed@example.test', ['ROLE_ADMIN']);
+        $this->invitationSender()->failNextSend();
+
+        $response = $this->requestJson('POST', '/api/admin/merchant-onboarding', [
+            'merchant' => [
+                'email' => 'onboarded-delivery-failed@example.test',
+                'first_name' => 'Maha',
+                'last_name' => 'Bouzid',
+            ],
+            'shop' => [
+                'name' => 'Supérette Delivery Failed',
+            ],
+            'first_login_mode' => 'email_invitation',
+            'product_group_ids' => [],
+        ], user: $admin);
+
+        self::assertSame(201, $response->getStatusCode(), (string) $response->getContent());
+        $payload = $this->decodeJson($response);
+        self::assertSame('email_invitation', $payload['first_login']['mode']);
+        self::assertSame('delivery_failed', $payload['first_login']['invitation_status']);
+        self::assertNull($payload['first_login']['temporary_password'] ?? null);
+        self::assertArrayNotHasKey('token', $payload['first_login']);
+        $this->assertNoSensitiveKey($payload);
+
+        $merchant = $this->entityManager->getRepository(User::class)->find($payload['merchant']['id']);
+        self::assertInstanceOf(User::class, $merchant);
+        $rawToken = $this->invitationSender()->tokenFor('onboarded-delivery-failed@example.test');
+        self::assertIsString($rawToken);
+        self::assertCount(1, $this->allInvitationTokens());
+
+        $auditLog = $this->findAuditLog('merchant.invitation.delivery_failed');
+        self::assertNotNull($auditLog);
+        self::assertStringNotContainsString($rawToken, json_encode($auditLog->getMetadata(), \JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString($rawToken, (string) $auditLog->getSummary());
+    }
+
     public function testInvalidFirstLoginModeReturnsValidationError(): void
     {
         $admin = $this->createUser('admin-onboarding-invalid-mode@example.test', ['ROLE_ADMIN']);

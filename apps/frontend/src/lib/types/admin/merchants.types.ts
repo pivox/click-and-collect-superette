@@ -113,7 +113,7 @@ export interface MerchantOnboardingResponse {
     mode: FirstLoginMode;
     temporary_password?: string | null;
     expires_at?: string | null;
-    invitation_status?: 'sent' | null;
+    invitation_status?: 'sent' | 'delivery_failed' | null;
   };
   catalog_preload: {
     added_count: number;

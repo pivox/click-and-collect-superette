@@ -351,6 +351,10 @@ Implémentation MVP :
 - l'invitation email porte une expiration `expires_at`, configurable via
   `MERCHANT_INVITATION_TOKEN_TTL` avec un défaut de 7 jours, et la réponse
   retourne `invitation_status: sent` ;
+- si l'email d'invitation ne peut pas être envoyé après la création, le compte,
+  la supérette et le token restent créés, la réponse retourne
+  `invitation_status: delivery_failed`, l'échec est audité sans token brut et
+  l'admin peut relancer une invitation pour le marchand créé ;
 - l'endpoint peut appliquer zéro, un ou plusieurs groupements produits publiés et visibles marchand ;
 - le résumé de préchargement retourne les compteurs `added_count`, `already_existing_count`, `ignored_count` et les erreurs métier.
 

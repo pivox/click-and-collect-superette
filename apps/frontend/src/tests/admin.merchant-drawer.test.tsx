@@ -292,6 +292,56 @@ describe('MerchantDrawer', () => {
     expect(screen.queryByText(/token/i)).not.toBeInTheDocument();
   });
 
+  it('affiche un échec explicite quand l’invitation email onboarding n’est pas envoyée', async () => {
+    vi.mocked(createMerchantOnboarding).mockResolvedValue({
+      id: 'merchant-1',
+      merchant: MERCHANT,
+      shop: {
+        id: 'shop-1',
+        name: 'Supérette Invitation',
+        slug: 'superette-invitation',
+        address: null,
+        city: null,
+        phone: null,
+        is_active: true,
+        qr_code_token: 'qr-token',
+        created_at: '2026-06-01T10:00:00+01:00',
+        owner: {
+          id: MERCHANT.id,
+          email: MERCHANT.email,
+        },
+        products_count: 0,
+        archived_at: null,
+      },
+      first_login: {
+        mode: 'email_invitation',
+        temporary_password: null,
+        invitation_status: 'delivery_failed',
+        expires_at: '2026-06-08T10:00:00+01:00',
+      },
+      catalog_preload: {
+        added_count: 0,
+        already_existing_count: 0,
+        ignored_count: 0,
+        errors: [],
+      },
+    });
+    renderDrawer(null);
+
+    fireEvent.change(screen.getByLabelText('Prénom *'), { target: { value: 'Maha' } });
+    fireEvent.change(screen.getByLabelText('Nom *'), { target: { value: 'Bouzid' } });
+    fireEvent.change(screen.getByLabelText('Email *'), { target: { value: 'maha@example.test' } });
+    fireEvent.change(screen.getByLabelText('Nom supérette *'), { target: { value: 'Supérette Invitation' } });
+    fireEvent.click(screen.getByLabelText('Invitation email'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    expect(await screen.findByText('Invitation email non envoyée')).toBeInTheDocument();
+    expect(screen.queryByText('Invitation email envoyée')).not.toBeInTheDocument();
+    expect(screen.queryByText('Mot de passe temporaire')).not.toBeInTheDocument();
+    expect(screen.queryByText(/token/i)).not.toBeInTheDocument();
+  });
+
   it('efface le mot de passe temporaire onboarding à la fermeture', async () => {
     vi.mocked(createMerchantOnboarding).mockResolvedValue({
       id: 'merchant-1',

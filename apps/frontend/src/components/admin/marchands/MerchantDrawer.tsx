@@ -263,6 +263,11 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
                 Invitation email envoyée
               </p>
             )}
+            {onboardingResult.first_login.mode === 'email_invitation' && onboardingResult.first_login.invitation_status === 'delivery_failed' && (
+              <p className="mt-2 text-sm font-semibold text-amber-900">
+                Invitation email non envoyée
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-green-900">
               <span>{formatCount(onboardingResult.catalog_preload.added_count, 'ajouté', 'ajoutés')}</span>
               <span>{formatCount(onboardingResult.catalog_preload.already_existing_count, 'déjà présent', 'déjà présents')}</span>

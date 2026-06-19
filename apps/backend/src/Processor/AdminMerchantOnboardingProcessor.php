@@ -27,7 +27,9 @@ use App\Service\ProductGroupCatalogImporter;
 use App\Service\ProductGroupCatalogImportResult;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\String\Slugger\AsciiSlugger;
@@ -50,6 +52,8 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
         private MerchantInvitationSenderInterface $invitationSender,
         private UserPasswordHasherInterface $passwordHasher,
         private Security $security,
+        #[Autowire(service: 'monolog.logger.admin')]
+        private LoggerInterface $logger,
         private MerchantOperationalJournalCalculator $operationalJournalCalculator,
         private ProductGroupCatalogImporter $productGroupCatalogImporter,
     ) {
@@ -88,6 +92,7 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
         $temporaryPassword = null;
         $invitationRawToken = null;
         $invitationExpiresAt = null;
+        $invitationStatus = null;
 
         $shopName = $this->normalizeRequiredString($data->shop->name, 'ADMIN_STORE_NAME_BLANK');
 
@@ -144,7 +149,18 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
             if (null === $invitationRawToken || null === $invitationExpiresAt) {
                 throw new \LogicException('Merchant invitation token was not created.');
             }
-            $this->invitationSender->send($merchant, $invitationRawToken, $invitationExpiresAt);
+            try {
+                $this->invitationSender->send($merchant, $invitationRawToken, $invitationExpiresAt);
+                $invitationStatus = 'sent';
+            } catch (\Throwable $e) {
+                $invitationStatus = 'delivery_failed';
+                $this->auditInvitationDeliveryFailed($merchant, $invitationExpiresAt, $e);
+                $this->entityManager->flush();
+                $this->logger->error('merchant.invitation_delivery_failed', [
+                    'merchant_id' => $merchant->getId()->toRfc4122(),
+                    'exception_class' => $e::class,
+                ]);
+            }
         }
 
         return new AdminMerchantOnboardingOutput(
@@ -163,7 +179,7 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
                 temporaryPassword: $temporaryPassword,
                 expiresAt: ('email_invitation' === $data->firstLoginMode ? $invitationExpiresAt : $merchant->getTemporaryPasswordExpiresAt())
                     ?->format(\DateTimeInterface::ATOM),
-                invitationStatus: 'email_invitation' === $data->firstLoginMode ? 'sent' : null,
+                invitationStatus: $invitationStatus,
             ),
             catalogPreload: $this->catalogPreloadOutput($catalogPreload),
         );
@@ -228,6 +244,22 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
                 'email' => $merchant->getEmail(),
                 'expires_at' => $expiresAt?->format(\DateTimeInterface::ATOM),
                 'source' => 'admin_merchant_onboarding',
+            ],
+        );
+    }
+
+    private function auditInvitationDeliveryFailed(User $merchant, \DateTimeImmutable $expiresAt, \Throwable $exception): void
+    {
+        $this->auditLogger->log(
+            action: 'merchant.invitation.delivery_failed',
+            resourceType: 'merchant',
+            resourceId: $merchant->getId()->toRfc4122(),
+            summary: \sprintf('Échec d’envoi de l’invitation email marchand %s pendant l’onboarding admin.', $merchant->getEmail()),
+            metadata: [
+                'email' => $merchant->getEmail(),
+                'expires_at' => $expiresAt->format(\DateTimeInterface::ATOM),
+                'source' => 'admin_merchant_onboarding',
+                'exception_class' => $exception::class,
             ],
         );
     }
