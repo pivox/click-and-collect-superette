@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Api;
 use App\Entity\AdminAuditLog;
 use App\Entity\Brand;
 use App\Entity\Category;
+use App\Entity\MerchantInvitationToken;
 use App\Entity\MerchantProduct;
 use App\Entity\ProductGroup;
 use App\Entity\ProductGroupItem;
@@ -17,10 +18,20 @@ use App\Enum\ProductGroupStatus;
 use App\Enum\ProductGroupVisibility;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
+use App\Repository\MerchantInvitationTokenRepository;
+use App\Service\MerchantInvitationTokenManager;
+use App\Tests\Support\MerchantInvitation\TestMerchantInvitationSender;
 use Symfony\Component\Uid\Uuid;
 
 final class AdminMerchantOnboardingApiTest extends FunctionalApiTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->invitationSender()->reset();
+    }
+
     public function testAdminCreatesMerchantAndStoreWithOwnerAndTemporaryPassword(): void
     {
         $admin = $this->createUser('admin-onboarding-create@example.test', ['ROLE_ADMIN']);
@@ -99,6 +110,131 @@ final class AdminMerchantOnboardingApiTest extends FunctionalApiTestCase
         foreach (['merchant.create', 'shop.create', 'merchant.owner.attach', 'merchant.temporary_password.create'] as $action) {
             self::assertNotNull($this->findAuditLog($action), $action);
         }
+    }
+
+    public function testAdminCreatesMerchantAndStoreWithEmailInvitationWithoutExposingSecret(): void
+    {
+        $admin = $this->createUser('admin-onboarding-email-invitation@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('POST', '/api/admin/merchant-onboarding', [
+            'merchant' => [
+                'email' => 'onboarded-invited-merchant@example.test',
+                'first_name' => 'Rania',
+                'last_name' => 'Mansour',
+                'phone' => '+21622112233',
+            ],
+            'shop' => [
+                'name' => 'Supérette Invitation',
+                'address' => '8 avenue Habib Bourguiba',
+                'city' => 'Tunis',
+                'phone' => '+21671123456',
+            ],
+            'first_login_mode' => 'email_invitation',
+            'product_group_ids' => [],
+        ], user: $admin);
+
+        self::assertSame(201, $response->getStatusCode(), (string) $response->getContent());
+        $payload = $this->decodeJson($response);
+
+        self::assertSame('onboarded-invited-merchant@example.test', $payload['merchant']['email']);
+        self::assertSame('Supérette Invitation', $payload['shop']['name']);
+        self::assertSame('email_invitation', $payload['first_login']['mode']);
+        self::assertNull($payload['first_login']['temporary_password'] ?? null);
+        self::assertSame('sent', $payload['first_login']['invitation_status']);
+        self::assertArrayHasKey('expires_at', $payload['first_login']);
+        self::assertIsString($payload['first_login']['expires_at']);
+        self::assertArrayNotHasKey('token', $payload['first_login']);
+        self::assertArrayNotHasKey('token_hash', $payload['first_login']);
+
+        $this->assertNoSensitiveKey($payload);
+
+        $merchant = $this->entityManager->getRepository(User::class)->find($payload['merchant']['id']);
+        self::assertInstanceOf(User::class, $merchant);
+        self::assertContains('ROLE_MERCHANT', $merchant->getRoles());
+        self::assertTrue($merchant->isPasswordChangeRequired());
+        self::assertNull($merchant->getTemporaryPasswordGeneratedAt());
+        self::assertNull($merchant->getTemporaryPasswordExpiresAt());
+
+        $rawToken = $this->invitationSender()->tokenFor('onboarded-invited-merchant@example.test');
+        self::assertIsString($rawToken);
+        self::assertGreaterThanOrEqual(32, \strlen($rawToken));
+
+        $tokens = $this->allInvitationTokens();
+        self::assertCount(1, $tokens);
+        $storedToken = $tokens[0];
+        self::assertSame($merchant->getId()->toRfc4122(), $storedToken->getMerchant()->getId()->toRfc4122());
+        self::assertSame($admin->getId()->toRfc4122(), $storedToken->getCreatedBy()?->getId()->toRfc4122());
+        self::assertSame(MerchantInvitationTokenManager::hashToken($rawToken), $storedToken->getTokenHash());
+        self::assertNotSame($rawToken, $storedToken->getTokenHash());
+        self::assertNull($storedToken->getUsedAt());
+        self::assertNull($storedToken->getRevokedAt());
+
+        $auditLog = $this->findAuditLog('merchant.invitation.create');
+        self::assertNotNull($auditLog);
+        self::assertStringNotContainsString($rawToken, json_encode($auditLog->getMetadata(), \JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString($rawToken, (string) $auditLog->getSummary());
+        self::assertNull($this->findAuditLog('merchant.temporary_password.create'));
+    }
+
+    public function testAdminCreatesMerchantAndStoreWhenEmailInvitationDeliveryFailsWithoutExposingSecret(): void
+    {
+        $admin = $this->createUser('admin-onboarding-email-delivery-failed@example.test', ['ROLE_ADMIN']);
+        $this->invitationSender()->failNextSend();
+
+        $response = $this->requestJson('POST', '/api/admin/merchant-onboarding', [
+            'merchant' => [
+                'email' => 'onboarded-delivery-failed@example.test',
+                'first_name' => 'Maha',
+                'last_name' => 'Bouzid',
+            ],
+            'shop' => [
+                'name' => 'Supérette Delivery Failed',
+            ],
+            'first_login_mode' => 'email_invitation',
+            'product_group_ids' => [],
+        ], user: $admin);
+
+        self::assertSame(201, $response->getStatusCode(), (string) $response->getContent());
+        $payload = $this->decodeJson($response);
+        self::assertSame('email_invitation', $payload['first_login']['mode']);
+        self::assertSame('delivery_failed', $payload['first_login']['invitation_status']);
+        self::assertNull($payload['first_login']['temporary_password'] ?? null);
+        self::assertArrayNotHasKey('token', $payload['first_login']);
+        $this->assertNoSensitiveKey($payload);
+
+        $merchant = $this->entityManager->getRepository(User::class)->find($payload['merchant']['id']);
+        self::assertInstanceOf(User::class, $merchant);
+        $rawToken = $this->invitationSender()->tokenFor('onboarded-delivery-failed@example.test');
+        self::assertIsString($rawToken);
+        self::assertCount(1, $this->allInvitationTokens());
+
+        $auditLog = $this->findAuditLog('merchant.invitation.delivery_failed');
+        self::assertNotNull($auditLog);
+        self::assertStringNotContainsString($rawToken, json_encode($auditLog->getMetadata(), \JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString($rawToken, (string) $auditLog->getSummary());
+    }
+
+    public function testInvalidFirstLoginModeReturnsValidationError(): void
+    {
+        $admin = $this->createUser('admin-onboarding-invalid-mode@example.test', ['ROLE_ADMIN']);
+
+        $response = $this->requestJson('POST', '/api/admin/merchant-onboarding', [
+            'merchant' => [
+                'email' => 'invalid-mode-onboarding@example.test',
+                'first_name' => 'Sami',
+                'last_name' => 'Bouaziz',
+            ],
+            'shop' => [
+                'name' => 'Supérette mode invalide',
+            ],
+            'first_login_mode' => 'sms_invitation',
+            'product_group_ids' => [],
+        ], user: $admin);
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertNull($this->entityManager->getRepository(User::class)->findOneBy([
+            'email' => 'invalid-mode-onboarding@example.test',
+        ]));
     }
 
     public function testNonAdminCannotCreateMerchantOnboarding(): void
@@ -293,6 +429,35 @@ final class AdminMerchantOnboardingApiTest extends FunctionalApiTestCase
     private function findAuditLog(string $action): ?AdminAuditLog
     {
         return $this->entityManager->getRepository(AdminAuditLog::class)->findOneBy(['action' => $action]);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function assertNoSensitiveKey(array $payload): void
+    {
+        foreach ($payload as $key => $value) {
+            self::assertNotContains($key, ['token', 'token_hash', 'hash', 'password', 'secret']);
+            if (\is_array($value)) {
+                $this->assertNoSensitiveKey($value);
+            }
+        }
+    }
+
+    /**
+     * @return list<MerchantInvitationToken>
+     */
+    private function allInvitationTokens(): array
+    {
+        return array_values(self::getContainer()->get(MerchantInvitationTokenRepository::class)->findBy([], ['createdAt' => 'ASC']));
+    }
+
+    private function invitationSender(): TestMerchantInvitationSender
+    {
+        $sender = self::getContainer()->get(TestMerchantInvitationSender::class);
+        self::assertInstanceOf(TestMerchantInvitationSender::class, $sender);
+
+        return $sender;
     }
 
     private function createGroup(

@@ -86,6 +86,14 @@ export interface MerchantTemporaryPasswordResponse {
   expires_at?: string;
 }
 
+export interface MerchantInvitationResponse {
+  merchant_id: string;
+  status: 'sent';
+  expires_at: string;
+}
+
+export type FirstLoginMode = 'temporary_password' | 'email_invitation';
+
 export interface MerchantOnboardingPayload {
   merchant: {
     email: string;
@@ -99,7 +107,7 @@ export interface MerchantOnboardingPayload {
     city?: string;
     phone?: string;
   };
-  first_login_mode: 'temporary_password';
+  first_login_mode: FirstLoginMode;
   product_group_ids: string[];
 }
 
@@ -108,9 +116,10 @@ export interface MerchantOnboardingResponse {
   merchant: Merchant;
   shop: Store;
   first_login: {
-    mode: 'temporary_password';
+    mode: FirstLoginMode;
     temporary_password?: string | null;
     expires_at?: string | null;
+    invitation_status?: 'sent' | 'delivery_failed' | null;
   };
   catalog_preload: {
     added_count: number;

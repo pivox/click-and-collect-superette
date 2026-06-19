@@ -6,11 +6,12 @@ import { MerchantCrmSection } from '@/components/admin/marchands/MerchantCrmSect
 import { Button } from '@/components/ui/Button';
 import {
   createMerchantOnboarding,
+  resendMerchantInvitation,
   resetMerchantTemporaryPassword,
   updateMerchant,
 } from '@/lib/services/admin/merchants.service';
 import { listProductGroups } from '@/lib/services/admin/product-groups.service';
-import type { Merchant, MerchantOnboardingResponse } from '@/lib/types/admin/merchants.types';
+import type { FirstLoginMode, Merchant, MerchantOnboardingResponse } from '@/lib/types/admin/merchants.types';
 import type { ProductGroup } from '@/lib/types/admin/referentiel.types';
 
 interface MerchantDrawerProps {
@@ -31,6 +32,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
   const [shopAddress, setShopAddress] = useState('');
   const [shopCity, setShopCity] = useState('');
   const [shopPhone, setShopPhone] = useState('');
+  const [firstLoginMode, setFirstLoginMode] = useState<FirstLoginMode>('temporary_password');
   const [productGroups, setProductGroups] = useState<ProductGroup[]>([]);
   const [selectedProductGroupIds, setSelectedProductGroupIds] = useState<string[]>([]);
   const [productGroupError, setProductGroupError] = useState<string | null>(null);
@@ -38,6 +40,8 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  const [isResendingInvitation, setIsResendingInvitation] = useState(false);
+  const [invitationResendError, setInvitationResendError] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -66,11 +70,14 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     setShopAddress('');
     setShopCity('');
     setShopPhone('');
+    setFirstLoginMode('temporary_password');
     setSelectedProductGroupIds([]);
     setProductGroupError(null);
     setOnboardingResult(null);
     setError(null);
     setTemporaryPassword(null);
+    setIsResendingInvitation(false);
+    setInvitationResendError(null);
     setResetError(null);
     setCopyMessage(null);
     setIsResettingPassword(false);
@@ -137,11 +144,12 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
             city: shopCity.trim() || undefined,
             phone: shopPhone.trim() || undefined,
           },
-          first_login_mode: 'temporary_password',
+          first_login_mode: firstLoginMode,
           product_group_ids: selectedProductGroupIds,
         });
         setOnboardingResult(result);
         setTemporaryPassword(result.first_login.temporary_password ?? null);
+        setInvitationResendError(null);
       }
     } catch (e) {
       const detail = axios.isAxiosError(e) ? String(e.response?.data?.detail ?? '') : '';
@@ -159,6 +167,8 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     resetRequestSeq.current += 1;
     setTemporaryPassword(null);
     setOnboardingResult(null);
+    setIsResendingInvitation(false);
+    setInvitationResendError(null);
     setResetError(null);
     setCopyMessage(null);
     setIsResettingPassword(false);
@@ -230,6 +240,29 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     }
   };
 
+  const handleResendInvitation = async () => {
+    if (!onboardingResult || onboardingResult.first_login.invitation_status !== 'delivery_failed') {
+      return;
+    }
+
+    setIsResendingInvitation(true);
+    setInvitationResendError(null);
+    try {
+      await resendMerchantInvitation(onboardingResult.merchant.id);
+      setOnboardingResult({
+        ...onboardingResult,
+        first_login: {
+          ...onboardingResult.first_login,
+          invitation_status: 'sent',
+        },
+      });
+    } catch {
+      setInvitationResendError("Impossible de renvoyer l'invitation email.");
+    } finally {
+      setIsResendingInvitation(false);
+    }
+  };
+
   const inputClass =
     'w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
   const opsJournal = merchant?.ops_journal ?? null;
@@ -256,6 +289,30 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
             <p className="mt-1 text-sm text-green-800">
               {onboardingResult.merchant.email} est rattaché à {onboardingResult.shop.name}.
             </p>
+            {onboardingResult.first_login.mode === 'email_invitation' && onboardingResult.first_login.invitation_status === 'sent' && (
+              <p className="mt-2 text-sm font-semibold text-green-900">
+                Invitation email envoyée
+              </p>
+            )}
+            {onboardingResult.first_login.mode === 'email_invitation' && onboardingResult.first_login.invitation_status === 'delivery_failed' && (
+              <div className="mt-2 space-y-2">
+                <p className="text-sm font-semibold text-amber-900">
+                  Invitation email non envoyée
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  onClick={() => void handleResendInvitation()}
+                  disabled={isResendingInvitation}
+                >
+                  {isResendingInvitation ? 'Renvoi en cours…' : 'Renvoyer l’invitation'}
+                </Button>
+                {invitationResendError && (
+                  <p className="text-sm text-status-cancel">{invitationResendError}</p>
+                )}
+              </div>
+            )}
             <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-green-900">
               <span>{formatCount(onboardingResult.catalog_preload.added_count, 'ajouté', 'ajoutés')}</span>
               <span>{formatCount(onboardingResult.catalog_preload.already_existing_count, 'déjà présent', 'déjà présents')}</span>
@@ -407,10 +464,33 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
             <section className="space-y-3 border-t border-line pt-4">
               <h3 className="text-sm font-black text-ink">Première connexion</h3>
               <label className="flex items-start gap-2 rounded-md border border-line bg-soft px-3 py-2 text-sm">
-                <input type="radio" checked readOnly className="mt-1" />
+                <input
+                  type="radio"
+                  name="first-login-mode"
+                  aria-label="Mot de passe provisoire"
+                  checked={firstLoginMode === 'temporary_password'}
+                  onChange={() => setFirstLoginMode('temporary_password')}
+                  disabled={!!onboardingResult}
+                  className="mt-1"
+                />
                 <span>
                   <span className="block font-semibold text-ink">Mot de passe provisoire</span>
                   <span className="block text-muted">Affiché une seule fois après création.</span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 rounded-md border border-line bg-soft px-3 py-2 text-sm">
+                <input
+                  type="radio"
+                  name="first-login-mode"
+                  aria-label="Invitation email"
+                  checked={firstLoginMode === 'email_invitation'}
+                  onChange={() => setFirstLoginMode('email_invitation')}
+                  disabled={!!onboardingResult}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block font-semibold text-ink">Invitation email</span>
+                  <span className="block text-muted">Le marchand reçoit un lien expirant à usage unique.</span>
                 </span>
               </label>
             </section>

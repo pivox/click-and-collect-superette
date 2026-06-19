@@ -18,7 +18,7 @@ final class AdminMerchantOnboardingInput
     public ?AdminMerchantOnboardingShopInput $shop = null;
 
     #[Assert\NotBlank]
-    #[Assert\Choice(['temporary_password'])]
+    #[Assert\Choice(['temporary_password', 'email_invitation'])]
     #[SerializedName('first_login_mode')]
     public string $firstLoginMode = 'temporary_password';
 

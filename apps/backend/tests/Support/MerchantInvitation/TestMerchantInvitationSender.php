@@ -14,9 +14,16 @@ final class TestMerchantInvitationSender implements MerchantInvitationSenderInte
      */
     private array $tokensByEmail = [];
 
+    private bool $failNextSend = false;
+
     public function send(User $merchant, string $rawToken, \DateTimeImmutable $expiresAt): void
     {
         $this->tokensByEmail[$merchant->getEmail()] = $rawToken;
+
+        if ($this->failNextSend) {
+            $this->failNextSend = false;
+            throw new \RuntimeException('TEST_MERCHANT_INVITATION_SEND_FAILED');
+        }
     }
 
     public function tokenFor(string $email): ?string
@@ -27,5 +34,11 @@ final class TestMerchantInvitationSender implements MerchantInvitationSenderInte
     public function reset(): void
     {
         $this->tokensByEmail = [];
+        $this->failNextSend = false;
+    }
+
+    public function failNextSend(): void
+    {
+        $this->failNextSend = true;
     }
 }

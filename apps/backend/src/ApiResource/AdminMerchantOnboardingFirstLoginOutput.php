@@ -18,6 +18,9 @@ final readonly class AdminMerchantOnboardingFirstLoginOutput
         #[Groups(['admin_merchant_onboarding:read'])]
         #[SerializedName('expires_at')]
         public ?string $expiresAt = null,
+        #[Groups(['admin_merchant_onboarding:read'])]
+        #[SerializedName('invitation_status')]
+        public ?string $invitationStatus = null,
     ) {
     }
 }
