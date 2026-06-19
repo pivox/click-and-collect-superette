@@ -342,11 +342,15 @@ Le endpoint combiné doit rester une orchestration transactionnelle, pas un cont
 Implémentation MVP :
 
 - `POST /api/admin/merchant-onboarding` crée le compte marchand, la supérette et le rattachement `Shop.owner` dans une transaction unique ;
-- le mode de première connexion supporté dans cette tranche est `temporary_password` ;
-- le mot de passe provisoire est retourné uniquement dans la réponse immédiate ;
-- `password_change_required` passe à `true` lors de la création par mot de passe provisoire ;
+- le mode de première connexion supporte maintenant `temporary_password` et `email_invitation` ;
+- `temporary_password` conserve le comportement terrain : le mot de passe provisoire est retourné uniquement dans la réponse immédiate ;
+- `email_invitation` réutilise l'infrastructure d'invitation existante (`MerchantInvitationTokenManager`, sender email, token opaque hashé en base) et ne retourne jamais le token brut ;
+- `password_change_required` passe à `true` jusqu'à finalisation de la première connexion ;
 - l'accès temporaire porte une expiration `expires_at`, configurable via
   `MERCHANT_TEMPORARY_PASSWORD_TTL` avec un défaut de 7 jours ;
+- l'invitation email porte une expiration `expires_at`, configurable via
+  `MERCHANT_INVITATION_TOKEN_TTL` avec un défaut de 7 jours, et la réponse
+  retourne `invitation_status: sent` ;
 - l'endpoint peut appliquer zéro, un ou plusieurs groupements produits publiés et visibles marchand ;
 - le résumé de préchargement retourne les compteurs `added_count`, `already_existing_count`, `ignored_count` et les erreurs métier.
 
@@ -360,7 +364,7 @@ POST /api/auth/merchant-invitations/verify
 POST /api/auth/merchant-invitations/complete
 ```
 
-Implémentation livrée pour le mode mot de passe provisoire uniquement :
+Implémentation livrée pour les deux modes de première connexion :
 
 - le marchand se connecte avec le mot de passe provisoire ;
 - `/api/merchant/me` et la réponse login exposent `password_change_required` ;
@@ -373,6 +377,9 @@ Implémentation livrée pour le mode mot de passe provisoire uniquement :
 - après succès, le mot de passe définitif est hashé, `password_change_required`
   repasse à `false`, les dates temporaires sont vidées et le dashboard marchand
   redevient accessible ;
+- en mode invitation email, l'admin ne voit jamais le token brut : il est envoyé
+  uniquement par email, stocké uniquement sous forme de hash et consommé à usage
+  unique quand le marchand définit son mot de passe définitif ;
 - aucun secret, hash, token d'invitation ni mot de passe provisoire n'est exposé
   hors réponse immédiate admin.
 
@@ -438,7 +445,13 @@ frontend invitation email et la documentation restent alignées.
 
 Implémenté dans l'orchestration admin via le service d'import groupement partagé.
 
-Option autonome encore non livrée :
+Choix produit #552 : l'application admin de groupements après création n'est pas
+exposée comme endpoint autonome dans cette PR. Pour l'instant, l'admin peut
+précharger des groupements pendant l'onboarding combiné ; après création,
+l'application d'un groupement reste portée côté marchand propriétaire via le
+parcours déjà livré.
+
+Option autonome non retenue dans cette tranche :
 
 ```http
 POST /api/admin/stores/{storeId}/product-groups/apply
@@ -450,7 +463,7 @@ Inclusion livrée dans l'orchestration :
 {
   "merchant": {},
   "shop": {},
-  "first_login_mode": "temporary_password",
+  "first_login_mode": "temporary_password|email_invitation",
   "product_group_ids": ["uuid-1", "uuid-2"]
 }
 ```
