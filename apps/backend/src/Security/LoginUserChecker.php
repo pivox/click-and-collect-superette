@@ -13,7 +13,10 @@ final class LoginUserChecker extends DeletedUserChecker
     public function checkPreAuth(UserInterface $user): void
     {
         parent::checkPreAuth($user);
+    }
 
+    public function checkPostAuth(UserInterface $user): void
+    {
         if (!$user instanceof User) {
             return;
         }

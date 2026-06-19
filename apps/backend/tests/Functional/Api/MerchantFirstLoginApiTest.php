@@ -47,6 +47,21 @@ final class MerchantFirstLoginApiTest extends FunctionalApiTestCase
         self::assertStringContainsString('MERCHANT_TEMPORARY_PASSWORD_EXPIRED', (string) $loginResponse->getContent());
     }
 
+    public function testExpiredTemporaryPasswordLoginDoesNotRevealStateWithWrongPassword(): void
+    {
+        [$merchant] = $this->createOnboardedMerchant('merchant-first-login-expired-wrong@example.test');
+        $merchant->setTemporaryPasswordExpiresAt(new \DateTimeImmutable('-1 minute'));
+        $this->entityManager->flush();
+
+        $loginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant-first-login-expired-wrong@example.test',
+            'password' => 'wrongSecret123',
+        ]);
+
+        self::assertSame(401, $loginResponse->getStatusCode());
+        self::assertStringNotContainsString('MERCHANT_TEMPORARY_PASSWORD_EXPIRED', (string) $loginResponse->getContent());
+    }
+
     public function testLegacyRequiredPasswordChangeWithoutTemporaryExpirationIsRejected(): void
     {
         $merchant = $this->createMerchantWithPassword(
