@@ -181,9 +181,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function isTemporaryPasswordExpired(?\DateTimeImmutable $now = null): bool
     {
-        return $this->passwordChangeRequired
-            && null !== $this->temporaryPasswordExpiresAt
-            && $this->temporaryPasswordExpiresAt <= ($now ?? new \DateTimeImmutable());
+        if (!$this->passwordChangeRequired) {
+            return false;
+        }
+
+        if (null === $this->temporaryPasswordExpiresAt) {
+            return true;
+        }
+
+        return $this->temporaryPasswordExpiresAt <= ($now ?? new \DateTimeImmutable());
     }
 
     public function getName(): string

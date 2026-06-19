@@ -194,6 +194,45 @@ final class PasswordResetApiTest extends FunctionalApiTestCase
         self::assertSame(Response::HTTP_UNAUTHORIZED, $oldLoginResponse->getStatusCode());
     }
 
+    public function testMerchantPasswordResetClearsExpiredTemporaryPasswordState(): void
+    {
+        $merchant = $this->createUser('merchant.reset-temporary-expired@example.test', ['ROLE_MERCHANT']);
+        $merchant
+            ->setPassword(self::getContainer()->get(UserPasswordHasherInterface::class)->hashPassword($merchant, 'temporarySecret123'))
+            ->setPasswordChangeRequired(true)
+            ->setTemporaryPasswordGeneratedAt(new \DateTimeImmutable('-8 days'))
+            ->setTemporaryPasswordExpiresAt(new \DateTimeImmutable('-1 day'));
+        $this->entityManager->flush();
+
+        $rawToken = $this->createResetToken($merchant);
+
+        $confirmResponse = $this->requestJson('POST', '/api/auth/password-reset/confirm', [
+            'token' => $rawToken,
+            'new_password' => 'newSecret123',
+        ]);
+        self::assertSame(Response::HTTP_NO_CONTENT, $confirmResponse->getStatusCode());
+
+        $this->entityManager->clear();
+        $storedMerchant = $this->entityManager->getRepository(User::class)->find($merchant->getId());
+        self::assertInstanceOf(User::class, $storedMerchant);
+        self::assertFalse($storedMerchant->isPasswordChangeRequired());
+        self::assertNull($storedMerchant->getTemporaryPasswordGeneratedAt());
+        self::assertNull($storedMerchant->getTemporaryPasswordExpiresAt());
+
+        $newLoginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant.reset-temporary-expired@example.test',
+            'password' => 'newSecret123',
+        ]);
+        $oldLoginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant.reset-temporary-expired@example.test',
+            'password' => 'temporarySecret123',
+        ]);
+
+        self::assertSame(Response::HTTP_OK, $newLoginResponse->getStatusCode(), (string) $newLoginResponse->getContent());
+        self::assertFalse($this->decodeJson($newLoginResponse)['password_change_required']);
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $oldLoginResponse->getStatusCode());
+    }
+
     public function testAdminCanResetPasswordEndToEnd(): void
     {
         $admin = $this->createUser('admin.reset-e2e@example.test', ['ROLE_ADMIN']);

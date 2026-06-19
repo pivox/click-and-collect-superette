@@ -62,7 +62,10 @@ final readonly class PasswordResetTokenManager
             throw new BadRequestHttpException('AUTH_RESET_TOKEN_INVALID');
         }
 
-        $user->setPassword($this->passwordHasher->hashPassword($user, $newPassword));
+        $user
+            ->setPassword($this->passwordHasher->hashPassword($user, $newPassword))
+            ->setPasswordChangeRequired(false)
+            ->clearTemporaryPasswordWindow();
         $token->consume();
     }
 

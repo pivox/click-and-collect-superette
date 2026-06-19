@@ -337,10 +337,16 @@ Le champ `password_change_required` passe à `true` lors de :
 Ces opérations renseignent aussi une fenêtre d'accès temporaire configurable
 via `MERCHANT_TEMPORARY_PASSWORD_TTL`, avec un défaut de 7 jours. L'expiration
 est retournée à l'admin dans la réponse immédiate sous `expires_at`.
+Un compte marchand en changement obligatoire sans date d'expiration temporaire
+est traité comme expiré, afin de ne pas prolonger indéfiniment les accès créés
+avant l'ajout de cette fenêtre.
 
 Le champ repasse à `false` après un changement de mot de passe réussi via
 `POST /api/merchant/first-login/change-password` ou via le changement connecté
-classique `PATCH /api/merchant/me/password`.
+classique `PATCH /api/merchant/me/password`. Le reset password public
+`POST /api/auth/password-reset/confirm` pose aussi un mot de passe définitif :
+il efface `password_change_required` et les dates temporaires pour éviter de
+laisser un marchand actif bloqué après récupération de compte.
 
 Tant que `password_change_required = true`, le marchand peut uniquement utiliser :
 
