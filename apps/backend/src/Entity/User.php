@@ -12,6 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'users')]
+#[ORM\Index(name: 'IDX_USERS_TEMPORARY_PASSWORD_EXPIRES_AT', columns: ['temporary_password_expires_at'])]
 #[ORM\HasLifecycleCallbacks]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
