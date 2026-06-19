@@ -1110,7 +1110,7 @@ final class KadhiaApiTest extends FunctionalApiTestCase
         $kadhia = (new Kadhia())
             ->setCustomer($customer)
             ->setShop($shop)
-            ->setStatus(\App\Enum\KadhiaStatus::Submitted);
+            ->setStatus(KadhiaStatus::Submitted);
         $this->entityManager->persist($kadhia);
         $this->entityManager->flush();
 
