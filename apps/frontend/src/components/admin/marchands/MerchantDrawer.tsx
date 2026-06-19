@@ -267,6 +267,20 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     'w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
   const opsJournal = merchant?.ops_journal ?? null;
   const isSubscriptionSuspended = merchant?.subscription_lifecycle === 'suspended';
+  const isInvitationDeliveryFailed = onboardingResult?.first_login.mode === 'email_invitation'
+    && onboardingResult.first_login.invitation_status === 'delivery_failed';
+  const onboardingSummaryClassName = isInvitationDeliveryFailed
+    ? 'rounded-md border border-amber-200 bg-amber-50 px-4 py-3'
+    : 'rounded-md border border-green-200 bg-green-50 px-4 py-3';
+  const onboardingHeadingClassName = isInvitationDeliveryFailed
+    ? 'text-sm font-black text-amber-950'
+    : 'text-sm font-black text-green-900';
+  const onboardingBodyClassName = isInvitationDeliveryFailed
+    ? 'mt-1 text-sm text-amber-900'
+    : 'mt-1 text-sm text-green-800';
+  const onboardingMetricsClassName = isInvitationDeliveryFailed
+    ? 'mt-3 flex flex-wrap gap-2 text-sm font-semibold text-amber-900'
+    : 'mt-3 flex flex-wrap gap-2 text-sm font-semibold text-green-900';
 
   return (
     <AdminDrawer
@@ -284,9 +298,11 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
           </div>
         )}
         {onboardingResult && (
-          <section className="rounded-md border border-green-200 bg-green-50 px-4 py-3" aria-live="polite">
-            <h3 className="text-sm font-black text-green-900">Onboarding créé</h3>
-            <p className="mt-1 text-sm text-green-800">
+          <section className={onboardingSummaryClassName} aria-live="polite">
+            <h3 className={onboardingHeadingClassName}>
+              {isInvitationDeliveryFailed ? 'Onboarding créé, action requise' : 'Onboarding créé'}
+            </h3>
+            <p className={onboardingBodyClassName}>
               {onboardingResult.merchant.email} est rattaché à {onboardingResult.shop.name}.
             </p>
             {onboardingResult.first_login.mode === 'email_invitation' && onboardingResult.first_login.invitation_status === 'sent' && (
@@ -298,6 +314,9 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
               <div className="mt-2 space-y-2">
                 <p className="text-sm font-semibold text-amber-900">
                   Invitation email non envoyée
+                </p>
+                <p className="text-sm text-amber-900">
+                  Le marchand et la supérette sont créés, mais l’email d’invitation n’a pas été envoyé.
                 </p>
                 <Button
                   type="button"
@@ -313,7 +332,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
                 )}
               </div>
             )}
-            <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-green-900">
+            <div className={onboardingMetricsClassName}>
               <span>{formatCount(onboardingResult.catalog_preload.added_count, 'ajouté', 'ajoutés')}</span>
               <span>{formatCount(onboardingResult.catalog_preload.already_existing_count, 'déjà présent', 'déjà présents')}</span>
               <span>{formatCount(onboardingResult.catalog_preload.ignored_count, 'ignoré', 'ignorés')}</span>
