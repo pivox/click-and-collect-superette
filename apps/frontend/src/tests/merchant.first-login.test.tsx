@@ -75,6 +75,26 @@ describe('MerchantFirstLoginPage', () => {
     expect(changeMerchantFirstLoginPassword).not.toHaveBeenCalled();
   });
 
+  it('valide la longueur du nouveau mot de passe avant appel API', async () => {
+    render(React.createElement(MerchantFirstLoginPage));
+
+    fireEvent.change(screen.getByLabelText(/Mot de passe provisoire actuel/i), {
+      target: { value: 'temporarySecret123' },
+    });
+    fireEvent.change(screen.getByLabelText(/^Nouveau mot de passe/i), {
+      target: { value: 'short' },
+    });
+    fireEvent.change(screen.getByLabelText(/Confirmer le nouveau mot de passe/i), {
+      target: { value: 'short' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Définir mon mot de passe' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Le nouveau mot de passe doit contenir au moins 8 caractères.',
+    );
+    expect(changeMerchantFirstLoginPassword).not.toHaveBeenCalled();
+  });
+
   it('affiche une erreur API', async () => {
     vi.mocked(changeMerchantFirstLoginPassword).mockRejectedValue({ response: { status: 422 } });
     render(React.createElement(MerchantFirstLoginPage));
@@ -92,6 +112,26 @@ describe('MerchantFirstLoginPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Mot de passe provisoire incorrect ou nouveau mot de passe invalide.',
+    );
+  });
+
+  it('affiche une erreur générique sur échec API inattendu', async () => {
+    vi.mocked(changeMerchantFirstLoginPassword).mockRejectedValue({ response: { status: 500 } });
+    render(React.createElement(MerchantFirstLoginPage));
+
+    fireEvent.change(screen.getByLabelText(/Mot de passe provisoire actuel/i), {
+      target: { value: 'temporarySecret123' },
+    });
+    fireEvent.change(screen.getByLabelText(/^Nouveau mot de passe/i), {
+      target: { value: 'definitiveSecret456' },
+    });
+    fireEvent.change(screen.getByLabelText(/Confirmer le nouveau mot de passe/i), {
+      target: { value: 'definitiveSecret456' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Définir mon mot de passe' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Impossible de définir le mot de passe. Réessayez.',
     );
   });
 
