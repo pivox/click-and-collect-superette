@@ -16,6 +16,9 @@ final readonly class AdminMerchantTemporaryPasswordOutput
         #[Groups(['admin_merchant_temporary_password:read'])]
         #[SerializedName('temporary_password')]
         public string $temporaryPassword,
+        #[Groups(['admin_merchant_temporary_password:read'])]
+        #[SerializedName('expires_at')]
+        public string $expiresAt,
     ) {
     }
 }

@@ -320,16 +320,23 @@ Règles :
 - `User.passwordChangeRequired` doit être `true` ;
 - `current_password` est obligatoire et doit correspondre au mot de passe
   provisoire courant ;
+- le mot de passe provisoire ne doit pas être expiré ;
 - `new_password` est obligatoire, longueur minimale 8 caractères ;
 - `new_password_confirmation` doit être identique à `new_password` ;
 - le nouveau mot de passe est hashé avant stockage ;
 - `password_change_required` repasse à `false` après succès ;
+- les champs `temporaryPasswordGeneratedAt` / `temporaryPasswordExpiresAt`
+  sont vidés après succès ;
 - réponse neutre, sans secret.
 
 Le champ `password_change_required` passe à `true` lors de :
 
 - `POST /api/admin/merchant-onboarding` en mode `temporary_password` ;
 - `POST /api/admin/merchants/{merchantId}/temporary-password`.
+
+Ces opérations renseignent aussi une fenêtre d'accès temporaire configurable
+via `MERCHANT_TEMPORARY_PASSWORD_TTL`, avec un défaut de 7 jours. L'expiration
+est retournée à l'admin dans la réponse immédiate sous `expires_at`.
 
 Le champ repasse à `false` après un changement de mot de passe réussi via
 `POST /api/merchant/first-login/change-password` ou via le changement connecté
@@ -345,6 +352,13 @@ Les endpoints métier `/api/merchant/*` restants sont bloqués côté backend av
 un `403` dont le détail est `MERCHANT_PASSWORD_CHANGE_REQUIRED`, notamment le
 dashboard, les commandes, le catalogue, les créneaux, le retrait, le QR code et
 les notifications marchand.
+
+Si la fenêtre temporaire est expirée avant finalisation :
+
+- `POST /api/auth/login` refuse la connexion avec
+  `MERCHANT_TEMPORARY_PASSWORD_EXPIRED` ;
+- `POST /api/merchant/first-login/change-password` refuse la finalisation avec
+  `MERCHANT_TEMPORARY_PASSWORD_EXPIRED`.
 
 Différence avec `PATCH /api/merchant/me/password` : le changement classique est
 destiné à un marchand déjà finalisé ; la première connexion exige en plus
@@ -1793,7 +1807,8 @@ Réponse `201` :
   },
   "first_login": {
     "mode": "temporary_password",
-    "temporary_password": "visible-une-seule-fois"
+    "temporary_password": "visible-une-seule-fois",
+    "expires_at": "2026-06-25T10:00:00+00:00"
   },
   "catalog_preload": {
     "added_count": 10,
@@ -1815,6 +1830,7 @@ Règles :
 - `first_login_mode` supporté : `temporary_password` ;
 - le mot de passe temporaire est généré robuste, hashé, retourné uniquement dans cette réponse immédiate et jamais journalisé ;
 - `password_change_required` est initialisé à `true` pour forcer la première connexion ;
+- `expires_at` indique la date d'expiration de l'accès temporaire ; la durée est configurable via `MERCHANT_TEMPORARY_PASSWORD_TTL` et vaut 7 jours par défaut ;
 - aucun endpoint de lecture ne retourne `temporary_password`, `passwordHash`, token ou secret ;
 - `product_group_ids` est optionnel ; chaque groupement doit être publié et visible marchand ;
 - le préchargement catalogue est idempotent : un produit déjà présent n'est pas dupliqué, y compris s'il apparaît dans plusieurs groupements ;
@@ -1896,7 +1912,8 @@ Réponse `200` :
 ```json
 {
   "merchant_id": "merchant-uuid",
-  "temporary_password": "mot-de-passe-temporaire"
+  "temporary_password": "mot-de-passe-temporaire",
+  "expires_at": "2026-06-25T10:00:00+00:00"
 }
 ```
 
@@ -1910,6 +1927,9 @@ Règles :
 - le mot de passe temporaire n'est jamais stocké en clair ;
 - l'admin ne voit jamais le mot de passe actuel ;
 - `password_change_required` est remis à `true` pour forcer le marchand à définir un mot de passe définitif ;
+- la génération remplace l'accès précédent : l'ancien mot de passe ne fonctionne plus et la nouvelle fenêtre `expires_at` devient la seule référence ;
+- la durée d'expiration est configurable via `MERCHANT_TEMPORARY_PASSWORD_TTL`, avec un défaut de 7 jours ;
+- un mot de passe temporaire expiré est refusé au login et à la finalisation première connexion ;
 - `passwordHash`, token et secret ne sont jamais exposés ;
 - l'action est auditée avec `merchant.temporary_password.reset` sans inclure le mot de passe temporaire dans le journal.
 

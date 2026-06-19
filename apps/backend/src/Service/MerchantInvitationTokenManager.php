@@ -103,7 +103,8 @@ final readonly class MerchantInvitationTokenManager
             $merchant = $token->getMerchant();
             $merchant
                 ->setPassword($this->passwordHasher->hashPassword($merchant, $newPassword))
-                ->setPasswordChangeRequired(false);
+                ->setPasswordChangeRequired(false)
+                ->clearTemporaryPasswordWindow();
             $token->markUsed($now);
             $this->entityManager->flush();
             $connection->commit();

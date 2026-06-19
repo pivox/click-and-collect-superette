@@ -519,10 +519,79 @@ final class MerchantAdminApiTest extends FunctionalApiTestCase
         self::assertInstanceOf(User::class, $storedMerchant);
         self::assertFalse($this->passwordHasher()->isPasswordValid($storedMerchant, 'oldSecret123'));
         self::assertTrue($this->passwordHasher()->isPasswordValid($storedMerchant, $payload['temporary_password']));
+        self::assertNotNull($storedMerchant->getTemporaryPasswordGeneratedAt());
+        self::assertNotNull($storedMerchant->getTemporaryPasswordExpiresAt());
+        self::assertGreaterThan(
+            $storedMerchant->getTemporaryPasswordGeneratedAt()->getTimestamp(),
+            $storedMerchant->getTemporaryPasswordExpiresAt()->getTimestamp(),
+        );
 
         $meResponse = $this->requestJson('GET', '/api/merchant/me', null, $storedMerchant);
         self::assertSame(200, $meResponse->getStatusCode());
         self::assertTrue($this->decodeJson($meResponse)['password_change_required']);
+    }
+
+    public function testTemporaryPasswordResetReplacesPreviousTemporaryAccess(): void
+    {
+        $admin = $this->createUser('admin-temporary-password-replace@example.test', ['ROLE_ADMIN']);
+        $merchant = $this->createMerchant('merchant-temporary-password-replace@example.test', new \DateTimeImmutable());
+        $this->setHashedPassword($merchant, 'oldSecret123');
+
+        $firstResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/admin/merchants/%s/temporary-password', $merchant->getId()),
+            [],
+            $admin,
+        );
+        self::assertSame(200, $firstResponse->getStatusCode(), (string) $firstResponse->getContent());
+        $firstTemporaryPassword = $this->decodeJson($firstResponse)['temporary_password'];
+
+        $this->entityManager->clear();
+        $storedAfterFirst = $this->entityManager->getRepository(User::class)->find($merchant->getId());
+        self::assertInstanceOf(User::class, $storedAfterFirst);
+        $firstGeneratedAt = $storedAfterFirst->getTemporaryPasswordGeneratedAt();
+        $firstExpiresAt = $storedAfterFirst->getTemporaryPasswordExpiresAt();
+        self::assertNotNull($firstGeneratedAt);
+        self::assertNotNull($firstExpiresAt);
+
+        $secondResponse = $this->requestJson(
+            'POST',
+            \sprintf('/api/admin/merchants/%s/temporary-password', $merchant->getId()),
+            [],
+            $admin,
+        );
+        self::assertSame(200, $secondResponse->getStatusCode(), (string) $secondResponse->getContent());
+        $secondTemporaryPassword = $this->decodeJson($secondResponse)['temporary_password'];
+        self::assertNotSame($firstTemporaryPassword, $secondTemporaryPassword);
+
+        $this->entityManager->clear();
+        $storedAfterSecond = $this->entityManager->getRepository(User::class)->find($merchant->getId());
+        self::assertInstanceOf(User::class, $storedAfterSecond);
+        self::assertFalse($this->passwordHasher()->isPasswordValid($storedAfterSecond, $firstTemporaryPassword));
+        self::assertTrue($this->passwordHasher()->isPasswordValid($storedAfterSecond, $secondTemporaryPassword));
+        self::assertTrue($storedAfterSecond->isPasswordChangeRequired());
+        self::assertNotNull($storedAfterSecond->getTemporaryPasswordGeneratedAt());
+        self::assertNotNull($storedAfterSecond->getTemporaryPasswordExpiresAt());
+        self::assertGreaterThanOrEqual(
+            $firstGeneratedAt->getTimestamp(),
+            $storedAfterSecond->getTemporaryPasswordGeneratedAt()->getTimestamp(),
+        );
+        self::assertGreaterThanOrEqual(
+            $firstExpiresAt->getTimestamp(),
+            $storedAfterSecond->getTemporaryPasswordExpiresAt()->getTimestamp(),
+        );
+
+        $oldLoginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant-temporary-password-replace@example.test',
+            'password' => $firstTemporaryPassword,
+        ]);
+        $newLoginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant-temporary-password-replace@example.test',
+            'password' => $secondTemporaryPassword,
+        ]);
+
+        self::assertSame(401, $oldLoginResponse->getStatusCode());
+        self::assertSame(200, $newLoginResponse->getStatusCode(), (string) $newLoginResponse->getContent());
     }
 
     public function testTemporaryPasswordReplacesOldMerchantPasswordForLogin(): void

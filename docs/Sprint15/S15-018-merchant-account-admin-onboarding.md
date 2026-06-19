@@ -345,6 +345,8 @@ Implémentation MVP :
 - le mode de première connexion supporté dans cette tranche est `temporary_password` ;
 - le mot de passe provisoire est retourné uniquement dans la réponse immédiate ;
 - `password_change_required` passe à `true` lors de la création par mot de passe provisoire ;
+- l'accès temporaire porte une expiration `expires_at`, configurable via
+  `MERCHANT_TEMPORARY_PASSWORD_TTL` avec un défaut de 7 jours ;
 - l'endpoint peut appliquer zéro, un ou plusieurs groupements produits publiés et visibles marchand ;
 - le résumé de préchargement retourne les compteurs `added_count`, `already_existing_count`, `ignored_count` et les erreurs métier.
 
@@ -366,8 +368,11 @@ Implémentation livrée pour le mode mot de passe provisoire uniquement :
   bloqués côté backend avec `MERCHANT_PASSWORD_CHANGE_REQUIRED` ;
 - le marchand appelle `POST /api/merchant/first-login/change-password` avec
   `current_password`, `new_password` et `new_password_confirmation` ;
+- si l'accès temporaire est expiré, le login et la finalisation première
+  connexion sont refusés avec `MERCHANT_TEMPORARY_PASSWORD_EXPIRED` ;
 - après succès, le mot de passe définitif est hashé, `password_change_required`
-  repasse à `false` et le dashboard marchand redevient accessible ;
+  repasse à `false`, les dates temporaires sont vidées et le dashboard marchand
+  redevient accessible ;
 - aucun secret, hash, token d'invitation ni mot de passe provisoire n'est exposé
   hors réponse immédiate admin.
 
@@ -380,6 +385,9 @@ POST /api/admin/merchants/{merchantId}/temporary-password
 Cet endpoint permet à l'admin de générer un mot de passe temporaire pour un marchand existant. Le mot de passe temporaire est affiché une seule fois dans la réponse, n'est jamais stocké en clair et n'est jamais écrit dans le journal d'audit. L'admin ne peut pas voir le mot de passe actuel.
 
 Le reset remet aussi `password_change_required` à `true`.
+Il remplace intégralement l'accès temporaire précédent : l'ancien mot de passe
+est refusé, une nouvelle expiration `expires_at` est calculée, et l'action est
+auditée sans secret.
 
 Implémentation invitation email #512 :
 
@@ -406,9 +414,8 @@ Implémentation invitation email #512 :
 - les actions admin sont auditées avec `merchant.invitation.create` et
   `merchant.invitation.resend`, sans token, hash, mot de passe ni secret.
 
-Limites restantes : l'écran frontend d'invitation (#515), l'expiration complète
-du mode accès temporaire terrain (#513) et la QA transverse première connexion
-(#517) restent hors périmètre de cette tranche.
+Limites restantes : l'écran frontend d'invitation (#515) et la QA transverse
+première connexion (#517) restent hors périmètre de cette tranche.
 
 ### 9.4 Préchargement catalogue admin
 

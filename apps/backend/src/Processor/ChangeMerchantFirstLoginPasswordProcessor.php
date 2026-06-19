@@ -46,6 +46,9 @@ final readonly class ChangeMerchantFirstLoginPasswordProcessor implements Proces
         if (!$merchant->isPasswordChangeRequired()) {
             throw new AccessDeniedHttpException('MERCHANT_PASSWORD_CHANGE_NOT_REQUIRED');
         }
+        if ($merchant->isTemporaryPasswordExpired()) {
+            throw new AccessDeniedHttpException('MERCHANT_TEMPORARY_PASSWORD_EXPIRED');
+        }
         if ($data->newPassword !== $data->newPasswordConfirmation) {
             throw new UnprocessableEntityHttpException('MERCHANT_PASSWORD_CONFIRMATION_MISMATCH');
         }
@@ -55,7 +58,8 @@ final readonly class ChangeMerchantFirstLoginPasswordProcessor implements Proces
 
         $merchant
             ->setPassword($this->passwordHasher->hashPassword($merchant, $data->newPassword))
-            ->setPasswordChangeRequired(false);
+            ->setPasswordChangeRequired(false)
+            ->clearTemporaryPasswordWindow();
         $this->entityManager->flush();
 
         return null;

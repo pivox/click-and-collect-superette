@@ -70,6 +70,12 @@ final class AdminMerchantOnboardingApiTest extends FunctionalApiTestCase
         $merchant = $this->entityManager->getRepository(User::class)->find($payload['merchant']['id']);
         self::assertInstanceOf(User::class, $merchant);
         self::assertContains('ROLE_MERCHANT', $merchant->getRoles());
+        self::assertNotNull($merchant->getTemporaryPasswordGeneratedAt());
+        self::assertNotNull($merchant->getTemporaryPasswordExpiresAt());
+        self::assertGreaterThan(
+            $merchant->getTemporaryPasswordGeneratedAt()->getTimestamp(),
+            $merchant->getTemporaryPasswordExpiresAt()->getTimestamp(),
+        );
 
         $merchantMeResponse = $this->requestJson('GET', '/api/merchant/me', null, $merchant);
         self::assertSame(200, $merchantMeResponse->getStatusCode());

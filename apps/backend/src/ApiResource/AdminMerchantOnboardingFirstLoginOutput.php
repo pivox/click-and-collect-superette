@@ -15,6 +15,9 @@ final readonly class AdminMerchantOnboardingFirstLoginOutput
         #[Groups(['admin_merchant_onboarding:read'])]
         #[SerializedName('temporary_password')]
         public ?string $temporaryPassword = null,
+        #[Groups(['admin_merchant_onboarding:read'])]
+        #[SerializedName('expires_at')]
+        public ?string $expiresAt = null,
     ) {
     }
 }
