@@ -89,4 +89,16 @@ describe('MerchantAuthContext première connexion', () => {
     });
     expect(screen.queryByText('Dashboard marchand')).not.toBeInTheDocument();
   });
+
+  it('laisse la page invitation marchand publique sans redirection login', async () => {
+    pathname = '/merchant/invitation';
+    vi.mocked(getMerchantMe).mockRejectedValue(new Error('No token'));
+
+    render(<MerchantClientLayout>Invitation marchand</MerchantClientLayout>);
+
+    expect(screen.getByText('Invitation marchand')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(push).not.toHaveBeenCalledWith('/merchant/login');
+    });
+  });
 });

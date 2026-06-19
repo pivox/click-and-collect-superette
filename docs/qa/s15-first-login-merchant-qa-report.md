@@ -6,7 +6,7 @@ Issue : #517 — QA première connexion marchand.
 
 - #512 invitation email marchand : mergée via PR #546.
 - #513 accès temporaire première connexion marchand : mergée via PR #548.
-- #515 écran frontend d'invitation : encore ouverte au moment de cette QA.
+- #515 écran frontend d'invitation : couvert par la PR dédiée #515.
 
 ## Périmètre vérifié
 
@@ -55,6 +55,15 @@ retrait.
 
 | Scénario | Couverture |
 |---|---|
+| Écran invitation avec token valide | `merchant.invitation.test.tsx` |
+| Écran invitation token manquant | `merchant.invitation.test.tsx` |
+| Écran invitation token expiré | `merchant.invitation.test.tsx` |
+| Écran invitation token utilisé | `merchant.invitation.test.tsx` |
+| Écran invitation token révoqué | `merchant.invitation.test.tsx` |
+| Écran invitation token invalide | `merchant.invitation.test.tsx` |
+| Validation mot de passe invitation | `merchant.invitation.test.tsx` |
+| Finalisation invitation et redirection login | `merchant.invitation.test.tsx` |
+| Appels API invitation publics sans redirection auth | `merchant.invitation.service.test.ts` |
 | Écran mot de passe provisoire affiché | `merchant.first-login.test.tsx` |
 | Déconnexion depuis première connexion | `merchant.first-login.test.tsx` |
 | Validation confirmation différente | `merchant.first-login.test.tsx` |
@@ -66,19 +75,17 @@ retrait.
 | Redirection depuis dashboard marchand bloqué | `merchant.auth-first-login.test.tsx` |
 | Intercepteur 403 sans boucle sur `/merchant/premiere-connexion` | `api.interceptor.test.ts` |
 
-## Limite volontaire
+## Complément #515
 
-L'issue #515 — écran frontend d'invitation première connexion — est encore
-ouverte au moment de cette QA. Les tests frontend d'invitation email
-succès/expiré/utilisé/invalide/manquant ne sont donc pas ajoutés dans cette PR :
-ils doivent être livrés avec #515 ou dans une QA complémentaire juste après son
-merge.
+La PR #515 ajoute l'écran frontend d'invitation email et les tests associés. Le
+rapport QA couvre désormais les deux modes de première connexion côté frontend :
+invitation email et mot de passe provisoire.
 
 ## Commandes de vérification exécutées
 
 ```bash
 docker compose exec backend php bin/phpunit tests/Functional/Api/MerchantInvitationApiTest.php tests/Functional/Api/MerchantFirstLoginApiTest.php tests/Functional/Api/MerchantAdminApiTest.php
-docker compose run --rm frontend npm run test:run -- src/tests/merchant.first-login.test.tsx src/tests/merchant.auth-first-login.test.tsx src/tests/api.interceptor.test.ts
+docker compose run --rm frontend npm run test:run -- src/tests/merchant.invitation.test.tsx src/tests/merchant.invitation.service.test.ts src/tests/merchant.first-login.test.tsx src/tests/merchant.auth-first-login.test.tsx src/tests/api.interceptor.test.ts
 docker compose exec backend vendor/bin/php-cs-fixer fix --dry-run --diff tests/Functional/Api/MerchantInvitationApiTest.php
 docker compose run --rm frontend npm run lint
 ```

@@ -414,18 +414,25 @@ Implémentation invitation email #512 :
 - les actions admin sont auditées avec `merchant.invitation.create` et
   `merchant.invitation.resend`, sans token, hash, mot de passe ni secret.
 
-Limite restante : l'écran frontend d'invitation (#515) reste hors périmètre de
-cette tranche.
+Implémentation écran invitation #515 :
+
+- le lien email pointe vers `/merchant/invitation?token=...` ;
+- la page vérifie le token via `POST /api/auth/merchant-invitations/verify` ;
+- le marchand définit son mot de passe définitif via
+  `POST /api/auth/merchant-invitations/complete` ;
+- les états token manquant, invalide, expiré, utilisé ou révoqué affichent un
+  message dédié sans exposer le token ;
+- après succès, le marchand est redirigé vers `/merchant/login`.
 
 État de clôture #501 au 19 juin 2026 :
 
 - #512 invitation email marchand est livrée via PR #546 ;
 - #513 accès temporaire terrain est livré via PR #548 ;
 - #517 QA première connexion marchand est livrée via PR #549 ;
-- #515 écran frontend d'invitation reste ouvert et bloque la fermeture de #501.
+- #515 écran frontend d'invitation est livré par la PR dédiée.
 
-Décision : ne pas fermer #501 tant que #515 n'est pas livrée ou explicitement
-sortie du périmètre de l'epic.
+Décision : après merge de #515, reprendre la clôture #501 en vérifiant que la QA
+frontend invitation email et la documentation restent alignées.
 
 ### 9.4 Préchargement catalogue admin
 
