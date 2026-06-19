@@ -157,6 +157,7 @@ final class MerchantInvitationApiTest extends FunctionalApiTestCase
         $storedMerchant = $this->entityManager->getRepository(User::class)->find($merchant->getId());
         self::assertInstanceOf(User::class, $storedMerchant);
         self::assertFalse($storedMerchant->isPasswordChangeRequired());
+        self::assertTrue($storedMerchant->isActive());
         $hasher = self::getContainer()->get(UserPasswordHasherInterface::class);
         self::assertFalse($hasher->isPasswordValid($storedMerchant, 'oldSecret123'));
         self::assertTrue($hasher->isPasswordValid($storedMerchant, 'definitiveSecret456'));
@@ -176,6 +177,37 @@ final class MerchantInvitationApiTest extends FunctionalApiTestCase
         self::assertSame(Response::HTTP_UNAUTHORIZED, $oldLoginResponse->getStatusCode());
         self::assertSame(Response::HTTP_OK, $newLoginResponse->getStatusCode(), (string) $newLoginResponse->getContent());
         self::assertFalse($this->decodeJson($newLoginResponse)['password_change_required']);
+    }
+
+    public function testCompletedInvitationTokenCannotBeReusedToChangePasswordAgain(): void
+    {
+        $merchant = $this->createMerchantWithPassword('merchant-invitation-reuse-after-complete@example.test', 'oldSecret123');
+        $merchant->setPasswordChangeRequired(true);
+        $this->entityManager->flush();
+        $rawToken = $this->createInvitationFor($merchant->getEmail(), $merchant);
+
+        $firstResponse = $this->requestJson('POST', '/api/auth/merchant-invitations/complete', [
+            'token' => $rawToken,
+            'new_password' => 'definitiveSecret456',
+            'new_password_confirmation' => 'definitiveSecret456',
+        ]);
+        self::assertSame(Response::HTTP_NO_CONTENT, $firstResponse->getStatusCode(), (string) $firstResponse->getContent());
+
+        $secondResponse = $this->requestJson('POST', '/api/auth/merchant-invitations/complete', [
+            'token' => $rawToken,
+            'new_password' => 'anotherSecret789',
+            'new_password_confirmation' => 'anotherSecret789',
+        ]);
+        self::assertSame(Response::HTTP_BAD_REQUEST, $secondResponse->getStatusCode());
+        self::assertStringContainsString('MERCHANT_INVITATION_TOKEN_ALREADY_USED', (string) $secondResponse->getContent());
+
+        $this->entityManager->clear();
+        $storedMerchant = $this->entityManager->getRepository(User::class)->find($merchant->getId());
+        self::assertInstanceOf(User::class, $storedMerchant);
+        $hasher = self::getContainer()->get(UserPasswordHasherInterface::class);
+        self::assertTrue($hasher->isPasswordValid($storedMerchant, 'definitiveSecret456'));
+        self::assertFalse($hasher->isPasswordValid($storedMerchant, 'anotherSecret789'));
+        self::assertFalse($storedMerchant->isPasswordChangeRequired());
     }
 
     public function testCompleteInvitationRejectsPasswordConfirmationMismatch(): void
