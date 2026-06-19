@@ -7,6 +7,8 @@ parameters:
     app.password_reset_token_ttl: 3600
     app.merchant_invitation_token_ttl_default: 604800
     app.merchant_invitation_token_ttl: '%env(default:app.merchant_invitation_token_ttl_default:int:MERCHANT_INVITATION_TOKEN_TTL)%'
+    app.merchant_temporary_password_ttl_default: 604800
+    app.merchant_temporary_password_ttl: '%env(default:app.merchant_temporary_password_ttl_default:int:MERCHANT_TEMPORARY_PASSWORD_TTL)%'
     app.frontend_url: '%env(string:FRONTEND_URL)%'
     app.mailer_from_email: '%env(string:MAILER_FROM_EMAIL)%'
     app.mailer_from_name: '%env(string:MAILER_FROM_NAME)%'
@@ -48,6 +50,7 @@ services:
         bind:
             int $passwordResetTokenTtl: '%app.password_reset_token_ttl%'
             int $merchantInvitationTokenTtl: '%app.merchant_invitation_token_ttl%'
+            int $merchantTemporaryPasswordTtl: '%app.merchant_temporary_password_ttl%'
             string $frontendUrl: '%app.frontend_url%'
             string $mailerFromEmail: '%app.mailer_from_email%'
             string $mailerFromName: '%app.mailer_from_name%'

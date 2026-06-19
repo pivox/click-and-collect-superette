@@ -50,7 +50,8 @@ final readonly class ChangeMerchantPasswordProcessor implements ProcessorInterfa
 
         $merchant
             ->setPassword($this->passwordHasher->hashPassword($merchant, $data->newPassword))
-            ->setPasswordChangeRequired(false);
+            ->setPasswordChangeRequired(false)
+            ->clearTemporaryPasswordWindow();
         $this->entityManager->flush();
 
         return null;

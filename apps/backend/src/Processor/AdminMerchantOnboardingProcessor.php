@@ -20,12 +20,12 @@ use App\Repository\AdminStoreRepository;
 use App\Repository\UserRepository;
 use App\Service\AdminAuditLogger;
 use App\Service\MerchantOperationalJournalCalculator;
+use App\Service\MerchantTemporaryPasswordManager;
 use App\Service\ProductGroupCatalogImporter;
 use App\Service\ProductGroupCatalogImportResult;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Uid\Uuid;
 
@@ -40,8 +40,8 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
         private AdminStoreRepository $adminStoreRepository,
         private AdminStoreOutputFactory $adminStoreOutputFactory,
         private EntityManagerInterface $entityManager,
-        private UserPasswordHasherInterface $passwordHasher,
         private AdminAuditLogger $auditLogger,
+        private MerchantTemporaryPasswordManager $temporaryPasswordManager,
         private MerchantOperationalJournalCalculator $operationalJournalCalculator,
         private ProductGroupCatalogImporter $productGroupCatalogImporter,
     ) {
@@ -68,7 +68,6 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
 
         $firstName = $this->normalizeRequiredString($data->merchant->firstName, 'ADMIN_MERCHANT_FIRST_NAME_BLANK');
         $lastName = $this->normalizeRequiredString($data->merchant->lastName, 'ADMIN_MERCHANT_LAST_NAME_BLANK');
-        $temporaryPassword = bin2hex(random_bytes(18));
         $merchant = (new User())
             ->setEmail($email)
             ->setRoles(['ROLE_MERCHANT'])
@@ -76,9 +75,8 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
             ->setLastName($lastName)
             ->setName($firstName.' '.$lastName)
             ->setPhone($this->normalizeNullableString($data->merchant->phone))
-            ->setPasswordChangeRequired(true)
             ->setActive(true);
-        $merchant->setPassword($this->passwordHasher->hashPassword($merchant, $temporaryPassword));
+        $temporaryPassword = $this->temporaryPasswordManager->generateFor($merchant);
 
         $shopName = $this->normalizeRequiredString($data->shop->name, 'ADMIN_STORE_NAME_BLANK');
 
@@ -130,6 +128,7 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
             firstLogin: new AdminMerchantOnboardingFirstLoginOutput(
                 mode: 'temporary_password',
                 temporaryPassword: $temporaryPassword,
+                expiresAt: $merchant->getTemporaryPasswordExpiresAt()?->format(\DateTimeInterface::ATOM),
             ),
             catalogPreload: $this->catalogPreloadOutput($catalogPreload),
         );
@@ -163,7 +162,10 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
             resourceType: 'merchant',
             resourceId: $merchant->getId()->toRfc4122(),
             summary: \sprintf('Mot de passe temporaire créé pour le marchand %s.', $merchant->getEmail()),
-            metadata: ['email' => $merchant->getEmail()],
+            metadata: [
+                'email' => $merchant->getEmail(),
+                'temporary_password_expires_at' => $merchant->getTemporaryPasswordExpiresAt()?->format(\DateTimeInterface::ATOM),
+            ],
         );
     }
 

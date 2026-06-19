@@ -9,7 +9,7 @@ use Symfony\Component\Security\Core\Exception\DisabledException;
 use Symfony\Component\Security\Core\User\UserCheckerInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
-final class DeletedUserChecker implements UserCheckerInterface
+class DeletedUserChecker implements UserCheckerInterface
 {
     public function checkPreAuth(UserInterface $user): void
     {

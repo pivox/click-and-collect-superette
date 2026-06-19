@@ -83,6 +83,7 @@ export interface MerchantListResponse {
 export interface MerchantTemporaryPasswordResponse {
   merchant_id: string;
   temporary_password: string;
+  expires_at?: string;
 }
 
 export interface MerchantOnboardingPayload {
@@ -109,6 +110,7 @@ export interface MerchantOnboardingResponse {
   first_login: {
     mode: 'temporary_password';
     temporary_password?: string | null;
+    expires_at?: string | null;
   };
   catalog_preload: {
     added_count: number;

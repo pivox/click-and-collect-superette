@@ -32,6 +32,77 @@ final class MerchantFirstLoginApiTest extends FunctionalApiTestCase
         self::assertArrayNotHasKey('token', $payload);
     }
 
+    public function testExpiredTemporaryPasswordCannotLogin(): void
+    {
+        [$merchant, $temporaryPassword] = $this->createOnboardedMerchant('merchant-first-login-expired-login@example.test');
+        $merchant->setTemporaryPasswordExpiresAt(new \DateTimeImmutable('-1 minute'));
+        $this->entityManager->flush();
+
+        $loginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant-first-login-expired-login@example.test',
+            'password' => $temporaryPassword,
+        ]);
+
+        self::assertSame(401, $loginResponse->getStatusCode());
+        self::assertStringContainsString('MERCHANT_TEMPORARY_PASSWORD_EXPIRED', (string) $loginResponse->getContent());
+    }
+
+    public function testExpiredTemporaryPasswordLoginDoesNotRevealStateWithWrongPassword(): void
+    {
+        [$merchant] = $this->createOnboardedMerchant('merchant-first-login-expired-wrong@example.test');
+        $merchant->setTemporaryPasswordExpiresAt(new \DateTimeImmutable('-1 minute'));
+        $this->entityManager->flush();
+
+        $loginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant-first-login-expired-wrong@example.test',
+            'password' => 'wrongSecret123',
+        ]);
+
+        self::assertSame(401, $loginResponse->getStatusCode());
+        self::assertStringNotContainsString('MERCHANT_TEMPORARY_PASSWORD_EXPIRED', (string) $loginResponse->getContent());
+    }
+
+    public function testLegacyRequiredPasswordChangeWithoutTemporaryExpirationIsRejected(): void
+    {
+        $merchant = $this->createMerchantWithPassword(
+            'merchant-first-login-legacy-expired@example.test',
+            'temporarySecret123',
+        );
+        $merchant->setPasswordChangeRequired(true);
+        $this->entityManager->flush();
+
+        $loginResponse = $this->requestJson('POST', '/api/auth/login', [
+            'email' => 'merchant-first-login-legacy-expired@example.test',
+            'password' => 'temporarySecret123',
+        ]);
+        self::assertSame(401, $loginResponse->getStatusCode());
+        self::assertStringContainsString('MERCHANT_TEMPORARY_PASSWORD_EXPIRED', (string) $loginResponse->getContent());
+
+        $changeResponse = $this->requestJson('POST', '/api/merchant/first-login/change-password', [
+            'current_password' => 'temporarySecret123',
+            'new_password' => 'definitiveSecret456',
+            'new_password_confirmation' => 'definitiveSecret456',
+        ], $merchant);
+        self::assertSame(403, $changeResponse->getStatusCode());
+        self::assertStringContainsString('MERCHANT_TEMPORARY_PASSWORD_EXPIRED', (string) $changeResponse->getContent());
+    }
+
+    public function testExpiredTemporaryPasswordCannotBeFinalized(): void
+    {
+        [$merchant, $temporaryPassword] = $this->createOnboardedMerchant('merchant-first-login-expired-change@example.test');
+        $merchant->setTemporaryPasswordExpiresAt(new \DateTimeImmutable('-1 minute'));
+        $this->entityManager->flush();
+
+        $response = $this->requestJson('POST', '/api/merchant/first-login/change-password', [
+            'current_password' => $temporaryPassword,
+            'new_password' => 'definitiveSecret456',
+            'new_password_confirmation' => 'definitiveSecret456',
+        ], $merchant);
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertStringContainsString('MERCHANT_TEMPORARY_PASSWORD_EXPIRED', (string) $response->getContent());
+    }
+
     public function testMerchantWithRequiredPasswordChangeCannotAccessBusinessEndpoint(): void
     {
         [$merchant, , $shop] = $this->createOnboardedMerchant('merchant-first-login-blocked@example.test');
@@ -113,6 +184,8 @@ final class MerchantFirstLoginApiTest extends FunctionalApiTestCase
         $hasher = self::getContainer()->get(UserPasswordHasherInterface::class);
         self::assertFalse($hasher->isPasswordValid($stored, $temporaryPassword));
         self::assertTrue($hasher->isPasswordValid($stored, 'definitiveSecret456'));
+        self::assertNull($stored->getTemporaryPasswordGeneratedAt());
+        self::assertNull($stored->getTemporaryPasswordExpiresAt());
 
         $oldLogin = $this->requestJson('POST', '/api/auth/login', [
             'email' => 'merchant-first-login-success@example.test',

@@ -12,6 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'users')]
+#[ORM\Index(name: 'IDX_USERS_TEMPORARY_PASSWORD_EXPIRES_AT', columns: ['temporary_password_expires_at'])]
 #[ORM\HasLifecycleCallbacks]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
@@ -33,6 +34,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(options: ['default' => false])]
     private bool $passwordChangeRequired = false;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $temporaryPasswordGeneratedAt = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $temporaryPasswordExpiresAt = null;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
@@ -139,6 +146,51 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->passwordChangeRequired = $passwordChangeRequired;
 
         return $this;
+    }
+
+    public function getTemporaryPasswordGeneratedAt(): ?\DateTimeImmutable
+    {
+        return $this->temporaryPasswordGeneratedAt;
+    }
+
+    public function setTemporaryPasswordGeneratedAt(?\DateTimeImmutable $temporaryPasswordGeneratedAt): static
+    {
+        $this->temporaryPasswordGeneratedAt = $temporaryPasswordGeneratedAt;
+
+        return $this;
+    }
+
+    public function getTemporaryPasswordExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->temporaryPasswordExpiresAt;
+    }
+
+    public function setTemporaryPasswordExpiresAt(?\DateTimeImmutable $temporaryPasswordExpiresAt): static
+    {
+        $this->temporaryPasswordExpiresAt = $temporaryPasswordExpiresAt;
+
+        return $this;
+    }
+
+    public function clearTemporaryPasswordWindow(): static
+    {
+        $this->temporaryPasswordGeneratedAt = null;
+        $this->temporaryPasswordExpiresAt = null;
+
+        return $this;
+    }
+
+    public function isTemporaryPasswordExpired(?\DateTimeImmutable $now = null): bool
+    {
+        if (!$this->passwordChangeRequired) {
+            return false;
+        }
+
+        if (null === $this->temporaryPasswordExpiresAt) {
+            return true;
+        }
+
+        return $this->temporaryPasswordExpiresAt <= ($now ?? new \DateTimeImmutable());
     }
 
     public function getName(): string

@@ -10,12 +10,12 @@ use App\ApiResource\AdminMerchantTemporaryPasswordOutput;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\AdminAuditLogger;
+use App\Service\MerchantTemporaryPasswordManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -26,8 +26,8 @@ final readonly class AdminResetMerchantTemporaryPasswordProcessor implements Pro
     public function __construct(
         private UserRepository $userRepository,
         private EntityManagerInterface $entityManager,
-        private UserPasswordHasherInterface $passwordHasher,
         private AdminAuditLogger $auditLogger,
+        private MerchantTemporaryPasswordManager $temporaryPasswordManager,
         #[Autowire(service: 'monolog.logger.admin')]
         private LoggerInterface $logger,
     ) {
@@ -46,16 +46,17 @@ final readonly class AdminResetMerchantTemporaryPasswordProcessor implements Pro
             throw new UnprocessableEntityHttpException('ADMIN_MERCHANT_TARGET_NOT_MERCHANT');
         }
 
-        $temporaryPassword = bin2hex(random_bytes(18));
-        $user->setPassword($this->passwordHasher->hashPassword($user, $temporaryPassword));
-        $user->setPasswordChangeRequired(true);
+        $temporaryPassword = $this->temporaryPasswordManager->generateFor($user);
 
         $this->auditLogger->log(
             action: 'merchant.temporary_password.reset',
             resourceType: 'merchant',
             resourceId: $user->getId()->toRfc4122(),
             summary: \sprintf('Mot de passe temporaire du marchand %s réinitialisé.', $user->getEmail()),
-            metadata: ['email' => $user->getEmail()],
+            metadata: [
+                'email' => $user->getEmail(),
+                'temporary_password_expires_at' => $user->getTemporaryPasswordExpiresAt()?->format(\DateTimeInterface::ATOM),
+            ],
         );
 
         $this->entityManager->flush();
@@ -67,6 +68,8 @@ final readonly class AdminResetMerchantTemporaryPasswordProcessor implements Pro
         return new AdminMerchantTemporaryPasswordOutput(
             merchantId: $user->getId()->toRfc4122(),
             temporaryPassword: $temporaryPassword,
+            expiresAt: $user->getTemporaryPasswordExpiresAt()?->format(\DateTimeInterface::ATOM)
+                ?? throw new \LogicException('Temporary password expiration missing.'),
         );
     }
 
