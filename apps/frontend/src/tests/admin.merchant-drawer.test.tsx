@@ -4,6 +4,7 @@ import { MerchantDrawer } from '@/components/admin/marchands/MerchantDrawer';
 import {
   createMerchantOnboarding,
   createMerchant,
+  resendMerchantInvitation,
   resetMerchantTemporaryPassword,
   updateMerchant,
 } from '@/lib/services/admin/merchants.service';
@@ -18,6 +19,7 @@ vi.mock('@/components/admin/marchands/MerchantCrmSection', () => ({
 vi.mock('@/lib/services/admin/merchants.service', () => ({
   createMerchantOnboarding: vi.fn(),
   createMerchant: vi.fn(),
+  resendMerchantInvitation: vi.fn(),
   updateMerchant: vi.fn(),
   resetMerchantTemporaryPassword: vi.fn(),
 }));
@@ -326,6 +328,11 @@ describe('MerchantDrawer', () => {
         errors: [],
       },
     });
+    vi.mocked(resendMerchantInvitation).mockResolvedValue({
+      merchant_id: MERCHANT.id,
+      status: 'sent',
+      expires_at: '2026-06-08T10:05:00+01:00',
+    });
     renderDrawer(null);
 
     fireEvent.change(screen.getByLabelText('Prénom *'), { target: { value: 'Maha' } });
@@ -340,6 +347,14 @@ describe('MerchantDrawer', () => {
     expect(screen.queryByText('Invitation email envoyée')).not.toBeInTheDocument();
     expect(screen.queryByText('Mot de passe temporaire')).not.toBeInTheDocument();
     expect(screen.queryByText(/token/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Renvoyer l’invitation' }));
+
+    await waitFor(() => {
+      expect(resendMerchantInvitation).toHaveBeenCalledWith(MERCHANT.id);
+    });
+    expect(await screen.findByText('Invitation email envoyée')).toBeInTheDocument();
+    expect(screen.queryByText('Invitation email non envoyée')).not.toBeInTheDocument();
   });
 
   it('efface le mot de passe temporaire onboarding à la fermeture', async () => {

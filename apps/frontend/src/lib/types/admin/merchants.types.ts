@@ -86,6 +86,12 @@ export interface MerchantTemporaryPasswordResponse {
   expires_at?: string;
 }
 
+export interface MerchantInvitationResponse {
+  merchant_id: string;
+  status: 'sent';
+  expires_at: string;
+}
+
 export type FirstLoginMode = 'temporary_password' | 'email_invitation';
 
 export interface MerchantOnboardingPayload {

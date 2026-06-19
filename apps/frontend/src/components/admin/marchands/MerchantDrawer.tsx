@@ -6,6 +6,7 @@ import { MerchantCrmSection } from '@/components/admin/marchands/MerchantCrmSect
 import { Button } from '@/components/ui/Button';
 import {
   createMerchantOnboarding,
+  resendMerchantInvitation,
   resetMerchantTemporaryPassword,
   updateMerchant,
 } from '@/lib/services/admin/merchants.service';
@@ -39,6 +40,8 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  const [isResendingInvitation, setIsResendingInvitation] = useState(false);
+  const [invitationResendError, setInvitationResendError] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -73,6 +76,8 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     setOnboardingResult(null);
     setError(null);
     setTemporaryPassword(null);
+    setIsResendingInvitation(false);
+    setInvitationResendError(null);
     setResetError(null);
     setCopyMessage(null);
     setIsResettingPassword(false);
@@ -144,6 +149,7 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
         });
         setOnboardingResult(result);
         setTemporaryPassword(result.first_login.temporary_password ?? null);
+        setInvitationResendError(null);
       }
     } catch (e) {
       const detail = axios.isAxiosError(e) ? String(e.response?.data?.detail ?? '') : '';
@@ -161,6 +167,8 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     resetRequestSeq.current += 1;
     setTemporaryPassword(null);
     setOnboardingResult(null);
+    setIsResendingInvitation(false);
+    setInvitationResendError(null);
     setResetError(null);
     setCopyMessage(null);
     setIsResettingPassword(false);
@@ -232,6 +240,29 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
     }
   };
 
+  const handleResendInvitation = async () => {
+    if (!onboardingResult || onboardingResult.first_login.invitation_status !== 'delivery_failed') {
+      return;
+    }
+
+    setIsResendingInvitation(true);
+    setInvitationResendError(null);
+    try {
+      await resendMerchantInvitation(onboardingResult.merchant.id);
+      setOnboardingResult({
+        ...onboardingResult,
+        first_login: {
+          ...onboardingResult.first_login,
+          invitation_status: 'sent',
+        },
+      });
+    } catch {
+      setInvitationResendError("Impossible de renvoyer l'invitation email.");
+    } finally {
+      setIsResendingInvitation(false);
+    }
+  };
+
   const inputClass =
     'w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
   const opsJournal = merchant?.ops_journal ?? null;
@@ -264,9 +295,23 @@ export function MerchantDrawer({ open, onClose, merchant, onSaved, onCrmChanged 
               </p>
             )}
             {onboardingResult.first_login.mode === 'email_invitation' && onboardingResult.first_login.invitation_status === 'delivery_failed' && (
-              <p className="mt-2 text-sm font-semibold text-amber-900">
-                Invitation email non envoyée
-              </p>
+              <div className="mt-2 space-y-2">
+                <p className="text-sm font-semibold text-amber-900">
+                  Invitation email non envoyée
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  onClick={() => void handleResendInvitation()}
+                  disabled={isResendingInvitation}
+                >
+                  {isResendingInvitation ? 'Renvoi en cours…' : 'Renvoyer l’invitation'}
+                </Button>
+                {invitationResendError && (
+                  <p className="text-sm text-status-cancel">{invitationResendError}</p>
+                )}
+              </div>
             )}
             <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-green-900">
               <span>{formatCount(onboardingResult.catalog_preload.added_count, 'ajouté', 'ajoutés')}</span>
