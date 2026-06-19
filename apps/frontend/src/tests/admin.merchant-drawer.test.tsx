@@ -343,7 +343,13 @@ describe('MerchantDrawer', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
-    expect(await screen.findByText('Invitation email non envoyée')).toBeInTheDocument();
+    const failedHeading = await screen.findByRole('heading', { name: 'Onboarding créé, action requise' });
+    const failedSummary = failedHeading.closest('section');
+    expect(failedSummary).toHaveClass('border-amber-200');
+    expect(failedSummary).not.toHaveClass('border-green-200');
+    expect(screen.getByText('Le marchand et la supérette sont créés, mais l’email d’invitation n’a pas été envoyé.')).toBeInTheDocument();
+    expect(screen.getByText('Invitation email non envoyée')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Renvoyer l’invitation' })).toBeInTheDocument();
     expect(screen.queryByText('Invitation email envoyée')).not.toBeInTheDocument();
     expect(screen.queryByText('Mot de passe temporaire')).not.toBeInTheDocument();
     expect(screen.queryByText(/token/i)).not.toBeInTheDocument();
@@ -353,8 +359,11 @@ describe('MerchantDrawer', () => {
     await waitFor(() => {
       expect(resendMerchantInvitation).toHaveBeenCalledWith(MERCHANT.id);
     });
-    expect(await screen.findByText('Invitation email envoyée')).toBeInTheDocument();
+    const sentHeading = await screen.findByRole('heading', { name: 'Onboarding créé' });
+    expect(sentHeading.closest('section')).toHaveClass('border-green-200');
+    expect(screen.getByText('Invitation email envoyée')).toBeInTheDocument();
     expect(screen.queryByText('Invitation email non envoyée')).not.toBeInTheDocument();
+    expect(screen.queryByText('Le marchand et la supérette sont créés, mais l’email d’invitation n’a pas été envoyé.')).not.toBeInTheDocument();
   });
 
   it('efface le mot de passe temporaire onboarding à la fermeture', async () => {
