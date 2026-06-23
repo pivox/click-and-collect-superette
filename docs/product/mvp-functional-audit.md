@@ -67,7 +67,7 @@ Ne pas recréer `docs/roadmap/mvp-roadmap.md`.
 | QR code retrait | Oui | Oui | Oui | Oui | OK | `PickupSession`, code retrait, scan, session client. |
 | Double validation retrait | Oui | Oui | Oui | Oui | OK | Scan marchand, confirmations client/marchand, force completion. |
 | Notifications in-app client/marchand | Oui | Oui | Oui | Oui | OK | Endpoints client/marchand, polling. |
-| Web Push (#376) | Oui | Oui | Oui | Oui | PARTIEL | Issue fermée `completed`; souscriptions client/marchand, service worker et toggle testés. Envoi réel navigateur/plateformes non validé en E2E dans cette passe. |
+| Web Push (#376) | Oui | Oui | Partiel | Oui | PARTIEL | Issue fermée `completed`; souscriptions client/marchand, service worker et toggle testés. Envoi réel navigateur/plateformes non validé en E2E dans cette passe. |
 | Suivi statut client | Oui | Oui | Oui | Oui | OK | `GET /api/me/orders/{orderId}/status`. |
 | Rappel retrait 1h | Oui | Oui | Oui | Oui | PARTIEL | Planification Messenger et transport Doctrine livrés ; contenu notification encore générique. |
 | Historique statuts commande | Oui | Oui | Oui | Oui | OK | `OrderStatusLog` client/marchand. |
@@ -87,7 +87,7 @@ Ne pas recréer `docs/roadmap/mvp-roadmap.md`.
 | Paiement manuel abonnement | Oui | Oui | Oui | Oui | OK | Paiement admin espèces/virement, consultation marchand/admin, audit, tests. |
 | Relances paiement | Oui | Oui | Oui | Oui | OK | Relances email / WhatsApp manuel côté billing, traces et tests ciblés. |
 | Suspension douce / réactivation (#364) | Oui | Oui | Oui | Oui | OK | Issue fermée `completed`; soumission bloquée si marchand/subscription suspendu, catalogue conservé, paiement réactive. |
-| Packs produits (#382) | Oui | Oui | Oui | Partiel | OK | Issue fermée `completed`; code présent sur `main` (`9f914ff`, correctifs #463) : `ProductPack`, `ProductPackItem`, `MerchantProductPackOutput`, endpoints API Platform marchand/client, ajout à la Kadhia et `MerchantProductPackApiTest`. Contrat API documentaire à compléter hors de cette PR. |
+| Packs produits (#382) | Oui | Partiel | Oui | Partiel | PARTIEL | Issue fermée `completed` pour le socle backend/API : `ProductPack`, `ProductPackItem`, endpoints marchand/client, ajout à la Kadhia et `MerchantProductPackApiTest`. Aucun consommateur, service, composant ou route packs n'est constaté dans `apps/frontend/src`; contrat API documentaire à compléter. |
 | Suggestions de Kadhia (#383) | Oui | Oui | Oui | Partiel | OK | Issue fermée `completed`; PR #484 fusionnée : `StoreSuggestionsOutput`, favoris, remplacements indisponibles, `KadhiaSuggestionService`, `StoreSuggestionsApiTest`, `KadhiaSuggestionServiceTest` et tests frontend suggestions/favoris. Contrat API documentaire à compléter hors de cette PR. |
 | Promotions simples (#384) | Oui | Oui | Oui | Oui | OK | Issue fermée `completed`; promo active/expirée, prix effectif, snapshot Kadhia, suivi admin. |
 | CRM léger marchand (#385) | Oui | Oui | Oui | Oui | OK | Issue fermée `completed`; profil CRM, contacts, filtres, tests backend/front. |
@@ -120,11 +120,13 @@ décider après validation comptable.
 ### Packs et suggestions
 
 #382 et #383 sont fermées GitHub et techniquement représentées sur `main`.
-Les packs couvrent création/édition/suppression marchand, affichage client et
-ajout à la Kadhia avec snapshot prix. Les suggestions couvrent co-occurrence,
-récents, favoris et remplacements de produits indisponibles. Cette PR ne modifie
-pas `docs/architecture/api-contract.md` ; le contrat API documentaire reste donc
-à compléter sans remettre en cause la livraison technique.
+Les packs couvrent côté backend/API la création, l'édition et la suppression
+marchand, le listing client et l'ajout à la Kadhia avec snapshot prix. Aucune UI
+PWA consommant ces endpoints n'est constatée dans `apps/frontend/src` : les packs
+restent donc `PARTIEL` fonctionnellement et hors gate de valeur visible.
+Les suggestions couvrent co-occurrence, récents, favoris et remplacements de
+produits indisponibles avec des tests backend/front. Le contrat API documentaire
+des deux blocs reste à compléter sans remettre en cause leurs acquis techniques.
 
 ### WhatsApp et Messenger
 
