@@ -46,10 +46,6 @@ $allowedPatterns = [
     '/^DROP TABLE messenger_worker_state;$/',
     '/^DROP INDEX idx_subscriptions_(created_at|pricing_phase|lifecycle);$/',
     '/^DROP INDEX idx_messenger_messages_(available_at|delivered_at|queue_name|queue_available);$/',
-    '/^DROP INDEX uniq_kadhia_share_links_active_kadhia;$/',
-    '/^CREATE UNIQUE INDEX UNIQ_KADHIA_SHARE_LINKS_ACTIVE_KADHIA ON kadhia_share_links \(kadhia_id\) WHERE active = true;$/',
-    '/^DROP INDEX uniq_merchant_invitation_pending_merchant;$/',
-    '/^CREATE UNIQUE INDEX UNIQ_MERCHANT_INVITATION_PENDING_MERCHANT ON merchant_invitation_tokens \(merchant_id\) WHERE used_at IS NULL AND revoked_at IS NULL;$/',
     '/^ALTER INDEX idx_subscription_payment_reminders_(subscription|admin) RENAME TO IDX_[A-F0-9]+;$/',
     '/^ALTER INDEX idx_subscription_payments_(created_by_admin|validated_by_admin) RENAME TO IDX_[A-F0-9]+;$/',
     '/^ALTER INDEX uniq_merchant_invitation_token_hash RENAME TO UNIQ_[A-F0-9]+;$/',
@@ -68,6 +64,27 @@ $allowedPatterns = [
     '/^COMMENT ON COLUMN (subscriptions|subscription_payment_reminders|subscription_payments|billing_documents|incidents|product_packs|product_pack_items|incident_notes|messenger_messages|merchant_crm_profiles|merchant_crm_contacts|product_groups|product_group_items|customer_product_favorites|feedback_entries|feedback_settings|kadhia_members|kadhia_share_links)\.[a-z_]+ IS \'\';$/',
 ];
 
+$allowedPairedPatterns = [
+    [
+        '/^DROP INDEX uniq_kadhia_share_links_active_kadhia;$/',
+        '/^CREATE UNIQUE INDEX UNIQ_KADHIA_SHARE_LINKS_ACTIVE_KADHIA ON kadhia_share_links \(kadhia_id\) WHERE active = true;$/',
+    ],
+    [
+        '/^DROP INDEX uniq_merchant_invitation_pending_merchant;$/',
+        '/^CREATE UNIQUE INDEX UNIQ_MERCHANT_INVITATION_PENDING_MERCHANT ON merchant_invitation_tokens \(merchant_id\) WHERE used_at IS NULL AND revoked_at IS NULL;$/',
+    ],
+];
+
+$matchesAnyStatement = static function (string $pattern) use ($statements): bool {
+    foreach ($statements as $statement) {
+        if (1 === preg_match($pattern, $statement)) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
 $unexpected = [];
 foreach ($statements as $statement) {
     $isAllowed = false;
@@ -75,6 +92,21 @@ foreach ($statements as $statement) {
         if (1 === preg_match($pattern, $statement)) {
             $isAllowed = true;
             break;
+        }
+    }
+
+    if (!$isAllowed) {
+        foreach ($allowedPairedPatterns as [$dropPattern, $createPattern]) {
+            $matchesKnownPair = 1 === preg_match($dropPattern, $statement)
+                || 1 === preg_match($createPattern, $statement);
+            if (
+                $matchesKnownPair
+                && $matchesAnyStatement($dropPattern)
+                && $matchesAnyStatement($createPattern)
+            ) {
+                $isAllowed = true;
+                break;
+            }
         }
     }
 
