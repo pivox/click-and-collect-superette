@@ -6,15 +6,16 @@ Build and maintain a full-stack click & collect application for local supérette
 
 The customer scans a shop QR code, opens the shop space, browses products, prepares a **Kadhia**, chooses a pickup slot, submits the order, then picks it up after merchant validation.
 
-The repository now contains backend, frontend, admin, merchant and product documentation. `AI_CONTEXT.md` is the source of truth for the current project state, MVP scope, business vocabulary, order statuses and reference entities.
+The repository now contains backend, frontend, admin, merchant and product documentation. `docs/project/source-of-truth.md` is the project entry point and precedence document. `AI_CONTEXT.md` remains the shared AI context for MVP scope, business vocabulary, order statuses and reference entities.
 
 ## Always read first
 
 Before changing anything, read these files when present:
 
-1. `AI_CONTEXT.md` — source of truth for current project state, MVP scope, business vocabulary, order statuses and reference entities
+1. `AI_CONTEXT.md` — shared AI context for current project state, MVP scope, business vocabulary, order statuses and reference entities
 2. `README.md` — development workflow and repository orientation
-3. relevant `docs/product/`, sprint or roadmap documentation for the task
+3. `docs/project/source-of-truth.md` — project entry point and documentation precedence
+4. relevant `docs/product/`, sprint or roadmap documentation for the task
 
 **Codex CLI** — then read: `Codex/instructions.md`, `Codex/workflows.md`, `Codex/checklist.md`
 

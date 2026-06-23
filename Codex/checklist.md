@@ -3,8 +3,9 @@
 ## Avant modification
 
 - [ ] `AGENTS.md` lu.
-- [ ] `AI_CONTEXT.md` lu comme source prioritaire de l'état courant, du MVP scope, du vocabulaire, des statuts de commande et des entités.
+- [ ] `AI_CONTEXT.md` lu comme contexte IA prioritaire du MVP scope, du vocabulaire, des statuts de commande et des entités.
 - [ ] `README.md` lu.
+- [ ] `docs/project/source-of-truth.md` lu pour la hiérarchie et la précédence documentaire.
 - [ ] Documentation métier, sprint ou roadmap pertinente lue.
 - [ ] Hypothèses listées.
 

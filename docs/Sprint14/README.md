@@ -1,63 +1,50 @@
-# Sprint 14 — Redéfinition des sprints à partir de 14
+# Sprint 14 — Roadmap active de lancement
 
-Date de cadrage : 2026-06-07  
+Date de cadrage initial : 2026-06-07
+Dernière révision documentaire : 2026-06-23
 Rôles de cadrage : PO + Tech Lead  
-Point de départ : Sprint 13 reste le sprint catalogue/référentiel. La redéfinition stratégique commence ici, à Sprint 14.
+Statut : roadmap active à partir du Sprint 14.
 
 ## 1. Décision PO / Tech Lead
 
-À partir de Sprint 14, la roadmap ne vise plus une bêta publique.
+À partir de Sprint 14, la roadmap ne vise plus une bêta publique fragile.
 
-Nouvelle intention :
+Intention active :
 
 ```text
 Préparer une V1 de lancement officiel complète, mobile-first, monétisable et exploitable.
 ```
 
-Règle de structure :
+Règles :
 
-```text
-Sprints 10 à 13 : ne pas les renommer dans cette passe.
-Sprint 13 : finir le référentiel restant, sans replanifier les items déjà livrés.
-À partir de Sprint 14 : redéfinir l'ordre et l'intention des sprints restants.
-```
+- ne pas renommer les sprints historiques 10 à 13 ;
+- ne pas replanifier une issue déjà livrée ;
+- distinguer livré, actif avant lancement, reporté après lancement,
+  conditionnel et à décider ;
+- garder Facebook Messenger optionnel tant qu'aucune décision PO explicite ne
+  le rend bloquant ;
+- garder les apps natives derrière une gate terrain.
 
-## 2. Vision PO
+## 2. Hiérarchie documentaire
 
-Le PO veut éviter une sortie publique fragile.
+- Point d'entrée projet : [docs/project/source-of-truth.md](../project/source-of-truth.md).
+- Roadmap active : ce document.
+- Synthèse stratégique : [docs/roadmap/launch-readiness-reorganization.md](../roadmap/launch-readiness-reorganization.md).
+- Audit fonctionnel : [docs/product/mvp-functional-audit.md](../product/mvp-functional-audit.md).
+- Contrat API : [docs/architecture/api-contract.md](../architecture/api-contract.md).
 
-Avant lancement officiel, il faut :
+`docs/product/mvp-roadmap.md` reste un index court. Ne pas recréer
+`docs/roadmap/mvp-roadmap.md`.
 
-- une expérience mobile installable ;
-- un support minimum ;
-- une monétisation prête ;
-- un onboarding catalogue minimum ;
-- des outils admin suffisants ;
-- un catalogue fiable ;
-- une valeur commerciale minimale pour le marchand.
-
-## 3. Vision Tech Lead
-
-Le Tech Lead impose :
-
-- réutiliser `apps/frontend/` pour PWA client et marchand ;
-- ne pas lancer les apps natives avant preuve d'usage ;
-- ne pas complexifier le push si PWA + WhatsApp + notifications in-app suffisent au lancement ;
-- documenter toute nouvelle route API ;
-- garder des PR atomiques ;
-- ne pas construire de recommandations avancées sans données réelles ;
-- ne pas replanifier les issues déjà livrées.
-
-## 4. Nouveau découpage à partir de Sprint 14
+## 3. Découpage actif
 
 ```text
 Sprint 14 — Mobile Launch Readiness
 Sprint 15 — Monétisation, support et exploitation avant lancement
 Sprint 16 — Valeur commerciale minimale avant lancement
+Conditionnel — Canaux externes Messenger / WhatsApp
 Post-lancement — Apps natives et growth avancée
 ```
-
-Cette redéfinition garde les anciens numéros d'issues pour l'historique, mais change l'ordre d'exécution et le périmètre cible.
 
 ---
 
@@ -65,63 +52,41 @@ Cette redéfinition garde les anciens numéros d'issues pour l'historique, mais 
 
 ## Objectif
 
-Transformer l'expérience web responsive en expérience mobile installable et utilisable en conditions terrain.
+Transformer l'expérience web responsive en expérience mobile installable et
+utilisable en conditions terrain.
 
-## Acquis déjà livrés
+## Acquis livrés
 
-```text
-S14-004 — #377 — Arabe / RTL câblé dans l'application
-```
+| Issue | Sujet | Preuve documentaire / technique |
+|---|---|---|
+| #374 | PWA client | Fermée GitHub `completed`; `manifest.webmanifest`, `next-pwa`, service worker partagé. |
+| #375 | PWA marchand | Fermée GitHub `completed`; `merchant-manifest.webmanifest`, scope marchand, service worker partagé. |
+| #376 | Push notifications | Fermée GitHub `completed`; ressources API `CustomerPushSubscriptionResource`, `MerchantPushSubscriptionResource`, `PushSubscriptionApiTest`, toggle frontend. |
+| #377 | Arabe / RTL câblé | Déjà acquis Sprint 14 ; ne pas replanifier. |
+| #379 | Accessibilité minimum | Fermée GitHub `completed`; corrections front ciblées constatées, sans prétendre à un audit WCAG complet. |
 
-Cet item reste une dépendance de qualité mobile, mais ne doit pas être replanifié comme travail restant.
+## Actif avant lancement
 
-## Issues actives
+| Issue | Sujet | Position |
+|---|---|---|
+| #378 | WhatsApp semi-manuel client + marchand | Ouverte ; fallback utile terrain, non bloquant si notifications in-app + Web Push couvrent les cas minimum. |
+| #527 | Suivi global prioritaire | Ouverte ; issue mère de gouvernance et stabilisation. |
+| #543 | Sécurisation `FRONTEND_URL` | Ouverte P2 ; fiabilisation QR magasin et liens Kadhia, non bloquante pour les PR MVP urgentes. |
 
-```text
-S14-001 — #374 — PWA client
-S14-002 — #375 — PWA marchand
-S14-006 — #379 — Accessibilité minimum
-S14-005 — #378 — WhatsApp semi-manuel
-S14-post — #402 — Server Components i18n restants
-S14-post — #403 — Dates localisées selon langue active
-S14-post — #404 — aria-label notifications client
-S14-003 — #376 — Push notifications
-```
+## Reporté après lancement
 
-## Ordre recommandé
-
-```text
-1. PWA client
-2. PWA marchand
-3. Accessibilité minimum
-4. WhatsApp semi-manuel
-5. Finitions i18n/accessibilité
-6. Push notifications
-```
-
-## Décision PO
-
-La priorité est que client et marchand puissent utiliser l'application comme une app mobile installable.
-
-Le push est utile, mais ne doit pas bloquer le lancement si les notifications in-app et WhatsApp couvrent les cas terrain minimum.
-
-## Décision Tech Lead
-
-PWA client et marchand doivent rester dans `apps/frontend/` et réutiliser l'API existante.
-
-Le push Web doit être traité comme une amélioration contrôlée, avec limites iOS documentées.
-
-## Hors périmètre
-
-- Apps Android/iOS natives.
-- Refonte mobile complète.
-- Push natif APNs/FCM.
-- Mode offline complet.
+| Issue | Sujet | Raison |
+|---|---|---|
+| #386 | App native Android marchand | Gate terrain : seulement si limites PWA constatées. |
+| #387 | App native Android client | Gate terrain. |
+| #388 | App native iOS client | Gate terrain et limites iOS/PWA à mesurer. |
+| #389 | App native iOS marchand | Gate terrain. |
 
 ## Critère de sortie
 
 ```text
-Le client et le marchand peuvent installer la PWA, commander, traiter une commande, suivre le retrait et contacter l'autre partie via WhatsApp si nécessaire.
+Le client et le marchand peuvent installer la PWA, commander, traiter une commande,
+suivre le retrait et utiliser un canal de contact terrain si nécessaire.
 ```
 
 ---
@@ -130,72 +95,49 @@ Le client et le marchand peuvent installer la PWA, commander, traiter une comman
 
 ## Objectif
 
-Regrouper les capacités nécessaires pour lancer officiellement sans perdre le contrôle opérationnel, commercial et onboarding marchand.
+Lancer officiellement sans perdre le contrôle opérationnel, commercial et
+onboarding marchand.
 
-## Acquis déjà livrés / prérequis à ne pas replanifier
+## Acquis livrés
 
-```text
-#359 — Module abonnement marchand
-#360 — Statuts abonnement lifecycle / phase tarifaire
-#362 — Paiement manuel espèces / virement
-#363 — Relances paiement email + WhatsApp manuel
-#366 — Incidents commande
-#367 — Backoffice support
-#368 — Journal opérationnel marchand complet + vue santé
-#369 — Runbook support terrain
-#420 — Écran santé jobs async
-#421 — Écran métriques pré-lancement
-#422 — Détail checklist activation supérette
-```
+| Issue | Sujet | Preuve documentaire / technique |
+|---|---|---|
+| #359 | Module abonnement marchand | Fondation abonnement existante. |
+| #360 | Statuts abonnement lifecycle / phase tarifaire | `SubscriptionLifecycle`, `SubscriptionPricingPhase`. |
+| #361 | Document mensuel interne non fiscal | Fermée GitHub `completed`; décision produit acceptée le 2026-06-05, `BillingDocument`, endpoints admin/marchand et tests. |
+| #362 | Paiement manuel espèces / virement | Paiements admin, consultation marchand/admin, tests. |
+| #363 | Relances paiement email + WhatsApp manuel | Relances et traces présentes côté billing. |
+| #364 | Suspension douce et réactivation | Fermée GitHub `completed`; blocage soumission sur marchand suspendu, réactivation par paiement, tests. |
+| #365 | Import CSV + code-barres | Fermée GitHub `completed`; import CSV backend/front et recherche exacte code-barres. Scan caméra non retenu comme socle API. |
+| #366 | Incidents commande | Fondation support acquise. |
+| #367 | Backoffice support | Fondation support acquise. |
+| #368 | Journal opérationnel marchand complet + vue santé | Fondation ops acquise. |
+| #369 | Runbook support terrain | Documentation support acquise. |
+| #420 | Écran santé jobs async | Admin ops acquis. |
+| #421 | Écran métriques pré-lancement | Admin métriques acquis. |
+| #422 | Détail checklist activation supérette | Admin activation acquis. |
+| #482 | Feedback contextualisé | Présent comme module de retour terrain ; stabilisations liées #527 déjà suivies. |
 
-Ces éléments servent de fondation au Sprint 15 redéfini, mais ne doivent pas être replanifiés comme travail actif si les sources courantes les marquent livrés.
+## Actif avant lancement
 
-## Issues actives — Monétisation
-
-```text
-#361 — Reçu / facture mensuelle à cadrer fiscalement
-#364 — Suspension douce et réactivation
-```
-
-## Issues actives — Onboarding catalogue marchand
-
-```text
-#365 — Import CSV + scan code-barres
-```
-
-Décision PO : #365 reste un prérequis de lancement, car le marchand doit pouvoir remplir son catalogue sans saisie produit par produit.
-
-## Décision PO
-
-Avant lancement officiel, il faut pouvoir :
-
-- cadrer proprement reçu / facture avant toute promesse fiscale ;
-- suspendre doucement et réactiver vite un marchand ;
-- importer rapidement un catalogue marchand minimum ;
-- s'appuyer sur les fondations acquises pour paiement manuel, relances, incidents, support, journal santé et métriques.
-
-## Décision Tech Lead
-
-Le paiement carte, les factures fiscales complètes et les automatisations complexes restent hors périmètre tant que le cadrage fiscal et opérationnel n'est pas validé.
-
-Les écrans support et billing déjà présents doivent être réutilisés. Le Sprint 15 ne doit pas reconstruire les flux déjà livrés : paiement manuel, relances, incidents, backoffice support, journal santé, runbook et écrans ops.
+| Sujet | Position |
+|---|---|
+| Validation terrain billing/support | Vérifier en environnement de démo que documents, paiements manuels, relances, suspension et réactivation sont compris par l'équipe opérationnelle. |
+| Nettoyage priorités #527 | Garder uniquement les tâches réellement importantes et lier les issues enfants. |
 
 ## Hors périmètre
 
 - Paiement en ligne client.
 - Paiement carte marchand.
-- Facturation fiscale complète non cadrée.
+- Facture fiscale tunisienne complète sans validation comptable.
 - Support omnicanal avancé.
-- Rebuild des fondations abonnement déjà livrées.
-- Rebuild des flux paiement manuel / relance déjà livrés.
-- Rebuild des écrans support déjà livrés pour incidents, journal santé et runbook.
-- Rebuild des écrans admin déjà livrés pour santé jobs, métriques et checklist activation.
+- Rebuild des fondations billing/support/ops déjà livrées.
 
 ## Critère de sortie
 
 ```text
-Le Sprint 15 actif se limite aux vrais gaps avant lancement : cadrage reçu/facture, suspension douce/réactivation et import catalogue minimum.
-Les fondations billing, support et ops déjà livrées restent des acquis de lancement à vérifier, pas des chantiers à refaire.
+Les fondations billing, paiement manuel, suspension/réactivation, support,
+ops et onboarding catalogue sont disponibles et validées en usage terrain.
 ```
 
 ---
@@ -204,82 +146,54 @@ Les fondations billing, support et ops déjà livrées restent des acquis de lan
 
 ## Objectif
 
-Donner au marchand et à l'équipe commerciale assez de valeur pour justifier le lancement, sans construire des modules avancés qui nécessitent déjà beaucoup de données réelles.
+Donner au marchand et à l'équipe commerciale assez de valeur pour justifier le
+lancement, sans modules avancés dépendant de données réelles.
 
-## Issues avant lancement
+## Acquis livrés
 
-```text
-#380 — S15-001 — Statistiques marchand simples
-#384 — S15-004 — Promotions simples
-#385 — S15-005 — CRM léger marchand
-```
+| Issue | Sujet | Preuve documentaire / technique |
+|---|---|---|
+| #380 | Statistiques marchand | Fermée GitHub `completed`; endpoint `/api/merchant/stores/{storeId}/statistics`, front marchand, tests backend. |
+| #384 | Promotions simples | Fermée GitHub `completed`; champs promotion catalogue, affichage client/marchand, snapshot prix, suivi admin lecture seule extrait #479. |
+| #385 | CRM léger marchand | Fermée GitHub `completed`; profils CRM, historique contacts, filtres admin, tests backend/front. |
 
-## Issues repoussées après lancement
+## Reporté après lancement
 
-```text
-#382 — S15-002 — Packs produits
-#383 — S15-003 — Suggestions de Kadhia
-```
-
-## Décision PO
-
-Avant lancement, on livre :
-
-- statistiques simples ;
-- promotions simples ;
-- suivi commercial léger.
-
-Les packs et suggestions avancées attendent les premières données réelles.
-
-## Décision Tech Lead
-
-Les statistiques doivent commencer simple : cartes, tableaux, filtres de base. Pas de BI complexe, pas d'algorithme de recommandation sans données.
-
-## Hors périmètre
-
-- Suggestions intelligentes avancées.
-- Recommandations sponsorisées.
-- Packs complexes.
-- Tableaux de bord BI.
+| Issue | Sujet | Raison |
+|---|---|---|
+| #382 | Packs produits | Attendre données réelles et retours terrain. |
+| #383 | Suggestions de Kadhia | Pas d'algorithme de recommandation sans données réelles. |
 
 ## Critère de sortie
 
 ```text
-Le marchand voit une valeur de pilotage minimale et l'équipe commerciale peut suivre la relation marchand.
+Le marchand dispose de statistiques et promotions simples ; l'équipe commerciale
+peut suivre la relation marchand via un CRM léger.
 ```
 
 ---
 
-# Post-lancement — Apps natives et growth avancée
+# Conditionnel — Canaux externes
 
-## Issues post-lancement
+## WhatsApp semi-manuel
 
-```text
-#386 — S16-001 — App native Android marchand
-#387 — S16-002 — App native Android client
-#388 — S16-003 — App native iOS client
-#389 — S16-004 — App native iOS marchand
-#382 — Packs produits avancés
-#383 — Suggestions de Kadhia avancées
-```
+#378 reste ouvert et pré-lancement possible. Il ne doit pas devenir une API
+WhatsApp Business automatisée dans le MVP. Le minimum attendu est un lien
+contextualisé et traçable.
 
-## Gate de déclenchement
+## Facebook Messenger
 
-```text
-Usage réel prouvé
-Limites PWA constatées
-Facturation opérationnelle
-Support stable
-Besoin terrain confirmé
-```
+| Issue | Sujet | Position |
+|---|---|---|
+| #490 | Spike Facebook Messenger | Ouverte ; optionnel, à décider après règles Meta. |
+| #491 | Préférences de canal et traces d'envoi | Ouverte ; dépend du spike. |
+| #492 | Opt-in Messenger client | Ouverte ; dépend du socle préférences. |
+| #493 | Provider Facebook Messenger | Ouverte ; best-effort uniquement si validé. |
+| #494 | Page Facebook marchand | Ouverte ; post-lancement / option commerciale future. |
 
-## Décision PO
-
-Pas d'app native avant preuve terrain. Android marchand sera prioritaire si la PWA montre ses limites au comptoir.
-
-## Décision Tech Lead
-
-Les apps natives devront réutiliser l'API backend existante et ne pas dupliquer la logique métier.
+Règle : notification in-app = source de vérité. Facebook Messenger = canal
+externe optionnel et best-effort, jamais bloquant pour commande ou retrait sans
+décision PO explicite.
 
 ---
 
@@ -291,26 +205,29 @@ Les apps natives devront réutiliser l'API backend existante et ne pas dupliquer
 - PWA marchand installable.
 - Parcours commande mobile OK.
 - Parcours retrait mobile OK.
-- WhatsApp fallback OK.
-- i18n/accessibilité visible OK.
+- Web Push ou notifications in-app opérationnelles selon support navigateur.
+- WhatsApp fallback décidé : livré ou explicitement non bloquant.
+- Accessibilité minimum vérifiée sur les écrans clés, sans prétendre à une
+  conformité WCAG complète.
 
 ## Gate business
 
 - Abonnement marchand existant.
 - Phase tarifaire claire.
+- Document mensuel interne non fiscal disponible.
+- Paiement manuel disponible.
 - Import catalogue minimum disponible.
-- Paiement manuel disponible comme fondation acquise.
-- Relance disponible comme fondation acquise.
-- Suspension douce possible.
-- Réactivation possible.
+- Suspension douce et réactivation possibles.
+- Statistiques, promotions et CRM léger disponibles.
 
 ## Gate support
 
-- Incident commande traçable via fondation acquise.
-- Journal marchand consultable via fondation acquise.
-- Runbook support disponible via fondation acquise.
-- Vue santé marchand disponible via fondation acquise.
-- Santé jobs async, métriques et checklist activation déjà visibles dans l'admin.
+- Incident commande traçable.
+- Journal marchand consultable.
+- Runbook support disponible.
+- Vue santé marchand disponible.
+- Santé jobs async, métriques et checklist activation visibles dans l'admin.
+- Feedback contextualisé utilisable ou explicitement reporté.
 
 ## Gate go / no-go
 

@@ -1,157 +1,127 @@
-# Réorganisation stratégique — à partir de Sprint 14
+# Réorganisation stratégique — préparation lancement
 
-Date de cadrage : 2026-06-07  
-Rôles de cadrage : PO + Tech Lead  
-Point de départ technique : Sprint 13 reste centré sur le catalogue et le référentiel. Les éléments déjà livrés ne doivent pas être replanifiés.
+Date de cadrage : 2026-06-07
+Dernière révision documentaire : 2026-06-23
+Rôles de cadrage : PO + Tech Lead
 
 ## 1. Décision
 
-Cette réorganisation commence à partir de **Sprint 14**.
+La roadmap active commence à partir de Sprint 14 et prépare une V1 de lancement
+officiel, pas une bêta publique fragile.
 
-Le document sprint de référence est :
+Document de référence :
 
 ```text
 docs/Sprint14/README.md
 ```
 
-Sprint 13 conserve son propre cadrage dans :
+Point d'entrée et précédence documentaire :
 
 ```text
-docs/Sprint13/README.md
+docs/project/source-of-truth.md
 ```
 
-Décision :
+`docs/product/mvp-roadmap.md` reste un index court. Ne pas recréer
+`docs/roadmap/mvp-roadmap.md`.
+
+## 2. Gouvernance
 
 ```text
-Ne pas lancer de bêta publique.
-Redéfinir les sprints à partir de 14 pour préparer une V1 de lancement officiel.
-```
-
-## 2. Règle de gouvernance documentaire
-
-```text
-Sprint 13 = catalogue / référentiel restant, sans replanifier les acquis livrés.
-À partir de Sprint 14 = redéfinition stratégique de lancement officiel.
-Aucun dossier SprintLaunchReadiness séparé ne doit être utilisé.
-Les anciens numéros d'issues restent conservés pour l'historique.
-Les issues déjà livrées sont listées comme acquis, pas comme backlog actif.
+Sprint 13 = catalogue / référentiel historique, sans replanifier les acquis.
+Sprint 14+ = roadmap active de lancement officiel.
+Les audits datés restent des photographies historiques.
+Les issues fermées et techniquement constatées sont des acquis, pas du backlog actif.
 ```
 
 ## 3. Lecture PO
 
-Le PO valide :
+Le lancement officiel exige :
 
-- ne pas exposer clients et marchands à une bêta fragile ;
-- commencer la redéfinition à Sprint 14 ;
-- rendre l'expérience mobile installable avant lancement ;
-- regrouper monétisation, support, exploitation et onboarding catalogue avant ouverture ;
-- limiter les modules growth avant lancement à ce qui apporte une valeur immédiate ;
-- repousser le natif après usage réel.
+- une expérience mobile installable ;
+- une monétisation marchand compréhensible ;
+- un support terrain minimal ;
+- un onboarding catalogue rapide ;
+- une valeur commerciale visible pour le marchand ;
+- des gates go/no-go explicites.
 
 ## 4. Lecture Tech Lead
 
-Le Tech Lead valide :
+- PWA client/marchand dans `apps/frontend/`.
+- API backend existante réutilisée.
+- Web Push et notifications in-app comme socle ; WhatsApp semi-manuel possible
+  comme fallback terrain.
+- Facebook Messenger optionnel, best-effort et dépendant d'un spike Meta.
+- Pas d'app native avant preuve d'usage et limites PWA constatées.
+- Pas de paiement en ligne ni facture fiscale complète sans décision explicite.
 
-- PWA client/marchand dans `apps/frontend/` ;
-- API backend existante réutilisée ;
-- push Web non bloquant si PWA + notifications in-app + WhatsApp sont stables ;
-- pas de paiement carte ni facture fiscale complète sans cadrage ;
-- pas d'algorithme de suggestion avancé sans données réelles ;
-- apps natives post-lancement uniquement ;
-- aucune issue déjà livrée ne doit être remise dans une liste d'exécution.
+## 5. Acquis structurants
 
-## 5. Nouveau découpage à partir de Sprint 14
+### Mobile
 
-### Sprint 14 — Mobile Launch Readiness
+#374 PWA client, #375 PWA marchand, #376 Web Push, #377 FR/AR RTL et #379
+accessibilité minimum sont fermées côté GitHub et disposent de preuves locales
+dans le code ou les tests. Elles ne doivent plus être replanifiées comme sujets
+actifs, même si une validation terrain reste utile.
 
-Acquis : #377 — Arabe / RTL câblé dans l'application.
+### Business / exploitation
 
-Issues actives : #374, #375, #379, #378, #402, #403, #404, #376.
+#361 document mensuel interne non fiscal, #364 suspension/réactivation et #365
+import CSV + recherche code-barres sont fermées et techniquement représentées
+dans le dépôt. Les fondations paiement manuel, relances, support, journal santé,
+ops et activation restent des acquis de lancement à vérifier en démo.
 
-Priorité :
+### Valeur commerciale
 
-```text
-1. PWA client
-2. PWA marchand
-3. Accessibilité minimum
-4. WhatsApp semi-manuel
-5. Finitions i18n/accessibilité
-6. Push notifications
-```
+#380 statistiques marchand, #384 promotions simples et #385 CRM léger sont
+fermées et représentées par endpoints, UI et tests ciblés. Les packs et
+suggestions restent post-lancement.
 
-Critère de sortie :
+## 6. Gaps réels avant lancement
 
-```text
-Client et marchand peuvent installer et utiliser l'application mobile web en conditions terrain.
-```
+- Garder #527 comme issue mère ouverte et maintenue.
+- Traiter ou explicitement reporter #378 WhatsApp semi-manuel.
+- Traiter #543 `FRONTEND_URL` comme fiabilisation P2 QR/share, non bloquante
+  pour les sujets MVP plus urgents.
+- Rejouer les parcours terrain client, marchand et admin en environnement de
+  démo avant go/no-go.
+- Confirmer que les documents billing/support sont compris opérationnellement.
 
-### Sprint 15 — Monétisation, support et exploitation avant lancement
+## 7. Canaux externes
 
-Acquis / fondations à ne pas replanifier : #359, #360, #362, #363, #366, #367, #368, #369, #420, #421, #422.
+WhatsApp semi-manuel (#378) peut aider le terrain, mais il ne doit pas devenir
+une automatisation WhatsApp Business dans le MVP.
 
-Issues actives monétisation : #361, #364.  
-Issue active onboarding catalogue : #365.  
-Issues actives support / feedback produit : #482.
+Facebook Messenger (#490 à #494) reste conditionnel :
 
-Critère de sortie :
+- #490 spike Meta ouvert ;
+- #491 préférences de canal et traces ouvert ;
+- #492 opt-in Messenger ouvert ;
+- #493 provider Messenger ouvert ;
+- #494 page Facebook marchand ouverte et post-lancement.
 
-```text
-Le Sprint 15 actif se limite aux vrais gaps avant lancement : cadrage reçu/facture, suspension douce/réactivation, import catalogue minimum et feedback contextualisé.
-Les fondations billing, support et ops déjà livrées restent des acquis de lancement à vérifier, pas des chantiers à refaire.
-Le module feedback doit permettre de capter les irritants terrain sans remplacer un outil de support complet.
-```
+Règle : l'in-app reste la source de vérité. Messenger ne bloque jamais une
+commande ou un retrait sans décision PO explicite.
 
-### Sprint 16 — Valeur commerciale minimale avant lancement
-
-Avant lancement : #380, #384, #385.
-
-Après lancement : #382, #383.
-
-Critère de sortie :
-
-```text
-Le marchand voit une valeur de pilotage minimale et l'équipe commerciale peut suivre la relation marchand.
-```
-
-### Post-lancement — Apps natives et growth avancée
-
-Issues : #386, #387, #388, #389, #382, #383.
-
-Critère de déclenchement :
-
-```text
-Usage réel prouvé, limites PWA constatées, facturation opérationnelle, support stable, besoin terrain confirmé.
-```
-
-## 6. Gates CTO avant lancement officiel
+## 8. Gates CTO
 
 ### Gate mobile
 
-- PWA client installable.
-- PWA marchand installable.
-- Parcours commande mobile OK.
-- Parcours retrait mobile OK.
-- WhatsApp fallback OK.
-- i18n/accessibilité visible OK.
+- PWA client et marchand installables.
+- Parcours commande et retrait OK en mobile.
+- Web Push ou notifications in-app opérationnelles selon support navigateur.
+- WhatsApp fallback décidé.
+- Accessibilité minimum vérifiée sur écrans clés.
 
 ### Gate business
 
-- Abonnement marchand existant.
-- Phase tarifaire claire.
-- Import catalogue minimum disponible.
-- Paiement manuel disponible comme fondation acquise.
-- Relance disponible comme fondation acquise.
-- Suspension douce possible.
-- Réactivation possible.
+- Abonnement, phase tarifaire, document mensuel interne, paiement manuel,
+  suspension/réactivation et import catalogue disponibles.
+- Valeur marchand visible : statistiques, promotions, CRM léger.
 
 ### Gate support
 
-- Incident commande traçable via fondation acquise.
-- Journal marchand consultable via fondation acquise.
-- Runbook support disponible via fondation acquise.
-- Vue santé marchand disponible via fondation acquise.
-- Santé jobs async, métriques et checklist activation déjà visibles dans l'admin.
-- Feedback contextualisé activable par rôle et consultable dans l'admin.
+- Incidents, journal marchand, runbook, santé jobs, métriques, checklist
+  activation et feedback terrain utilisables ou explicitement reportés.
 
 ### Gate go / no-go
 
@@ -162,5 +132,4 @@ Aucun bug bloquant sur activation supérette.
 Aucun bug bloquant sur import catalogue minimum.
 Aucun bug bloquant sur abonnement/paiement manuel.
 Aucun risque opérationnel non couvert par runbook.
-Aucun irritant terrain critique non capturé par support ou feedback admin.
 ```

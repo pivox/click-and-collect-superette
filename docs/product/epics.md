@@ -321,7 +321,7 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **User stories** :
 - US-078 — Infra email + relances de paiement (échéancier J-7 → J+21) *(fondation livrée / acquise, à ne pas replanifier comme chantier actif)*
-- US-079 — Suspension douce et réactivation *(gap actif Sprint 15 redéfini)*
+- US-079 — Suspension douce et réactivation *(livré ; à vérifier en démo terrain)*
 - US-094 — WhatsApp semi-manuel (client + marchand) *(Sprint 14)*
 
 **Critère de sortie** : Un marchand est relancé par email, suspendu en douceur (catalogue conservé) puis réactivé après paiement ; le contact WhatsApp est contextualisé et tracé.
@@ -334,10 +334,10 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 
 **Valeur produit** : Levier de conversion essai → payant : un catalogue rapide à monter retient le marchand.
 
-**Sprint** : Historique Sprint 11 (CSV / scan) · Sprint 13 (photo IA) ; #365 reste actif en Sprint 15 redéfini.
+**Sprint** : Historique Sprint 11 (CSV / scan) · Sprint 13 (photo IA) ; #365 est livré et ne doit plus être replanifié.
 
 **User stories** :
-- US-080 — Import CSV + scan code-barres (onboarding minimum) *(actif Sprint 15 redéfini)*
+- US-080 — Import CSV + scan code-barres (onboarding minimum) *(livré ; scan caméra mobile non retenu comme preuve du socle API)*
 - US-081 — Import catalogue par photo assisté IA *(Sprint 13)*
 
 **Critère de sortie** : Un marchand crée un catalogue exploitable par fichier, scan ou photo, en réutilisant le bulk multi-format et l'infra IA existants.
@@ -388,10 +388,10 @@ Ce document liste les epics du MVP et leur mapping avec les sprints de développ
 **Sprint** : Sprint 14 — Mobile Launch Readiness
 
 **User stories** :
-- US-089 — PWA client (installable, mobile-first) *(#374 ouverte)*
-- US-090 — PWA marchand (installable, terrain) *(#375 ouverte)*
-- US-091 — Push notifications (client + marchand) *(#376 ouverte)*
-- US-092 — Accessibilité minimum (WCAG de base) *(#379 ouverte)*
+- US-089 — PWA client (installable, mobile-first) *(#374 fermée ; validation terrain installée à confirmer)*
+- US-090 — PWA marchand (installable, terrain) *(#375 fermée ; validation terrain installée à confirmer)*
+- US-091 — Push notifications (client + marchand) *(#376 fermée ; validation navigateur réelle à confirmer)*
+- US-092 — Accessibilité minimum (WCAG de base) *(#379 fermée ; pas un audit WCAG complet)*
 
 **Critère de sortie** : Client et marchand installent l'app sur mobile depuis `apps/frontend/` et reçoivent des notifications push. *Limite : Web Push iOS seulement sur Safari 16.4+ et PWA installée.* L'arabe/RTL client n'est plus le bloc principal de cet epic : US-093 a été livrée via #401.
 
