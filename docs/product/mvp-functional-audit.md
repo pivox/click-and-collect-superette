@@ -67,7 +67,7 @@ Ne pas recréer `docs/roadmap/mvp-roadmap.md`.
 | QR code retrait | Oui | Oui | Oui | Oui | OK | `PickupSession`, code retrait, scan, session client. |
 | Double validation retrait | Oui | Oui | Oui | Oui | OK | Scan marchand, confirmations client/marchand, force completion. |
 | Notifications in-app client/marchand | Oui | Oui | Oui | Oui | OK | Endpoints client/marchand, polling. |
-| Web Push (#376) | Oui | Oui | Partiel | Oui | PARTIEL | Issue fermée `completed`; souscriptions client/marchand, service worker et toggle testés. Envoi réel navigateur/plateformes non validé en E2E dans cette passe. |
+| Web Push (#376) | Oui | Oui | Oui | Oui | PARTIEL | Issue fermée `completed`; souscriptions client/marchand, service worker et toggle testés. Envoi réel navigateur/plateformes non validé en E2E dans cette passe. |
 | Suivi statut client | Oui | Oui | Oui | Oui | OK | `GET /api/me/orders/{orderId}/status`. |
 | Rappel retrait 1h | Oui | Oui | Oui | Oui | PARTIEL | Planification Messenger et transport Doctrine livrés ; contenu notification encore générique. |
 | Historique statuts commande | Oui | Oui | Oui | Oui | OK | `OrderStatusLog` client/marchand. |
