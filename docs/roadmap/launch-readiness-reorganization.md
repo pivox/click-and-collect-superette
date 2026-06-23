@@ -73,8 +73,11 @@ ops et activation restent des acquis de lancement à vérifier en démo.
 ### Valeur commerciale
 
 #380 statistiques marchand, #384 promotions simples et #385 CRM léger sont
-fermées et représentées par endpoints, UI et tests ciblés. Les packs et
-suggestions restent post-lancement.
+fermées et représentées par endpoints, UI et tests ciblés. #382 packs produits
+est présent sur `main` via `ProductPack`, endpoints API Platform
+marchand/client, ajout de pack à la Kadhia et `MerchantProductPackApiTest`.
+#383 suggestions de Kadhia est livré via la PR #484 avec `KadhiaSuggestionService`,
+suggestions magasin, favoris, remplacements indisponibles et tests backend/front.
 
 ## 6. Gaps réels avant lancement
 
@@ -116,7 +119,8 @@ commande ou un retrait sans décision PO explicite.
 
 - Abonnement, phase tarifaire, document mensuel interne, paiement manuel,
   suspension/réactivation et import catalogue disponibles.
-- Valeur marchand visible : statistiques, promotions, CRM léger.
+- Valeur marchand visible : statistiques, packs produits, suggestions de
+  Kadhia, promotions, CRM léger.
 
 ### Gate support
 

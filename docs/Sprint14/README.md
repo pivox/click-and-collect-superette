@@ -154,21 +154,16 @@ lancement, sans modules avancés dépendant de données réelles.
 | Issue | Sujet | Preuve documentaire / technique |
 |---|---|---|
 | #380 | Statistiques marchand | Fermée GitHub `completed`; endpoint `/api/merchant/stores/{storeId}/statistics`, front marchand, tests backend. |
+| #382 | Packs produits | Fermée GitHub `completed`; code présent sur `main` (`9f914ff`, correctifs #463), `ProductPack`, endpoints API Platform marchand/client, ajout de pack à la Kadhia et `MerchantProductPackApiTest`. |
+| #383 | Suggestions de Kadhia | Fermée GitHub `completed`; PR #484 fusionnée, `KadhiaSuggestionService`, suggestions magasin, favoris, remplacements indisponibles et tests backend/front. |
 | #384 | Promotions simples | Fermée GitHub `completed`; champs promotion catalogue, affichage client/marchand, snapshot prix, suivi admin lecture seule extrait #479. |
 | #385 | CRM léger marchand | Fermée GitHub `completed`; profils CRM, historique contacts, filtres admin, tests backend/front. |
-
-## Reporté après lancement
-
-| Issue | Sujet | Raison |
-|---|---|---|
-| #382 | Packs produits | Attendre données réelles et retours terrain. |
-| #383 | Suggestions de Kadhia | Pas d'algorithme de recommandation sans données réelles. |
 
 ## Critère de sortie
 
 ```text
-Le marchand dispose de statistiques et promotions simples ; l'équipe commerciale
-peut suivre la relation marchand via un CRM léger.
+Le marchand dispose de statistiques, packs, suggestions, promotions simples et
+CRM léger pour augmenter la valeur visible avant lancement.
 ```
 
 ---
@@ -218,7 +213,8 @@ décision PO explicite.
 - Paiement manuel disponible.
 - Import catalogue minimum disponible.
 - Suspension douce et réactivation possibles.
-- Statistiques, promotions et CRM léger disponibles.
+- Statistiques, packs produits, suggestions de Kadhia, promotions et CRM léger
+  disponibles.
 
 ## Gate support
 

@@ -87,6 +87,8 @@ Ne pas recréer `docs/roadmap/mvp-roadmap.md`.
 | Paiement manuel abonnement | Oui | Oui | Oui | Oui | OK | Paiement admin espèces/virement, consultation marchand/admin, audit, tests. |
 | Relances paiement | Oui | Oui | Oui | Oui | OK | Relances email / WhatsApp manuel côté billing, traces et tests ciblés. |
 | Suspension douce / réactivation (#364) | Oui | Oui | Oui | Oui | OK | Issue fermée `completed`; soumission bloquée si marchand/subscription suspendu, catalogue conservé, paiement réactive. |
+| Packs produits (#382) | Oui | Oui | Oui | Partiel | OK | Issue fermée `completed`; code présent sur `main` (`9f914ff`, correctifs #463) : `ProductPack`, `ProductPackItem`, `MerchantProductPackOutput`, endpoints API Platform marchand/client, ajout à la Kadhia et `MerchantProductPackApiTest`. Contrat API documentaire à compléter hors de cette PR. |
+| Suggestions de Kadhia (#383) | Oui | Oui | Oui | Partiel | OK | Issue fermée `completed`; PR #484 fusionnée : `StoreSuggestionsOutput`, favoris, remplacements indisponibles, `KadhiaSuggestionService`, `StoreSuggestionsApiTest`, `KadhiaSuggestionServiceTest` et tests frontend suggestions/favoris. Contrat API documentaire à compléter hors de cette PR. |
 | Promotions simples (#384) | Oui | Oui | Oui | Oui | OK | Issue fermée `completed`; promo active/expirée, prix effectif, snapshot Kadhia, suivi admin. |
 | CRM léger marchand (#385) | Oui | Oui | Oui | Oui | OK | Issue fermée `completed`; profil CRM, contacts, filtres, tests backend/front. |
 | WhatsApp semi-manuel (#378) | Oui | Partiel | Partiel | Partiel | PARTIEL | Issue ouverte ; WhatsApp billing manuel existe, mais généralisation client/marchand commande reste active. |
@@ -114,6 +116,15 @@ tout #365.
 #361 livre un document mensuel interne non fiscal (`monthly_statement`), pas une
 facture fiscale tunisienne conforme. Toute facture fiscale complète reste à
 décider après validation comptable.
+
+### Packs et suggestions
+
+#382 et #383 sont fermées GitHub et techniquement représentées sur `main`.
+Les packs couvrent création/édition/suppression marchand, affichage client et
+ajout à la Kadhia avec snapshot prix. Les suggestions couvrent co-occurrence,
+récents, favoris et remplacements de produits indisponibles. Cette PR ne modifie
+pas `docs/architecture/api-contract.md` ; le contrat API documentaire reste donc
+à compléter sans remettre en cause la livraison technique.
 
 ### WhatsApp et Messenger
 
