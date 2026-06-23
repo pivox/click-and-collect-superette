@@ -1000,6 +1000,10 @@ Règles :
 
 - `merchant_category_id` peut être mis à `null` pour revenir à la catégorie par défaut du référentiel ou du produit local ;
 - une catégorie marchand inactive ou d'une autre supérette est refusée.
+- `promotion_price_tnd` et `promotion_ends_on` peuvent être fournis pour définir
+  ou supprimer une promotion simple ;
+- une promotion active expose un prix effectif côté client ; la ligne de Kadhia
+  prend un snapshot du prix effectif au moment de l'ajout.
 
 ### Supprimer un produit du catalogue marchand
 
@@ -1103,6 +1107,53 @@ Erreurs ligne possibles :
 Limite frontend US-080 : le backend supporte la saisie/recherche exacte par code-barres.
 Le scan caméra marchand doit être ajouté côté interface uniquement si une solution légère et compatible
 navigateur est retenue ; aucune dépendance caméra n'est introduite par ce contrat.
+
+### Promotions simples
+
+Statut : **livré #384**.
+
+Le marchand définit la promotion sur le produit de son catalogue via :
+
+```http
+PATCH /api/merchant/catalog/{merchantProductId}
+```
+
+Champs concernés :
+
+```json
+{
+  "promotion_price_tnd": "1.900",
+  "promotion_ends_on": "2026-06-30"
+}
+```
+
+Règles :
+
+- `promotion_price_tnd` est optionnel, en TND, et doit être strictement
+  inférieur au prix normal ;
+- `promotion_ends_on` est optionnel et exprimé en date `YYYY-MM-DD` ;
+- une promotion terminant aujourd'hui reste active jusqu'à la fin de journée en
+  fuseau Tunisie ;
+- le catalogue client expose le prix normal, le prix promo, l'état actif et le
+  prix effectif ;
+- la Kadhia et la commande gardent le snapshot du prix effectif au moment de
+  l'ajout.
+
+Suivi admin lecture seule :
+
+```http
+GET /api/admin/promotions
+GET /api/admin/promotions?promotion_status=active
+GET /api/admin/promotions?promotion_status=expired
+GET /api/admin/promotions?store_id={storeId}
+GET /api/admin/promotions?merchant_id={merchantId}
+```
+
+Règles admin :
+
+- `ROLE_ADMIN` uniquement ;
+- pagination `page` / `limit`, limite plafonnée à 50 ;
+- aucune édition de promotion côté admin dans le MVP.
 
 ### Gérer les catégories marchand
 
@@ -1387,6 +1438,58 @@ Règles :
 - le marchand doit être propriétaire de la supérette ;
 - retourne les compteurs du jour, les compteurs par statut, les créneaux du jour et les commandes `submitted` urgentes ;
 - n'expose pas de données client ni de lignes de commande.
+
+### Statistiques marchand
+
+Statut : **livré #380**.
+
+```http
+GET /api/merchant/stores/{storeId}/statistics
+GET /api/merchant/stores/{storeId}/statistics?date_from=2026-06-01&date_to=2026-06-30
+```
+
+Règles :
+
+- `ROLE_MERCHANT` uniquement ;
+- ownership strict sur la supérette ;
+- `date_from` et `date_to` sont optionnels, au format `YYYY-MM-DD` ;
+- une période inversée ou une date invalide retourne `400` ;
+- les montants sont retournés en TND.
+
+Réponse `200` :
+
+```json
+{
+  "store_id": "store-uuid",
+  "date_from": "2026-06-01",
+  "date_to": "2026-06-30",
+  "total_orders": 12,
+  "total_revenue_tnd": "245.500",
+  "acceptance_rate": 0.85,
+  "cancellation_rate": 0.05,
+  "rejection_rate": 0.10,
+  "orders_by_status": {
+    "completed": 10,
+    "cancelled": 1,
+    "rejected": 1
+  },
+  "top_products": [
+    {
+      "name_fr": "Lait demi-écrémé",
+      "name_ar": null,
+      "total_quantity": 8,
+      "total_revenue_tnd": "13.200"
+    }
+  ],
+  "top_slots": [
+    {
+      "starts_at": "2026-06-18T17:00:00+01:00",
+      "ends_at": "2026-06-18T17:30:00+01:00",
+      "orders_count": 3
+    }
+  ]
+}
+```
 
 ---
 
@@ -1757,6 +1860,8 @@ POST  /api/admin/merchants/{merchantId}/invitation
 POST  /api/admin/merchants/{merchantId}/invitation/resend
 PATCH /api/admin/merchants/{merchantId}/suspend
 PATCH /api/admin/merchants/{merchantId}/activate
+PATCH /api/admin/merchants/{merchantId}/crm
+POST  /api/admin/merchants/{merchantId}/crm/contacts
 ```
 
 #### POST /api/admin/merchant-onboarding — Créer marchand + supérette
@@ -1946,6 +2051,49 @@ Codes retour :
 - `403` — rôle insuffisant ;
 - `404` — marchand introuvable ;
 - `422` — cible existante mais non marchande, inactive ou supprimée.
+
+#### CRM léger marchand
+
+Statut : **livré #385**.
+
+```http
+PATCH /api/admin/merchants/{merchantId}/crm
+POST  /api/admin/merchants/{merchantId}/crm/contacts
+```
+
+Payload `PATCH` :
+
+```json
+{
+  "commercial_owner": "Sami",
+  "status": "client",
+  "next_action_at": "2026-06-20T10:00:00+01:00",
+  "next_action_note": "Relancer pour la formation catalogue",
+  "commercial_note": "Marchand motivé."
+}
+```
+
+Payload contact :
+
+```json
+{
+  "channel": "whatsapp",
+  "note": "Relance pour activer les créneaux de retrait.",
+  "contacted_at": "2026-06-10T11:30:00+01:00"
+}
+```
+
+Règles :
+
+- `ROLE_ADMIN` uniquement ;
+- le profil CRM est créé à la demande si absent ;
+- `status` vaut `prospect` ou `client` ;
+- les contacts sont append-only et ordonnés du plus récent au plus ancien ;
+- `GET /api/admin/merchants` accepte les filtres `crm_status` et
+  `crm_owner` ;
+- chaque mutation CRM écrit un audit admin.
+
+Réponse : `AdminMerchantOutput` enrichi d'un objet `crm`.
 
 #### POST /api/admin/merchants/{merchantId}/invitation — Envoyer une invitation marchand
 
@@ -2866,9 +3014,124 @@ Règles :
 
 ---
 
+## Monétisation marchand
+
+Statut : **livré Sprint 11 / #361 / #364**.
+
+Ces routes concernent l'abonnement plateforme du marchand. Elles ne créent
+aucun paiement en ligne client, aucun paiement carte et aucune facture fiscale
+tunisienne conforme.
+
+### Abonnement courant
+
+```http
+GET /api/merchant/subscription
+GET /api/admin/subscriptions
+GET /api/admin/subscriptions/{subscriptionId}
+```
+
+Règles :
+
+- le marchand lit uniquement son abonnement ;
+- l'admin liste et consulte les abonnements ;
+- `lifecycle` : `active`, `payment_due`, `grace_period`, `suspended`,
+  `cancelled` ;
+- `pricing_phase` : `trial`, `promo`, `standard`.
+
+### Documents mensuels internes non fiscaux
+
+Statut : **livré #361**.
+
+```http
+GET /api/merchant/billing-documents
+GET /api/merchant/billing-documents/{billingDocumentId}
+GET /api/admin/billing-documents
+GET /api/admin/billing-documents/{billingDocumentId}
+POST /api/admin/billing-documents/{billingDocumentId}/whatsapp-contact
+```
+
+Réponse item :
+
+```json
+{
+  "id": "billing-document-uuid",
+  "subscription_id": "subscription-uuid",
+  "merchant_id": "merchant-uuid",
+  "merchant_email": "merchant@example.test",
+  "document_number": "MS-2026-000001",
+  "document_type": "monthly_statement",
+  "document_nature_label": "Document mensuel interne non fiscal",
+  "status": "issued",
+  "pricing_phase": "promo",
+  "currency": "TND",
+  "billing_period_start": "2026-06-01T00:00:00+01:00",
+  "billing_period_end": "2026-07-01T00:00:00+01:00",
+  "amount_tnd": "10.000",
+  "amount_paid_tnd": "0.000",
+  "amount_due_tnd": "10.000"
+}
+```
+
+Règles :
+
+- `ROLE_MERCHANT` : lecture uniquement de ses documents ;
+- `ROLE_ADMIN` : lecture globale ;
+- `document_type` MVP = `monthly_statement` ;
+- le libellé doit rester explicite : document mensuel interne non fiscal ;
+- pas de PDF fiscal complet ni numérotation `INV` dans ce contrat.
+
+`POST /whatsapp-contact` prépare un lien WhatsApp manuel pour relance paiement
+et écrit une trace admin. Il ne constitue pas une API WhatsApp Business.
+
+### Paiements manuels d'abonnement
+
+```http
+POST /api/admin/subscription-payments
+GET  /api/admin/subscription-payments
+GET  /api/merchant/subscription-payments
+```
+
+Payload `POST` :
+
+```json
+{
+  "billing_document_id": "billing-document-uuid",
+  "amount_tnd": "10.000",
+  "method": "cash",
+  "paid_at": "2026-06-04T10:30:00+01:00",
+  "reference": "Caisse Tunis 42"
+}
+```
+
+Règles :
+
+- `POST` réservé à `ROLE_ADMIN` ;
+- `method` : `cash` ou `bank_transfer` ;
+- un paiement confirmé marque le document payé si le montant couvre le dû ;
+- si l'abonnement était `payment_due`, `grace_period` ou `suspended`, le
+  paiement peut réactiver le lifecycle en `active` ;
+- chaque paiement confirmé est audité ;
+- le marchand consulte uniquement ses paiements.
+
+### Suspension douce et réactivation
+
+Statut : **livré #364**.
+
+Règles fonctionnelles :
+
+- une supérette suspendue ou un abonnement `suspended` garde catalogue,
+  historique, images et données ;
+- le catalogue public reste consultable ;
+- la soumission d'une nouvelle Kadhia est bloquée avec le code métier
+  `STORE_SUSPENDED_FOR_SUBSCRIPTION` ;
+- une validation de paiement manuel peut réactiver l'abonnement ;
+- aucune suppression brutale n'est effectuée par ce flux.
+
+---
+
 ## Notifications
 
-Statut : **livré Sprint 4**.
+Statut : **in-app livré Sprint 4 ; Web Push livré #376 avec validation terrain à confirmer**.
 
 MVP recommandé : notifications persistées en base, lecture par API, sans push/SMS obligatoire au départ.
 
@@ -2880,6 +3143,11 @@ PATCH /api/me/notifications/read-all
 GET   /api/merchant/notifications?page=1&unread=true
 PATCH /api/merchant/notifications/{id}/read
 PATCH /api/merchant/notifications/read-all
+
+POST  /api/me/push-subscriptions
+POST  /api/me/push-subscriptions/unregister
+POST  /api/merchant/push-subscriptions
+POST  /api/merchant/push-subscriptions/unregister
 ```
 
 Événements minimaux :
@@ -2893,7 +3161,35 @@ PATCH /api/merchant/notifications/read-all
 - rappel de retrait 1h avant créneau si commande `ready` ;
 - retrait finalisé : notifier client et marchand.
 
-Les notifications sont in-app uniquement. Le MVP actuel n'inclut pas push mobile, SMS, email, Mercure ou WebSocket.
+Règles Web Push :
+
+- souscription client : `ROLE_CUSTOMER` ;
+- souscription marchand : `ROLE_MERCHANT` ;
+- payload JSON avec `endpoint`, `p256dhKey`, `authKey` et `userAgent`
+  optionnel ;
+- réenregistrer un endpoint existant met à jour les clés et le scope ;
+- la désinscription supprime la souscription correspondante ;
+- le service worker gère `push` et `notificationclick` avec URL same-origin.
+
+Les notifications in-app restent la source de vérité. Le MVP actuel n'inclut
+pas SMS, email transactionnel généralisé, Mercure ou WebSocket. Facebook
+Messenger reste conditionnel et optionnel.
+
+Payload push :
+
+```json
+{
+  "endpoint": "https://updates.push.services.mozilla.com/wpush/v2/...",
+  "p256dhKey": "base64-key",
+  "authKey": "base64-auth",
+  "userAgent": "Firefox Android"
+}
+```
+
+Réponses :
+
+- `201` inscription ou rafraîchissement ;
+- `204` désinscription.
 
 ---
 
@@ -3000,6 +3296,7 @@ Règles :
 | `AUTH_INVALID_CREDENTIALS` | Identifiants invalides. |
 | `STORE_NOT_FOUND` | Supérette introuvable. |
 | `STORE_DISABLED` | Supérette désactivée. |
+| `STORE_SUSPENDED_FOR_SUBSCRIPTION` | La supérette reste consultable, mais les nouvelles Kadhias sont bloquées par suspension abonnement. |
 | `CUSTOMER_STORE_NOT_FOUND` | Relation client/store introuvable. |
 | `PRODUCT_NOT_AVAILABLE` | Produit indisponible. |
 | `PRODUCT_UNAVAILABLE` | Produit indisponible ou invisible à la soumission. |

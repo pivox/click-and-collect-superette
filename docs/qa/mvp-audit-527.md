@@ -358,6 +358,28 @@ Ce qui bloque :
 
 - Rendre `docker compose exec backend php bin/phpunit` vert ou documenter précisément l'écart d'environnement.
 - Relancer les tests QR/share isolés puis en suite complète avec logs complets avant d'ouvrir une issue produit.
+
+## Suivi post-audit
+
+Mise à jour documentaire : 2026-06-23.
+
+Cette section ne réécrit pas les constats du 18 juin 2026. Elle précise
+uniquement l'état documentaire postérieur à l'audit :
+
+- `docs/project/source-of-truth.md` a été créé comme point d'entrée projet et
+  règle de précédence documentaire.
+- La roadmap active est désormais `docs/Sprint14/README.md`.
+- `docs/roadmap/launch-readiness-reorganization.md` reste la synthèse
+  stratégique de préparation au lancement.
+- `docs/product/mvp-functional-audit.md` porte l'état Documenté / Codé / Testé /
+  Contrat API / Statut.
+- `docs/product/mvp-roadmap.md` reste un index court.
+- `docs/roadmap/mvp-roadmap.md` ne doit pas être recréé.
+- #543 suit spécifiquement la sécurisation de `FRONTEND_URL` pour les QR magasin
+  et liens Kadhia.
+- #527 reste ouverte comme issue mère de suivi global.
+- Les constats QA à reproduire restent ceux de l'audit : suite backend complète,
+  tests `temporary-password` order-dependent, QR/share et parcours E2E live.
 - Rejouer un parcours live client + marchand + admin avec preuves.
 
 Ce qui peut attendre :

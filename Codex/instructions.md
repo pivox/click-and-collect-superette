@@ -6,7 +6,7 @@ Transformer le cadrage produit en code maintenable, testé et compatible Symfony
 
 ## Règles générales
 
-- Lire `AGENTS.md`, puis `AI_CONTEXT.md` avant d'agir. `AI_CONTEXT.md` est la source prioritaire pour l'état courant du projet, le périmètre MVP, le vocabulaire métier, les statuts et les entités.
+- Lire `AGENTS.md`, puis `AI_CONTEXT.md` avant d'agir. `docs/project/source-of-truth.md` est le point d'entrée et la règle de précédence documentaire ; `AI_CONTEXT.md` reste le contexte IA prioritaire pour le périmètre MVP, le vocabulaire métier, les statuts et les entités.
 - Lire ensuite `README.md` et la documentation produit, sprint ou roadmap pertinente avant toute PR.
 - Favoriser des changements petits et faciles à relire.
 - Ne pas inventer de dépendances, commandes ou résultats de tests.

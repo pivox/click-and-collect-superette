@@ -2,6 +2,11 @@
 
 Ce fichier est la base commune pour Claude, Codex et tout autre agent IA utilisé sur le projet.
 
+Point d'entrée documentaire courant : `docs/project/source-of-truth.md`.
+Roadmap active : `docs/Sprint14/README.md`.
+Contrat API : `docs/architecture/api-contract.md`.
+Audit fonctionnel : `docs/product/mvp-functional-audit.md`.
+
 ## Produit
 
 Application de click & collect pour les supérettes en Tunisie.
@@ -67,9 +72,9 @@ Exclus du MVP :
 
 ## Avancement global
 
-- État au 4 juin 2026 : cœur MVP Sprints 0-9 livré sur `main`; Sprint 10 est clôturable côté go-to-market après livraison de la checklist d'activation supérette via PR #412.
+- État au 23 juin 2026 : cœur MVP livré sur `main`; la roadmap active à partir de Sprint 14 prépare une V1 de lancement officiel, pas une bêta publique fragile.
 - Backend MVP : 100 % (Sprint 7 audité et clôturé — S7-008 livré ; S7-009 transport Messenger persistant livré).
-- Produit terrain testable : environ 95 % — parcours client complet validé par simulation Playwright (rapport `docs/qa/client-journey-simulation-report-v2.md`) et frontend marchand avancé livré.
+- Produit terrain testable : très avancé — parcours client complet validé par simulation Playwright historique (rapport `docs/qa/client-journey-simulation-report-v2.md`) et frontend marchand avancé livré. Les parcours live client/marchand/admin restent à rejouer avant go/no-go.
 - Sprint 6 (personnalisation visuelle) : implémenté côté backend (`PlatformTheme`, `ShopTheme`, thème public par supérette).
 - Sprint 7 terminé côté backend : S7-001 (archive supérette), S7-002 (export CSV marchand), S7-003 (suppression compte client), S7-004 (audit trail admin), S7-005 (observabilité production / healthcheck). PHPStan niveau 8 clean, CS Fixer clean. 81 tests Sprint 7.
 - Frontend admin backoffice livré : PRs #130–#132 — auth admin, référentiel produits, marchands, supérettes, audit logs, dashboard KPI.
@@ -77,9 +82,12 @@ Exclus du MVP :
 - Frontend marchand livré : login, dashboard, commandes actives, détail et actions jusqu'à `ready`, retrait sécurisé, historique, notifications, catalogue, créneaux/règles/fermetures/horaires, onboarding, QR magasin, thème/apparence, paramètres profil/compte/langue et export CSV.
 - Images produits web/mobile livrées : S13-005 / #391 (upload admin, original conservé, variantes WebP responsive, fallback JPEG, placeholder catégorie, exposition API).
 - Sprint 10 livré : #352 validation worker async en production (runbook + checklist), #353 monitoring jobs (`GET /api/admin/ops/messenger`), #354 KPI terrain (`GET /api/admin/beta-metrics`), #355 QR magasin PNG/PDF côté marchand, #356 checklist d'activation supérette (`GET /api/admin/stores/{storeId}/activation-checklist` + badge admin), #357 journal opérationnel marchand minimal sur la fiche marchand admin (`ops_journal`).
-- Non livré ou ouvert hors Sprint 10 bloquant : US-059 / #374 PWA client, #375 PWA marchand, #376 push notifications, #379 accessibilité minimum WCAG. #358 décision bêta FR-only vs FR+AR est devenue non nécessaire depuis les livraisons FR/AR client (#401) et préférence langue marchand (#395).
+- Sprint 14 mobile : #374 PWA client, #375 PWA marchand, #376 Web Push et #379 accessibilité minimum sont fermées GitHub et représentées dans le dépôt. Validation terrain installée / Lighthouse / audit WCAG complet non relancés dans la passe documentaire du 23 juin.
+- Sprint 15 business/exploitation : #361 document mensuel interne non fiscal, #364 suspension douce/réactivation et #365 import CSV + recherche code-barres fermées GitHub et représentées dans le dépôt. Le scan caméra mobile n'est pas retenu comme preuve livrée par cette passe.
+- Sprint 16 valeur commerciale : #380 statistiques marchand, #384 promotions simples et #385 CRM léger marchand fermées GitHub et représentées dans le dépôt.
+- Restent ouverts ou conditionnels : #378 WhatsApp semi-manuel commande, #490-#494 Facebook Messenger optionnel, #527 suivi global, #543 sécurisation `FRONTEND_URL`.
 - S7-009 livré : transport Messenger persistant (`doctrine://default`), `failure_transport`, `retry_strategy`, migration `messenger_messages`, config Supervisor — R1 et R2 résolus.
-- Prochaine priorité recommandée : clôturer administrativement Sprint 10 et fermer #358 comme décision absorbée par les livraisons FR/AR.
+- Prochaine priorité recommandée : maintenir #527, traiter ou reporter explicitement #378, garder Messenger optionnel, et rejouer les parcours terrain avant go/no-go.
 - Documentation API OpenAPI exposée publiquement : `docs_formats` configuré dans `api_platform.yaml` (`json`, `html`, `jsonopenapi`, `yamlopenapi`) — endpoints accessibles sans auth sur `/api/docs.json`, `/api/docs.html`, `/api/docs.jsonopenapi`, `/api/docs.yamlopenapi`.
 - PHPStan niveau 8 : 0 erreur. CS Fixer : 0 diff. `lint:container` : OK.
 

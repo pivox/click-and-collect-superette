@@ -96,9 +96,9 @@ Justification : #352, #353, #354 et #355 sont livrées. Il reste à donner à l'
 
 ### P3 — Mobile et accessibilité
 
-- #375 — PWA marchand.
-- #376 — push notifications.
-- #379 — accessibilité minimum WCAG.
+- #375 — PWA marchand fermée ; validation terrain installée à confirmer.
+- #376 — push notifications fermée ; validation navigateur réelle à confirmer.
+- #379 — accessibilité minimum fermée ; pas d'audit WCAG complet relancé.
 
 ## Points d'attention
 

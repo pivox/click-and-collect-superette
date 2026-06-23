@@ -15,9 +15,41 @@ L'objectif est de simplifier les courses du quotidien dans les supérettes tunis
 - proposer une expérience bilingue français / arabe ;
 - utiliser le dinar tunisien comme devise de référence.
 
-## État du projet au 4 juin 2026
+## Source de vérité et roadmap
 
-Le cœur MVP est livré sur `main` : Sprints 0 à 9, backend Symfony/API Platform, frontend client, backoffice admin et espace marchand. Le Sprint 10 est clôturable : les Must de durcissement bêta, observabilité, QR magasin imprimable et checklist d'activation supérette sont livrés.
+Le point d'entrée documentaire courant est :
+
+```text
+docs/project/source-of-truth.md
+```
+
+La roadmap active de lancement à partir de Sprint 14 est :
+
+```text
+docs/Sprint14/README.md
+```
+
+La synthèse stratégique est :
+
+```text
+docs/roadmap/launch-readiness-reorganization.md
+```
+
+L'audit fonctionnel courant est :
+
+```text
+docs/product/mvp-functional-audit.md
+```
+
+`docs/product/mvp-roadmap.md` reste un index court. L'ancienne roadmap
+`docs/roadmap/mvp-roadmap.md` a été supprimée pour éviter deux sources de
+vérité et ne doit pas être recréée.
+
+## État du projet au 23 juin 2026
+
+Le cœur MVP est livré sur `main` : backend Symfony/API Platform, frontend
+client, backoffice admin et espace marchand. La roadmap active Sprint 14+
+prépare une V1 de lancement officiel mobile-first, monétisable et exploitable.
 
 Blocs livrés :
 
@@ -30,32 +62,26 @@ Blocs livrés :
 - personnalisation visuelle par supérette ;
 - images produits web/mobile livrées via S13-005 ;
 - i18n client français / arabe avec RTL livré via S14-004 (#401), avec préférence langue marchand FR/AR livrée via #395.
+- PWA client et PWA marchand livrées comme expériences web installables ;
+- Web Push livré avec souscriptions client/marchand, service worker et toggle
+  frontend ;
+- document mensuel interne non fiscal, paiement manuel, relances,
+  suspension/réactivation marchand ;
+- import CSV catalogue et recherche code-barres ;
+- statistiques marchand, promotions simples et CRM léger marchand.
 
 Limites ouvertes :
 
-- push notifications non livrées ;
-- accessibilité WCAG de base non auditée ;
-- décision bêta FR-only vs FR+AR (#358) à fermer comme non nécessaire, la bêta pouvant partir en FR+AR sur les parcours livrés.
+- WhatsApp semi-manuel commande (#378) encore ouvert ;
+- Facebook Messenger (#490 à #494) optionnel et conditionnel ;
+- #543 ouvert pour fiabiliser `FRONTEND_URL` sur QR magasin et liens Kadhia ;
+- accessibilité minimum livrée mais sans prétendre à un audit WCAG complet ;
+- validation terrain PWA/Web Push à rejouer avant go/no-go.
 
-Priorité recommandée : clôturer administrativement le Sprint 10 et fermer #358 comme décision absorbée par les livraisons FR/AR.
+Priorité recommandée : maintenir #527 comme issue mère, traiter ou reporter
+explicitement #378, et rejouer les parcours terrain avant go/no-go.
 
 Issue documentaire courante : [#405](https://github.com/pivox/click-and-collect-superette/issues/405).
-
-## Roadmap active
-
-La roadmap d'exécution à partir de Sprint 14 est maintenant :
-
-```text
-docs/Sprint14/README.md
-```
-
-La synthèse stratégique est :
-
-```text
-docs/roadmap/launch-readiness-reorganization.md
-```
-
-L'ancienne roadmap `docs/roadmap/mvp-roadmap.md` a été supprimée pour éviter deux sources de vérité.
 
 ## Développement frontend avec Docker
 

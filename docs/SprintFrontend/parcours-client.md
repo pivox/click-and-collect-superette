@@ -65,11 +65,11 @@ S14-004 / #401 a livré l'i18n client :
 
 Le vocabulaire métier reste conservé : Kadhia, supérette, marchand, client, rendez-vous, retrait. Les montants restent en TND.
 
-## Limites ouvertes
+## Limites / validations restantes
 
-- PWA client installable et stratégie offline : #374 ouverte.
-- Push notifications : #376 ouverte.
-- Accessibilité minimum WCAG : #379 ouverte.
+- PWA client installable et stratégie offline : #374 fermée, validation terrain installée à confirmer.
+- Push notifications : #376 fermée, validation navigateur réelle à confirmer.
+- Accessibilité minimum : #379 fermée, sans audit WCAG complet relancé.
 - Scan caméra QR réel : à confirmer dans le périmètre PWA ; la résolution QR par token existe.
 - Notifications temps réel, SMS, email et paiement en ligne restent hors MVP strict.
 

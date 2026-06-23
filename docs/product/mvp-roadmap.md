@@ -1,5 +1,11 @@
 # MVP Roadmap — index
 
+Le point d'entrée documentaire projet est :
+
+```text
+docs/project/source-of-truth.md
+```
+
 La roadmap active de référence à partir de Sprint 14 est désormais :
 
 ```text

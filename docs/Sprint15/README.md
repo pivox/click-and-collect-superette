@@ -1,8 +1,11 @@
 # Sprint 15 — Monétisation, support, exploitation & onboarding catalogue
 
-Date de cadrage : 2026-06-11  
-Rôles de cadrage : PO + commercial terrain supérettes + Tech Lead  
-Statut : cadrage Sprint 15 enrichi avec les groupements de produits référentiel. #466 et #467 livrés.
+Date de cadrage : 2026-06-11
+Dernière révision documentaire : 2026-06-23
+Rôles de cadrage : PO + commercial terrain supérettes + Tech Lead
+Statut : Sprint 15 enrichi avec les groupements de produits référentiel. Les
+issues #361, #364, #365, #384, #466 et #467 sont fermées GitHub et ne doivent
+plus être replanifiées comme backlog actif.
 
 ---
 
@@ -34,26 +37,30 @@ Le Sprint 15 conserve donc son périmètre existant :
 
 ---
 
-## 2. Issues Sprint 15 actives
+## 2. Issues Sprint 15
 
-### Monétisation
+### Acquis livrés — Monétisation
 
 ```text
-#361 — Reçu / facture mensuelle à cadrer fiscalement
+#361 — Document mensuel interne non fiscal
 #364 — Suspension douce et réactivation
 ```
 
-### Onboarding catalogue marchand
+### Acquis livrés — Onboarding catalogue marchand
 
 ```text
-#365 — Import CSV + scan code-barres
+#365 — Import CSV + recherche code-barres
 #464 — S15-006 / US-081 — Admin — Créer des groupements de produits référentiel
 #465 — S15-007 / US-082 — Marchand — Voir et sélectionner un groupement de produits
 #466 — S15-008 / US-083 — Marchand — Importer un groupement sans doublon catalogue — livré
 #467 — S15-009 / US-084 — Marchand — Compléter les prix après import groupé — livré
 ```
 
-### Promotions catalogue
+Note : #365 couvre le socle import CSV et la recherche/saisie code-barres. Le
+scan caméra mobile n'est pas une preuve de livraison constatée dans cette passe
+documentaire.
+
+### Acquis livrés — Promotions catalogue
 
 ```text
 #384 — S15-004 — Promotions simples — scope marchand/client livré : définir/supprimer une promo, afficher prix barré côté client, snapshot Kadhia au prix effectif.
