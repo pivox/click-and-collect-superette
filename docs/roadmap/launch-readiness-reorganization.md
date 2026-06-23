@@ -74,8 +74,11 @@ ops et activation restent des acquis de lancement à vérifier en démo.
 
 #380 statistiques marchand, #384 promotions simples et #385 CRM léger sont
 fermées et représentées par endpoints, UI et tests ciblés. #382 packs produits
-est présent sur `main` via `ProductPack`, endpoints API Platform
-marchand/client, ajout de pack à la Kadhia et `MerchantProductPackApiTest`.
+est techniquement présent sur `main` via `ProductPack`, des endpoints API Platform
+marchand/client, l'ajout de pack à la Kadhia et `MerchantProductPackApiTest`.
+Aucun consommateur, service, composant ou route frontend des packs n'est cependant
+constaté dans `apps/frontend/src` : #382 reste donc un acquis backend/API et ne
+compte pas encore comme valeur visible marchand/client ni comme gate de lancement.
 #383 suggestions de Kadhia est livré via la PR #484 avec `KadhiaSuggestionService`,
 suggestions magasin, favoris, remplacements indisponibles et tests backend/front.
 
@@ -85,6 +88,8 @@ suggestions magasin, favoris, remplacements indisponibles et tests backend/front
 - Traiter ou explicitement reporter #378 WhatsApp semi-manuel.
 - Traiter #543 `FRONTEND_URL` comme fiabilisation P2 QR/share, non bloquante
   pour les sujets MVP plus urgents.
+- Ne pas comptabiliser #382 comme valeur visible tant que l'UI PWA des packs
+  n'est pas câblée et validée ; son report explicite reste non bloquant.
 - Rejouer les parcours terrain client, marchand et admin en environnement de
   démo avant go/no-go.
 - Confirmer que les documents billing/support sont compris opérationnellement.
@@ -119,8 +124,10 @@ commande ou un retrait sans décision PO explicite.
 
 - Abonnement, phase tarifaire, document mensuel interne, paiement manuel,
   suspension/réactivation et import catalogue disponibles.
-- Valeur marchand visible : statistiques, packs produits, suggestions de
-  Kadhia, promotions, CRM léger.
+- Valeur marchand visible : statistiques, suggestions de Kadhia, promotions et
+  CRM léger.
+- Packs produits : socle backend/API disponible, hors gate visible tant que
+  l'UI PWA n'est pas reliée et validée.
 
 ### Gate support
 
