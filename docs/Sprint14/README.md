@@ -154,7 +154,7 @@ lancement, sans modules avancés dépendant de données réelles.
 | Issue | Sujet | Preuve documentaire / technique |
 |---|---|---|
 | #380 | Statistiques marchand | Fermée GitHub `completed`; endpoint `/api/merchant/stores/{storeId}/statistics`, front marchand, tests backend. |
-| #382 | Packs produits | Fermée GitHub `completed`; code présent sur `main` (`9f914ff`, correctifs #463), `ProductPack`, endpoints API Platform marchand/client, ajout de pack à la Kadhia et `MerchantProductPackApiTest`. |
+| #382 | Packs produits | Fermée GitHub `completed` pour le socle backend/API ; code présent sur `main` (`9f914ff`, correctifs #463), `ProductPack`, endpoints API Platform marchand/client, ajout de pack à la Kadhia et `MerchantProductPackApiTest`. Aucun consommateur, service, composant ou route frontend des packs n'est constaté dans `apps/frontend/src`. |
 | #383 | Suggestions de Kadhia | Fermée GitHub `completed`; PR #484 fusionnée, `KadhiaSuggestionService`, suggestions magasin, favoris, remplacements indisponibles et tests backend/front. |
 | #384 | Promotions simples | Fermée GitHub `completed`; champs promotion catalogue, affichage client/marchand, snapshot prix, suivi admin lecture seule extrait #479. |
 | #385 | CRM léger marchand | Fermée GitHub `completed`; profils CRM, historique contacts, filtres admin, tests backend/front. |
@@ -162,8 +162,9 @@ lancement, sans modules avancés dépendant de données réelles.
 ## Critère de sortie
 
 ```text
-Le marchand dispose de statistiques, packs, suggestions, promotions simples et
-CRM léger pour augmenter la valeur visible avant lancement.
+Le marchand dispose de statistiques, suggestions, promotions simples et CRM léger
+pour augmenter la valeur visible avant lancement. Le socle backend/API des packs
+est acquis, mais leur valeur visible reste hors critère jusqu'au câblage PWA.
 ```
 
 ---
@@ -213,8 +214,9 @@ décision PO explicite.
 - Paiement manuel disponible.
 - Import catalogue minimum disponible.
 - Suspension douce et réactivation possibles.
-- Statistiques, packs produits, suggestions de Kadhia, promotions et CRM léger
-  disponibles.
+- Statistiques, suggestions de Kadhia, promotions et CRM léger disponibles.
+- Packs produits : socle backend/API disponible, hors gate visible tant que
+  l'UI PWA n'est pas reliée et validée.
 
 ## Gate support
 
