@@ -85,6 +85,10 @@ describe('AdminShell', () => {
       'href',
       '/admin/feedbacks',
     );
+    expect(screen.getByRole('link', { name: 'Paramètres' })).toHaveAttribute(
+      'href',
+      '/admin/parametres',
+    );
     expect(screen.getByRole('button', { name: 'Ouvrir la navigation admin' })).toHaveClass(
       'md:hidden',
     );

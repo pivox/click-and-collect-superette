@@ -45,7 +45,9 @@ afin de **l'imprimer et le coller à l'entrée de mon magasin sans dépendre de 
 ## Règles métier
 
 - Le marchand ne peut télécharger que le QR code de sa propre supérette.
-- Le QR code encode l'URL du parcours client : `{FRONTEND_URL}/stores/by-qr/{qrCodeToken}`.
+- Le QR code encode l'URL du parcours client :
+  `{frontendOrigin}/stores/by-qr/{qrCodeToken}`, où `frontendOrigin` est
+  l'origine configurée dans les paramètres plateforme admin.
 - Le format PDF inclut le nom de la supérette et l'URL cible.
 - Si le `qrCodeToken` est régénéré par l'admin, le marchand doit télécharger un nouveau QR code.
 
@@ -80,6 +82,6 @@ Content-Disposition: attachment; filename="qr-superette-ezzahra.png"
 - PNG : service backend `QrCodePngGenerator`.
 - PDF : service backend `MerchantStoreQrPdfGenerator` avec QR encodé en image.
 
-**QR code content :** `{FRONTEND_URL}/stores/by-qr/{qrCodeToken}`
+**QR code content :** `{frontendOrigin}/stores/by-qr/{qrCodeToken}`
 
 **Sécurité :** `MerchantShopAccessChecker` sur les deux endpoints.

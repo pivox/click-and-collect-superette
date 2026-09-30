@@ -25,7 +25,7 @@ final readonly class KadhiaShareLinkService
         private ClockInterface $clock,
         #[Autowire('%kernel.secret%')]
         private string $secret,
-        private string $frontendUrl,
+        private FrontendUrlBuilder $frontendUrlBuilder,
     ) {
     }
 
@@ -96,7 +96,7 @@ final readonly class KadhiaShareLinkService
 
     public function shareUrl(string $token): string
     {
-        return rtrim($this->frontendUrl, '/').'/kadhia/share/'.rawurlencode($token);
+        return $this->frontendUrlBuilder->build('/kadhia/share/'.rawurlencode($token));
     }
 
     public function hashToken(string $token): string

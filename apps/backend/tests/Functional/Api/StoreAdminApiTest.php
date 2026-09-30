@@ -561,7 +561,7 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertSame('Store QR Read', $payload['store_name']);
         self::assertSame('store-qr-read', $payload['slug']);
         self::assertSame($shop->getQrCodeToken(), $payload['qr_code_token']);
-        self::assertSame(\sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()), $payload['target_url']);
+        self::assertSame(\sprintf('http://localhost:3000/stores/by-qr/%s', $shop->getQrCodeToken()), $payload['target_url']);
         self::assertArrayNotHasKey('qr_payload', $payload);
         self::assertArrayNotHasKey('password', $payload);
         self::assertArrayNotHasKey('password_hash', $payload);
@@ -598,7 +598,7 @@ final class StoreAdminApiTest extends FunctionalApiTestCase
         self::assertSame($oldName, $payload['store_name']);
         self::assertSame($oldSlug, $payload['slug']);
         self::assertNotSame($oldToken, $payload['qr_code_token']);
-        self::assertSame(\sprintf('/api/stores/by-qr/%s', $payload['qr_code_token']), $payload['target_url']);
+        self::assertSame(\sprintf('http://localhost:3000/stores/by-qr/%s', $payload['qr_code_token']), $payload['target_url']);
 
         $this->entityManager->refresh($shop);
         self::assertSame($payload['qr_code_token'], $shop->getQrCodeToken());

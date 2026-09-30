@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StoreDrawer } from '@/components/admin/superettes/StoreDrawer';
-import { createStore } from '@/lib/services/admin/stores.service';
+import { createStore, getStoreQrCode } from '@/lib/services/admin/stores.service';
 import { listMerchants } from '@/lib/services/admin/merchants.service';
 
 vi.mock('@/lib/services/admin/stores.service', () => ({
@@ -39,6 +39,13 @@ describe('StoreDrawer', () => {
       total: 0,
     });
     vi.mocked(createStore).mockResolvedValue(CREATED_STORE);
+    vi.mocked(getStoreQrCode).mockResolvedValue({
+      store_id: 'store-uuid-1',
+      store_name: 'Supérette Sans Marchand',
+      slug: 'superette-sans-marchand',
+      qr_code_token: 'qr-token',
+      target_url: 'https://demo.kadhia.tn/stores/by-qr/qr-token',
+    });
   });
 
   it('permet de créer une supérette sans marchand propriétaire', async () => {
@@ -68,5 +75,18 @@ describe('StoreDrawer', () => {
     });
     expect(screen.queryByText('Le marchand est obligatoire.')).not.toBeInTheDocument();
     expect(onSaved).toHaveBeenCalled();
+  });
+
+  it('affiche directement l’URL QR absolue fournie par le backend', async () => {
+    render(
+      <StoreDrawer
+        open
+        onClose={vi.fn()}
+        store={CREATED_STORE}
+        onSaved={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('https://demo.kadhia.tn/stores/by-qr/qr-token')).toBeInTheDocument();
   });
 });

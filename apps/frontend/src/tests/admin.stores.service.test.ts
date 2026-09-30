@@ -27,7 +27,7 @@ const QR_RESPONSE = {
   store_name: 'Ma Supérette',
   slug: 'ma-superette',
   qr_code_token: 'tok_abc123',
-  target_url: '/api/stores/by-qr/tok_abc123',
+  target_url: 'http://localhost:3000/stores/by-qr/tok_abc123',
 };
 
 const ACTIVATION_CHECKLIST_RESPONSE = {

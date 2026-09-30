@@ -842,7 +842,7 @@ Contrat de réponse admin :
   "store_name": "Supérette El Amal",
   "slug": "superette-el-amal",
   "qr_code_token": "qr-token-opaque",
-  "target_url": "/api/stores/by-qr/qr-token-opaque"
+  "target_url": "https://app.superette.tn/stores/by-qr/qr-token-opaque"
 }
 ```
 
@@ -864,6 +864,13 @@ Routes assets marchand livrées avec #355 :
 GET /api/merchant/stores/{storeId}/qr-code.png
 GET /api/merchant/stores/{storeId}/qr-code.pdf
 ```
+
+Origine frontend :
+
+- `target_url` est toujours une URL frontend absolue ;
+- l'origine est lue depuis les paramètres plateforme admin ;
+- `FRONTEND_URL` sert uniquement de valeur initiale quand aucun paramètre
+  plateforme n'existe encore.
 
 Règles QR marchand :
 
@@ -2463,8 +2470,7 @@ Réponse `200` :
   "store_name": "Supérette El Amal",
   "slug": "superette-el-amal",
   "qr_code_token": "qr-token-opaque",
-  "target_url": "/api/stores/by-qr/qr-token-opaque",
-  "qr_payload": "/api/stores/by-qr/qr-token-opaque"
+  "target_url": "https://app.superette.tn/stores/by-qr/qr-token-opaque"
 }
 ```
 
@@ -2473,9 +2479,48 @@ Règles :
 - admin connecté uniquement (`ROLE_ADMIN`) ;
 - la supérette doit exister ;
 - retourne les informations nécessaires pour afficher ou télécharger un QR côté interface admin ;
-- `qr_payload` encode la route publique existante `GET /api/stores/by-qr/{qrCodeToken}` ;
+- `target_url` encode la route frontend `/stores/by-qr/{qrCodeToken}` avec
+  l'origine configurée dans les paramètres plateforme ;
 - ne génère pas d'image PNG/PDF côté endpoint admin ; les assets imprimables sont exposés côté marchand via `/api/merchant/stores/{storeId}/qr-code.png` et `/api/merchant/stores/{storeId}/qr-code.pdf` ;
 - n'expose aucun mot de passe, hash, token auth, propriétaire ou donnée sensible.
+
+#### GET /api/admin/platform/settings — Lire les paramètres plateforme
+
+Réponse `200` :
+
+```json
+{
+  "id": "platform-settings",
+  "frontendOrigin": "https://app.superette.tn",
+  "updatedAt": "2026-06-23T13:00:00+01:00"
+}
+```
+
+Règles :
+
+- admin connecté uniquement (`ROLE_ADMIN`) ;
+- `frontendOrigin` est une origine absolue `http` ou `https`, sans chemin,
+  query, fragment ni credentials ;
+- si aucun paramètre n'existe, la valeur est initialisée depuis `FRONTEND_URL`.
+
+#### PUT /api/admin/platform/settings — Modifier les paramètres plateforme
+
+Payload :
+
+```json
+{
+  "frontendOrigin": "https://app.superette.tn"
+}
+```
+
+Réponse `200` : même contrat que `GET /api/admin/platform/settings`.
+
+Règles :
+
+- admin connecté uniquement (`ROLE_ADMIN`) ;
+- rejette toute valeur qui n'est pas une origine absolue autorisée ;
+- met à jour les URLs générées ensuite pour les QR magasin, liens de partage
+  Kadhia, reset password et invitation marchand.
 
 #### POST /api/admin/stores/{storeId}/regenerate-qr — Régénérer le token QR
 

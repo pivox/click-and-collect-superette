@@ -74,7 +74,7 @@ Limites ouvertes :
 
 - WhatsApp semi-manuel commande (#378) encore ouvert ;
 - Facebook Messenger (#490 à #494) optionnel et conditionnel ;
-- #543 ouvert pour fiabiliser `FRONTEND_URL` sur QR magasin et liens Kadhia ;
+- origine frontend administrable pour fiabiliser QR magasin et liens Kadhia ;
 - accessibilité minimum livrée mais sans prétendre à un audit WCAG complet ;
 - validation terrain PWA/Web Push à rejouer avant go/no-go.
 

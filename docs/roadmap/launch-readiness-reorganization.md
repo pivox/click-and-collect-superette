@@ -83,8 +83,8 @@ suggestions magasin, favoris, remplacements indisponibles et tests backend/front
 
 - Garder #527 comme issue mère ouverte et maintenue.
 - Traiter ou explicitement reporter #378 WhatsApp semi-manuel.
-- Traiter #543 `FRONTEND_URL` comme fiabilisation P2 QR/share, non bloquante
-  pour les sujets MVP plus urgents.
+- Vérifier en démo l'origine frontend configurée dans Admin → Paramètres
+  plateforme avant impression des QR magasin et partage de liens Kadhia.
 - Rejouer les parcours terrain client, marchand et admin en environnement de
   démo avant go/no-go.
 - Confirmer que les documents billing/support sont compris opérationnellement.

@@ -71,7 +71,7 @@ utilisable en conditions terrain.
 |---|---|---|
 | #378 | WhatsApp semi-manuel client + marchand | Ouverte ; fallback utile terrain, non bloquant si notifications in-app + Web Push couvrent les cas minimum. |
 | #527 | Suivi global prioritaire | Ouverte ; issue mère de gouvernance et stabilisation. |
-| #543 | Sécurisation `FRONTEND_URL` | Ouverte P2 ; fiabilisation QR magasin et liens Kadhia, non bloquante pour les PR MVP urgentes. |
+| #543 | Sécurisation `FRONTEND_URL` | Traitée par paramètre admin plateforme : `FRONTEND_URL` sert de seed, puis les QR magasin et liens Kadhia utilisent l'origine configurée. |
 
 ## Reporté après lancement
 

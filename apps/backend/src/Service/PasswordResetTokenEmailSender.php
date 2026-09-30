@@ -11,14 +11,14 @@ use App\Entity\User;
 final readonly class PasswordResetTokenEmailSender implements PasswordResetTokenSenderInterface
 {
     public function __construct(
-        private string $frontendUrl,
+        private FrontendUrlBuilder $frontendUrlBuilder,
         private TransactionalEmailSenderInterface $emailSender,
     ) {
     }
 
     public function send(User $user, string $rawToken): void
     {
-        $resetUrl = rtrim($this->frontendUrl, '/').'/reset-password?token='.urlencode($rawToken);
+        $resetUrl = $this->frontendUrlBuilder->build('/reset-password').'?token='.urlencode($rawToken);
 
         // Carry the portal so the post-reset screen can route the user back to
         // the right login (merchant / admin); customers use the default login.

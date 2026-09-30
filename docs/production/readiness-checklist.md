@@ -22,6 +22,9 @@
 - [ ] `DATABASE_URL`
 - [ ] `JWT_SECRET_KEY` / `JWT_PUBLIC_KEY`
 - [ ] `CORS_ALLOW_ORIGIN`
+- [ ] `FRONTEND_URL` renseigné comme seed initial (`http://localhost:3000` en
+  dev/test, origine HTTPS en démo/prod), puis vérifié dans Admin →
+  Paramètres plateforme avant génération de QR ou liens publics
 - [ ] `MESSENGER_TRANSPORT_DSN` (doctrine ou redis — obligatoire pour les automatisations différées)
 - [ ] `TRUSTED_PROXIES` (pour que `ip_address` dans `admin_audit_logs` soit fiable)
 

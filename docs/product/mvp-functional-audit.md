@@ -44,7 +44,7 @@ Ne pas recréer `docs/roadmap/mvp-roadmap.md`.
 | Reset password multi-rôles | Oui | Oui | Oui | Oui | OK | Tests backend/front ; #528 lié dans #527. |
 | Inscription marchand publique | Oui | Non | Non | Non | A_DECIDER | MVP : création marchand contrôlée par admin. |
 | Admin marchands / supérettes | Oui | Oui | Oui | Oui | OK | CRUD, suspension/activation, onboarding admin, mot de passe temporaire. |
-| QR code magasin | Oui | Oui | Oui | Oui | OK | QR admin/marchand, PNG/PDF marchand ; #543 suit la robustesse `FRONTEND_URL`. |
+| QR code magasin | Oui | Oui | Oui | Oui | OK | QR admin/marchand, PNG/PDF marchand ; origine frontend administrable pour URLs absolues QR/share. |
 | Recherche supérette | Oui | Oui | Oui | Oui | OK | `GET /api/stores/search`. |
 | Relation client / supérette | Oui | Oui | Oui | Oui | OK | `/api/me/stores/*`. |
 | Catalogue public store | Oui | Oui | Oui | Oui | OK | Catalogue visible même si suspension douce ; soumission bloquée séparément. |
@@ -132,11 +132,12 @@ WhatsApp semi-manuel #378 reste ouvert pour le contexte commande. Facebook
 Messenger #490 à #494 reste conditionnel et optionnel. L'in-app reste la source
 de vérité.
 
-### Audit #527 et `FRONTEND_URL`
+### Audit #527 et origine frontend
 
-L'audit #527 reste historique. L'issue #543 est ouverte pour sécuriser
-`FRONTEND_URL` sur les QR magasin et liens Kadhia, sans bloquer les sujets MVP
-plus urgents.
+L'audit #527 reste historique. La sécurisation #543 remplace l'usage direct de
+`FRONTEND_URL` sur les QR magasin et liens Kadhia par un paramètre plateforme
+admin : `FRONTEND_URL` initialise la valeur, puis l'origine configurée sert aux
+QR magasin, liens de partage Kadhia et emails frontend.
 
 ## Règle pour les prochaines PR IA
 

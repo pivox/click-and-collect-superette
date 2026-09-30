@@ -8,6 +8,10 @@ use App\Entity\Shop;
 
 final readonly class AdminStoreQrOutputFactory
 {
+    public function __construct(private \App\Service\MerchantStoreQrTargetUrlFactory $targetUrlFactory)
+    {
+    }
+
     public function create(Shop $shop): AdminStoreQrOutput
     {
         return new AdminStoreQrOutput(
@@ -15,7 +19,7 @@ final readonly class AdminStoreQrOutputFactory
             storeName: $shop->getName(),
             slug: $shop->getSlug(),
             qrCodeToken: $shop->getQrCodeToken(),
-            targetUrl: \sprintf('/api/stores/by-qr/%s', $shop->getQrCodeToken()),
+            targetUrl: $this->targetUrlFactory->create($shop),
         );
     }
 }
