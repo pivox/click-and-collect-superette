@@ -101,7 +101,7 @@ export function mapCatalogApiItem(item: CatalogApiItem): ProductOffer {
       item.product_reference_id ?? item.local_product_id ?? item.id,
     nameFr: item.name_fr,
     nameAr: item.name_ar,
-    brand: item.brand ?? "",
+    brand: item.brand ?? null,
     volume: (() => {
       if (item.volume == null || item.volume === "" || item.volume === "undefined") return null;
       const parsed = parseFloat(item.volume);
@@ -141,7 +141,7 @@ export async function listCatalog(q: CatalogQuery): Promise<CatalogResult> {
       items = items.filter(
         (p) =>
           p.nameFr.toLowerCase().includes(needle) ||
-          p.brand.toLowerCase().includes(needle),
+          (p.brand ?? "").toLowerCase().includes(needle),
       );
     }
     const offset = (page - 1) * itemsPerPage;
