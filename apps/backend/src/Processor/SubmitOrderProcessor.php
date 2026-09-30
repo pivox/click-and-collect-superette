@@ -193,9 +193,10 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             && $existingOrder->getPickupSlot()->getId()->equals($slot->getId());
 
         if (!$sameReservedSlot && !$this->pickupSlotEligibilityChecker->isEligibleForNewBooking($shop, $slot, $now)) {
+            $minimumLeadTimeMinutes = $this->pickupSlotEligibilityChecker->minimumPickupLeadTimeMinutes($shop);
             $this->logRejected(PickupSlotEligibilityChecker::REJECTION_CODE, $kadhiaId, $slotId, $userId, $storeId, [
-                'minimum_lead_time_minutes' => $this->pickupSlotEligibilityChecker->minimumPickupLeadTimeMinutes($shop),
-                'minimum_eligible_starts_at' => $this->pickupSlotEligibilityChecker->minimumEligibleStartsAt($shop, $now)->format(\DateTimeInterface::ATOM),
+                'minimum_lead_time_minutes' => $minimumLeadTimeMinutes,
+                'minimum_eligible_starts_at' => $this->pickupSlotEligibilityChecker->minimumEligibleStartsAt($shop, $now, $minimumLeadTimeMinutes)->format(\DateTimeInterface::ATOM),
                 'slot_starts_at' => $slotStartsAt->format(\DateTimeInterface::ATOM),
             ]);
             throw new UnprocessableEntityHttpException(PickupSlotEligibilityChecker::REJECTION_CODE);

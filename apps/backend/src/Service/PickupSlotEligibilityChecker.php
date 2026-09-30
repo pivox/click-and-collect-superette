@@ -40,11 +40,11 @@ final readonly class PickupSlotEligibilityChecker
      * Theoretical earliest bookable start (serverNow + lead time), in Tunis
      * local time. Not necessarily the start of a real slot.
      */
-    public function minimumEligibleStartsAt(Shop $shop, ?\DateTimeImmutable $now = null): \DateTimeImmutable
+    public function minimumEligibleStartsAt(Shop $shop, ?\DateTimeImmutable $now = null, ?int $minutes = null): \DateTimeImmutable
     {
         $localNow = ($now ?? $this->clock->now())->setTimezone(new \DateTimeZone(self::TIMEZONE));
 
-        return $localNow->modify(\sprintf('+%d minutes', $this->minimumPickupLeadTimeMinutes($shop)));
+        return $localNow->modify(\sprintf('+%d minutes', $minutes ?? $this->minimumPickupLeadTimeMinutes($shop)));
     }
 
     /**

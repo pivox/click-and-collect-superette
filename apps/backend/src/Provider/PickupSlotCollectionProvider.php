@@ -53,15 +53,16 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
             throw new NotFoundHttpException('STORE_NOT_FOUND');
         }
 
+        $now = $this->clock->now();
         $dateParam = $this->requestStack->getCurrentRequest()?->query->get('date');
-        [$from, $to] = $this->resolveDayWindow($dateParam);
+        [$from, $to] = $this->resolveDayWindow($dateParam, $now);
         $to = null !== $to ? PickupSlotDisplayTime::fromStoredLocalClock($to) : null;
 
         // ORDER-LEAD-002: resolve the shop policy once; slots starting before
         // serverNow + lead time are excluded (a slot exactly at the limit stays
         // eligible). A lead time of 0 keeps the historical behaviour untouched.
         $minimumLeadTimeMinutes = $this->pickupSlotEligibilityChecker->minimumPickupLeadTimeMinutes($shop);
-        $minimumEligibleStartsAt = $this->pickupSlotEligibilityChecker->minimumEligibleStartsAt($shop, $this->clock->now());
+        $minimumEligibleStartsAt = $this->pickupSlotEligibilityChecker->minimumEligibleStartsAt($shop, $now, $minimumLeadTimeMinutes);
 
         $activeClosures = $this->exceptionalClosureRepository->findActiveForShop($shop);
         $availableSlots = array_values(array_filter(
@@ -131,12 +132,12 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
      *
      * @return array{\DateTimeImmutable, \DateTimeImmutable|null}
      */
-    private function resolveDayWindow(?string $dateParam): array
+    private function resolveDayWindow(?string $dateParam, \DateTimeImmutable $now): array
     {
         $timezone = new \DateTimeZone('Africa/Tunis');
-        $now = new \DateTimeImmutable('now', $timezone);
-        $today = new \DateTimeImmutable('today midnight', $timezone);
-        $tomorrow = new \DateTimeImmutable('tomorrow midnight', $timezone);
+        $now = $now->setTimezone($timezone);
+        $today = $now->setTime(0, 0);
+        $tomorrow = $now->setTime(0, 0)->modify('+1 day');
 
         $window = match ($dateParam) {
             'today' => [$now, $tomorrow],
