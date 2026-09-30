@@ -1513,6 +1513,69 @@ Règles :
 
 ---
 
+## Politique de commande marchand
+
+Statut : **livré ORDER-LEAD-001 (#576)**.
+
+### Lire la politique de commande d'une supérette
+
+```http
+GET /api/merchant/stores/{storeId}/ordering-policy
+```
+
+Réponse `200` :
+
+```json
+{
+  "store_id": "shop-uuid",
+  "minimum_pickup_lead_time_minutes": 720,
+  "updated_at": "2026-09-30T09:00:00+00:00"
+}
+```
+
+Règles :
+
+- marchand connecté uniquement ;
+- le marchand doit être propriétaire de la supérette ;
+- une supérette historique sans politique persistée retourne la valeur par
+  défaut `0` ; `updated_at` est alors absent de la réponse (propriété nulle
+  exclue de la sérialisation) ;
+- la lecture ne crée jamais de ligne en base.
+
+### Modifier la politique de commande
+
+```http
+PATCH /api/merchant/stores/{storeId}/ordering-policy
+```
+
+Payload :
+
+```json
+{
+  "minimum_pickup_lead_time_minutes": 720
+}
+```
+
+Réponse `200` : même format que le GET.
+
+Règles :
+
+- `minimum_pickup_lead_time_minutes` est un entier obligatoire entre `0` et
+  `10080` (7 jours) ; toute autre forme (décimal, chaîne, booléen, null, champ
+  absent) retourne `422 SHOP_ORDERING_POLICY_INVALID_LEAD_TIME` ;
+- tout champ inconnu retourne `422 SHOP_ORDERING_POLICY_UNKNOWN_FIELD` ;
+- le PATCH est idempotent : répéter la même valeur retourne `200` et le même
+  état ; une contrainte unique en base garantit une seule politique par
+  supérette (dernière écriture gagnante) ;
+- la première modification crée la ligne (upsert) ;
+- chaque changement effectif est tracé dans un log structuré
+  `shop.ordering_policy.minimum_lead_time.update` (shop, acteur, ancienne et
+  nouvelle valeur, sans donnée personnelle) ;
+- cette politique n'est pas encore appliquée au listing public ni à la
+  soumission : l'application serveur est livrée par ORDER-LEAD-002 (#577).
+
+---
+
 ## Sprint 3b — Opérations marchand
 
 Statut : **Sprint 3b entièrement livré côté backend (PR #92 à #101). Tous les endpoints ci-dessous sont opérationnels.**
@@ -3324,6 +3387,8 @@ Règles :
 | `PICKUP_SESSION_ALREADY_CUSTOMER_CONFIRMED` | Le client a déjà confirmé le retrait. |
 | `PICKUP_FORCE_COMPLETION_TOO_EARLY` | Le délai de 5 minutes n'est pas encore atteint. |
 | `PRODUCT_REFERENCE_DUPLICATE` | Produit de référence probablement déjà existant. |
+| `SHOP_ORDERING_POLICY_INVALID_LEAD_TIME` | Délai minimal avant retrait manquant, non entier ou hors plage 0–10080 minutes. |
+| `SHOP_ORDERING_POLICY_UNKNOWN_FIELD` | Champ inconnu dans le PATCH de la politique de commande. |
 
 ---
 
