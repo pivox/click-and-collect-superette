@@ -63,6 +63,21 @@ parameters:
     app.mobile_config.maintenance_message_default: ''
     app.mobile_config.maintenance_message_fr: '%env(default:app.mobile_config.maintenance_message_default:string:MOBILE_MAINTENANCE_MESSAGE_FR)%'
     app.mobile_config.maintenance_message_ar: '%env(default:app.mobile_config.maintenance_message_default:string:MOBILE_MAINTENANCE_MESSAGE_AR)%'
+    # Rate limiting of sensitive public endpoints (#622). Home-grown fixed
+    # window on cache.app (symfony/rate-limiter not approved as a dependency).
+    # Globally switchable via RATE_LIMIT_ENABLED; disabled by default in the
+    # test environment (see when@test below) to keep the existing suite green.
+    app.rate_limit.enabled_default: true
+    app.rate_limit.enabled: '%env(default:app.rate_limit.enabled_default:bool:RATE_LIMIT_ENABLED)%'
+    app.rate_limit.policies:
+        login_ip_email: { method: POST, path: /api/auth/login, by: ip_email, limit: 5, window: 60 }
+        login_ip: { method: POST, path: /api/auth/login, by: ip, limit: 20, window: 60 }
+        refresh_ip: { method: POST, path: /api/auth/refresh, by: ip, limit: 10, window: 60 }
+        register_customer_ip: { method: POST, path: /api/auth/register/customer, by: ip, limit: 3, window: 3600 }
+        password_reset_request_ip: { method: POST, path: /api/auth/password-reset/request, by: ip, limit: 3, window: 900 }
+        password_reset_confirm_ip: { method: POST, path: /api/auth/password-reset/confirm, by: ip, limit: 3, window: 900 }
+        client_logs_ip: { method: POST, path: /api/client-logs, by: ip, limit: 30, window: 60 }
+        store_by_qr_ip: { method: GET, path_prefix: /api/stores/by-qr/, by: ip, limit: 60, window: 60 }
 
 services:
     # default configuration for services in *this* file
@@ -133,6 +148,16 @@ services:
     App\Service\Push\PushSenderInterface:
         alias: App\Service\Push\ExpoPushSender
 
+    # MOBILE-SEC #622: fixed-window limiter on cache.app behind an interface
+    # (migration seam towards symfony/rate-limiter if the dependency lands).
+    App\Service\RateLimit\RateLimiterInterface:
+        alias: App\Service\RateLimit\FixedWindowCacheRateLimiter
+
+    App\EventSubscriber\RateLimitSubscriber:
+        arguments:
+            $enabled: '%app.rate_limit.enabled%'
+            $policies: '%app.rate_limit.policies%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
@@ -140,6 +165,10 @@ when@test:
     parameters:
         # Keep uploaded test fixtures out of the public web root.
         app.product_image.upload_dir: '%kernel.cache_dir%/product-image-uploads'
+        # #622: the functional suite replays many login/register calls from the
+        # same client IP — the limiter is off by default in tests. Rate limit
+        # tests opt back in by setting RATE_LIMIT_ENABLED=1 before kernel boot.
+        app.rate_limit.enabled_default: false
 
     services:
         App\Doctrine\Middleware\SQLiteUnaccentMiddleware:

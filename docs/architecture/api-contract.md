@@ -19,6 +19,20 @@ Ce contrat sert de source de vérité pour les prochains développements backend
 - Les routes `/api/merchant/*` sont réservées au marchand connecté (`ROLE_MERCHANT`) et propriétaire de la supérette ciblée.
 - Les routes `/api/admin/*` sont réservées à l'administrateur (`ROLE_ADMIN`).
 - Corrélation (#617) : le client peut envoyer un identifiant via l'en-tête `X-Client-Request-Id` (format accepté : 8 à 64 caractères `[A-Za-z0-9-]`, UUID inclus). Toute réponse API — succès comme erreur — porte l'en-tête **`X-Request-Id`** : l'identifiant client s'il est valide, sinon un UUID v4 généré côté serveur. Le même identifiant est journalisé côté backend (`extra.correlation_id` Monolog) et exposé en CORS (`expose_headers`) pour la PWA. Les apps mobiles lisent `X-Request-Id` dans les en-têtes des réponses 5xx pour le support terrain ; le corps `problem+json` reste inchangé.
+- Rate limiting (#622, MOBILE-SEC) : les endpoints publics sensibles sont limités en débit côté backend (limiteur maison à **fenêtre fixe** sur le cache applicatif `cache.app`, sans nouvelle dépendance ni infrastructure). Seuils par défaut :
+
+  | Endpoint | Clé | Seuil |
+  |---|---|---|
+  | `POST /api/auth/login` | IP + email du payload | 5 / min |
+  | `POST /api/auth/login` | IP | 20 / min |
+  | `POST /api/auth/refresh` | IP | 10 / min |
+  | `POST /api/auth/register/customer` | IP | 3 / heure |
+  | `POST /api/auth/password-reset/request` | IP | 3 / 15 min |
+  | `POST /api/auth/password-reset/confirm` | IP | 3 / 15 min |
+  | `POST /api/client-logs` | IP | 30 / min |
+  | `GET /api/stores/by-qr/{token}` | IP | 60 / min (anti-énumération, large pour l'usage légitime) |
+
+  Dépassement → **`429 Too Many Requests`** avec l'en-tête **`Retry-After`** (secondes avant la prochaine fenêtre) et un corps `application/problem+json` dont `detail` vaut le code stable **`RATE_LIMITED`** (motif `ratelimited` prévu par les cadrages mobiles #563/#564). Les apps doivent respecter `Retry-After` et ne pas réessayer automatiquement avant ce délai. Les identifiants (IP, email) ne sont jamais stockés en clair dans le cache (hash sha256). Interrupteur global : variable d'environnement `RATE_LIMIT_ENABLED` (activé par défaut, désactivé en environnement de test). Limites connues : la clé IP repose sur `Request::getClientIp()` — derrière un reverse proxy, `trusted_proxies` doit être configuré côté Symfony, sinon tous les clients partagent l'IP du proxy (même caveat que `AdminAuditLog.ipAddress`) ; migration possible vers `symfony/rate-limiter` (politique `sliding_window`) derrière l'interface `App\Service\RateLimit\RateLimiterInterface` — décision d'ajout de la dépendance en attente.
 
 ---
 
