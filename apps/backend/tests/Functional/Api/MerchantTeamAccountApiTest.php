@@ -182,6 +182,12 @@ final class MerchantTeamAccountApiTest extends FunctionalApiTestCase
         self::assertSame(422, $response->getStatusCode());
         self::assertSame('MERCHANT_ACCOUNT_LIMIT_REACHED', $this->decodeJson($response)['detail']);
         self::assertNull($this->entityManager->getRepository(User::class)->findOneBy(['email' => 'team-overflow@example.test']));
+        // No membership row was created for the refused email: the organization
+        // still holds 10 non-revoked memberships + 1 revoked one.
+        self::assertCount(
+            11,
+            $this->entityManager->getRepository(MerchantMembership::class)->findBy(['organization' => $this->organization]),
+        );
     }
 
     public function testSecondaryAccountCannotManageTheTeam(): void
