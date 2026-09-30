@@ -229,6 +229,8 @@
       "available": "Créneaux disponibles",
       "noSlots": "Aucun créneau ce jour.",
       "noSlotsHint": "Essaie un autre jour ou reviens plus tard.",
+      "leadTimeInfo": "Cette supérette demande au moins {duration} pour préparer une commande.",
+      "leadTimeNoSlots": "Aucun rendez-vous n’est encore disponible après ce délai.",
       "slotsError": "Impossible de charger les créneaux. Vérifie ta connexion et réessaie.",
       "merchantNote": "Note au marchand",
       "defaultNote": "Si un produit est absent, remplacer par une marque proche.",
@@ -251,6 +253,7 @@
         "kadhiaNotFound": "Aucune Kadhia active trouvée. Retourne au catalogue pour en créer une.",
         "storeSuspended": "Cette supérette ne prend temporairement plus de nouvelles Kadhia. Votre Kadhia reste disponible.",
         "partialAcceptanceExpired": "Le délai pour re-soumettre cette Kadhia modifiée est dépassé. Repars du catalogue avec une nouvelle Kadhia.",
+        "minimumLeadTime": "Ce rendez-vous est devenu trop proche pour le temps de préparation demandé par la supérette. Choisis un autre créneau ; ta Kadhia a été conservée.",
         "generic": "La commande n'a pas pu être envoyée. Ta Kadhia est conservée, tu peux réessayer."
       }
     },
