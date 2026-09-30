@@ -254,6 +254,31 @@ updated_at: datetime
 
 Règle : si présent, surcharge entièrement le `PlatformTheme` pour la supérette concernée. Si absent, la supérette hérite du `PlatformTheme`. Modifiable uniquement par le `ROLE_MERCHANT` propriétaire de la supérette.
 
+## ShopOrderingPolicy
+
+Politique de commande propre à une supérette (ORDER-LEAD-001). Optionnelle
+(OneToOne nullable vers `Store`) : une supérette sans ligne résout la valeur
+par défaut `0`, et la ligne est créée au premier PATCH marchand (upsert).
+
+```yaml
+id: uuid
+shop_id: uuid (unique)
+minimum_pickup_lead_time_minutes: integer (0 à 10080, défaut 0)
+created_at: datetime
+updated_at: datetime
+```
+
+Règles :
+
+- une seule politique par supérette (contrainte unique en base + CHECK sur la
+  plage 0–10080) ;
+- `minimum_pickup_lead_time_minutes` exprime le temps minimum entre la
+  soumission d'une commande et le début du créneau de retrait ;
+- l'agrégat pourra accueillir plus tard d'autres règles de disponibilité de
+  commande (horizon maximal, cutoff quotidien…) — hors périmètre actuel ;
+- l'application de la règle au listing public et à la soumission est livrée
+  séparément (ORDER-LEAD-002).
+
 ## Contraintes importantes
 
 - `ProductReference` doit être unique autant que possible par marque, nom, variante, volume, unité et catégorie.
