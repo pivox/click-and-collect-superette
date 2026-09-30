@@ -242,6 +242,83 @@ ROLE_MERCHANT + User actif + membership active + organisation active
   étrangère, membership absente/invitée/révoquée, organisation inactive) —
   aucune fuite du motif ; compte suspendu : `403 MERCHANT_ACCOUNT_INACTIVE`.
 
+### Équipe marchande (MERCHANT-TEAM-004, #573)
+
+Statut : **livré**. Réservé au **compte principal** de l'organisation de la
+supérette (`403 MERCHANT_TEAM_MANAGEMENT_FORBIDDEN` pour un compte secondaire
+ou une supérette sans organisation).
+
+```http
+GET    /api/merchant/stores/{storeId}/accounts
+POST   /api/merchant/stores/{storeId}/account-invitations
+POST   /api/merchant/stores/{storeId}/accounts/{accountId}/resend-invitation
+DELETE /api/merchant/stores/{storeId}/accounts/{accountId}
+```
+
+Payload d'invitation :
+
+```json
+{
+  "first_name": "Ahmed",
+  "last_name": "Ben Ali",
+  "email": "ahmed@example.com",
+  "phone": "+21620111222"
+}
+```
+
+Réponse `GET .../accounts` :
+
+```json
+{
+  "store_id": "shop-uuid",
+  "organization_id": "organization-uuid",
+  "limit": 10,
+  "active_or_invited_count": 3,
+  "items": [
+    {
+      "account_id": "user-uuid",
+      "first_name": "Ahmed",
+      "last_name": "Ben Ali",
+      "email": "ahmed@example.com",
+      "phone": "+21620111222",
+      "status": "active",
+      "is_primary": false,
+      "invited_at": "2026-08-27T10:00:00+01:00",
+      "accepted_at": "2026-08-27T10:20:00+01:00",
+      "revoked_at": null
+    }
+  ]
+}
+```
+
+Règles :
+
+- l'invitation crée un `User` marchand + une membership `invited` + un token
+  (transactionnel), **sans** abonnement, CRM, document ni boutique ; aucun mot
+  de passe n'est jamais retourné ; email normalisé (minuscules, trim) ;
+- l'invité définit son mot de passe via le parcours existant
+  (`/merchant/invitation` + `POST /api/auth/merchant-invitations/complete`),
+  qui **active la membership atomiquement** avec la consommation du token ;
+- envoi email best-effort : `invitation_status` (`sent` | `delivery_failed`)
+  dans la réponse, renvoi possible avec **rotation du token** (l'ancien lien
+  est invalidé) ; cooldown de renvoi 60 s (`429
+  MERCHANT_INVITATION_RESEND_TOO_SOON`) ;
+- quota : memberships `invited` + `active` ≤ 10 (configurable
+  `MERCHANT_TEAM_ACCOUNT_LIMIT`), revérifié en transaction → `422
+  MERCHANT_ACCOUNT_LIMIT_REACHED` ; les `revoked` ne comptent pas ;
+- email déjà utilisé (tout rôle) → `422 MERCHANT_ACCOUNT_EMAIL_ALREADY_USED`,
+  jamais de rattachement automatique ;
+- révocation : membership `revoked` (+ `revoked_by`/`revoked_at`), tokens
+  d'invitation en attente invalidés, accès refusé dès la requête suivante,
+  historique et `User` conservés ; répétition idempotente (`204`) ; principal
+  non révocable (`422 MERCHANT_PRIMARY_ACCOUNT_CANNOT_BE_REVOKED`) ;
+- renvoi sur un compte non invité → `422 MERCHANT_INVITATION_NOT_PENDING` ;
+  compte hors organisation → `404 MERCHANT_ACCOUNT_NOT_FOUND` (après
+  autorisation, sans fuite) ;
+- audit : `merchant.account.invite` / `invitation_resend` / `revoke` dans le
+  journal d'audit (acteur, organisation, boutique, cible, statuts, sans
+  secret).
+
 Payload `PATCH /api/merchant/me` :
 
 ```json

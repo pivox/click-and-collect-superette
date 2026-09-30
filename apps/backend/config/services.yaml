@@ -9,6 +9,9 @@ parameters:
     app.merchant_invitation_token_ttl: '%env(default:app.merchant_invitation_token_ttl_default:int:MERCHANT_INVITATION_TOKEN_TTL)%'
     app.merchant_temporary_password_ttl_default: 604800
     app.merchant_temporary_password_ttl: '%env(default:app.merchant_temporary_password_ttl_default:int:MERCHANT_TEMPORARY_PASSWORD_TTL)%'
+    app.merchant_team_account_limit_default: 10
+    app.merchant_team_account_limit: '%env(default:app.merchant_team_account_limit_default:int:MERCHANT_TEAM_ACCOUNT_LIMIT)%'
+    app.merchant_team_invitation_resend_cooldown: 60
     app.frontend_url: '%env(string:FRONTEND_URL)%'
     app.mailer_from_email: '%env(string:MAILER_FROM_EMAIL)%'
     app.mailer_from_name: '%env(string:MAILER_FROM_NAME)%'
@@ -51,6 +54,8 @@ services:
             int $passwordResetTokenTtl: '%app.password_reset_token_ttl%'
             int $merchantInvitationTokenTtl: '%app.merchant_invitation_token_ttl%'
             int $merchantTemporaryPasswordTtl: '%app.merchant_temporary_password_ttl%'
+            int $merchantTeamAccountLimit: '%app.merchant_team_account_limit%'
+            int $merchantTeamInvitationResendCooldown: '%app.merchant_team_invitation_resend_cooldown%'
             string $frontendUrl: '%app.frontend_url%'
             string $mailerFromEmail: '%app.mailer_from_email%'
             string $mailerFromName: '%app.mailer_from_name%'
