@@ -17,6 +17,10 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
     public const TYPE_MERCHANT_RESPONSE_TIMEOUT = 'merchant_response_timeout';
     public const TYPE_PARTIAL_ACCEPTANCE_REMINDER = 'partial_acceptance_reminder';
     public const TYPE_PARTIAL_ACCEPTANCE_TIMEOUT = 'partial_acceptance_timeout';
+    // MERCHANT-TEAM-005: stable merchant event types (previously null).
+    public const TYPE_MERCHANT_ORDER_SUBMITTED = 'merchant_order_submitted';
+    public const TYPE_MERCHANT_ORDER_CANCELLED = 'merchant_order_cancelled';
+    public const TYPE_MERCHANT_PICKUP_COMPLETED = 'merchant_pickup_completed';
 
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -24,6 +28,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
         #[Autowire(service: 'monolog.logger.notification')]
         private LoggerInterface $logger,
         private ?WebPushService $webPushService = null,
+        private ?MerchantNotificationRecipientResolver $merchantRecipientResolver = null,
     ) {
     }
 
@@ -217,23 +222,9 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'طلب جديد',
             'Une nouvelle Kadhia a été soumise.',
             'تم إرسال قاضية جديدة.',
+            self::TYPE_MERCHANT_ORDER_SUBMITTED,
+            pushUrl: '/merchant/orders/'.$order->getId()->toRfc4122(),
         );
-
-        // best-effort push notification
-        $owner = $order->getShop()->getOwner();
-        if (null !== $owner && null !== $this->webPushService) {
-            try {
-                $this->webPushService->sendToUser(
-                    $owner,
-                    'Nouvelle commande',
-                    'Une nouvelle Kadhia a été soumise.',
-                    '/merchant/orders/'.$order->getId()->toRfc4122(),
-                );
-                $this->entityManager->flush();
-            } catch (\Throwable $e) {
-                $this->logger->warning('push_send_failed_submitted', ['error' => $e->getMessage()]);
-            }
-        }
     }
 
     public function notifyMerchantOrderCancelled(Order $order): void
@@ -244,6 +235,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم إلغاء الطلب',
             'Le client a annulé sa commande.',
             'قام الحريف بإلغاء الطلب.',
+            self::TYPE_MERCHANT_ORDER_CANCELLED,
         );
     }
 
@@ -255,6 +247,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم إتمام الاستلام',
             'Le retrait de la commande est finalisé.',
             'تم إتمام استلام الطلب.',
+            self::TYPE_MERCHANT_PICKUP_COMPLETED,
         );
     }
 
@@ -301,55 +294,100 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
         }
     }
 
+    /**
+     * MERCHANT-TEAM-005: one persisted notification per eligible account of
+     * the shop organization (each with its own read state), idempotent per
+     * account on retries, with best-effort isolated Web Push per recipient.
+     */
     private function persistForMerchant(
         Order $order,
         string $titleFr,
         string $titleAr,
         string $bodyFr,
         string $bodyAr,
+        string $type,
+        ?string $pushUrl = null,
     ): void {
         $orderId = $order->getId()->toRfc4122();
-        $owner = $order->getShop()->getOwner();
+        $shop = $order->getShop();
 
-        if (null === $owner) {
+        $recipients = null !== $this->merchantRecipientResolver
+            ? $this->merchantRecipientResolver->resolveForShop($shop)
+            : array_values(array_filter([$shop->getOwner()], static fn ($owner): bool => null !== $owner && $owner->isActive()));
+
+        $this->logger->info('notification.merchant_recipients_resolved', [
+            'type' => $type,
+            'order_id' => $orderId,
+            'store_id' => $shop->getId()->toRfc4122(),
+            'organization_id' => $shop->getMerchantOrganization()?->getId()->toRfc4122(),
+            'recipient_count' => \count($recipients),
+        ]);
+
+        if ([] === $recipients) {
             $this->logger->warning('notification.no_owner', [
                 'order_id' => $orderId,
-                'store_id' => $order->getShop()->getId()->toRfc4122(),
+                'store_id' => $shop->getId()->toRfc4122(),
             ]);
 
             return;
         }
 
-        $this->logger->debug('notification.attempt', [
-            'type' => 'merchant',
-            'order_id' => $orderId,
-            'recipient' => 'merchant',
-        ]);
+        foreach ($recipients as $recipient) {
+            // Retry idempotence per account (also enforced by the unique
+            // constraint on order/type/user).
+            if ($this->notificationRepository->existsForOrderTypeAndUser($order, $type, $recipient)) {
+                continue;
+            }
 
-        try {
-            $notification = new Notification(
-                user: $owner,
-                titleFr: $titleFr,
-                titleAr: $titleAr,
-                bodyFr: $bodyFr,
-                bodyAr: $bodyAr,
-                order: $order,
-            );
-            $this->entityManager->persist($notification);
-            $this->logger->info('notification.persisted', [
-                'type' => 'merchant',
-                'order_id' => $orderId,
-                'recipient' => 'merchant',
-            ]);
-        } catch (\Throwable $e) {
-            $this->logger->error('notification.failed', [
-                'type' => 'merchant',
-                'order_id' => $orderId,
-                'exception_class' => $e::class,
-                'exception_message' => $e->getMessage(),
-            ]);
+            try {
+                $notification = new Notification(
+                    user: $recipient,
+                    titleFr: $titleFr,
+                    titleAr: $titleAr,
+                    bodyFr: $bodyFr,
+                    bodyAr: $bodyAr,
+                    order: $order,
+                    type: $type,
+                );
+                $this->entityManager->persist($notification);
+                $this->logger->info('notification.persisted', [
+                    'type' => $type,
+                    'order_id' => $orderId,
+                    'recipient' => 'merchant',
+                ]);
+            } catch (\Throwable $e) {
+                $this->logger->error('notification.failed', [
+                    'type' => $type,
+                    'order_id' => $orderId,
+                    'exception_class' => $e::class,
+                    'exception_message' => $e->getMessage(),
+                ]);
 
-            throw $e;
+                throw $e;
+            }
+        }
+
+        if (null === $pushUrl || null === $this->webPushService) {
+            return;
+        }
+
+        // Best-effort push, isolated per recipient: one failure never blocks
+        // the order transition or the other recipients.
+        foreach ($recipients as $recipient) {
+            try {
+                $this->webPushService->sendToUser($recipient, $titleFr, $bodyFr, $pushUrl);
+                $this->entityManager->flush();
+                $this->logger->info('notification.push_dispatch_succeeded', [
+                    'type' => $type,
+                    'order_id' => $orderId,
+                ]);
+            } catch (\Throwable $e) {
+                $this->logger->warning('notification.push_dispatch_failed', [
+                    'type' => $type,
+                    'order_id' => $orderId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 }

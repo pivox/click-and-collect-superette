@@ -77,7 +77,22 @@ des créneaux masqués par délai côté listing. Aucune donnée personnelle ni 
 | Clé | Niveau | Contexte |
 |---|---|---|
 | `order.status_change.start` | debug | `order_id`, `from_status`, `to_status` |
-| `order.status_changed` | info | `order_id`, `store_id`, `from_status`, `to_status` |
+| `order.status_changed` | info | `order_id`, `store_id`, `from_status`, `to_status`, `actor_user_id`, `actor_type` |
+
+`actor_type` (MERCHANT-TEAM-005) : `customer`, `merchant`, `admin` ou `system`
+(handlers Messenger, commandes, expirations automatiques). Aucun email,
+téléphone ou note libre.
+
+### Notifications marchandes multi-comptes (MERCHANT-TEAM-005)
+
+| Clé | Niveau | Contexte |
+|---|---|---|
+| `notification.merchant_recipients_resolved` | info | `type`, `order_id`, `store_id`, `organization_id`, `recipient_count` |
+| `notification.push_dispatch_succeeded` | info | `type`, `order_id` |
+| `notification.push_dispatch_failed` | warning | `type`, `order_id`, `error` |
+
+Types marchands stables : `merchant_order_submitted`,
+`merchant_order_cancelled`, `merchant_pickup_completed`.
 
 ### Actions marchand commandes
 
