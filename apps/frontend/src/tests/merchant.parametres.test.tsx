@@ -45,9 +45,13 @@ describe('MerchantSettingsPage (MS-001 / MS-004)', () => {
       'href',
       '/merchant/parametres/profil',
     );
-    expect(screen.getByRole('link', { name: /Compte/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^Mon compte/i })).toHaveAttribute(
       'href',
       '/merchant/parametres/compte',
+    );
+    expect(screen.getByRole('link', { name: /^Équipe/i })).toHaveAttribute(
+      'href',
+      '/merchant/parametres/equipe',
     );
     expect(screen.getByRole('link', { name: /Langue de l’interface/i })).toHaveAttribute(
       'href',

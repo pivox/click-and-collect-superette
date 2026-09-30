@@ -178,6 +178,15 @@ final readonly class AdminMerchantOutput
         public ?AdminMerchantOpsJournalOutput $opsJournal = null,
         #[Groups(['admin_merchant:read', 'admin_merchant_list:read'])]
         public ?AdminMerchantCrmOutput $crm = null,
+        /**
+         * MERCHANT-TEAM-006 (detail only, additive): organization diagnostic —
+         * {id, name, is_primary, accounts_count, accounts: [{user_id, email,
+         * status, is_primary, invited_at, revoked_at}]}.
+         *
+         * @var array<string, mixed>|null
+         */
+        #[Groups(['admin_merchant:read'])]
+        public ?array $organization = null,
     ) {
     }
 }

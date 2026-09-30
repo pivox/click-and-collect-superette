@@ -11,6 +11,7 @@ import {
   Palette,
   Printer,
   Store,
+  Users,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { useMerchantLocale } from '@/lib/i18n/MerchantLocaleContext';
@@ -66,6 +67,12 @@ const ACCOUNT_SHORTCUTS: Shortcut[] = [
     titleKey: 'merchant.settings.account.title',
     descriptionKey: 'merchant.settings.account.description',
     icon: Lock,
+  },
+  {
+    href: '/merchant/parametres/equipe',
+    titleKey: 'merchant.settings.team.title',
+    descriptionKey: 'merchant.settings.team.description',
+    icon: Users,
   },
   {
     href: '/merchant/parametres/langue',
