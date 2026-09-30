@@ -2,7 +2,42 @@
 
 ## Statut
 
-Proposé (MOBILE-001, #562) — à accepter avant tout bootstrap de code mobile.
+**Accepté avec amendement** (décision PO du 30 septembre 2026, à l'ouverture du
+chantier Android) — voir « Amendement A1 » ci-dessous, qui remplace la décision
+« deux applications séparées ».
+
+## Amendement A1 — Application unique à bascule de rôle (30/09/2026)
+
+Décision PO : **une seule application mobile** est livrée, dont l'expérience
+bascule selon le rôle du compte connecté :
+
+- connexion `ROLE_CUSTOMER` → expérience Client (parcours de
+  `docs/mobile/client-scope.md`) ;
+- connexion `ROLE_MERCHANT` → expérience Marchand (parcours de
+  `docs/mobile/merchant-scope.md`).
+
+Conséquences (remplacent les points correspondants de la décision initiale) :
+
+- **Identité unique** : `tn.kadhia.app` (Android d'abord, iOS ensuite), nom
+  affiché « Kadhia », **un seul listing par store** au lieu de quatre.
+- **Dépôt** : `click-and-collect-mobile` reste standalone, mais héberge **une
+  seule app Expo** ; le découpage `apps/client` + `apps/merchant` est remplacé
+  par des dossiers de features (`src/features/client`, `src/features/merchant`)
+  derrière une navigation commutée par rôle. Les « packages » mutualisés
+  deviennent des modules internes (`src/api`, `src/auth`, `src/i18n`,
+  `src/theme`, `src/notifications`) — plus de workspace multi-packages tant
+  qu'une seule app existe.
+- **Backend inchangé** : l'enregistrement d'appareil (#620) continue d'envoyer
+  `application: client|merchant` selon le rôle du compte connecté au moment de
+  l'enregistrement ; au logout l'appareil est révoqué, au login suivant il est
+  ré-enregistré avec le rôle courant (réaffectation par upsert déjà prévue).
+- **Deep links** : un seul scheme/App Links ; le routage interne vérifie que la
+  cible correspond au rôle connecté (sinon écran « mauvais compte », cas
+  d'erreur déjà cadré #563/#564).
+- **Limites assumées** : cadences de release confondues entre les deux publics,
+  binaire un peu plus gros, listing store au positionnement mixte. Une
+  scission ultérieure en deux apps reste possible (les features sont isolées
+  par dossier) et re-passerait par une révision de cet ADR.
 
 ## Contexte
 
