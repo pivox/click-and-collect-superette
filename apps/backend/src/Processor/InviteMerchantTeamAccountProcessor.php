@@ -129,7 +129,7 @@ final readonly class InviteMerchantTeamAccountProcessor implements ProcessorInte
             $this->entityManager->flush();
 
             // Quota re-check inside the transaction guards concurrent creations.
-            $this->denyIfQuotaReached($organization->getId()->toRfc4122());
+            $this->denyIfQuotaReached($organization->getId()->toRfc4122(), afterInsert: true);
 
             $connection->commit();
         } catch (UniqueConstraintViolationException) {
@@ -162,7 +162,14 @@ final readonly class InviteMerchantTeamAccountProcessor implements ProcessorInte
         return MerchantTeamAccountOutput::fromMembership($membership, $invitationStatus);
     }
 
-    private function denyIfQuotaReached(string $organizationId): void
+    /**
+     * Before insertion ($afterInsert = false) the quota is full once the count
+     * reaches the limit, so refuse on ">=" as a fast path without writing.
+     * After insertion ($afterInsert = true) the new membership is part of the
+     * count, so only a count strictly above the limit reveals a concurrent
+     * creation and triggers the rollback.
+     */
+    private function denyIfQuotaReached(string $organizationId, bool $afterInsert = false): void
     {
         $memberships = $this->membershipRepository->createQueryBuilder('m')
             ->andWhere('IDENTITY(m.organization) = :organizationId')
@@ -172,7 +179,12 @@ final readonly class InviteMerchantTeamAccountProcessor implements ProcessorInte
             ->getQuery()
             ->getResult();
 
-        if (\count((array) $memberships) > $this->merchantTeamAccountLimit) {
+        $count = \count((array) $memberships);
+        $quotaReached = $afterInsert
+            ? $count > $this->merchantTeamAccountLimit
+            : $count >= $this->merchantTeamAccountLimit;
+
+        if ($quotaReached) {
             throw new UnprocessableEntityHttpException('MERCHANT_ACCOUNT_LIMIT_REACHED');
         }
     }
