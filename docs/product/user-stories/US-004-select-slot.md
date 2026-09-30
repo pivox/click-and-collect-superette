@@ -51,6 +51,26 @@ afin de **savoir quand venir récupérer ma Kadhia**.
 - La capacité est décrémentée à la soumission, pas à la sélection.
 - Le créneau sélectionné est réservé de façon optimiste pendant 10 minutes maximum.
 
+### Délai minimal avant retrait (ORDER-LEAD, #569)
+
+- Chaque supérette peut exiger un temps minimum entre la soumission et le début
+  du créneau (`ShopOrderingPolicy`, 0 à 7 jours, défaut 0).
+- Le listing public exclut les créneaux commençant avant
+  `serveur + délai minimal` (créneau exactement à la limite accepté) et expose
+  `booking_policy { minimum_pickup_lead_time_minutes, earliest_bookable_at }`.
+- Quand le délai est > 0, le client voit une ligne d'information « Cette
+  supérette demande au moins {durée} pour préparer une commande. »
+- L'état vide lié au délai est distinct de l'état vide générique : « Aucun
+  rendez-vous n'est encore disponible après ce délai. »
+- Si un créneau affiché devient trop proche entre le chargement et la
+  soumission, l'API refuse (`422 PICKUP_SLOT_MINIMUM_LEAD_TIME_NOT_MET`) sans
+  réserver de capacité : la Kadhia et la note sont conservées, le créneau
+  invalide est désélectionné, la liste rechargée, le focus repositionné sur le
+  choix de créneau, et un message métier (jamais la constante brute) s'affiche.
+- Resoumission après acceptation partielle : le même créneau déjà réservé
+  reste autorisé sans recalcul du délai ; un nouveau créneau applique le délai
+  courant ; `PARTIAL_ACCEPTANCE_EXPIRED` reste prioritaire.
+
 ---
 
 ## Critères d'acceptation

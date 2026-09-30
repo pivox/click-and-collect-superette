@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { Pill, PillRow } from "@/components/ui/Pill";
@@ -8,6 +8,8 @@ import { SlotTile } from "@/components/ui/SlotTile";
 import { Button } from "@/components/ui/Button";
 import { StickyBottom } from "@/components/layout/StickyBottom";
 import { discardKadhia, listSlotsForShop, submitKadhia, readLocalKadhia } from "@/lib/services";
+import type { SlotBookingPolicy } from "@/lib/services";
+import { clientLog } from "@/lib/logger/clientLogger";
 import { formatTime } from "@/lib/format";
 import type { PickupSlot } from "@/types";
 
@@ -62,13 +64,34 @@ function resolveSubmitErrorKey(err: unknown): string {
       return "client.slot.errors.storeSuspended";
     case "PARTIAL_ACCEPTANCE_EXPIRED":
       return "client.slot.errors.partialAcceptanceExpired";
+    case "PICKUP_SLOT_MINIMUM_LEAD_TIME_NOT_MET":
+      return "client.slot.errors.minimumLeadTime";
     default:
       return "client.slot.errors.generic";
   }
 }
 
+function errorDetail(err: unknown): string {
+  return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "";
+}
+
 function isPartialAcceptanceExpired(err: unknown): boolean {
-  return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail === "PARTIAL_ACCEPTANCE_EXPIRED";
+  return errorDetail(err) === "PARTIAL_ACCEPTANCE_EXPIRED";
+}
+
+/** Localized "12 h" / "1 h 30" duration for the shop preparation lead time. */
+function formatLeadTimeDuration(minutes: number, locale: string): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const parts: string[] = [];
+  if (locale === "ar") {
+    if (h > 0) parts.push(`${h} ساعة`);
+    if (m > 0 || h === 0) parts.push(`${m} دقيقة`);
+    return parts.join(" و");
+  }
+  if (h > 0) parts.push(`${h} h`);
+  if (m > 0 || h === 0) parts.push(`${m} min`);
+  return parts.join(" ");
 }
 
 function afterTomorrowLabel(locale: string): string {
@@ -93,6 +116,10 @@ export default function SlotPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [canRestartKadhia, setCanRestartKadhia] = useState(false);
   const [slotsError, setSlotsError] = useState(false);
+  const [bookingPolicy, setBookingPolicy] = useState<SlotBookingPolicy | null>(null);
+  const [reloadCounter, setReloadCounter] = useState(0);
+  const [leadTimeRejected, setLeadTimeRejected] = useState(false);
+  const slotsSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -115,15 +142,23 @@ export default function SlotPage() {
     if (isLoading || !user || !shopId) return;
     setSlotsError(false);
     listSlotsForShop(shopId, day)
-      .then((s) => {
+      .then(({ slots: s, bookingPolicy: policy }) => {
         setSlots(s);
+        setBookingPolicy(policy);
         const firstAvail = s.find((x) => x.available);
         setActiveId(firstAvail?.id ?? null);
+        if (0 === s.length && (policy?.minimumPickupLeadTimeMinutes ?? 0) > 0) {
+          clientLog("info", "pickup_slots_empty_after_minimum_lead_time", "No slot after lead time", {
+            storeId: shopId,
+            minimumLeadTimeMinutes: policy?.minimumPickupLeadTimeMinutes,
+            day,
+          });
+        }
       })
       .catch(() => {
         setSlotsError(true);
       });
-  }, [day, isLoading, user, shopId]);
+  }, [day, isLoading, user, shopId, reloadCounter]);
 
   const handleSubmit = async () => {
     if (!activeId || !shopId || canRestartKadhia) return;
@@ -146,6 +181,20 @@ export default function SlotPage() {
         }
         setKadhiaId(null);
         setCanRestartKadhia(true);
+      }
+      if (errorDetail(err) === "PICKUP_SLOT_MINIMUM_LEAD_TIME_NOT_MET") {
+        // Stale screen: the Kadhia (lines and note) is untouched server-side and
+        // locally. Deselect the now-invalid slot, reload the eligible list and
+        // move the focus back to the slot choice.
+        setActiveId(null);
+        setLeadTimeRejected(true);
+        setReloadCounter((count) => count + 1);
+        clientLog("warning", "order_submit_rejected_minimum_lead_time", "Slot became too close", {
+          storeId: shopId,
+          minimumLeadTimeMinutes: bookingPolicy?.minimumPickupLeadTimeMinutes,
+          day,
+        });
+        slotsSectionRef.current?.focus();
       }
       setSubmitError(resolveSubmitErrorKey(err));
     } finally {
@@ -175,13 +224,25 @@ export default function SlotPage() {
         </Pill>
       </PillRow>
 
-      <section className="mt-2">
+      <section className="mt-2" ref={slotsSectionRef} tabIndex={-1}>
         <h3 className="mb-2.5 text-h3 font-extrabold">{t("client.slot.available")}</h3>
+        {!slotsError && (bookingPolicy?.minimumPickupLeadTimeMinutes ?? 0) > 0 && (
+          <p className="mb-2.5 text-xs text-muted">
+            {t("client.slot.leadTimeInfo").replace(
+              "{duration}",
+              formatLeadTimeDuration(bookingPolicy?.minimumPickupLeadTimeMinutes ?? 0, locale),
+            )}
+          </p>
+        )}
         {slotsError ? (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{t("client.slot.slotsError")}</p>
         ) : slots.length === 0 ? (
           <div className="rounded-md bg-soft px-4 py-5 text-center">
-            <p className="text-sm font-bold">{t("client.slot.noSlots")}</p>
+            <p className="text-sm font-bold">
+              {(bookingPolicy?.minimumPickupLeadTimeMinutes ?? 0) > 0
+                ? t("client.slot.leadTimeNoSlots")
+                : t("client.slot.noSlots")}
+            </p>
             <p className="mt-1 text-xs text-muted">
               {t("client.slot.noSlotsHint")}
             </p>
@@ -202,7 +263,18 @@ export default function SlotPage() {
                       label={s.label}
                       disabled={!s.available}
                       active={activeId === s.id}
-                      onClick={() => setActiveId(s.id)}
+                      onClick={() => {
+                        setActiveId(s.id);
+                        if (leadTimeRejected) {
+                          setLeadTimeRejected(false);
+                          clientLog(
+                            "info",
+                            "pickup_slot_reselected_after_lead_time_rejection",
+                            "New slot chosen after lead time rejection",
+                            { storeId: shopId ?? undefined, day },
+                          );
+                        }
+                      }}
                     />
                   ))}
                 </div>
@@ -223,7 +295,7 @@ export default function SlotPage() {
 
       <StickyBottom>
         {submitError && (
-          <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+          <p role="alert" aria-atomic="true" className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
             {t(submitError)}
           </p>
         )}
