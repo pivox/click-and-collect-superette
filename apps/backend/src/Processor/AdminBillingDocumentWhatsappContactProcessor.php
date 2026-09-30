@@ -16,6 +16,7 @@ use App\Enum\SubscriptionLifecycle;
 use App\Repository\BillingDocumentRepository;
 use App\Repository\SubscriptionPaymentReminderRepository;
 use App\Service\AdminAuditLogger;
+use App\Service\WhatsappContactLinkFactory;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -37,6 +38,7 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
         private Security $security,
         private ClockInterface $clock,
         private AdminAuditLogger $auditLogger,
+        private WhatsappContactLinkFactory $whatsappContactLinkFactory,
     ) {
     }
 
@@ -65,7 +67,7 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
                 throw new ConflictHttpException('BILLING_DOCUMENT_NOT_RELAUNCHABLE');
             }
 
-            $phone = $this->normalizePhone($document->getMerchant()->getPhone());
+            $phone = $this->whatsappContactLinkFactory->normalizePhone($document->getMerchant()->getPhone());
             if (null === $phone) {
                 throw new ConflictHttpException('BILLING_DOCUMENT_MERCHANT_PHONE_MISSING');
             }
@@ -73,7 +75,7 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
             $stage = $this->stageForDocument($document, $now);
             $message = $this->message($document);
-            $whatsappUrl = \sprintf('https://wa.me/%s?text=%s', $phone, rawurlencode($message));
+            $whatsappUrl = $this->whatsappContactLinkFactory->buildUrl($phone, $message);
             $reminder = $this->reminderRepository->findOneForDocumentStageChannel(
                 $document,
                 $stage,
@@ -135,28 +137,6 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
                 SubscriptionLifecycle::PaymentDue,
                 SubscriptionLifecycle::GracePeriod,
             ], true);
-    }
-
-    private function normalizePhone(?string $phone): ?string
-    {
-        if (null === $phone || '' === trim($phone)) {
-            return null;
-        }
-
-        $digits = preg_replace('/\D+/', '', $phone);
-        if (null === $digits || '' === $digits) {
-            return null;
-        }
-
-        if (str_starts_with($digits, '00')) {
-            $digits = substr($digits, 2);
-        }
-
-        if (8 === \strlen($digits)) {
-            return '216'.$digits;
-        }
-
-        return $digits;
     }
 
     private function stageForDocument(BillingDocument $document, \DateTimeImmutable $now): string
