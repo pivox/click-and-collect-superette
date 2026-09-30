@@ -5,6 +5,34 @@ Registre de provenance et de droits d'usage des assets visuels non spécifiques
 licence et date de collecte ; une source inconnue ne peut pas devenir une
 image officielle publique.
 
+## Registre en base (PRODUCT-IMAGE-004 / #584)
+
+Les champs du registre existent maintenant directement sur chaque `ProductImage`
+en base : `license_code` (`platform_owned`, `merchant_authorized`,
+`manufacturer_authorized`, `distributor_authorized`, `cc_by`, `cc_by_sa`,
+`public_domain`, `unknown`), `source_name`, `source_url`, `attribution_text`,
+`permission_reference`, `captured_at`, `collected_at`, `approved_at`/
+`approved_by` et `superseded_by` (historique de remplacement). Le type d'origine
+reste l'enum `source` existante (pas de champ dupliqué).
+
+Règles :
+
+- **`unknown` ne peut jamais être une image officielle** — le passage à
+  `verified` est bloqué (`409 PRODUCT_IMAGE_LICENSE_UNKNOWN`) tant que la
+  licence n'est pas documentée ;
+- un upload admin est présumé interne/autorisé → licence `platform_owned` par
+  défaut ;
+- `cc_by` / `cc_by_sa` exigent l'affichage de `attribution_text` (exposé dans
+  l'objet `image` des catalogues) ;
+- une `retailer_observation` (image aperçue chez une enseigne) se **consigne**
+  via `source_name` / `permission_reference` pour identifier la source — ce
+  n'est **jamais** une autorisation d'usage : la licence reste `unknown` tant
+  qu'un droit clair n'est pas obtenu ;
+- pilotage : `GET /api/admin/product-images?license=unknown` liste les images à
+  droits inconnus ; `PATCH /api/admin/product-images/{id}/provenance` documente
+  et approuve (audit + trace `approved_at`/`approved_by`). Voir
+  `docs/architecture/api-contract.md` § « Provenance et droits d'usage ».
+
 ## Placeholders par catégorie (livrés — V1)
 
 Pictogrammes Unicode neutres, sans marque ni emballage fictif, rendus par
@@ -60,3 +88,6 @@ Règles pour le sourcing à venir (rappel de l'épic) :
 
 - 2026-09-30 : création du registre ; placeholders Unicode par catégorie
   livrés (#582 V1) ; photos génériques différées au sourcing (#584/#585).
+- 2026-09-30 : registre de provenance porté en base sur `ProductImage`
+  (PRODUCT-IMAGE-004 / #584) — licence, source, attribution, approbation,
+  supersession ; règle bloquante `unknown` → jamais officiel.
