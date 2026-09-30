@@ -254,6 +254,58 @@ updated_at: datetime
 
 Règle : si présent, surcharge entièrement le `PlatformTheme` pour la supérette concernée. Si absent, la supérette hérite du `PlatformTheme`. Modifiable uniquement par le `ROLE_MERCHANT` propriétaire de la supérette.
 
+## MerchantOrganization
+
+Identité commerciale du marchand (MERCHANT-TEAM-001). Porte les supérettes et,
+à terme, l'abonnement, le CRM et la facturation ; les comptes de connexion s'y
+rattachent via `MerchantMembership`.
+
+```yaml
+id: uuid
+name: string (160)
+active: boolean
+primary_account_id: uuid nullable (FK users, SET NULL — nullité détectée par l'audit)
+created_at: datetime
+updated_at: datetime
+archived_at: datetime nullable
+```
+
+## MerchantMembership
+
+Rattachement d'un compte `User` à une organisation marchande.
+
+```yaml
+id: uuid
+merchant_organization_id: uuid (FK, CASCADE)
+user_id: uuid (FK users, CASCADE)
+status: enum (invited|active|revoked)
+invited_by_id: uuid nullable
+invited_at: datetime nullable
+accepted_at: datetime nullable
+revoked_at: datetime nullable
+revoked_by_id: uuid nullable
+created_at: datetime
+updated_at: datetime
+```
+
+Contraintes :
+
+- `UNIQUE (merchant_organization_id, user_id)` ;
+- index partiel `UNIQUE (user_id) WHERE status = 'active'` — un compte n'a
+  qu'une seule membership active (V1) ;
+- index `(user_id, status)` et `(merchant_organization_id, status)`.
+
+Transition (expand/backfill) :
+
+- `Store.merchant_organization_id` est nullable ; `Store.owner_id` reste
+  présent et autoritaire pour les contrôles d'accès jusqu'à la tranche
+  autorisation (#572) ;
+- backfill idempotent : `app:merchant-organizations:backfill` (une organisation
+  + une membership active par compte marchand historique, boutiques
+  rattachées, boutiques orphelines rapportées jamais rattachées) ;
+- diagnostic : `app:merchant-organizations:audit` (lecture seule, code de
+  sortie non nul en présence d'anomalies).
+
 ## Contraintes importantes
 
 - `ProductReference` doit être unique autant que possible par marque, nom, variante, volume, unité et catégorie.

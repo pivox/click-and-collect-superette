@@ -49,6 +49,13 @@ class Shop
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?User $owner = null;
 
+    // MERCHANT-TEAM-001 expand phase: nullable while shops are backfilled.
+    // Shop.owner stays authoritative for access control until the dedicated
+    // authorization slice (#572) switches to membership checks.
+    #[ORM\ManyToOne(targetEntity: MerchantOrganization::class)]
+    #[ORM\JoinColumn(name: 'merchant_organization_id', nullable: true, onDelete: 'SET NULL')]
+    private ?MerchantOrganization $merchantOrganization = null;
+
     #[ORM\OneToOne(mappedBy: 'shop', targetEntity: ShopTheme::class)]
     private ?ShopTheme $theme = null;
 
@@ -191,6 +198,18 @@ class Shop
     public function getOwner(): ?User
     {
         return $this->owner;
+    }
+
+    public function getMerchantOrganization(): ?MerchantOrganization
+    {
+        return $this->merchantOrganization;
+    }
+
+    public function setMerchantOrganization(?MerchantOrganization $merchantOrganization): static
+    {
+        $this->merchantOrganization = $merchantOrganization;
+
+        return $this;
     }
 
     public function setOwner(?User $owner): static

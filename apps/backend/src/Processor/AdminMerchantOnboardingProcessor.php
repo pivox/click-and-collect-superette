@@ -12,6 +12,8 @@ use App\ApiResource\AdminMerchantOnboardingFirstLoginOutput;
 use App\ApiResource\AdminMerchantOnboardingOutput;
 use App\ApiResource\AdminStoreOutputFactory;
 use App\Dto\AdminMerchantOnboardingInput;
+use App\Entity\MerchantMembership;
+use App\Entity\MerchantOrganization;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Provider\AdminMerchantItemProvider;
@@ -106,6 +108,19 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
             ->setOwner($merchant)
             ->setActive(true);
 
+        // MERCHANT-TEAM-001: new creations feed the target model atomically
+        // (organization + active membership + attached shop) while Shop.owner
+        // keeps the historical behaviour during the transition.
+        $organization = (new MerchantOrganization())
+            ->setName($firstName.' '.$lastName)
+            ->setPrimaryAccount($merchant)
+            ->setActive(true);
+        $membership = (new MerchantMembership())
+            ->setOrganization($organization)
+            ->setUser($merchant)
+            ->activate();
+        $shop->setMerchantOrganization($organization);
+
         $connection = $this->entityManager->getConnection();
         $connection->beginTransaction();
 
@@ -121,6 +136,8 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
             }
 
             $this->entityManager->persist($merchant);
+            $this->entityManager->persist($organization);
+            $this->entityManager->persist($membership);
             $this->entityManager->persist($shop);
             $this->auditCoreCreation($merchant, $shop);
             if ('email_invitation' === $data->firstLoginMode) {
