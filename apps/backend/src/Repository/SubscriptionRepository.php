@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\MerchantOrganization;
 use App\Entity\Subscription;
 use App\Entity\User;
 use App\Enum\SubscriptionLifecycle;
@@ -23,6 +24,11 @@ class SubscriptionRepository extends ServiceEntityRepository
     public function findOneByMerchant(User $merchant): ?Subscription
     {
         return $this->findOneBy(['merchant' => $merchant]);
+    }
+
+    public function findOneByOrganization(MerchantOrganization $organization): ?Subscription
+    {
+        return $this->findOneBy(['merchantOrganization' => $organization]);
     }
 
     /**

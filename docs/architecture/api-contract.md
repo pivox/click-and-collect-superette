@@ -1864,6 +1864,54 @@ PATCH /api/admin/merchants/{merchantId}/crm
 POST  /api/admin/merchants/{merchantId}/crm/contacts
 ```
 
+### Organisations marchandes
+
+Statut : **livré MERCHANT-TEAM-002 (#571)** — route **additive** : la
+collection historique `/api/admin/merchants` (un item par compte `User`) est
+inchangée, aucun identifiant ne change de nature.
+
+```http
+GET /api/admin/merchant-organizations?page=1&limit=20
+```
+
+Réponse `200` :
+
+```json
+{
+  "id": "admin-merchant-organizations",
+  "items": [
+    {
+      "id": "merchant-organization-uuid",
+      "name": "Supérette X",
+      "active": true,
+      "primary_account": {
+        "user_id": "uuid",
+        "email": "contact@example.com",
+        "name": "Nom du responsable"
+      },
+      "accounts_count": 2,
+      "stores_count": 1,
+      "subscription_status": "active"
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 1
+}
+```
+
+Règles :
+
+- admin uniquement ;
+- chaque organisation apparaît une seule fois, quel que soit le nombre de
+  comptes rattachés ;
+- `accounts_count` compte les memberships actives et invitées (les révoquées
+  sont exclues, cohérent avec le quota) ;
+- `subscription_status` est le lifecycle de l'abonnement de l'organisation
+  (fallback transitoire : abonnement du compte principal si non backfillé) ;
+- `primary_account` est null si le compte principal a été supprimé (anomalie
+  détectée par `app:merchant-organizations:audit`).
+
 #### POST /api/admin/merchant-onboarding — Créer marchand + supérette
 
 Payload :

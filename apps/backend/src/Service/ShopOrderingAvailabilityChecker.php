@@ -13,8 +13,13 @@ final readonly class ShopOrderingAvailabilityChecker
     public const STORE_NOT_AVAILABLE = 'STORE_NOT_AVAILABLE';
     public const STORE_SUSPENDED_FOR_SUBSCRIPTION = 'STORE_SUSPENDED_FOR_SUBSCRIPTION';
 
-    public function __construct(private ?SubscriptionRepository $subscriptionRepository = null)
-    {
+    public function __construct(
+        private ?SubscriptionRepository $subscriptionRepository = null,
+        // MERCHANT-TEAM-002: preferred resolution (organization first, owner
+        // fallback). The legacy repository path is kept for unit tests that
+        // build the checker without services.
+        private ?SubscriptionResolver $subscriptionResolver = null,
+    ) {
     }
 
     public function acceptsNewKadhias(Shop $shop): bool
@@ -33,11 +38,14 @@ final readonly class ShopOrderingAvailabilityChecker
             return self::STORE_SUSPENDED_FOR_SUBSCRIPTION;
         }
 
-        if (null !== $owner && null !== $this->subscriptionRepository) {
+        $subscription = null;
+        if (null !== $this->subscriptionResolver) {
+            $subscription = $this->subscriptionResolver->forShop($shop);
+        } elseif (null !== $owner && null !== $this->subscriptionRepository) {
             $subscription = $this->subscriptionRepository->findOneByMerchant($owner);
-            if (SubscriptionLifecycle::Suspended === $subscription?->getLifecycle()) {
-                return self::STORE_SUSPENDED_FOR_SUBSCRIPTION;
-            }
+        }
+        if (SubscriptionLifecycle::Suspended === $subscription?->getLifecycle()) {
+            return self::STORE_SUSPENDED_FOR_SUBSCRIPTION;
         }
 
         return null;

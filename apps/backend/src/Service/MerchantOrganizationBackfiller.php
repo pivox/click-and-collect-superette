@@ -8,8 +8,10 @@ use App\Entity\MerchantMembership;
 use App\Entity\MerchantOrganization;
 use App\Entity\Shop;
 use App\Entity\User;
+use App\Repository\MerchantCrmProfileRepository;
 use App\Repository\MerchantMembershipRepository;
 use App\Repository\ShopRepository;
+use App\Repository\SubscriptionRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -26,6 +28,8 @@ final readonly class MerchantOrganizationBackfiller
         private UserRepository $userRepository,
         private ShopRepository $shopRepository,
         private MerchantMembershipRepository $membershipRepository,
+        private SubscriptionRepository $subscriptionRepository,
+        private MerchantCrmProfileRepository $crmProfileRepository,
         private EntityManagerInterface $entityManager,
     ) {
     }
@@ -42,6 +46,7 @@ final readonly class MerchantOrganizationBackfiller
 
             $organization = $this->resolveOrganization($user, $report);
             $this->attachOwnedShops($user, $organization, $report);
+            $this->attachCommercialData($user, $organization, $report);
         }
 
         foreach ($this->shopRepository->findBy(['owner' => null, 'merchantOrganization' => null]) as $shop) {
@@ -92,6 +97,27 @@ final readonly class MerchantOrganizationBackfiller
             }
             $shop->setMerchantOrganization($organization);
             ++$report->shopsAttached;
+        }
+    }
+
+    /**
+     * MERCHANT-TEAM-002: the subscription and CRM profile of the historical
+     * merchant become the organization's commercial data. Business UUIDs,
+     * amounts, periods and statuses are untouched — documents, payments and
+     * reminders follow transitively through their Subscription FK.
+     */
+    private function attachCommercialData(User $merchant, MerchantOrganization $organization, MerchantOrganizationBackfillReport $report): void
+    {
+        $subscription = $this->subscriptionRepository->findOneByMerchant($merchant);
+        if (null !== $subscription && null === $subscription->getMerchantOrganization()) {
+            $subscription->setMerchantOrganization($organization);
+            ++$report->subscriptionsAttached;
+        }
+
+        $crmProfile = $this->crmProfileRepository->findOneByMerchant($merchant);
+        if (null !== $crmProfile && null === $crmProfile->getMerchantOrganization()) {
+            $crmProfile->setMerchantOrganization($organization);
+            ++$report->crmProfilesAttached;
         }
     }
 
