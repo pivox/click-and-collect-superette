@@ -88,13 +88,21 @@ final readonly class AdminUpdateProductReferenceProcessor implements ProcessorIn
 
         if (\array_key_exists('brandId', $payload)) {
             if (null === $data->brandId) {
-                throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BRAND_REQUIRED');
+                // PRODUCT-IMAGE-001: only a generic reference may drop its brand.
+                if (!$productReference->isGeneric()) {
+                    throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BRAND_REQUIRED');
+                }
+                $productReference->setBrand(null);
+            } else {
+                if ($productReference->isGeneric()) {
+                    throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_GENERIC_BRAND_FORBIDDEN');
+                }
+                $brand = $this->adminBrandRepository->findOne($data->brandId);
+                if (null === $brand) {
+                    throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BRAND_NOT_FOUND');
+                }
+                $productReference->setBrand($brand);
             }
-            $brand = $this->adminBrandRepository->findOne($data->brandId);
-            if (null === $brand) {
-                throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BRAND_NOT_FOUND');
-            }
-            $productReference->setBrand($brand);
         }
 
         if (\array_key_exists('categoryId', $payload)) {

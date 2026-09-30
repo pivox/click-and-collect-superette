@@ -50,7 +50,7 @@ final readonly class MerchantCatalogPhotoImportPreviewer
                 status: $status,
                 productReferenceId: $reference?->getId()->toRfc4122(),
                 nameFr: $reference?->getNameFr() ?? $localProduct?->getDisplayNameFr() ?? $product->nameFr,
-                brand: $reference?->getBrand()->getCanonicalName() ?? $localProduct?->getDisplayBrandName() ?? $product->brand,
+                brand: $reference?->getBrand()?->getCanonicalName() ?? $localProduct?->getDisplayBrandName() ?? $product->brand,
                 volume: $reference?->getVolume() ?? $localProduct?->getDisplayVolume() ?? $product->volume,
                 unit: $reference?->getUnit()->value ?? $localProduct?->getDisplayUnit()->value ?? $product->unit?->value,
                 barcode: $reference?->getBarcode() ?? $localProduct?->getLocalProduct()?->getBarcode() ?? $product->barcode,

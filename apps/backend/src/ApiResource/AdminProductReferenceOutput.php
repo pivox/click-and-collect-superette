@@ -103,10 +103,10 @@ final readonly class AdminProductReferenceOutput
         public ?string $variantAr,
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         #[SerializedName('brand_id')]
-        public string $brandId,
+        public ?string $brandId,
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         #[SerializedName('brand_name')]
-        public string $brandName,
+        public ?string $brandName,
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         #[SerializedName('category_id')]
         public string $categoryId,
@@ -129,6 +129,8 @@ final readonly class AdminProductReferenceOutput
         public string $country,
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         public string $status,
+        #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
+        public string $kind,
         #[Groups(['admin_product_reference:read', 'admin_product_reference_list:read'])]
         #[SerializedName('rejection_reason')]
         public ?string $rejectionReason,

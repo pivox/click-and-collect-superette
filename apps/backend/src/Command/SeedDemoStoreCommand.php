@@ -387,6 +387,7 @@ final class SeedDemoStoreCommand extends Command
             ProductUnit::Gramme => [500, 8000],
             ProductUnit::Piece => [300, 5000],
             ProductUnit::Paquet => [1000, 15000],
+            ProductUnit::Botte => [300, 3000],
         };
     }
 }

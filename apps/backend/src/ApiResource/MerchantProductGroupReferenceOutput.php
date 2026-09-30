@@ -20,7 +20,7 @@ final readonly class MerchantProductGroupReferenceOutput
         public ?string $nameAr,
         #[Groups(['merchant_product_group:read'])]
         #[SerializedName('brand_name')]
-        public string $brandName,
+        public ?string $brandName,
         #[Groups(['merchant_product_group:read'])]
         #[SerializedName('category_name_fr')]
         public string $categoryNameFr,
