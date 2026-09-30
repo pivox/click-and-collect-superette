@@ -11,6 +11,7 @@ import {
   Palette,
   Printer,
   Store,
+  Timer,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { useMerchantLocale } from '@/lib/i18n/MerchantLocaleContext';
@@ -33,6 +34,12 @@ const CONFIG_SHORTCUTS: Shortcut[] = [
     titleKey: 'merchant.settings.slots.title',
     descriptionKey: 'merchant.settings.slots.description',
     icon: CalendarClock,
+  },
+  {
+    href: '/merchant/parametres/delai-retrait',
+    titleKey: 'merchant.settings.orderingPolicy.title',
+    descriptionKey: 'merchant.settings.orderingPolicy.description',
+    icon: Timer,
   },
   {
     href: '/merchant/apparence',

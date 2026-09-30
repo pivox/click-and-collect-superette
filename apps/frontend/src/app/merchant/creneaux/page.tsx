@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Timer } from 'lucide-react';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { DayStrip } from '@/components/merchant/creneaux/DayStrip';
 import { SlotCard } from '@/components/merchant/creneaux/SlotCard';
@@ -203,6 +204,21 @@ export default function MerchantCreneauxPage() {
       />
 
       <OpeningHoursSection storeId={storeId} />
+
+      {/* ORDER-LEAD-003: summary link, detailed edition lives in Paramètres. */}
+      <Link
+        href="/merchant/parametres/delai-retrait"
+        className="block rounded-lg border border-line bg-card p-4 transition-colors hover:border-primary"
+      >
+        <span className="flex items-center gap-2 font-bold text-ink">
+          <Timer className="h-4 w-4 text-primary" aria-hidden="true" />
+          Temps minimum nécessaire avant le retrait
+        </span>
+        <span className="mt-0.5 block text-sm text-muted">
+          Définissez combien de temps à l’avance un client doit envoyer sa Kadhia. Configurable dans
+          les paramètres.
+        </span>
+      </Link>
 
       {showCreateModal && (
         <SlotCreateModal
