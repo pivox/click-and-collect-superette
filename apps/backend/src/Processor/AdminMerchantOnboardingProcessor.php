@@ -110,9 +110,10 @@ final readonly class AdminMerchantOnboardingProcessor implements ProcessorInterf
 
         // MERCHANT-TEAM-001: new creations feed the target model atomically
         // (organization + active membership + attached shop) while Shop.owner
-        // keeps the historical behaviour during the transition.
+        // keeps the historical behaviour during the transition. The organization
+        // carries the commercial identity, hence the shop name (not the person's).
         $organization = (new MerchantOrganization())
-            ->setName($firstName.' '.$lastName)
+            ->setName($shopName)
             ->setPrimaryAccount($merchant)
             ->setActive(true);
         $membership = (new MerchantMembership())
