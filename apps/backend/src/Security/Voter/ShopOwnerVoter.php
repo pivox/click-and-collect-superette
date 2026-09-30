@@ -49,6 +49,14 @@ final class ShopOwnerVoter extends Voter
             return false;
         }
 
+        // canOperateShop() deliberately checks the relationship only (dedicated
+        // MERCHANT_ACCOUNT_INACTIVE code is raised elsewhere). Deny suspended
+        // accounts here so the voter path never grants access to a deactivated
+        // merchant who still holds an active organization membership.
+        if (!$user->isActive()) {
+            return false;
+        }
+
         return $this->merchantShopAccessChecker->canOperateShop($user, $subject);
     }
 }
