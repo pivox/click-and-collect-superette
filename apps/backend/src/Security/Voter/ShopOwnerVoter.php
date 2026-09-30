@@ -6,11 +6,16 @@ namespace App\Security\Voter;
 
 use App\Entity\Shop;
 use App\Entity\User;
+use App\Security\MerchantShopAccessChecker;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
+ * MERCHANT-TEAM-003: delegates the relationship rule to the central checker
+ * (active membership on the shop organization, historical owner fallback).
+ * The attribute name is kept for compatibility with existing call sites.
+ *
  * @extends Voter<string, Shop>
  */
 final class ShopOwnerVoter extends Voter
@@ -19,6 +24,7 @@ final class ShopOwnerVoter extends Voter
 
     public function __construct(
         private readonly Security $security,
+        private readonly MerchantShopAccessChecker $merchantShopAccessChecker,
     ) {
     }
 
@@ -43,12 +49,6 @@ final class ShopOwnerVoter extends Voter
             return false;
         }
 
-        $owner = $subject->getOwner();
-
-        if (null === $owner) {
-            return false;
-        }
-
-        return $owner->getId()->equals($user->getId());
+        return $this->merchantShopAccessChecker->canOperateShop($user, $subject);
     }
 }

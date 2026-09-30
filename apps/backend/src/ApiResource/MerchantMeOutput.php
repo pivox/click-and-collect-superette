@@ -6,6 +6,7 @@ namespace App\ApiResource;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
+use App\Entity\MerchantMembership;
 use App\Entity\Shop;
 use App\Entity\User;
 use App\Provider\MerchantMeProvider;
@@ -49,11 +50,21 @@ final readonly class MerchantMeOutput
         #[Groups(['merchant_me:read'])]
         #[SerializedName('password_change_required')]
         public bool $passwordChangeRequired,
+        // MERCHANT-TEAM-003 additive fields: null while the account has not
+        // been backfilled into an organization (excluded from JSON when null).
+        #[Groups(['merchant_me:read'])]
+        #[SerializedName('merchant_organization_id')]
+        public ?string $merchantOrganizationId = null,
+        /** @var array{status: string, is_primary: bool}|null */
+        #[Groups(['merchant_me:read'])]
+        public ?array $account = null,
     ) {
     }
 
-    public static function fromUserAndShop(User $merchant, Shop $shop): self
+    public static function fromUserAndShop(User $merchant, Shop $shop, ?MerchantMembership $membership = null): self
     {
+        $organization = $membership?->getOrganization();
+
         return new self(
             userId: $merchant->getId()->toRfc4122(),
             email: $merchant->getEmail(),
@@ -64,6 +75,11 @@ final readonly class MerchantMeOutput
             store: MerchantMeStoreOutput::fromShop($shop),
             onboardingCompleted: null !== $merchant->getOnboardingCompletedAt(),
             passwordChangeRequired: $merchant->isPasswordChangeRequired(),
+            merchantOrganizationId: $organization?->getId()->toRfc4122(),
+            account: null === $membership ? null : [
+                'status' => $membership->getStatus()->value,
+                'is_primary' => true === $organization?->getPrimaryAccount()?->getId()->equals($merchant->getId()),
+            ],
         );
     }
 }

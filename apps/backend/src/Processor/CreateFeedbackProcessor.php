@@ -15,6 +15,7 @@ use App\Enum\FeedbackAppArea;
 use App\Enum\FeedbackType;
 use App\Provider\FeedbackOutputFactory;
 use App\Repository\ShopRepository;
+use App\Security\MerchantShopAccessChecker;
 use App\Service\FeedbackSettingsManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -37,6 +38,7 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private Security $security,
         private RequestStack $requestStack,
+        private MerchantShopAccessChecker $merchantShopAccessChecker,
     ) {
     }
 
@@ -114,7 +116,9 @@ final readonly class CreateFeedbackProcessor implements ProcessorInterface
         }
 
         if ($this->security->isGranted('ROLE_MERCHANT')) {
-            return $shop->getOwner()?->getId()->equals($user->getId()) ?? false;
+            // MERCHANT-TEAM-003: any active account of the shop organization
+            // may attach it (historical owner fallback included).
+            return $this->merchantShopAccessChecker->canOperateShop($user, $shop);
         }
 
         if (!$this->security->isGranted('ROLE_CUSTOMER')) {

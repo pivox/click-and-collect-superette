@@ -206,9 +206,41 @@ Réponse `GET /api/merchant/me` :
     "active": true
   },
   "onboarding_completed": true,
-  "password_change_required": false
+  "password_change_required": false,
+  "merchant_organization_id": "organization-uuid",
+  "account": {
+    "status": "active",
+    "is_primary": false
+  }
 }
 ```
+
+Extension additive MERCHANT-TEAM-003 (#572) :
+
+- `merchant_organization_id` et `account` sont présents dès que le compte a une
+  membership (backfill exécuté) ; absents sinon (compat historique) ;
+- la boutique du contexte est résolue via l'organisation de la membership
+  active : un compte secondaire démarre sur la même supérette que le principal ;
+  fallback propriétaire pour les comptes non backfillés ;
+- plusieurs boutiques actives dans l'organisation → `409
+  MERCHANT_MULTIPLE_ACTIVE_STORES` (pas de choix silencieux, sélecteur hors V1).
+
+Règle d'accès marchande (MERCHANT-TEAM-003) appliquée à chaque requête
+`/api/merchant/*` portant sur une supérette, via le point unique
+`MerchantShopAccessChecker` (et le voter `SHOP_OWNER` pour le thème) :
+
+```text
+ROLE_MERCHANT + User actif + membership active + organisation active
++ Shop rattachée à la même organisation
+```
+
+- une supérette sans organisation (non backfillée) conserve transitoirement la
+  règle propriétaire historique ;
+- la révocation d'une membership est effective à la requête suivante, même avec
+  un JWT encore valide (l'état est relu à chaque requête, aucun cache) ;
+- le refus est un `403 MERCHANT_CATALOG_FORBIDDEN` unique (organisation
+  étrangère, membership absente/invitée/révoquée, organisation inactive) —
+  aucune fuite du motif ; compte suspendu : `403 MERCHANT_ACCOUNT_INACTIVE`.
 
 Payload `PATCH /api/merchant/me` :
 
