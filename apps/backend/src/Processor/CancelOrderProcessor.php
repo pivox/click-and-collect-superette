@@ -84,9 +84,14 @@ final readonly class CancelOrderProcessor implements ProcessorInterface
             $order->cancel();
             $slot = $order->getPickupSlot();
             if (null !== $slot) {
+                // Bind with the DBAL uuid type so the value is converted per
+                // platform: native uuid string on PostgreSQL, BINARY(16) on the
+                // SQLite test database. Passing toBinary() directly broke on
+                // PostgreSQL (SQLSTATE 22021), invisible in SQLite tests.
                 $this->entityManager->getConnection()->executeStatement(
                     'UPDATE pickup_slots SET booked_count = CASE WHEN booked_count > 0 THEN booked_count - 1 ELSE 0 END WHERE id = :id',
-                    ['id' => $slot->getId()->toBinary()],
+                    ['id' => $slot->getId()],
+                    ['id' => 'uuid'],
                 );
             }
             $this->orderStatusLogRecorder->record($order, OrderStatus::Cancelled);
