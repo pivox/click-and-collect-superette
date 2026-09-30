@@ -14,6 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: SubscriptionRepository::class)]
 #[ORM\Table(name: 'subscriptions')]
 #[ORM\UniqueConstraint(name: 'UNIQ_SUBSCRIPTIONS_MERCHANT', columns: ['merchant_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_subscriptions_merchant_organization', columns: ['merchant_organization_id'])]
 #[ORM\HasLifecycleCallbacks]
 class Subscription
 {
@@ -25,6 +26,13 @@ class Subscription
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Assert\NotNull]
     private User $merchant;
+
+    // MERCHANT-TEAM-002: the organization progressively becomes the commercial
+    // holder. Nullable during the transition; the merchant User stays the
+    // default human billing/support contact.
+    #[ORM\ManyToOne(targetEntity: MerchantOrganization::class)]
+    #[ORM\JoinColumn(name: 'merchant_organization_id', nullable: true, onDelete: 'SET NULL')]
+    private ?MerchantOrganization $merchantOrganization = null;
 
     #[ORM\Column(length: 20, enumType: SubscriptionLifecycle::class)]
     private SubscriptionLifecycle $lifecycle = SubscriptionLifecycle::Active;
@@ -80,10 +88,11 @@ class Subscription
         $this->updatedAt = new \DateTimeImmutable();
     }
 
-    public static function startTrial(User $merchant, \DateTimeImmutable $startedAt): self
+    public static function startTrial(User $merchant, \DateTimeImmutable $startedAt, ?MerchantOrganization $organization = null): self
     {
         $subscription = new self();
         $subscription->merchant = $merchant;
+        $subscription->merchantOrganization = $organization;
         $subscription->startedAt = $startedAt;
         $subscription->trialEndsAt = $startedAt->modify('+3 months');
         $subscription->promoEndsAt = $startedAt->modify('+6 months');
@@ -111,6 +120,18 @@ class Subscription
     public function getMerchant(): User
     {
         return $this->merchant;
+    }
+
+    public function getMerchantOrganization(): ?MerchantOrganization
+    {
+        return $this->merchantOrganization;
+    }
+
+    public function setMerchantOrganization(?MerchantOrganization $merchantOrganization): static
+    {
+        $this->merchantOrganization = $merchantOrganization;
+
+        return $this;
     }
 
     public function setMerchant(User $merchant): static

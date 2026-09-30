@@ -7,9 +7,11 @@ namespace App\Service;
 use App\Entity\MerchantMembership;
 use App\Entity\MerchantOrganization;
 use App\Enum\MerchantMembershipStatus;
+use App\Repository\MerchantCrmProfileRepository;
 use App\Repository\MerchantMembershipRepository;
 use App\Repository\MerchantOrganizationRepository;
 use App\Repository\ShopRepository;
+use App\Repository\SubscriptionRepository;
 
 /**
  * MERCHANT-TEAM-001 diagnostic: detects data anomalies in the
@@ -21,6 +23,8 @@ final readonly class MerchantOrganizationAuditor
         private ShopRepository $shopRepository,
         private MerchantOrganizationRepository $organizationRepository,
         private MerchantMembershipRepository $membershipRepository,
+        private SubscriptionRepository $subscriptionRepository,
+        private MerchantCrmProfileRepository $crmProfileRepository,
     ) {
     }
 
@@ -99,6 +103,19 @@ final readonly class MerchantOrganizationAuditor
                         $shop->getId()->toRfc4122(),
                     );
                 }
+            }
+        }
+
+        // MERCHANT-TEAM-002: commercial data still detached from its
+        // organization is a transition anomaly (run the backfill).
+        foreach ($this->subscriptionRepository->findAll() as $subscription) {
+            if (null === $subscription->getMerchantOrganization()) {
+                $anomalies[] = \sprintf('subscription_without_organization: %s', $subscription->getId()->toRfc4122());
+            }
+        }
+        foreach ($this->crmProfileRepository->findAll() as $profile) {
+            if (null === $profile->getMerchantOrganization()) {
+                $anomalies[] = \sprintf('crm_profile_without_organization: %s', $profile->getId()->toRfc4122());
             }
         }
 

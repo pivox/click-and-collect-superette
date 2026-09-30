@@ -309,6 +309,13 @@ Transition (expand/backfill) :
 - `Store.merchant_organization_id` est nullable ; `Store.owner_id` reste
   présent et autoritaire pour les contrôles d'accès jusqu'à la tranche
   autorisation (#572) ;
+- MERCHANT-TEAM-002 : `Subscription.merchant_organization_id` et
+  `MerchantCrmProfile.merchant_organization_id` sont nullable et uniques —
+  une seule souscription et un seul profil CRM par organisation ; les
+  `BillingDocument`, `SubscriptionPayment` et `SubscriptionPaymentReminder`
+  suivent transitivement via leur FK `subscription` ; la résolution
+  (`SubscriptionResolver`) préfère l'organisation puis retombe sur le
+  `merchant` User historique ;
 - backfill idempotent : `app:merchant-organizations:backfill` (une organisation
   + une membership active par compte marchand historique, boutiques
   rattachées, boutiques orphelines rapportées jamais rattachées) ;

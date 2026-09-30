@@ -14,6 +14,8 @@ final class MerchantOrganizationBackfillReport
     public int $membershipsCreated = 0;
     public int $shopsSeen = 0;
     public int $shopsAttached = 0;
+    public int $subscriptionsAttached = 0;
+    public int $crmProfilesAttached = 0;
     public int $orphanShops = 0;
 
     /** @var list<string> */
@@ -30,6 +32,8 @@ final class MerchantOrganizationBackfillReport
             'memberships_created' => $this->membershipsCreated,
             'shops_seen' => $this->shopsSeen,
             'shops_attached' => $this->shopsAttached,
+            'subscriptions_attached' => $this->subscriptionsAttached,
+            'crm_profiles_attached' => $this->crmProfilesAttached,
             'orphan_shops' => $this->orphanShops,
         ];
     }
