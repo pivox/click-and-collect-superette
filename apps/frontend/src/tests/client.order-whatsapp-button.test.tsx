@@ -64,7 +64,7 @@ describe('OrderTrackingPage — bouton WhatsApp', () => {
   });
 
   it('affiche le bouton et ouvre le lien wa.me préparé au clic', async () => {
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
     vi.mocked(prepareCustomerOrderWhatsappContact).mockResolvedValue({
       phone: '21620123456',
       message: 'Bonjour, je vous contacte au sujet de ma commande #0042 chez Supérette El Amen.',
@@ -82,17 +82,13 @@ describe('OrderTrackingPage — bouton WhatsApp', () => {
       expect(prepareCustomerOrderWhatsappContact).toHaveBeenCalledWith('order-uuid-1'),
     );
     await waitFor(() =>
-      expect(openSpy).toHaveBeenCalledWith(
-        'https://wa.me/21620123456?text=Bonjour',
-        '_blank',
-        'noopener',
-      ),
+      expect(assignSpy).toHaveBeenCalledWith('https://wa.me/21620123456?text=Bonjour'),
     );
-    openSpy.mockRestore();
+    assignSpy.mockRestore();
   });
 
   it('affiche un message discret quand le téléphone est indisponible (409)', async () => {
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
     vi.mocked(prepareCustomerOrderWhatsappContact).mockRejectedValue(
       Object.assign(new Error('HTTP 409'), { response: { status: 409 } }),
     );
@@ -106,7 +102,7 @@ describe('OrderTrackingPage — bouton WhatsApp', () => {
     expect(
       await screen.findByText(/numéro WhatsApp de la supérette n'est pas disponible/i),
     ).toBeTruthy();
-    expect(openSpy).not.toHaveBeenCalled();
-    openSpy.mockRestore();
+    expect(assignSpy).not.toHaveBeenCalled();
+    assignSpy.mockRestore();
   });
 });

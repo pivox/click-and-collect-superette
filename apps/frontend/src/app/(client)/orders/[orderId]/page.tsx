@@ -100,7 +100,9 @@ export default function OrderTrackingPage({
     setWhatsappError(null);
     try {
       const contact = await prepareCustomerOrderWhatsappContact(order.id);
-      window.open(contact.whatsapp_url, "_blank", "noopener");
+      // window.open after an await loses the user-gesture context and gets
+      // blocked on Safari iOS / Chrome mobile — navigate in place instead.
+      window.location.assign(contact.whatsapp_url);
     } catch (err) {
       const status = (err as { response?: { status?: number } }).response?.status;
       setWhatsappError(
