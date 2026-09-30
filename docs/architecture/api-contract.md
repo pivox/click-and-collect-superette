@@ -18,6 +18,7 @@ Ce contrat sert de source de vérité pour les prochains développements backend
 - Les routes `/api/me/*` sont réservées au client connecté (`ROLE_CUSTOMER`).
 - Les routes `/api/merchant/*` sont réservées au marchand connecté (`ROLE_MERCHANT`) et propriétaire de la supérette ciblée.
 - Les routes `/api/admin/*` sont réservées à l'administrateur (`ROLE_ADMIN`).
+- Corrélation (#617) : le client peut envoyer un identifiant via l'en-tête `X-Client-Request-Id` (format accepté : 8 à 64 caractères `[A-Za-z0-9-]`, UUID inclus). Toute réponse API — succès comme erreur — porte l'en-tête **`X-Request-Id`** : l'identifiant client s'il est valide, sinon un UUID v4 généré côté serveur. Le même identifiant est journalisé côté backend (`extra.correlation_id` Monolog) et exposé en CORS (`expose_headers`) pour la PWA. Les apps mobiles lisent `X-Request-Id` dans les en-têtes des réponses 5xx pour le support terrain ; le corps `problem+json` reste inchangé.
 
 ---
 
