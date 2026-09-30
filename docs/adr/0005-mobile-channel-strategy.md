@@ -28,7 +28,8 @@ Une application native ne démarre qu'après validation de ces conditions :
 - limites PWA documentées sur les parcours réels ;
 - API backend suffisamment stable ;
 - capacité de maintenance mobile identifiée ;
-- décision technique explicite entre natif pur et cross-platform.
+- décision technique explicite entre natif pur et cross-platform — cadrée par
+  l'ADR-0007 (React Native + Expo, dépôt mobile standalone).
 
 L'ordre de lancement recommandé reste : Android marchand, Android client, iOS client, puis iOS marchand seulement si le besoin marchand iOS est confirmé.
 
