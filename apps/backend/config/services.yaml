@@ -5,6 +5,9 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     app.password_reset_token_ttl: 3600
+    # Opaque refresh token lifetime (#616) — 30 sliding days by default.
+    app.refresh_token_ttl_default: 2592000
+    app.refresh_token_ttl: '%env(default:app.refresh_token_ttl_default:int:REFRESH_TOKEN_TTL)%'
     app.merchant_invitation_token_ttl_default: 604800
     app.merchant_invitation_token_ttl: '%env(default:app.merchant_invitation_token_ttl_default:int:MERCHANT_INVITATION_TOKEN_TTL)%'
     app.merchant_temporary_password_ttl_default: 604800
@@ -68,6 +71,7 @@ services:
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
         bind:
             int $passwordResetTokenTtl: '%app.password_reset_token_ttl%'
+            int $refreshTokenTtl: '%app.refresh_token_ttl%'
             int $merchantInvitationTokenTtl: '%app.merchant_invitation_token_ttl%'
             int $merchantTemporaryPasswordTtl: '%app.merchant_temporary_password_ttl%'
             int $merchantTeamAccountLimit: '%app.merchant_team_account_limit%'
@@ -108,6 +112,9 @@ services:
 
     App\Service\PasswordResetTokenSenderInterface:
         alias: App\Service\PasswordResetTokenEmailSender
+
+    App\Service\RefreshTokenRevokerInterface:
+        alias: App\Service\RefreshTokenManager
 
     App\Service\MerchantInvitationSenderInterface:
         alias: App\Service\MerchantInvitationEmailSender
