@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\ProductImageLicenseCode;
 use App\Enum\ProductImageSource;
 use App\Enum\ProductImageStatus;
 use App\Repository\ProductImageRepository;
@@ -26,6 +27,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Index(name: 'IDX_PRODUCT_IMAGES_REFERENCE', columns: ['product_reference_id'])]
 #[ORM\Index(name: 'IDX_PRODUCT_IMAGES_PROPOSAL', columns: ['product_reference_proposal_id'])]
 #[ORM\Index(name: 'IDX_PRODUCT_IMAGES_STATUS', columns: ['status'])]
+#[ORM\Index(name: 'IDX_PRODUCT_IMAGES_LICENSE', columns: ['license_code'])]
 #[ORM\HasLifecycleCallbacks]
 class ProductImage
 {
@@ -72,6 +74,50 @@ class ProductImage
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $altText = null;
+
+    // ── Provenance registry (PRODUCT-IMAGE-004) ──────────────────────────────
+    // The origin *type* is already carried by the `source` enum above; the
+    // fields below describe the concrete origin, license and approval trail.
+
+    /** Human-readable name of the concrete origin (photographer, site, partner…). */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $sourceName = null;
+
+    /** URL of the page or asset the image was collected from. */
+    #[ORM\Column(length: 2048, nullable: true)]
+    private ?string $sourceUrl = null;
+
+    /** Attribution text to display when the license requires it (CC BY / CC BY-SA). */
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $attributionText = null;
+
+    /** Reference of the written authorization (email, contract id…) when applicable. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $permissionReference = null;
+
+    #[ORM\Column(length: 40, enumType: ProductImageLicenseCode::class, options: ['default' => 'unknown'])]
+    private ProductImageLicenseCode $licenseCode = ProductImageLicenseCode::Unknown;
+
+    /** When the picture itself was taken (if known). */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $capturedAt = null;
+
+    /** When the platform collected/ingested the image. */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $collectedAt = null;
+
+    /** When an admin approved the usage rights (license moved out of Unknown). */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $approvedAt = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $approvedBy = null;
+
+    /** The image that replaced this one as the official picture (replacement history). */
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?ProductImage $supersededBy = null;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -224,6 +270,126 @@ class ProductImage
     public function setAltText(?string $altText): static
     {
         $this->altText = $altText;
+
+        return $this;
+    }
+
+    public function getSourceName(): ?string
+    {
+        return $this->sourceName;
+    }
+
+    public function setSourceName(?string $sourceName): static
+    {
+        $this->sourceName = $sourceName;
+
+        return $this;
+    }
+
+    public function getSourceUrl(): ?string
+    {
+        return $this->sourceUrl;
+    }
+
+    public function setSourceUrl(?string $sourceUrl): static
+    {
+        $this->sourceUrl = $sourceUrl;
+
+        return $this;
+    }
+
+    public function getAttributionText(): ?string
+    {
+        return $this->attributionText;
+    }
+
+    public function setAttributionText(?string $attributionText): static
+    {
+        $this->attributionText = $attributionText;
+
+        return $this;
+    }
+
+    public function getPermissionReference(): ?string
+    {
+        return $this->permissionReference;
+    }
+
+    public function setPermissionReference(?string $permissionReference): static
+    {
+        $this->permissionReference = $permissionReference;
+
+        return $this;
+    }
+
+    public function getLicenseCode(): ProductImageLicenseCode
+    {
+        return $this->licenseCode;
+    }
+
+    public function setLicenseCode(ProductImageLicenseCode $licenseCode): static
+    {
+        $this->licenseCode = $licenseCode;
+
+        return $this;
+    }
+
+    public function getCapturedAt(): ?\DateTimeImmutable
+    {
+        return $this->capturedAt;
+    }
+
+    public function setCapturedAt(?\DateTimeImmutable $capturedAt): static
+    {
+        $this->capturedAt = $capturedAt;
+
+        return $this;
+    }
+
+    public function getCollectedAt(): ?\DateTimeImmutable
+    {
+        return $this->collectedAt;
+    }
+
+    public function setCollectedAt(?\DateTimeImmutable $collectedAt): static
+    {
+        $this->collectedAt = $collectedAt;
+
+        return $this;
+    }
+
+    public function getApprovedAt(): ?\DateTimeImmutable
+    {
+        return $this->approvedAt;
+    }
+
+    public function setApprovedAt(?\DateTimeImmutable $approvedAt): static
+    {
+        $this->approvedAt = $approvedAt;
+
+        return $this;
+    }
+
+    public function getApprovedBy(): ?User
+    {
+        return $this->approvedBy;
+    }
+
+    public function setApprovedBy(?User $approvedBy): static
+    {
+        $this->approvedBy = $approvedBy;
+
+        return $this;
+    }
+
+    public function getSupersededBy(): ?self
+    {
+        return $this->supersededBy;
+    }
+
+    public function setSupersededBy(?self $supersededBy): static
+    {
+        $this->supersededBy = $supersededBy;
 
         return $this;
     }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Dto\AdminProductImageProvenanceInput;
 use App\Entity\ProductReference;
+use App\Enum\ProductImageLicenseCode;
 use App\Exception\InvalidProductImageException;
 use App\Repository\AdminProductReferenceRepository;
 use App\Repository\ProductImageRepository;
@@ -25,6 +27,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Admin endpoints to manage the official picture of a referential product.
@@ -45,6 +48,7 @@ final class AdminProductReferenceImageController extends AbstractController
         private readonly ProductImageApplicationService $imageApplicationService,
         private readonly ProductImageUrlBuilder $urlBuilder,
         private readonly AdminAuditLogger $auditLogger,
+        private readonly ValidatorInterface $validator,
         #[Autowire(service: 'monolog.logger.admin')]
         private readonly LoggerInterface $logger,
         #[Autowire(param: 'app.product_image.max_upload_bytes')]
@@ -87,9 +91,23 @@ final class AdminProductReferenceImageController extends AbstractController
         $altText = $request->request->get('alt');
         $altText = \is_string($altText) ? $altText : null;
 
+        $provenance = $this->parseProvenance($request);
+
         try {
             $image = $this->imageApplicationService->store(
-                ProductImageStoreCommand::adminUpload($productReference, $contents, $altText),
+                ProductImageStoreCommand::adminUpload(
+                    $productReference,
+                    $contents,
+                    $altText,
+                    // No license_code field sent → platform_owned default resolved by the
+                    // pipeline (an admin upload is assumed internal/authorized, #584).
+                    licenseCode: null !== $provenance->licenseCode ? ProductImageLicenseCode::from($provenance->licenseCode) : null,
+                    sourceName: $provenance->sourceName,
+                    sourceUrl: $provenance->sourceUrl,
+                    attributionText: $provenance->attributionText,
+                    permissionReference: $provenance->permissionReference,
+                    capturedAt: $this->parseCapturedAt($provenance->capturedAt),
+                ),
             );
         } catch (InvalidProductImageException $exception) {
             $this->logger->warning('admin.product_reference.image_rejected', [
@@ -107,6 +125,7 @@ final class AdminProductReferenceImageController extends AbstractController
             metadata: [
                 'product_image_id' => $image->getId()->toRfc4122(),
                 'mime_type' => $image->getMimeType(),
+                'license_code' => $image->getLicenseCode()->value,
             ],
         );
 
@@ -142,6 +161,53 @@ final class AdminProductReferenceImageController extends AbstractController
         );
 
         return new Response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Optional provenance form fields of the upload (PRODUCT-IMAGE-004), validated
+     * through the same DTO/constraints as the PATCH provenance endpoint.
+     */
+    private function parseProvenance(Request $request): AdminProductImageProvenanceInput
+    {
+        $input = new AdminProductImageProvenanceInput();
+        $input->licenseCode = $this->stringParam($request, 'license_code');
+        $input->sourceName = $this->stringParam($request, 'source_name');
+        $input->sourceUrl = $this->stringParam($request, 'source_url');
+        $input->attributionText = $this->stringParam($request, 'attribution_text');
+        $input->permissionReference = $this->stringParam($request, 'permission_reference');
+        $input->capturedAt = $this->stringParam($request, 'captured_at');
+
+        $violations = $this->validator->validate($input);
+        if (\count($violations) > 0) {
+            throw new UnprocessableEntityHttpException('PRODUCT_IMAGE_INVALID_PROVENANCE');
+        }
+
+        return $input;
+    }
+
+    private function stringParam(Request $request, string $key): ?string
+    {
+        $value = $request->request->get($key);
+        if (!\is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return '' === $trimmed ? null : $trimmed;
+    }
+
+    private function parseCapturedAt(?string $raw): ?\DateTimeImmutable
+    {
+        if (null === $raw) {
+            return null;
+        }
+
+        try {
+            return new \DateTimeImmutable($raw);
+        } catch (\Exception) {
+            throw new UnprocessableEntityHttpException('PRODUCT_IMAGE_INVALID_CAPTURED_AT');
+        }
     }
 
     private function requireProductReference(string $id): ProductReference

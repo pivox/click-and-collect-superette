@@ -193,7 +193,7 @@ final class AdminProductReferenceImageApiTest extends FunctionalApiTestCase
         self::assertSame(404, $response->getStatusCode());
     }
 
-    public function testReplacingImageRemovesPreviousOfficialImage(): void
+    public function testReplacingImageArchivesPreviousOfficialImageWithSupersession(): void
     {
         $admin = $this->createUser('admin-img-replace@example.test', ['ROLE_ADMIN']);
         $reference = $this->createProductReference('Vitalait', 'Lait', 'lait', 'Lait entier');
@@ -217,10 +217,18 @@ final class AdminProductReferenceImageApiTest extends FunctionalApiTestCase
         );
         self::assertSame(201, $second->getStatusCode());
 
+        // PRODUCT-IMAGE-004: the replaced image is kept for the provenance
+        // registry — archived, and pointing to its successor.
         $this->entityManager->clear();
-        $remaining = $this->productImageRepository()->findBy(['productReference' => $reference]);
-        self::assertCount(1, $remaining, 'Only one image must remain after replacement.');
-        self::assertNotSame($firstImageId, $remaining[0]->getId()->toRfc4122());
+        $official = $this->productImageRepository()->findOfficialForProductReference($reference);
+        self::assertInstanceOf(ProductImage::class, $official);
+        self::assertNotSame($firstImageId, $official->getId()->toRfc4122());
+
+        $previous = $this->productImageRepository()->find(Uuid::fromString($firstImageId));
+        self::assertInstanceOf(ProductImage::class, $previous);
+        self::assertSame(ProductImageStatus::Archived, $previous->getStatus());
+        self::assertNotNull($previous->getSupersededBy());
+        self::assertTrue($previous->getSupersededBy()->getId()->equals($official->getId()));
     }
 
     public function testDeleteRemovesOfficialImage(): void
