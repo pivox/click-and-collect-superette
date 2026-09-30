@@ -85,6 +85,39 @@ final class ShopOwnerVoterTest extends TestCase
         self::assertSame(Voter::ACCESS_DENIED, $result);
     }
 
+    public function testDeactivatedAccountWithActiveMembershipIsDenied(): void
+    {
+        $member = $this->merchant('member@example.com')->setActive(false);
+        $organization = (new \App\Entity\MerchantOrganization())
+            ->setName('Org')
+            ->setPrimaryAccount($member);
+        $membership = (new \App\Entity\MerchantMembership())
+            ->setOrganization($organization)
+            ->setUser($member)
+            ->activate();
+        $shop = (new Shop())->setOwner($member)->setMerchantOrganization($organization);
+
+        $result = $this->voterWithMembership($membership)->vote(
+            $this->tokenReturningUser($member),
+            $shop,
+            [ShopOwnerVoter::SHOP_OWNER],
+        );
+
+        self::assertSame(Voter::ACCESS_DENIED, $result);
+
+        // Control: the same membership grants access once the account is active,
+        // proving the denial above comes from the isActive() guard.
+        $member->setActive(true);
+
+        $result = $this->voterWithMembership($membership)->vote(
+            $this->tokenReturningUser($member),
+            $shop,
+            [ShopOwnerVoter::SHOP_OWNER],
+        );
+
+        self::assertSame(Voter::ACCESS_GRANTED, $result);
+    }
+
     private function merchant(string $email): User
     {
         return (new User())
@@ -106,6 +139,22 @@ final class ShopOwnerVoterTest extends TestCase
 
         $membershipRepository = $this->createStub(\App\Repository\MerchantMembershipRepository::class);
         $membershipRepository->method('findOneActiveByUser')->willReturn(null);
+
+        return new ShopOwnerVoter($security, new \App\Security\MerchantShopAccessChecker($security, $membershipRepository));
+    }
+
+    private function voterWithMembership(\App\Entity\MerchantMembership $membership): ShopOwnerVoter
+    {
+        /** @var Security&MockObject $security */
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects(self::once())
+            ->method('isGranted')
+            ->with('ROLE_ADMIN')
+            ->willReturn(false);
+
+        $membershipRepository = $this->createStub(\App\Repository\MerchantMembershipRepository::class);
+        $membershipRepository->method('findOneActiveByUser')->willReturn($membership);
 
         return new ShopOwnerVoter($security, new \App\Security\MerchantShopAccessChecker($security, $membershipRepository));
     }
