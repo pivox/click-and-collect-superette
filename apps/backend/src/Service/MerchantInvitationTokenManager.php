@@ -6,7 +6,9 @@ namespace App\Service;
 
 use App\Entity\MerchantInvitationToken;
 use App\Entity\User;
+use App\Enum\MerchantMembershipStatus;
 use App\Repository\MerchantInvitationTokenRepository;
+use App\Repository\MerchantMembershipRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -15,6 +17,7 @@ final readonly class MerchantInvitationTokenManager
 {
     public function __construct(
         private MerchantInvitationTokenRepository $tokenRepository,
+        private MerchantMembershipRepository $membershipRepository,
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
         private int $merchantInvitationTokenTtl,
@@ -105,6 +108,16 @@ final readonly class MerchantInvitationTokenManager
                 ->setPassword($this->passwordHasher->hashPassword($merchant, $newPassword))
                 ->setPasswordChangeRequired(false)
                 ->clearTemporaryPasswordWindow();
+
+            // MERCHANT-TEAM-004: an invited team membership becomes active
+            // atomically with the password definition. Primary accounts created
+            // by admin onboarding already hold an active membership — no-op.
+            $invitedMembership = $this->membershipRepository->findOneBy([
+                'user' => $merchant,
+                'status' => MerchantMembershipStatus::Invited,
+            ]);
+            $invitedMembership?->activate($now);
+
             $token->markUsed($now);
             $this->entityManager->flush();
             $connection->commit();
