@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\ProductImage;
 use App\Entity\ProductReference;
+use App\Enum\ProductImageLicenseCode;
 use App\Enum\ProductImageStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -45,6 +46,48 @@ class ProductImageRepository extends ServiceEntityRepository
             ['productReference' => $productReference, 'status' => ProductImageStatus::Verified],
             ['updatedAt' => 'DESC'],
         );
+    }
+
+    /**
+     * Paginated provenance-registry listing (PRODUCT-IMAGE-004). Criteria API is
+     * used instead of DQL parameters to stay reliable on the SQLite test backend
+     * (backend-pattern #2); newest images first.
+     *
+     * @return list<ProductImage>
+     */
+    public function findPaginatedForAdmin(
+        ?ProductImageLicenseCode $license,
+        ?ProductImageStatus $status,
+        int $limit,
+        int $offset,
+    ): array {
+        return $this->findBy(
+            $this->adminCriteria($license, $status),
+            ['createdAt' => 'DESC'],
+            $limit,
+            $offset,
+        );
+    }
+
+    public function countForAdmin(?ProductImageLicenseCode $license, ?ProductImageStatus $status): int
+    {
+        return $this->count($this->adminCriteria($license, $status));
+    }
+
+    /**
+     * @return array<string, ProductImageLicenseCode|ProductImageStatus>
+     */
+    private function adminCriteria(?ProductImageLicenseCode $license, ?ProductImageStatus $status): array
+    {
+        $criteria = [];
+        if (null !== $license) {
+            $criteria['licenseCode'] = $license;
+        }
+        if (null !== $status) {
+            $criteria['status'] = $status;
+        }
+
+        return $criteria;
     }
 
     /**

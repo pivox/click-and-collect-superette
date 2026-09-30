@@ -42,6 +42,8 @@ final readonly class ProductImageUrlBuilder
             fallbackJpegUrl: $this->absolute($variants['fallback_jpeg'] ?? null),
             alt: $image->getAltText(),
             status: $image->getStatus()->value,
+            attributionText: $image->getAttributionText(),
+            licenseCode: $image->getLicenseCode()->value,
         );
     }
 
@@ -66,6 +68,8 @@ final readonly class ProductImageUrlBuilder
             'fallback_jpeg_url' => $output->fallbackJpegUrl,
             'alt' => $output->alt,
             'status' => $output->status,
+            'attribution_text' => $output->attributionText,
+            'license_code' => $output->licenseCode,
         ];
     }
 

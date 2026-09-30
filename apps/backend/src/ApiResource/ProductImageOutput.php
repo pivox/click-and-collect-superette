@@ -45,6 +45,14 @@ final readonly class ProductImageOutput
         public ?string $alt,
         #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
         public ?string $status,
+        // PRODUCT-IMAGE-004 — attribution to display when the license requires it
+        // (CC BY / CC BY-SA); omitted from JSON when null (pattern #18).
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[SerializedName('attribution_text')]
+        public ?string $attributionText = null,
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[SerializedName('license_code')]
+        public ?string $licenseCode = null,
     ) {
     }
 }
