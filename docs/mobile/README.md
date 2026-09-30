@@ -30,7 +30,7 @@ apps/merchant┘                       └─>  contrat OpenAPI /api/docs.json)
 | #562 MOBILE-001 | Décision architecture et dépôt | ADR-0007 (ce cadrage) |
 | #563 MOBILE-002 | Périmètre et écrans Mobile Client | `docs/mobile/client-scope.md` |
 | #564 MOBILE-003 | Périmètre et écrans Mobile Marchand | `docs/mobile/merchant-scope.md` |
-| #565 MOBILE-004 | Audit API, auth, sessions mobiles | `docs/mobile/api-audit.md` |
+| #565 MOBILE-004 | Audit API, auth, sessions mobiles | `docs/mobile/api-readiness.md` |
 | #566 MOBILE-005 | Push natif, QR, App/Universal Links | `docs/mobile/push-and-links.md` |
 | #567 MOBILE-006 | Sécurité, stores, QA, publication | `docs/mobile/release-strategy.md` |
 
