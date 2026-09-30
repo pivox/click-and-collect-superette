@@ -319,6 +319,12 @@ Règles :
   journal d'audit (acteur, organisation, boutique, cible, statuts, sans
   secret).
 
+Diagnostic admin (MERCHANT-TEAM-006) : `GET /api/admin/merchants/{merchantId}`
+expose de façon additive un bloc `organization` — `{id, name, active,
+is_primary, accounts_count, accounts: [{user_id, email, status, is_primary,
+invited_at, revoked_at}]}` — absent pour un marchand non rattaché à une
+organisation. La collection admin marchands est inchangée.
+
 Payload `PATCH /api/merchant/me` :
 
 ```json
@@ -1553,11 +1559,19 @@ Règles :
 
 ### Consulter l'historique de statuts d'une commande marchand
 
-Statut : **livré Sprint 3**.
+Statut : **livré Sprint 3** — auteur des transitions ajouté par
+MERCHANT-TEAM-006 (#575).
 
 ```http
 GET /api/merchant/stores/{storeId}/orders/{orderId}/status-history
 ```
+
+Extension additive : chaque transition porte `actor_type`
+(`customer|merchant|admin|system`, null pour les lignes antérieures à la
+migration) et `actor_name` (prénom ou nom du compte, null si l'acteur est
+`system` ou si le compte a été supprimé — un compte révoqué reste identifiable
+par son nom conservé). La route client `/api/me/orders/{orderId}/status-history`
+n'expose **pas** ces champs : les noms de l'équipe ne fuient jamais côté client.
 
 ### Dashboard marchand journalier
 

@@ -17,6 +17,15 @@ final readonly class OrderStatusTransitionOutput
         #[Groups(['order_status_history:read'])]
         #[SerializedName('at')]
         public string $at,
+        // MERCHANT-TEAM-006 (merchant route only, additive): transition author.
+        // The customer route keeps these null — staff names never leak to
+        // customers.
+        #[Groups(['order_status_history:read'])]
+        #[SerializedName('actor_type')]
+        public ?string $actorType = null,
+        #[Groups(['order_status_history:read'])]
+        #[SerializedName('actor_name')]
+        public ?string $actorName = null,
     ) {
     }
 }

@@ -13,6 +13,7 @@ use App\Entity\User;
 use App\Repository\AdminMerchantRepository;
 use App\Repository\MerchantCrmContactRepository;
 use App\Repository\MerchantCrmProfileRepository;
+use App\Repository\MerchantMembershipRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\MerchantOperationalJournalCalculator;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -29,6 +30,7 @@ final readonly class AdminMerchantItemProvider implements ProviderInterface
         private MerchantOperationalJournalCalculator $operationalJournalCalculator,
         private MerchantCrmProfileRepository $crmProfileRepository,
         private MerchantCrmContactRepository $crmContactRepository,
+        private MerchantMembershipRepository $membershipRepository,
     ) {
     }
 
@@ -57,15 +59,70 @@ final readonly class AdminMerchantItemProvider implements ProviderInterface
                 $this->crmProfileRepository->findOneByMerchant($merchant),
                 $this->crmContactRepository->findByMerchant($merchant),
             ),
+            organization: $this->organizationBlock($merchant),
         );
     }
 
+    /**
+     * MERCHANT-TEAM-006: diagnostic block for admin/support — organization,
+     * primary account and every attached account with its membership status.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function organizationBlock(User $merchant): ?array
+    {
+        $memberships = $this->membershipRepository->findByUser($merchant);
+        if ([] === $memberships) {
+            return null;
+        }
+        $organization = $memberships[0]->getOrganization();
+        if (null === $organization) {
+            return null;
+        }
+
+        $allMemberships = $this->membershipRepository->findBy(
+            ['organization' => $organization],
+            ['createdAt' => 'ASC'],
+        );
+        $primaryId = $organization->getPrimaryAccount()?->getId();
+
+        $accounts = [];
+        $activeOrInvited = 0;
+        foreach ($allMemberships as $membership) {
+            $user = $membership->getUser();
+            if ('revoked' !== $membership->getStatus()->value) {
+                ++$activeOrInvited;
+            }
+            $accounts[] = [
+                'user_id' => $user?->getId()->toRfc4122(),
+                'email' => $user?->getEmail(),
+                'status' => $membership->getStatus()->value,
+                'is_primary' => null !== $user && null !== $primaryId && $primaryId->equals($user->getId()),
+                'invited_at' => $membership->getInvitedAt()?->format(\DateTimeInterface::ATOM),
+                'revoked_at' => $membership->getRevokedAt()?->format(\DateTimeInterface::ATOM),
+            ];
+        }
+
+        return [
+            'id' => $organization->getId()->toRfc4122(),
+            'name' => $organization->getName(),
+            'active' => $organization->isActive(),
+            'is_primary' => null !== $primaryId && $primaryId->equals($merchant->getId()),
+            'accounts_count' => $activeOrInvited,
+            'accounts' => $accounts,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed>|null $organization
+     */
     public static function toOutput(
         User $merchant,
         int $storesCount,
         ?string $subscriptionLifecycle = null,
         ?AdminMerchantOpsJournalOutput $opsJournal = null,
         ?AdminMerchantCrmOutput $crm = null,
+        ?array $organization = null,
     ): AdminMerchantOutput {
         return new AdminMerchantOutput(
             id: $merchant->getId()->toRfc4122(),
@@ -79,6 +136,7 @@ final readonly class AdminMerchantItemProvider implements ProviderInterface
             subscriptionLifecycle: $subscriptionLifecycle,
             opsJournal: $opsJournal,
             crm: $crm ?? AdminMerchantCrmOutput::fromProfile(null),
+            organization: $organization,
         );
     }
 }
