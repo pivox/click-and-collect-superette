@@ -40,7 +40,7 @@ final class ProductAiEnrichmentResultApplier
         }
 
         $previousValues = [
-            'brand' => $productReference->getBrand()->getCanonicalName(),
+            'brand' => (string) $productReference->getBrand()?->getCanonicalName(),
             'barcode' => $productReference->getBarcode(),
             'name_ar' => $productReference->getNameAr(),
             'aliases' => $productReference->getAliases(),

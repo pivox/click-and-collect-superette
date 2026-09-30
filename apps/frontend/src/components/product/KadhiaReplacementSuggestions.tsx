@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { formatTnd } from "@/lib/format";
 import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import { ProductThumbnail } from "./ProductThumbnail";
+import { categoryPlaceholder } from "@/lib/category-placeholder";
 
 export interface KadhiaReplacementSuggestionsProps {
   lines: KadhiaReplacementLine[];
@@ -62,7 +63,7 @@ export function KadhiaReplacementSuggestions({ lines, onReplace }: KadhiaReplace
                     <ProductThumbnail
                       image={alternative.image}
                       nameFr={alternative.nameFr}
-                      emoji={alternative.emoji}
+                      emoji={alternative.emoji ?? categoryPlaceholder(alternative.category, alternative.categoryNameFr)}
                       sizes="40px"
                       className="h-10 w-10 flex-shrink-0 rounded-md text-xl"
                     />

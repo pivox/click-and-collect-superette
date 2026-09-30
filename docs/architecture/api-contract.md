@@ -1513,6 +1513,69 @@ Règles :
 
 ---
 
+## Politique de commande marchand
+
+Statut : **livré ORDER-LEAD-001 (#576)**.
+
+### Lire la politique de commande d'une supérette
+
+```http
+GET /api/merchant/stores/{storeId}/ordering-policy
+```
+
+Réponse `200` :
+
+```json
+{
+  "store_id": "shop-uuid",
+  "minimum_pickup_lead_time_minutes": 720,
+  "updated_at": "2026-09-30T09:00:00+00:00"
+}
+```
+
+Règles :
+
+- marchand connecté uniquement ;
+- le marchand doit être propriétaire de la supérette ;
+- une supérette historique sans politique persistée retourne la valeur par
+  défaut `0` ; `updated_at` est alors absent de la réponse (propriété nulle
+  exclue de la sérialisation) ;
+- la lecture ne crée jamais de ligne en base.
+
+### Modifier la politique de commande
+
+```http
+PATCH /api/merchant/stores/{storeId}/ordering-policy
+```
+
+Payload :
+
+```json
+{
+  "minimum_pickup_lead_time_minutes": 720
+}
+```
+
+Réponse `200` : même format que le GET.
+
+Règles :
+
+- `minimum_pickup_lead_time_minutes` est un entier obligatoire entre `0` et
+  `10080` (7 jours) ; toute autre forme (décimal, chaîne, booléen, null, champ
+  absent) retourne `422 SHOP_ORDERING_POLICY_INVALID_LEAD_TIME` ;
+- tout champ inconnu retourne `422 SHOP_ORDERING_POLICY_UNKNOWN_FIELD` ;
+- le PATCH est idempotent : répéter la même valeur retourne `200` et le même
+  état ; une contrainte unique en base garantit une seule politique par
+  supérette (dernière écriture gagnante) ;
+- la première modification crée la ligne (upsert) ;
+- chaque changement effectif est tracé dans un log structuré
+  `shop.ordering_policy.minimum_lead_time.update` (shop, acteur, ancienne et
+  nouvelle valeur, sans donnée personnelle) ;
+- cette politique n'est pas encore appliquée au listing public ni à la
+  soumission : l'application serveur est livrée par ORDER-LEAD-002 (#577).
+
+---
+
 ## Sprint 3b — Opérations marchand
 
 Statut : **Sprint 3b entièrement livré côté backend (PR #92 à #101). Tous les endpoints ci-dessous sont opérationnels.**
@@ -2628,7 +2691,8 @@ Règles :
 
 ### Référentiel produit
 
-Statut : **S5-007 livré**.
+Statut : **S5-007 livré** — produits génériques ajoutés par PRODUCT-IMAGE-001
+(#581, ADR-0006).
 
 ```http
 GET    /api/admin/product-references?page=1&limit=20&q=&categoryId=&brandId=&status=
@@ -2639,6 +2703,30 @@ PATCH  /api/admin/product-references/{productReferenceId}/archive
 POST   /api/admin/product-references/{productReferenceId}/image     # multipart, S13-005
 DELETE /api/admin/product-references/{productReferenceId}/image     # S13-005
 ```
+
+Produits génériques (PRODUCT-IMAGE-001) :
+
+- champ additif `kind` (`industrial` par défaut | `generic`) au `POST` et dans
+  les sorties admin ;
+- `kind` est immuable après création — pour requalifier un produit, archiver
+  la référence et en créer une nouvelle (le `PATCH` n'accepte pas ce champ ;
+  les gardes marque ci-dessous en dépendent) ;
+- `kind: generic` → sans marque ni GTIN : `brandId` **interdit**
+  (`422 ADMIN_PRODUCT_REFERENCE_GENERIC_BRAND_FORBIDDEN`) ; `industrial` →
+  `brandId` **obligatoire** (`422 ADMIN_PRODUCT_REFERENCE_BRAND_REQUIRED`,
+  également au `PATCH` qui tenterait de retirer la marque) ;
+- `brand_id`/`brand_name` deviennent nullables dans les sorties admin, la
+  recherche référentiel marchand et les groupes (propriété nulle exclue du
+  JSON) ;
+- unité `botte` ajoutée (persil…) ;
+- l'image générique commune passe par l'upload d'image existant (S13-005)
+  sur la référence — partagée par tous les marchands qui l'activent.
+
+> **Limite connue** : le scorer de qualité (`ProductReferenceQualityScorer`,
+> voir `docs/product/product-reference-governance.md` §7) pénalise mécaniquement
+> les références génériques (pas de marque ⇒ pas de points marque) — acceptable
+> en V1, à recalibrer quand #582+ apportera les images génériques comptées
+> dans le score.
 
 #### Image officielle du produit référentiel (US-041 / S13-005)
 
@@ -3324,6 +3412,8 @@ Règles :
 | `PICKUP_SESSION_ALREADY_CUSTOMER_CONFIRMED` | Le client a déjà confirmé le retrait. |
 | `PICKUP_FORCE_COMPLETION_TOO_EARLY` | Le délai de 5 minutes n'est pas encore atteint. |
 | `PRODUCT_REFERENCE_DUPLICATE` | Produit de référence probablement déjà existant. |
+| `SHOP_ORDERING_POLICY_INVALID_LEAD_TIME` | Délai minimal avant retrait manquant, non entier ou hors plage 0–10080 minutes. |
+| `SHOP_ORDERING_POLICY_UNKNOWN_FIELD` | Champ inconnu dans le PATCH de la politique de commande. |
 
 ---
 

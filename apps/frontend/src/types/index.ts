@@ -70,7 +70,8 @@ export interface ProductOffer {
   productReferenceId: string;
   nameFr: string;
   nameAr: string | null;
-  brand: string;
+  /** Null for generic shared products (PRODUCT-IMAGE-001). */
+  brand: string | null;
   volume: number | null;
   unit: string | null;
   priceTnd: string;

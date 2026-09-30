@@ -180,7 +180,7 @@ class MerchantProduct
 
     public function getDisplayBrandName(): ?string
     {
-        return $this->productReference?->getBrand()->getCanonicalName() ?? $this->localProduct?->getBrandName();
+        return $this->productReference?->getBrand()?->getCanonicalName() ?? $this->localProduct?->getBrandName();
     }
 
     public function getDisplayCategoryName(): string

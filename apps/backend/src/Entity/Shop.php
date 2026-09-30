@@ -59,6 +59,9 @@ class Shop
     #[ORM\OneToOne(mappedBy: 'shop', targetEntity: ShopTheme::class)]
     private ?ShopTheme $theme = null;
 
+    #[ORM\OneToOne(mappedBy: 'shop', targetEntity: ShopOrderingPolicy::class)]
+    private ?ShopOrderingPolicy $orderingPolicy = null;
+
     #[ORM\Column(length: 2048, nullable: true)]
     private ?string $logoUrl = null;
 
@@ -230,6 +233,22 @@ class Shop
 
         if (null !== $theme && $theme->getShop() !== $this) {
             $theme->setShop($this);
+        }
+
+        return $this;
+    }
+
+    public function getOrderingPolicy(): ?ShopOrderingPolicy
+    {
+        return $this->orderingPolicy;
+    }
+
+    public function setOrderingPolicy(?ShopOrderingPolicy $orderingPolicy): static
+    {
+        $this->orderingPolicy = $orderingPolicy;
+
+        if (null !== $orderingPolicy && $orderingPolicy->getShop() !== $this) {
+            $orderingPolicy->setShop($this);
         }
 
         return $this;

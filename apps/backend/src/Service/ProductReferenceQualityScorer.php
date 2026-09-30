@@ -16,7 +16,7 @@ final readonly class ProductReferenceQualityScorer
         if ('' !== trim($productReference->getNameFr())) {
             $score += 20;
         }
-        if ('' !== trim($productReference->getBrand()->getCanonicalName())) {
+        if ('' !== trim((string) $productReference->getBrand()?->getCanonicalName())) {
             $score += 10;
         }
         if ('' !== trim($productReference->getCategory()->getNameFr())) {

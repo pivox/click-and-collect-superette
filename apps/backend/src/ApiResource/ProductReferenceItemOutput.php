@@ -20,9 +20,9 @@ final readonly class ProductReferenceItemOutput
         public ?string $nameAr,
         #[Groups(['product_reference_search:read'])]
         #[SerializedName('brand_id')]
-        public string $brandId,
+        public ?string $brandId,
         #[Groups(['product_reference_search:read'])]
-        public string $brand,
+        public ?string $brand,
         #[Groups(['product_reference_search:read'])]
         #[SerializedName('category_id')]
         public string $categoryId,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
+use App\Enum\ProductReferenceKind;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -23,9 +24,13 @@ final class AdminCreateProductReferenceInput
     #[Assert\Length(max: 160)]
     public ?string $variantAr = null;
 
-    #[Assert\NotBlank]
+    // PRODUCT-IMAGE-001: required for industrial references, forbidden for
+    // generic ones — enforced in the processor with stable codes.
     #[Assert\Uuid]
     public ?string $brandId = null;
+
+    #[Assert\Choice(callback: [ProductReferenceKind::class, 'values'])]
+    public ?string $kind = null;
 
     #[Assert\NotBlank]
     #[Assert\Uuid]

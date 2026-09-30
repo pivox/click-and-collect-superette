@@ -9,6 +9,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\AdminProductReferenceOutput;
 use App\Dto\AdminCreateProductReferenceInput;
 use App\Entity\ProductReference;
+use App\Enum\ProductReferenceKind;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 use App\Provider\AdminProductReferenceItemProvider;
@@ -45,9 +46,23 @@ final readonly class AdminCreateProductReferenceProcessor implements ProcessorIn
             throw new \InvalidArgumentException('AdminCreateProductReferenceInput expected.');
         }
 
-        $brand = $this->adminBrandRepository->findOne((string) $data->brandId);
-        if (null === $brand) {
-            throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BRAND_NOT_FOUND');
+        $kind = null !== $data->kind ? ProductReferenceKind::from($data->kind) : ProductReferenceKind::Industrial;
+
+        // PRODUCT-IMAGE-001: a generic shared product has no brand; an
+        // industrial reference keeps its mandatory brand.
+        $brand = null;
+        if (ProductReferenceKind::Generic === $kind) {
+            if (null !== $data->brandId && '' !== trim($data->brandId)) {
+                throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_GENERIC_BRAND_FORBIDDEN');
+            }
+        } else {
+            if (null === $data->brandId || '' === trim($data->brandId)) {
+                throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BRAND_REQUIRED');
+            }
+            $brand = $this->adminBrandRepository->findOne($data->brandId);
+            if (null === $brand) {
+                throw new UnprocessableEntityHttpException('ADMIN_PRODUCT_REFERENCE_BRAND_NOT_FOUND');
+            }
         }
 
         $category = $this->adminCategoryRepository->findOne((string) $data->categoryId);
@@ -71,6 +86,7 @@ final readonly class AdminCreateProductReferenceProcessor implements ProcessorIn
             ->setVariantFr(null !== $data->variantFr && '' !== trim($data->variantFr) ? trim($data->variantFr) : null)
             ->setVariantAr(null !== $data->variantAr && '' !== trim($data->variantAr) ? trim($data->variantAr) : null)
             ->setBrand($brand)
+            ->setKind($kind)
             ->setCategory($category)
             ->setUnit($unit)
             ->setVolume($data->volume)

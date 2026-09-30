@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\ProductReferenceKind;
 use App\Enum\ProductReferenceStatus;
 use App\Enum\ProductUnit;
 use App\Repository\ProductReferenceRepository;
@@ -20,10 +21,12 @@ class ProductReference
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;
 
+    // PRODUCT-IMAGE-001: nullable for generic shared products (tomate,
+    // baguette, œuf…). Industrial references keep a mandatory brand,
+    // enforced by the write processors.
     #[ORM\ManyToOne(targetEntity: Brand::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Assert\NotNull]
-    private Brand $brand;
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Brand $brand = null;
 
     #[ORM\ManyToOne(targetEntity: Category::class)]
     #[ORM\JoinColumn(nullable: false)]
@@ -61,6 +64,9 @@ class ProductReference
 
     #[ORM\Column(length: 32, enumType: ProductReferenceStatus::class)]
     private ProductReferenceStatus $status = ProductReferenceStatus::Draft;
+
+    #[ORM\Column(length: 16, enumType: ProductReferenceKind::class, options: ['default' => 'industrial'])]
+    private ProductReferenceKind $kind = ProductReferenceKind::Industrial;
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $rejectionReason = null;
@@ -110,16 +116,33 @@ class ProductReference
         return $this->id;
     }
 
-    public function getBrand(): Brand
+    public function getBrand(): ?Brand
     {
         return $this->brand;
     }
 
-    public function setBrand(Brand $brand): static
+    public function setBrand(?Brand $brand): static
     {
         $this->brand = $brand;
 
         return $this;
+    }
+
+    public function getKind(): ProductReferenceKind
+    {
+        return $this->kind;
+    }
+
+    public function setKind(ProductReferenceKind $kind): static
+    {
+        $this->kind = $kind;
+
+        return $this;
+    }
+
+    public function isGeneric(): bool
+    {
+        return ProductReferenceKind::Generic === $this->kind;
     }
 
     public function getCategory(): Category

@@ -92,14 +92,15 @@ Produit global normalisé.
 
 ```yaml
 id: uuid
-brand_id: uuid
+brand_id: uuid|null (null réservé au kind generic)
 category_id: uuid
+kind: industrial|generic (défaut industrial — ADR-0006)
 name_fr: string
 name_ar: string|null
 variant_fr: string|null
 variant_ar: string|null
 volume: decimal|null
-unit: litre|millilitre|kilogramme|gramme|piece|paquet
+unit: litre|millilitre|kilogramme|gramme|piece|paquet|botte
 barcode: string|null
 aliases: json
 country: TN
@@ -107,6 +108,14 @@ status: draft|pending_review|approved|rejected|archived
 created_at: datetime
 updated_at: datetime
 ```
+
+Produits génériques partagés (PRODUCT-IMAGE-001, ADR-0006) : `kind: generic`
+= produit sans marque ni GTIN (tomate, baguette, œuf, persil…), mutualisé
+entre marchands — chaque marchand active la référence avec son propre prix et
+sa disponibilité via `MerchantProduct` ; l'image générique commune passe par
+`ProductImage` (rattachée à la référence, donc partagée sans faux SKU). Les
+processors d'écriture imposent : marque obligatoire pour `industrial`,
+interdite pour `generic`.
 
 ## MerchantProduct
 
@@ -305,6 +314,31 @@ Transition (expand/backfill) :
   rattachées, boutiques orphelines rapportées jamais rattachées) ;
 - diagnostic : `app:merchant-organizations:audit` (lecture seule, code de
   sortie non nul en présence d'anomalies).
+
+## ShopOrderingPolicy
+
+Politique de commande propre à une supérette (ORDER-LEAD-001). Optionnelle
+(OneToOne nullable vers `Store`) : une supérette sans ligne résout la valeur
+par défaut `0`, et la ligne est créée au premier PATCH marchand (upsert).
+
+```yaml
+id: uuid
+shop_id: uuid (unique)
+minimum_pickup_lead_time_minutes: integer (0 à 10080, défaut 0)
+created_at: datetime
+updated_at: datetime
+```
+
+Règles :
+
+- une seule politique par supérette (contrainte unique en base + CHECK sur la
+  plage 0–10080) ;
+- `minimum_pickup_lead_time_minutes` exprime le temps minimum entre la
+  soumission d'une commande et le début du créneau de retrait ;
+- l'agrégat pourra accueillir plus tard d'autres règles de disponibilité de
+  commande (horizon maximal, cutoff quotidien…) — hors périmètre actuel ;
+- l'application de la règle au listing public et à la soumission est livrée
+  séparément (ORDER-LEAD-002).
 
 ## Contraintes importantes
 
