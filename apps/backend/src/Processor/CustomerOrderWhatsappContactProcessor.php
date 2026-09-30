@@ -75,6 +75,7 @@ final readonly class CustomerOrderWhatsappContactProcessor implements ProcessorI
             summary: \sprintf('Contact WhatsApp client→marchand préparé pour la commande %s.', $orderNumber),
             metadata: [
                 'direction' => 'customer_to_merchant',
+                'actor_role' => 'customer',
                 'phone' => $phone,
                 'shop_id' => $order->getShop()->getId()->toRfc4122(),
             ],

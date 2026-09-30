@@ -65,7 +65,7 @@ describe('MerchantOrderDetailPage — bouton WhatsApp', () => {
   });
 
   it('affiche le bouton et ouvre le lien wa.me préparé au clic', async () => {
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
     vi.mocked(prepareMerchantOrderWhatsappContact).mockResolvedValue({
       phone: '21620111222',
       message: 'Bonjour, ici Supérette Ezzahra au sujet de votre commande #0042.',
@@ -83,17 +83,13 @@ describe('MerchantOrderDetailPage — bouton WhatsApp', () => {
       expect(prepareMerchantOrderWhatsappContact).toHaveBeenCalledWith('store-1', 'order-1'),
     );
     await waitFor(() =>
-      expect(openSpy).toHaveBeenCalledWith(
-        'https://wa.me/21620111222?text=Bonjour',
-        '_blank',
-        'noopener',
-      ),
+      expect(assignSpy).toHaveBeenCalledWith('https://wa.me/21620111222?text=Bonjour'),
     );
-    openSpy.mockRestore();
+    assignSpy.mockRestore();
   });
 
   it('affiche un message discret quand le téléphone client est indisponible (409)', async () => {
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
     vi.mocked(prepareMerchantOrderWhatsappContact).mockRejectedValue(
       Object.assign(new Error('HTTP 409'), { response: { status: 409 } }),
     );
@@ -107,7 +103,7 @@ describe('MerchantOrderDetailPage — bouton WhatsApp', () => {
     expect(
       await screen.findByText(/numéro WhatsApp du client n'est pas disponible/i),
     ).toBeTruthy();
-    expect(openSpy).not.toHaveBeenCalled();
-    openSpy.mockRestore();
+    expect(assignSpy).not.toHaveBeenCalled();
+    assignSpy.mockRestore();
   });
 });

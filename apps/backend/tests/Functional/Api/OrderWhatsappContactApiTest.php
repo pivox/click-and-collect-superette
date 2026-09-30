@@ -55,6 +55,7 @@ final class OrderWhatsappContactApiTest extends FunctionalApiTestCase
         $auditLog = $this->findWhatsappAuditLog($order);
         self::assertNotNull($auditLog);
         self::assertSame('customer_to_merchant', $auditLog->getMetadata()['direction'] ?? null);
+        self::assertSame('customer', $auditLog->getMetadata()['actor_role'] ?? null);
         self::assertSame('21620123456', $auditLog->getMetadata()['phone'] ?? null);
         self::assertSame($shop->getId()->toRfc4122(), $auditLog->getMetadata()['shop_id'] ?? null);
     }
@@ -169,6 +170,7 @@ final class OrderWhatsappContactApiTest extends FunctionalApiTestCase
         $auditLog = $this->findWhatsappAuditLog($order);
         self::assertNotNull($auditLog);
         self::assertSame('merchant_to_customer', $auditLog->getMetadata()['direction'] ?? null);
+        self::assertSame('merchant', $auditLog->getMetadata()['actor_role'] ?? null);
         self::assertSame('21698765432', $auditLog->getMetadata()['phone'] ?? null);
         self::assertSame($shop->getId()->toRfc4122(), $auditLog->getMetadata()['shop_id'] ?? null);
     }
