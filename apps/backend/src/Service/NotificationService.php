@@ -10,9 +10,40 @@ use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Uid\Uuid;
 
 final readonly class NotificationService implements PickupReminderNotifierInterface
 {
+    // MOBILE-PUSH #620 lot A: stable customer order-cycle types (previously
+    // persisted with a null type). Existing rows keep their null type — no
+    // data migration; the API already exposes the nullable `type` field.
+    public const TYPE_ORDER_ACCEPTED = 'order_accepted';
+    public const TYPE_ORDER_PARTIALLY_ACCEPTED = 'order_partially_accepted';
+    public const TYPE_ORDER_REJECTED = 'order_rejected';
+    public const TYPE_ORDER_PREPARING = 'order_preparing';
+    public const TYPE_ORDER_READY = 'order_ready';
+    public const TYPE_ORDER_COMPLETED = 'order_completed';
+
+    /**
+     * #620 lot A: cycle types are intentionally NOT deduplicated by
+     * (order, type) — an order only repeats a status after a
+     * partial-acceptance re-submission, where a second notification is
+     * wanted. Because the table carries the UNIQ_NOTIFICATIONS_ORDER_TYPE_USER
+     * constraint, a repeated cycle event gets a per-occurrence type variant
+     * (same motif as partial_acceptance_reminder_{cycleId}); push dispatch
+     * normalizes variants back to the stable base type.
+     *
+     * @var list<string>
+     */
+    private const CUSTOMER_CYCLE_TYPES = [
+        self::TYPE_ORDER_ACCEPTED,
+        self::TYPE_ORDER_PARTIALLY_ACCEPTED,
+        self::TYPE_ORDER_REJECTED,
+        self::TYPE_ORDER_PREPARING,
+        self::TYPE_ORDER_READY,
+        self::TYPE_ORDER_COMPLETED,
+    ];
+
     public const TYPE_PICKUP_REMINDER = 'pickup_reminder';
     public const TYPE_MERCHANT_RESPONSE_TIMEOUT = 'merchant_response_timeout';
     public const TYPE_PARTIAL_ACCEPTANCE_REMINDER = 'partial_acceptance_reminder';
@@ -40,6 +71,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم قبول القاضية',
             'Votre commande a été acceptée par la supérette.',
             'تم قبول طلبكم من طرف العطار.',
+            self::TYPE_ORDER_ACCEPTED,
         );
     }
 
@@ -51,6 +83,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم رفض القاضية',
             'Votre commande a été refusée par la supérette.',
             'تم رفض طلبكم من طرف العطار.',
+            self::TYPE_ORDER_REJECTED,
         );
     }
 
@@ -62,6 +95,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم قبول جزء من القاضية',
             'Certains produits ne sont pas disponibles. Merci de vérifier votre Kadhia.',
             'بعض المنتجات غير متوفرة. يرجى مراجعة القاضية.',
+            self::TYPE_ORDER_PARTIALLY_ACCEPTED,
         );
     }
 
@@ -73,6 +107,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'القاضية في التحضير',
             'Votre commande est en cours de préparation.',
             'طلبكم في طور التحضير.',
+            self::TYPE_ORDER_PREPARING,
         );
     }
 
@@ -84,6 +119,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'القاضية واجدة',
             'Votre commande est prête à être retirée. Présentez votre QR code en supérette.',
             'طلبكم واجد للاستلام. أظهروا رمز QR في العطار.',
+            self::TYPE_ORDER_READY,
         );
 
         // best-effort push notification
@@ -110,6 +146,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم استلام القاضية',
             'Votre commande a été retirée avec succès.',
             'تم استلام طلبكم بنجاح.',
+            self::TYPE_ORDER_COMPLETED,
         );
     }
 
@@ -258,8 +295,19 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
         string $bodyFr,
         string $bodyAr,
         ?string $type = null,
-    ): void {
+    ): Notification {
         $orderId = $order->getId()->toRfc4122();
+
+        // #620 lot A: a repeated cycle event (only possible after a
+        // partial-acceptance re-submission) must produce a SECOND in-app
+        // notification. The unique constraint on (order, type, user) forbids
+        // an identical type, so the repeat gets a per-occurrence variant —
+        // same motif as partial_acceptance_reminder_{cycleId}.
+        if (null !== $type
+            && \in_array($type, self::CUSTOMER_CYCLE_TYPES, true)
+            && $this->notificationRepository->existsForOrderAndType($order, $type)) {
+            $type .= '_'.Uuid::v4()->toRfc4122();
+        }
         $this->logger->debug('notification.attempt', [
             'type' => $type ?? 'generic',
             'order_id' => $orderId,
@@ -282,6 +330,8 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
                 'order_id' => $orderId,
                 'recipient' => 'customer',
             ]);
+
+            return $notification;
         } catch (\Throwable $e) {
             $this->logger->error('notification.failed', [
                 'type' => $type ?? 'generic',
