@@ -64,7 +64,13 @@ Par environnement :
 **Valeurs de `reason` pour `order.submit.rejected`** :
 `CUSTOMER_ACCESS_REQUIRED`, `KADHIA_NOT_FOUND`, `KADHIA_NOT_DRAFT`, `STORE_NOT_FOUND`,
 `PICKUP_SLOT_NOT_FOUND`, `PICKUP_SLOT_FULL`, `PICKUP_SLOT_EXPIRED`, `PICKUP_SLOT_CLOSED`,
-`KADHIA_EMPTY`, `PRODUCT_UNAVAILABLE`, `PARTIAL_ACCEPTANCE_EXPIRED`
+`KADHIA_EMPTY`, `PRODUCT_UNAVAILABLE`, `PARTIAL_ACCEPTANCE_EXPIRED`,
+`PICKUP_SLOT_MINIMUM_LEAD_TIME_NOT_MET`
+
+Pour `PICKUP_SLOT_MINIMUM_LEAD_TIME_NOT_MET` (ORDER-LEAD-002), le contexte contient
+en plus `minimum_lead_time_minutes`, `minimum_eligible_starts_at` et `slot_starts_at`,
+ce qui permet de distinguer en agrégation les soumissions rejetées pour écran périmé
+des créneaux masqués par délai côté listing. Aucune donnée personnelle ni note Kadhia.
 
 ### Transitions statut commande (`OrderStatusLogRecorder`)
 

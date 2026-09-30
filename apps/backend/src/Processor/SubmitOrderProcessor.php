@@ -24,6 +24,7 @@ use App\Service\OrderNumberGenerator;
 use App\Service\OrderStatusLogRecorder;
 use App\Service\PickupSlotDisplayTime;
 use App\Service\PickupSlotDuration;
+use App\Service\PickupSlotEligibilityChecker;
 use App\Service\ShopOrderingAvailabilityChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -54,6 +55,7 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         private NotificationService $notificationService,
         private MerchantResponseTimeoutScheduler $merchantResponseTimeoutScheduler,
         private ShopOrderingAvailabilityChecker $shopOrderingAvailabilityChecker,
+        private PickupSlotEligibilityChecker $pickupSlotEligibilityChecker,
         private ClockInterface $clock,
         private int $partialAcceptanceExpirationLeadSeconds,
         #[Autowire(service: 'monolog.logger.order')]
@@ -180,6 +182,23 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
                 $this->logRejected('PARTIAL_ACCEPTANCE_EXPIRED', $kadhiaId, $slotId, $userId, $storeId);
                 throw $e;
             }
+        }
+
+        // ORDER-LEAD-002: the minimum lead time applies to every new temporal
+        // booking (first submission or slot change). A partial-acceptance
+        // resubmission on the already reserved slot keeps its booking and only
+        // stays constrained by the partial expiration window checked above.
+        $sameReservedSlot = null !== $existingOrder
+            && null !== $existingOrder->getPickupSlot()
+            && $existingOrder->getPickupSlot()->getId()->equals($slot->getId());
+
+        if (!$sameReservedSlot && !$this->pickupSlotEligibilityChecker->isEligibleForNewBooking($shop, $slot, $now)) {
+            $this->logRejected(PickupSlotEligibilityChecker::REJECTION_CODE, $kadhiaId, $slotId, $userId, $storeId, [
+                'minimum_lead_time_minutes' => $this->pickupSlotEligibilityChecker->minimumPickupLeadTimeMinutes($shop),
+                'minimum_eligible_starts_at' => $this->pickupSlotEligibilityChecker->minimumEligibleStartsAt($shop, $now)->format(\DateTimeInterface::ATOM),
+                'slot_starts_at' => $slotStartsAt->format(\DateTimeInterface::ATOM),
+            ]);
+            throw new UnprocessableEntityHttpException(PickupSlotEligibilityChecker::REJECTION_CODE);
         }
 
         try {
@@ -318,8 +337,9 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
 
         if (!$sameSlot) {
             if (null !== $oldSlot) {
+                // CASE WHEN instead of GREATEST(): portable across PostgreSQL and the SQLite test env.
                 $this->entityManager->getConnection()->executeStatement(
-                    'UPDATE pickup_slots SET booked_count = GREATEST(booked_count - 1, 0) WHERE id = :id',
+                    'UPDATE pickup_slots SET booked_count = CASE WHEN booked_count > 0 THEN booked_count - 1 ELSE 0 END WHERE id = :id',
                     ['id' => $oldSlot->getId()],
                     ['id' => 'uuid'],
                 );
@@ -395,7 +415,10 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
         return new SubmittedOrderResult($order, $this->orderOutputFactory->toOutput($order));
     }
 
-    private function logRejected(string $reason, string $kadhiaId, ?string $slotId = null, ?string $userId = null, ?string $storeId = null): void
+    /**
+     * @param array<string, mixed> $extra
+     */
+    private function logRejected(string $reason, string $kadhiaId, ?string $slotId = null, ?string $userId = null, ?string $storeId = null, array $extra = []): void
     {
         $this->logger->warning('order.submit.rejected', [
             'reason' => $reason,
@@ -403,6 +426,6 @@ final readonly class SubmitOrderProcessor implements ProcessorInterface
             'slot_id' => $slotId,
             'user_id' => $userId,
             'store_id' => $storeId,
-        ]);
+        ] + $extra);
     }
 }

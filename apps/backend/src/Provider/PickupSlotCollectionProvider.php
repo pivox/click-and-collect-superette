@@ -6,6 +6,7 @@ namespace App\Provider;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use App\ApiResource\PickupSlotBookingPolicyOutput;
 use App\ApiResource\PickupSlotCollectionOutput;
 use App\ApiResource\PickupSlotOutput;
 use App\Entity\PickupSlot;
@@ -14,6 +15,8 @@ use App\Repository\PickupSlotRepository;
 use App\Repository\ShopRepository;
 use App\Service\PickupSlotDisplayTime;
 use App\Service\PickupSlotDuration;
+use App\Service\PickupSlotEligibilityChecker;
+use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -29,6 +32,8 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
         private PickupSlotRepository $pickupSlotRepository,
         private ExceptionalClosureRepository $exceptionalClosureRepository,
         private RequestStack $requestStack,
+        private PickupSlotEligibilityChecker $pickupSlotEligibilityChecker,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -52,11 +57,18 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
         [$from, $to] = $this->resolveDayWindow($dateParam);
         $to = null !== $to ? PickupSlotDisplayTime::fromStoredLocalClock($to) : null;
 
+        // ORDER-LEAD-002: resolve the shop policy once; slots starting before
+        // serverNow + lead time are excluded (a slot exactly at the limit stays
+        // eligible). A lead time of 0 keeps the historical behaviour untouched.
+        $minimumLeadTimeMinutes = $this->pickupSlotEligibilityChecker->minimumPickupLeadTimeMinutes($shop);
+        $minimumEligibleStartsAt = $this->pickupSlotEligibilityChecker->minimumEligibleStartsAt($shop, $this->clock->now());
+
         $activeClosures = $this->exceptionalClosureRepository->findActiveForShop($shop);
         $availableSlots = array_values(array_filter(
             $this->pickupSlotRepository->findAvailableForShop($shop, $from),
             static fn (PickupSlot $slot): bool => !self::overlapsActiveClosure($activeClosures, $slot)
                 && self::isOneHourSlot($slot)
+                && (0 === $minimumLeadTimeMinutes || PickupSlotEligibilityChecker::isStartEligible($slot, $minimumEligibleStartsAt))
                 && (null === $to || PickupSlotDisplayTime::fromStoredLocalClock($slot->getStartsAt()) < $to),
         ));
 
@@ -71,7 +83,14 @@ final readonly class PickupSlotCollectionProvider implements ProviderInterface
             $availableSlots,
         );
 
-        return new PickupSlotCollectionOutput($storeId, $items);
+        return new PickupSlotCollectionOutput(
+            $storeId,
+            $items,
+            new PickupSlotBookingPolicyOutput(
+                minimumPickupLeadTimeMinutes: $minimumLeadTimeMinutes,
+                earliestBookableAt: $minimumEligibleStartsAt->format(\DateTimeInterface::ATOM),
+            ),
+        );
     }
 
     /**

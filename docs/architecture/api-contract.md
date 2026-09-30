@@ -549,6 +549,32 @@ Public.
 GET /api/stores/{storeId}/pickup-slots?from=today&available=true
 ```
 
+Réponse `200` (extension additive ORDER-LEAD-002 / #577) :
+
+```json
+{
+  "store_id": "shop-uuid",
+  "items": [],
+  "booking_policy": {
+    "minimum_pickup_lead_time_minutes": 720,
+    "earliest_bookable_at": "2026-09-30T22:00:00+01:00"
+  }
+}
+```
+
+Règles :
+
+- les créneaux commençant avant `serverNow + minimum_pickup_lead_time_minutes`
+  (horloge serveur, `Africa/Tunis`) sont exclus du listing ; un créneau
+  commençant exactement à la limite reste éligible ;
+- `earliest_bookable_at` est la borne théorique, pas nécessairement l'heure
+  d'un créneau réellement créé : le frontend doit chercher le premier item
+  disponible pour un message précis ;
+- un délai `0` (défaut des boutiques historiques) conserve le comportement
+  « strictement futur » existant ;
+- la même règle est revalidée à la soumission (`PICKUP_SLOT_MINIMUM_LEAD_TIME_NOT_MET`),
+  sauf resoumission après acceptation partielle sur le créneau déjà réservé.
+
 ---
 
 ## Relation client / supérette
@@ -1571,8 +1597,9 @@ Règles :
 - chaque changement effectif est tracé dans un log structuré
   `shop.ordering_policy.minimum_lead_time.update` (shop, acteur, ancienne et
   nouvelle valeur, sans donnée personnelle) ;
-- cette politique n'est pas encore appliquée au listing public ni à la
-  soumission : l'application serveur est livrée par ORDER-LEAD-002 (#577).
+- la politique est appliquée au listing public et revalidée à la soumission
+  depuis ORDER-LEAD-002 (#577) via `PickupSlotEligibilityChecker` ; voir
+  « Lire les créneaux disponibles d'une supérette ».
 
 ---
 
@@ -3389,6 +3416,7 @@ Règles :
 | `PRODUCT_REFERENCE_DUPLICATE` | Produit de référence probablement déjà existant. |
 | `SHOP_ORDERING_POLICY_INVALID_LEAD_TIME` | Délai minimal avant retrait manquant, non entier ou hors plage 0–10080 minutes. |
 | `SHOP_ORDERING_POLICY_UNKNOWN_FIELD` | Champ inconnu dans le PATCH de la politique de commande. |
+| `PICKUP_SLOT_MINIMUM_LEAD_TIME_NOT_MET` | Le créneau soumis commence avant le temps minimum de préparation exigé par la supérette ; la Kadhia est conservée. |
 
 ---
 
