@@ -16,6 +16,7 @@ use App\Provider\AdminMerchantItemProvider;
 use App\Repository\AdminMerchantRepository;
 use App\Repository\MerchantCrmContactRepository;
 use App\Repository\MerchantCrmProfileRepository;
+use App\Repository\MerchantMembershipRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\AdminAuditLogger;
 use App\Service\MerchantOperationalJournalCalculator;
@@ -37,6 +38,7 @@ final readonly class AdminUpdateMerchantCrmProcessor implements ProcessorInterfa
         private SubscriptionRepository $subscriptionRepository,
         private MerchantCrmProfileRepository $crmProfileRepository,
         private MerchantCrmContactRepository $crmContactRepository,
+        private MerchantMembershipRepository $merchantMembershipRepository,
         private EntityManagerInterface $entityManager,
         private RequestStack $requestStack,
         private AdminAuditLogger $auditLogger,
@@ -68,6 +70,10 @@ final readonly class AdminUpdateMerchantCrmProcessor implements ProcessorInterfa
         $profile = $this->crmProfileRepository->findOneByMerchant($merchant);
         if (null === $profile) {
             $profile = new MerchantCrmProfile($merchant);
+            // MERCHANT-TEAM-002: new profiles feed the organization model.
+            $profile->setMerchantOrganization(
+                $this->merchantMembershipRepository->findOneActiveByUser($merchant)?->getOrganization(),
+            );
             $this->entityManager->persist($profile);
         }
 

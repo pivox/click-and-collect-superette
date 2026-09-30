@@ -8,7 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\SubscriptionOutput;
 use App\Entity\User;
-use App\Repository\SubscriptionRepository;
+use App\Service\SubscriptionResolver;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -20,7 +20,7 @@ final readonly class MerchantSubscriptionProvider implements ProviderInterface
 {
     public function __construct(
         private Security $security,
-        private SubscriptionRepository $subscriptionRepository,
+        private SubscriptionResolver $subscriptionResolver,
         private SubscriptionOutputFactory $outputFactory,
     ) {
     }
@@ -36,7 +36,9 @@ final readonly class MerchantSubscriptionProvider implements ProviderInterface
             throw new AccessDeniedHttpException('MERCHANT_ACCESS_REQUIRED');
         }
 
-        $subscription = $this->subscriptionRepository->findOneByMerchant($merchant);
+        // MERCHANT-TEAM-002: organization subscription first, so every active
+        // account of the organization sees the same single subscription.
+        $subscription = $this->subscriptionResolver->forMerchantUser($merchant);
         if (null === $subscription) {
             throw new NotFoundHttpException('MERCHANT_SUBSCRIPTION_NOT_FOUND');
         }

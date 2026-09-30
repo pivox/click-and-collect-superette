@@ -23,6 +23,12 @@ class MerchantCrmProfile
     #[ORM\JoinColumn(nullable: false, unique: true, onDelete: 'CASCADE')]
     private User $merchant;
 
+    // MERCHANT-TEAM-002: single CRM profile per organization during the
+    // transition (nullable, backfilled; unique when set).
+    #[ORM\OneToOne(targetEntity: MerchantOrganization::class)]
+    #[ORM\JoinColumn(name: 'merchant_organization_id', nullable: true, unique: true, onDelete: 'SET NULL')]
+    private ?MerchantOrganization $merchantOrganization = null;
+
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $commercialOwner = null;
 
@@ -63,6 +69,18 @@ class MerchantCrmProfile
     public function getMerchant(): User
     {
         return $this->merchant;
+    }
+
+    public function getMerchantOrganization(): ?MerchantOrganization
+    {
+        return $this->merchantOrganization;
+    }
+
+    public function setMerchantOrganization(?MerchantOrganization $merchantOrganization): static
+    {
+        $this->merchantOrganization = $merchantOrganization;
+
+        return $this;
     }
 
     public function getCommercialOwner(): ?string
