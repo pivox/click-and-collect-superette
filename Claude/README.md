@@ -5,8 +5,11 @@ Ce dossier complète le fichier racine `CLAUDE.md`.
 Claude Code doit charger `CLAUDE.md`, puis suivre les imports vers :
 
 - `Claude/instructions.md` ;
-- `Claude/workflows.md` ;
-- `Claude/checklist.md`.
+- `Claude/workflows.md`.
+
+`Claude/checklist.md` n'est pas importé séparément : son contenu est intégré dans
+`Claude/workflows.md` (**Workflow 6 — Validation finale**) ; le fichier ne subsiste
+que comme redirection.
 
 ## Utilisation recommandée
 

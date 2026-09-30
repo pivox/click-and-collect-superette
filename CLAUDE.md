@@ -5,6 +5,11 @@
 @Claude/instructions.md
 @Claude/workflows.md
 
+> `Claude/checklist.md` n'est pas importé : son contenu est intégré dans
+> `Claude/workflows.md` (**Workflow 6 — Validation finale**), déjà importé ci-dessus.
+> `AI_CONTEXT.md` est la source de vérité pour l'état courant du projet ;
+> en cas de contradiction avec ce fichier, `AI_CONTEXT.md` prime.
+
 ## Règles prioritaires
 
 1. Lire `AGENTS.md` et `AI_CONTEXT.md` avant toute proposition.
@@ -95,12 +100,13 @@ php bin/console debug:router | grep "mon-pattern"   # vérifier les routes aprè
 
 ## Workflow features
 
-Les specs des features passées sont dans `prompts/` (ex. `prompts/s7-003-data-retention.md`).
-Commande type (pour les anciennes specs) : `traite @prompts/sX-XXX-nom.md et pousse une pr`.
-Avant d'implémenter, vérifier si la feature est déjà livrée : `git log --oneline | grep sX-XXX`.
+Les features sont pilotées par les issues GitHub (`gh issue list`) ; les specs de sprint
+vivent dans `docs/Sprint{N}/` et la roadmap active est référencée dans `AI_CONTEXT.md`.
+Avant d'implémenter, vérifier si la feature est déjà livrée : `git log --oneline | grep sX-XXX`
+(ou par numéro d'issue pour les épics récentes).
 
-**Sprints 7–15 : tous livrés sur `main`** — détail complet dans `AI_CONTEXT.md`.
-Pour vérifier une feature : `git log --oneline | grep sX-XXX`.
+**État d'avancement : voir `AI_CONTEXT.md`** (source de vérité, section « Avancement global »).
+Ne pas dupliquer ici l'état des sprints — il devient obsolète plus vite que ce fichier.
 
 ### Clôture de sprint (audit documentaire)
 
