@@ -63,6 +63,8 @@ final readonly class MerchantOrderStatusHistoryProvider implements ProviderInter
                     status: $log->getStatus()->value,
                     note: $log->getNote(),
                     at: $log->getCreatedAt()->format(\DateTimeInterface::ATOM),
+                    actorType: $log->getActorType()?->value,
+                    actorName: $log->getActorUser()?->getFirstName() ?? $log->getActorUser()?->getName(),
                 ),
                 $this->orderStatusLogRepository->findChronologicalForOrder($order),
             ),

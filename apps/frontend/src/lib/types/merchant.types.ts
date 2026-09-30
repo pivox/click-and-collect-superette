@@ -24,6 +24,9 @@ export interface MerchantMe {
   store: MerchantStoreContext;
   onboarding_completed: boolean;
   password_change_required: boolean;
+  // MERCHANT-TEAM: additive fields, absent for accounts not yet backfilled.
+  merchant_organization_id?: string | null;
+  account?: { status: string; is_primary: boolean } | null;
 }
 
 export interface MerchantDashboardPickupSlot {
