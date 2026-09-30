@@ -39,6 +39,9 @@ final readonly class PickupSlotCollectionOutput
         public string $storeId,
         #[Groups(['pickup_slot:read'])]
         public array $items,
+        #[Groups(['pickup_slot:read'])]
+        #[SerializedName('booking_policy')]
+        public ?PickupSlotBookingPolicyOutput $bookingPolicy = null,
     ) {
     }
 }
