@@ -1,5 +1,7 @@
 parameters:
     app.diagnostics.allow_non_count_aware_messenger_transport: true
+    # No resend cooldown in tests: rotation must be exercisable immediately.
+    app.merchant_team_invitation_resend_cooldown: 0
 
 services:
     App\Tests\Support\Security\TestAuthenticator:
