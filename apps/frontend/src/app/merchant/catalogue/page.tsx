@@ -442,9 +442,11 @@ export default function MerchantCatalogPage() {
         product={editProduct}
         categories={categories}
         categoryMessage={categoryError}
+        storeId={merchant?.store.id ?? null}
         onCreateCategory={merchant ? handleCreateCategory : undefined}
         onClose={() => setEditProduct(null)}
         onSaved={handleProductSaved}
+        onPhotoChanged={() => void loadCatalog()}
       />
 
       <MerchantCatalogWizard

@@ -3,6 +3,22 @@ export type MerchantCatalogVisibilityFilter = 'all' | 'visible' | 'hidden';
 export type MerchantCatalogCompletionFilter = 'all' | 'needs_price';
 export type MerchantCatalogPromotionFilter = 'all' | 'active';
 
+// PRODUCT-IMAGE-003 (#583): responsive image payload embedded in catalogue
+// outputs — official referential image for referenced products, merchant photo
+// for local products. Snake_case mirror of the backend ProductImageOutput.
+export interface MerchantCatalogProductImage {
+  original_url: string | null;
+  thumbnail_url: string | null;
+  card_url: string | null;
+  detail_url: string | null;
+  zoom_url: string | null;
+  fallback_jpeg_url: string | null;
+  alt: string | null;
+  status: string | null;
+  attribution_text?: string | null;
+  license_code?: string | null;
+}
+
 export interface MerchantCatalogProduct {
   id: string;
   product_reference_id: string | null;
@@ -24,6 +40,7 @@ export interface MerchantCatalogProduct {
   is_visible: boolean;
   requires_price_completion?: boolean;
   merchant_note: string | null;
+  image?: MerchantCatalogProductImage | null;
 }
 
 export interface MerchantCategory {

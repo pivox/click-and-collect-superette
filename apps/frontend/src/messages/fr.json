@@ -349,6 +349,34 @@
     "orders": "Commandes",
     "pendingOrders": "En attente",
     "catalog": "Catalogue",
+    "catalogPhoto": {
+      "title": "Photo du produit",
+      "empty": "Aucune photo pour ce produit local.",
+      "choose": "Choisir une photo",
+      "replace": "Remplacer la photo",
+      "delete": "Supprimer la photo",
+      "send": "Envoyer la photo",
+      "sending": "Envoi…",
+      "cancel": "Annuler",
+      "previewAlt": "Aperçu de la photo avant envoi",
+      "currentAlt": "Photo actuelle du produit",
+      "rulesTitle": "Règles de prise de vue",
+      "rules": {
+        "single": "Un seul produit par photo, bien cadré",
+        "readable": "Face avant lisible (nom, marque)",
+        "noPeople": "Pas de visage ni de données personnelles",
+        "background": "Fond neutre et propre",
+        "packaging": "Conditionnement visible si pertinent"
+      },
+      "errors": {
+        "tooSmall": "Photo trop petite : minimum 320×320 pixels.",
+        "tooLarge": "Fichier trop lourd : 2 Mo maximum.",
+        "unsupported": "Format non pris en charge : JPEG, PNG ou WebP uniquement.",
+        "unreadable": "Fichier illisible : choisis une vraie photo.",
+        "generic": "Impossible d'envoyer la photo. Réessaie.",
+        "deleteFailed": "Impossible de supprimer la photo."
+      }
+    },
     "accept": "Accepter",
     "reject": "Refuser",
     "prepare": "Préparer",
