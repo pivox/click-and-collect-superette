@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { categoryPlaceholder } from '@/lib/category-placeholder';
+import { mediaUrl } from '@/lib/media';
 import { useMerchantLocale } from '@/lib/i18n/MerchantLocaleContext';
 import {
   deleteMerchantLocalProductPhoto,
@@ -147,7 +148,7 @@ export function MerchantLocalProductPhotoSection({
           ) : currentImage?.card_url ? (
             // eslint-disable-next-line @next/next/no-img-element -- API-served responsive variant
             <img
-              src={currentImage.card_url}
+              src={mediaUrl(currentImage.card_url) ?? undefined}
               alt={currentImage.alt ?? t('merchant.catalogPhoto.currentAlt')}
               className="h-full w-full object-contain"
             />

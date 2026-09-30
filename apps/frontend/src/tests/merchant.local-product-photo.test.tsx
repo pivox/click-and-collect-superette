@@ -103,7 +103,7 @@ describe('MerchantLocalProductPhotoSection (#583)', () => {
     // The stored variant replaces the local preview.
     expect(screen.getByAltText('Harissa maison')).toHaveAttribute(
       'src',
-      '/uploads/products/i-1/400.webp',
+      'http://localhost:8000/uploads/products/i-1/400.webp',
     );
   });
 
@@ -130,7 +130,7 @@ describe('MerchantLocalProductPhotoSection (#583)', () => {
 
     expect(screen.getByAltText('Harissa maison')).toHaveAttribute(
       'src',
-      '/uploads/products/i-1/400.webp',
+      'http://localhost:8000/uploads/products/i-1/400.webp',
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer la photo' }));
