@@ -93,9 +93,4 @@ class ShopOrderingPolicy
     {
         return $this->updatedAt;
     }
-
-    public function touch(): void
-    {
-        $this->updatedAt = new \DateTimeImmutable();
-    }
 }

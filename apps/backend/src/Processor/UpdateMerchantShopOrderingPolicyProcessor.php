@@ -16,6 +16,7 @@ use App\Security\MerchantShopAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -42,6 +43,7 @@ final readonly class UpdateMerchantShopOrderingPolicyProcessor implements Proces
         private EntityManagerInterface $entityManager,
         private RequestStack $requestStack,
         private Security $security,
+        #[Autowire(service: 'monolog.logger.order')]
         private LoggerInterface $logger,
     ) {
     }
@@ -82,9 +84,6 @@ final readonly class UpdateMerchantShopOrderingPolicyProcessor implements Proces
         }
 
         $policy->setMinimumPickupLeadTimeMinutes($minutes);
-        if ($oldMinutes !== $minutes) {
-            $policy->touch();
-        }
 
         $this->entityManager->flush();
 
