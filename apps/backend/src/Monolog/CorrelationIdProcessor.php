@@ -7,8 +7,9 @@ namespace App\Monolog;
 use Monolog\LogRecord;
 
 /**
- * Injects the X-Client-Request-Id header value into every Monolog record's extra context.
- * The correlation ID is set per-request by CorrelationIdSubscriber.
+ * Injects the effective request id (valid X-Client-Request-Id header value, or the
+ * server-generated UUID v4 fallback) into every Monolog record's extra context.
+ * The correlation ID is set per-request by CorrelationIdSubscriber (#617).
  */
 final class CorrelationIdProcessor
 {
