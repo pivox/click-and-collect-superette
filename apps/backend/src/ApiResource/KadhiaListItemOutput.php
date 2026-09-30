@@ -32,6 +32,8 @@ final readonly class KadhiaListItemOutput
         #[Groups(['kadhia_list:read'])]
         #[SerializedName('updated_at')]
         public string $updatedAt,
+        #[Groups(['kadhia_list:read'])]
+        public ?string $notes = null,
     ) {
     }
 }
