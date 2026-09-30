@@ -2645,6 +2645,9 @@ Produits génériques (PRODUCT-IMAGE-001) :
 
 - champ additif `kind` (`industrial` par défaut | `generic`) au `POST` et dans
   les sorties admin ;
+- `kind` est immuable après création — pour requalifier un produit, archiver
+  la référence et en créer une nouvelle (le `PATCH` n'accepte pas ce champ ;
+  les gardes marque ci-dessous en dépendent) ;
 - `kind: generic` → sans marque ni GTIN : `brandId` **interdit**
   (`422 ADMIN_PRODUCT_REFERENCE_GENERIC_BRAND_FORBIDDEN`) ; `industrial` →
   `brandId` **obligatoire** (`422 ADMIN_PRODUCT_REFERENCE_BRAND_REQUIRED`,
@@ -2655,6 +2658,12 @@ Produits génériques (PRODUCT-IMAGE-001) :
 - unité `botte` ajoutée (persil…) ;
 - l'image générique commune passe par l'upload d'image existant (S13-005)
   sur la référence — partagée par tous les marchands qui l'activent.
+
+> **Limite connue** : le scorer de qualité (`ProductReferenceQualityScorer`,
+> voir `docs/product/product-reference-governance.md` §7) pénalise mécaniquement
+> les références génériques (pas de marque ⇒ pas de points marque) — acceptable
+> en V1, à recalibrer quand #582+ apportera les images génériques comptées
+> dans le score.
 
 #### Image officielle du produit référentiel (US-041 / S13-005)
 
