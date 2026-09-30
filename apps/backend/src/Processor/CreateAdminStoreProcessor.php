@@ -13,6 +13,7 @@ use App\Entity\Shop;
 use App\Entity\User;
 use App\Repository\AdminMerchantRepository;
 use App\Repository\AdminStoreRepository;
+use App\Repository\MerchantMembershipRepository;
 use App\Service\AdminAuditLogger;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\String\Slugger\AsciiSlugger;
@@ -27,6 +28,7 @@ final readonly class CreateAdminStoreProcessor implements ProcessorInterface
         private AdminStoreRepository $adminStoreRepository,
         private AdminStoreOutputFactory $adminStoreOutputFactory,
         private AdminMerchantRepository $adminMerchantRepository,
+        private MerchantMembershipRepository $merchantMembershipRepository,
         private AdminAuditLogger $auditLogger,
     ) {
     }
@@ -55,6 +57,15 @@ final readonly class CreateAdminStoreProcessor implements ProcessorInterface
             ->setQrCodeToken(Uuid::v4()->toRfc4122())
             ->setOwner($this->resolveMerchantOwner($data->ownerId))
             ->setActive(true);
+
+        // MERCHANT-TEAM-001: attach the new shop to the owner's organization
+        // when one exists; owners not yet backfilled are reported by the
+        // app:merchant-organizations:audit command.
+        $owner = $shop->getOwner();
+        if (null !== $owner) {
+            $membership = $this->merchantMembershipRepository->findOneActiveByUser($owner);
+            $shop->setMerchantOrganization($membership?->getOrganization());
+        }
 
         $this->auditLogger->log(
             action: 'store.create',
