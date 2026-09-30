@@ -8,12 +8,9 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\StoreCatalogCategoryOutput;
 use App\ApiResource\StoreCatalogOutput;
-use App\ApiResource\StoreCatalogProductOutput;
 use App\Entity\MerchantProduct;
-use App\Entity\ProductReference;
-use App\Mapper\StoreCatalogProductMapper;
+use App\Mapper\StoreCatalogProductBatchMapper;
 use App\Repository\MerchantProductRepository;
-use App\Repository\ProductImageRepository;
 use App\Repository\ShopRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -27,8 +24,7 @@ final readonly class StoreCatalogProvider implements ProviderInterface
     public function __construct(
         private ShopRepository $shopRepository,
         private MerchantProductRepository $merchantProductRepository,
-        private StoreCatalogProductMapper $storeCatalogProductMapper,
-        private ProductImageRepository $productImageRepository,
+        private StoreCatalogProductBatchMapper $storeCatalogProductBatchMapper,
         private RequestStack $requestStack,
     ) {
     }
@@ -61,25 +57,9 @@ final readonly class StoreCatalogProvider implements ProviderInterface
         $page = min($page, $pages);
         $paginatedCatalog = \array_slice($catalog, ($page - 1) * $itemsPerPage, $itemsPerPage);
 
-        // Batch-load the official images for the current page only (not the full catalog).
-        $pageReferences = [];
-        foreach ($paginatedCatalog as $merchantProduct) {
-            $reference = $merchantProduct->getProductReference();
-            if ($reference instanceof ProductReference) {
-                $pageReferences[] = $reference;
-            }
-        }
-        $officialImages = $this->productImageRepository->findOfficialByProductReferences($pageReferences);
-
-        $items = array_map(
-            function (MerchantProduct $merchantProduct) use ($officialImages): StoreCatalogProductOutput {
-                $reference = $merchantProduct->getProductReference();
-                $image = null !== $reference ? ($officialImages[$reference->getId()->toRfc4122()] ?? null) : null;
-
-                return $this->storeCatalogProductMapper->toOutput($merchantProduct, $image);
-            },
-            $paginatedCatalog,
-        );
+        // Batch-load the images for the current page only (not the full catalog):
+        // official referential images + merchant local-product photos (#583).
+        $items = $this->storeCatalogProductBatchMapper->toOutputs($paginatedCatalog);
 
         return new StoreCatalogOutput(
             items: $items,

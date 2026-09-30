@@ -7,8 +7,12 @@ namespace App\Provider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\MerchantCatalogListOutput;
+use App\Entity\MerchantLocalProduct;
+use App\Entity\MerchantProduct;
+use App\Entity\ProductReference;
 use App\Mapper\MerchantCatalogProductMapper;
 use App\Repository\MerchantProductRepository;
+use App\Repository\ProductImageRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -28,6 +32,7 @@ final readonly class MerchantCatalogProductCollectionProvider implements Provide
         private MerchantProductRepository $merchantProductRepository,
         private MerchantCatalogProductMapper $merchantCatalogProductMapper,
         private MerchantShopAccessChecker $merchantShopAccessChecker,
+        private ProductImageRepository $productImageRepository,
         private RequestStack $requestStack,
     ) {
     }
@@ -74,9 +79,37 @@ final readonly class MerchantCatalogProductCollectionProvider implements Provide
         $offset = ($page - 1) * $limit;
         $pages = max(1, (int) ceil($total / $limit));
 
+        $pageProducts = array_values(\array_slice($allProducts, $offset, $limit));
+
+        // PRODUCT-IMAGE-003: batch-load the images for the current page only —
+        // official referential images + merchant local-product photos (no N+1).
+        $references = [];
+        $localProducts = [];
+        foreach ($pageProducts as $merchantProduct) {
+            $reference = $merchantProduct->getProductReference();
+            if ($reference instanceof ProductReference) {
+                $references[] = $reference;
+                continue;
+            }
+            $localProduct = $merchantProduct->getLocalProduct();
+            if ($localProduct instanceof MerchantLocalProduct) {
+                $localProducts[] = $localProduct;
+            }
+        }
+        $officialImages = $this->productImageRepository->findOfficialByProductReferences($references);
+        $merchantPhotos = $this->productImageRepository->findCurrentByMerchantLocalProducts($localProducts);
+
         $items = array_map(
-            $this->merchantCatalogProductMapper->toOutput(...),
-            array_values(\array_slice($allProducts, $offset, $limit)),
+            function (MerchantProduct $merchantProduct) use ($officialImages, $merchantPhotos) {
+                $reference = $merchantProduct->getProductReference();
+                $localProduct = $merchantProduct->getLocalProduct();
+                $image = null !== $reference
+                    ? ($officialImages[$reference->getId()->toRfc4122()] ?? null)
+                    : (null !== $localProduct ? ($merchantPhotos[$localProduct->getId()->toRfc4122()] ?? null) : null);
+
+                return $this->merchantCatalogProductMapper->toOutput($merchantProduct, $image);
+            },
+            $pageProducts,
         );
 
         return new MerchantCatalogListOutput(

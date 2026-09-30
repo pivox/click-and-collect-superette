@@ -118,6 +118,10 @@ final readonly class MerchantCatalogProductOutput
         #[Groups(['merchant_catalog:read'])]
         #[SerializedName('merchant_note')]
         public ?string $merchantNote,
+        // PRODUCT-IMAGE-003: official referential image for referenced products,
+        // merchant photo for local products; null → category placeholder frontend-side.
+        #[Groups(['merchant_catalog:read'])]
+        public ?ProductImageOutput $image = null,
     ) {
     }
 }

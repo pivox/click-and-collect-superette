@@ -38,7 +38,13 @@ final readonly class ProductImageVariantGenerator
     ) {
     }
 
-    public function generate(string $contents): GeneratedProductImage
+    /**
+     * @param bool     $stripOriginalMetadata re-encode the preserved original through GD so every
+     *                                        metadata block (EXIF/GPS/ICC comments…) is dropped —
+     *                                        required for merchant phone shots (PRODUCT-IMAGE-003)
+     * @param int|null $minDimension          per-call minimum width/height in px (null → configured default)
+     */
+    public function generate(string $contents, bool $stripOriginalMetadata = false, ?int $minDimension = null): GeneratedProductImage
     {
         if (!\function_exists('imagecreatefromstring') || !\function_exists('imagewebp')) {
             throw InvalidProductImageException::variantGenerationFailed('gd_webp_unavailable');
@@ -54,10 +60,11 @@ final readonly class ProductImageVariantGenerator
             throw InvalidProductImageException::unsupportedMime($mime);
         }
 
+        $requiredDimension = $minDimension ?? $this->minDimension;
         $width = (int) $info[0];
         $height = (int) $info[1];
-        if ($width < $this->minDimension || $height < $this->minDimension) {
-            throw InvalidProductImageException::tooSmall($this->minDimension);
+        if ($width < $requiredDimension || $height < $requiredDimension) {
+            throw InvalidProductImageException::tooSmall($requiredDimension);
         }
 
         $source = @imagecreatefromstring($contents);
@@ -76,6 +83,12 @@ final readonly class ProductImageVariantGenerator
             $fallback = $this->resizeWithin($source, $width, $height, self::FALLBACK_SIZE, withAlpha: false);
             $jpeg = $this->encodeJpeg($fallback);
             imagedestroy($fallback);
+
+            // GD never carries metadata over, so a full-size re-encode of the
+            // decoded pixels is a clean, dependency-free EXIF/GPS strip.
+            $originalContents = $stripOriginalMetadata
+                ? $this->reencodeOriginal($source, $mime)
+                : $contents;
         } finally {
             imagedestroy($source);
         }
@@ -85,7 +98,7 @@ final readonly class ProductImageVariantGenerator
             height: $height,
             mimeType: $mime,
             originalExtension: $this->extensionForMime($mime),
-            originalContents: $contents,
+            originalContents: $originalContents,
             webpVariants: $webpVariants,
             jpegFallback: $jpeg,
         );
@@ -145,6 +158,32 @@ final readonly class ProductImageVariantGenerator
         $data = ob_get_clean();
         if (!$ok || false === $data || '' === $data) {
             throw InvalidProductImageException::variantGenerationFailed('jpeg');
+        }
+
+        return $data;
+    }
+
+    /**
+     * Full-size re-encode of the decoded pixels, in the same format as the
+     * upload, dropping every metadata block. Existing quality settings of the
+     * generator are reused (JPEG_QUALITY / WEBP_QUALITY; PNG stays lossless).
+     */
+    private function reencodeOriginal(\GdImage $image, string $mime): string
+    {
+        if ('image/png' === $mime) {
+            // Keep the alpha channel of transparent PNG sources.
+            imagesavealpha($image, true);
+        }
+
+        ob_start();
+        $ok = match ($mime) {
+            'image/png' => imagepng($image),
+            'image/webp' => imagewebp($image, null, self::WEBP_QUALITY),
+            default => imagejpeg($image, null, self::JPEG_QUALITY),
+        };
+        $data = ob_get_clean();
+        if (!$ok || false === $data || '' === $data) {
+            throw InvalidProductImageException::variantGenerationFailed('strip_metadata');
         }
 
         return $data;

@@ -38,6 +38,9 @@ parameters:
     app.product_image.public_base_url: '%env(default:app.product_image.public_base_url_default:string:PRODUCT_IMAGE_BASE_URL)%'
     app.product_image.max_upload_bytes: 2097152
     app.product_image.min_dimension: 400
+    # PRODUCT-IMAGE-003: merchant phone shots accept a lower minimum than the
+    # admin referential pipeline (320x320 per issue #583).
+    app.product_image.merchant_min_dimension: 320
     # Catalogue photo import (S13-001). Empty API key makes the endpoint return
     # a clear 503 instead of attempting an external call.
     app.openai.api_key_default: ''

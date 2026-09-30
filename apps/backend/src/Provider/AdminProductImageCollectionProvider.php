@@ -93,6 +93,7 @@ final readonly class AdminProductImageCollectionProvider implements ProviderInte
             approvedByEmail: $image->getApprovedBy()?->getEmail(),
             supersededById: $image->getSupersededBy()?->getId()->toRfc4122(),
             status: $image->getStatus()->value,
+            merchantLocalProductId: $image->getMerchantLocalProduct()?->getId()->toRfc4122(),
         );
     }
 

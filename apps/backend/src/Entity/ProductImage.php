@@ -19,13 +19,25 @@ use Symfony\Component\Uid\Uuid;
  * ProductReferenceProposal, but never auto-promote it to the official one
  * (see ProductImageSource / ProductImageStatus).
  *
- * Evolution note: merchant_product_id / product_candidate_id columns can be added
- * later when those flows ship — kept out of the MVP table to avoid orphan columns.
+ * Targets — an image points to exactly ONE of the three associations below
+ * (productReference / productReferenceProposal / merchantLocalProduct). The
+ * invariant is enforced by the single write pipeline
+ * (ProductImageApplicationService / ProductImageStoreCommand), the same way the
+ * historical reference/proposal exclusivity already was: every factory sets one
+ * target and leaves the two others null.
+ *
+ * PRODUCT-IMAGE-003 semantics of a merchantLocalProduct image: it is the
+ * merchant's own photo for a local/vrac/reconditioned product. While Candidate
+ * it is exposable ONLY inside the catalog of its shop and never becomes the
+ * official referential picture; promotion to a ProductReference is an explicit
+ * admin action that logically duplicates the row (see
+ * AdminPromoteProductImageProcessor).
  */
 #[ORM\Entity(repositoryClass: ProductImageRepository::class)]
 #[ORM\Table(name: 'product_images')]
 #[ORM\Index(name: 'IDX_PRODUCT_IMAGES_REFERENCE', columns: ['product_reference_id'])]
 #[ORM\Index(name: 'IDX_PRODUCT_IMAGES_PROPOSAL', columns: ['product_reference_proposal_id'])]
+#[ORM\Index(name: 'IDX_PRODUCT_IMAGES_LOCAL_PRODUCT', columns: ['merchant_local_product_id'])]
 #[ORM\Index(name: 'IDX_PRODUCT_IMAGES_STATUS', columns: ['status'])]
 #[ORM\Index(name: 'IDX_PRODUCT_IMAGES_LICENSE', columns: ['license_code'])]
 #[ORM\HasLifecycleCallbacks]
@@ -42,6 +54,11 @@ class ProductImage
     #[ORM\ManyToOne(targetEntity: ProductReferenceProposal::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?ProductReferenceProposal $productReferenceProposal = null;
+
+    /** Merchant photo target (PRODUCT-IMAGE-003): local/vrac/reconditioned product. */
+    #[ORM\ManyToOne(targetEntity: MerchantLocalProduct::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?MerchantLocalProduct $merchantLocalProduct = null;
 
     /** Relative public path to the preserved original upload. */
     #[ORM\Column(length: 1024)]
@@ -163,6 +180,18 @@ class ProductImage
     public function setProductReferenceProposal(?ProductReferenceProposal $productReferenceProposal): static
     {
         $this->productReferenceProposal = $productReferenceProposal;
+
+        return $this;
+    }
+
+    public function getMerchantLocalProduct(): ?MerchantLocalProduct
+    {
+        return $this->merchantLocalProduct;
+    }
+
+    public function setMerchantLocalProduct(?MerchantLocalProduct $merchantLocalProduct): static
+    {
+        $this->merchantLocalProduct = $merchantLocalProduct;
 
         return $this;
     }

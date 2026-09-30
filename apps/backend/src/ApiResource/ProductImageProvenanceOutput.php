@@ -8,7 +8,9 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Patch;
+use App\Dto\AdminProductImagePromoteInput;
 use App\Dto\AdminProductImageProvenanceInput;
+use App\Processor\AdminPromoteProductImageProcessor;
 use App\Processor\AdminUpdateProductImageProvenanceProcessor;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
@@ -31,6 +33,22 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             read: false,
             normalizationContext: ['groups' => ['admin_product_image:read']],
             processor: AdminUpdateProductImageProvenanceProcessor::class,
+            security: "is_granted('ROLE_ADMIN')",
+            validate: true,
+        ),
+        // PRODUCT-IMAGE-003: promote a merchant local-product photo to the
+        // official referential picture (logical duplication — see processor).
+        new Patch(
+            uriTemplate: '/admin/product-images/{productImageId<[0-9a-fA-F\-]{32,36}>}/promote',
+            uriVariables: [
+                // Pattern #1: the URI variable identifies this output DTO, not the entity.
+                'productImageId' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            formats: ['json' => ['application/json']],
+            input: AdminProductImagePromoteInput::class,
+            read: false,
+            normalizationContext: ['groups' => ['admin_product_image:read']],
+            processor: AdminPromoteProductImageProcessor::class,
             security: "is_granted('ROLE_ADMIN')",
             validate: true,
         ),
@@ -79,6 +97,10 @@ final readonly class ProductImageProvenanceOutput
         public ?string $supersededById,
         #[Groups(['admin_product_image:read', 'admin_product_image_list:read'])]
         public string $status,
+        // PRODUCT-IMAGE-003: set when the image is a merchant local-product photo.
+        #[Groups(['admin_product_image:read', 'admin_product_image_list:read'])]
+        #[SerializedName('merchant_local_product_id')]
+        public ?string $merchantLocalProductId = null,
     ) {
     }
 }
