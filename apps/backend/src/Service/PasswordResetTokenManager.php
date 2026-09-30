@@ -17,6 +17,7 @@ final readonly class PasswordResetTokenManager
         private PasswordResetTokenRepository $tokenRepository,
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
+        private RefreshTokenRevokerInterface $refreshTokenRevoker,
         private int $passwordResetTokenTtl,
     ) {
     }
@@ -67,6 +68,9 @@ final readonly class PasswordResetTokenManager
             ->setPasswordChangeRequired(false)
             ->clearTemporaryPasswordWindow();
         $token->consume();
+
+        // #616: a successful password reset invalidates every mobile session.
+        $this->refreshTokenRevoker->revokeAllForUser($user);
     }
 
     public static function hashToken(string $rawToken): string

@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\User;
 use App\Repository\PasswordResetTokenRepository;
+use App\Service\RefreshTokenRevokerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -23,6 +24,7 @@ final readonly class CustomerDeleteAccountProcessor implements ProcessorInterfac
     public function __construct(
         private Security $security,
         private PasswordResetTokenRepository $passwordResetTokenRepository,
+        private RefreshTokenRevokerInterface $refreshTokenRevoker,
         private EntityManagerInterface $entityManager,
         #[Autowire(service: 'monolog.logger.security')]
         private LoggerInterface $logger,
@@ -55,6 +57,9 @@ final readonly class CustomerDeleteAccountProcessor implements ProcessorInterfac
                 ->setPhone(null);
 
             $this->passwordResetTokenRepository->consumeActiveTokensForUser($user, $now);
+            // #616: soft delete keeps the row — refresh tokens must be revoked
+            // explicitly (the FK CASCADE only covers a hard delete).
+            $this->refreshTokenRevoker->revokeAllForUser($user, $now);
             $this->entityManager->flush();
 
             $this->logger->info('security.account_deleted', ['user_id' => $userId]);
