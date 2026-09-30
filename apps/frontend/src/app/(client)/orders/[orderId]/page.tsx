@@ -10,7 +10,12 @@ import { Summary, SummaryRow } from "@/components/ui/Summary";
 import { Timeline } from "@/components/ui/Timeline";
 import { Button, getButtonClassName } from "@/components/ui/Button";
 import { StickyBottom } from "@/components/layout/StickyBottom";
-import { getOrder, projectTimeline, cancelOrder } from "@/lib/services";
+import {
+  getOrder,
+  projectTimeline,
+  cancelOrder,
+  prepareCustomerOrderWhatsappContact,
+} from "@/lib/services";
 import { formatTnd, formatSlotRange } from "@/lib/format";
 import { useClientAuth } from "@/lib/auth/ClientAuthContext";
 import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
@@ -59,6 +64,8 @@ export default function OrderTrackingPage({
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
+  const [whatsappError, setWhatsappError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -84,6 +91,25 @@ export default function OrderTrackingPage({
       }
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleWhatsappContact = async () => {
+    if (!order) return;
+    setWhatsappLoading(true);
+    setWhatsappError(null);
+    try {
+      const contact = await prepareCustomerOrderWhatsappContact(order.id);
+      window.open(contact.whatsapp_url, "_blank", "noopener");
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      setWhatsappError(
+        status === 409
+          ? t("client.orders.whatsappUnavailable")
+          : t("client.orders.whatsappError"),
+      );
+    } finally {
+      setWhatsappLoading(false);
     }
   };
 
@@ -260,6 +286,22 @@ export default function OrderTrackingPage({
               <Card className="text-sm text-muted">{order.rejectionReason}</Card>
             </section>
           )}
+
+          <section className="mt-4">
+            {whatsappError && (
+              <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                {whatsappError}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => void handleWhatsappContact()}
+              disabled={whatsappLoading}
+              className="text-sm font-extrabold text-primary underline disabled:opacity-50"
+            >
+              {t("client.orders.whatsappContact")}
+            </button>
+          </section>
 
           {order.status === "ready" && order.pickupCode && (
             <section className="mt-4">

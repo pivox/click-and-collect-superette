@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MerchantOrderDetailPage from '@/app/merchant/commandes/[orderId]/page';
+import { MerchantLocaleProvider } from '@/lib/i18n/MerchantLocaleContext';
 import {
   acceptMerchantOrder,
   getMerchantOrder,
@@ -65,6 +66,16 @@ function makeOrder(status: MerchantOrderDetail['status']): MerchantOrderDetail {
   };
 }
 
+function renderPage() {
+  return render(
+    React.createElement(
+      MerchantLocaleProvider,
+      null,
+      React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }),
+    ),
+  );
+}
+
 describe('MerchantOrderDetailPage', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -81,7 +92,7 @@ describe('MerchantOrderDetailPage', () => {
       status: 'preparing',
     });
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     expect(await screen.findByRole('heading', { name: /commande #0042/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Accepter' }));
@@ -102,7 +113,7 @@ describe('MerchantOrderDetailPage', () => {
       status: 'preparing',
     });
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     await waitFor(() =>
       expect(startMerchantOrderPreparation).toHaveBeenCalledWith('store-1', 'order-1'),
@@ -124,7 +135,7 @@ describe('MerchantOrderDetailPage', () => {
     });
     vi.mocked(markMerchantOrderReady).mockResolvedValue({ id: 'order-1', status: 'ready' });
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     expect(await screen.findByRole('button', { name: 'Commande prête' })).toBeDisabled();
     fireEvent.click(await screen.findByRole('checkbox', { name: /marquer lait vitalait 1l préparé/i }));
@@ -141,7 +152,7 @@ describe('MerchantOrderDetailPage', () => {
   it('shows the load failure message when the order cannot be loaded', async () => {
     vi.mocked(getMerchantOrder).mockRejectedValue(new Error('API unavailable'));
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     expect(await screen.findByText('Impossible de charger cette commande.')).toBeInTheDocument();
     expect(screen.queryByText('Commande introuvable pour cette supérette.')).not.toBeInTheDocument();
@@ -150,7 +161,7 @@ describe('MerchantOrderDetailPage', () => {
   it('does not expose pickup actions for ready orders', async () => {
     vi.mocked(getMerchantOrder).mockResolvedValue(makeOrder('ready'));
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     expect(await screen.findByText('Commande prête pour le retrait.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /scan/i })).not.toBeInTheDocument();
@@ -163,7 +174,7 @@ describe('MerchantOrderDetailPage', () => {
       rejection_reason: 'Produit indisponible',
     });
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     expect(await screen.findByText('Commande refusée : Produit indisponible')).toBeInTheDocument();
   });
@@ -171,7 +182,7 @@ describe('MerchantOrderDetailPage', () => {
   it('shows a terminal message for cancelled orders', async () => {
     vi.mocked(getMerchantOrder).mockResolvedValue(makeOrder('cancelled'));
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     expect(await screen.findByText('Commande annulée.')).toBeInTheDocument();
   });
@@ -182,7 +193,7 @@ describe('MerchantOrderDetailPage', () => {
       .mockResolvedValueOnce(makeOrder('rejected'));
     vi.mocked(rejectMerchantOrder).mockResolvedValue({ id: 'order-1', status: 'rejected' });
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Refuser' }));
     expect(screen.getByRole('dialog', { name: 'Refuser la commande' })).toBeInTheDocument();
@@ -202,7 +213,7 @@ describe('MerchantOrderDetailPage', () => {
   it('resets the rejection reason when the dialog reopens', async () => {
     vi.mocked(getMerchantOrder).mockResolvedValue(makeOrder('submitted'));
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Refuser' }));
     fireEvent.change(screen.getByLabelText('Motif de refus'), {
@@ -235,7 +246,7 @@ describe('MerchantOrderDetailPage', () => {
       status: 'partially_accepted',
     });
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Accepter partiellement' }));
     expect(
@@ -273,7 +284,7 @@ describe('MerchantOrderDetailPage', () => {
       ],
     });
 
-    render(React.createElement(MerchantOrderDetailPage, { params: { orderId: 'order-1' } }));
+    renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Accepter partiellement' }));
     fireEvent.click(screen.getByRole('checkbox', { name: /eau minérale 1.5l disponible/i }));

@@ -7,6 +7,7 @@ import { PartialAcceptDialog } from '@/components/merchant/PartialAcceptDialog';
 import { RejectOrderDialog } from '@/components/merchant/RejectOrderDialog';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
+import { useMerchantLocale } from '@/lib/i18n/MerchantLocaleContext';
 import { formatTime, formatTnd } from '@/lib/format';
 import { displayOrderCode } from '@/lib/order-number';
 import {
@@ -18,6 +19,7 @@ import {
   setMerchantOrderLinePrepared,
   startMerchantOrderPreparation,
 } from '@/lib/services/merchant-orders.service';
+import { prepareMerchantOrderWhatsappContact } from '@/lib/services/order-whatsapp.service';
 import type { MerchantOrderDetail } from '@/lib/types/merchant.types';
 
 interface PageProps {
@@ -40,12 +42,15 @@ function apiErrorMessage(error: unknown): string {
 
 export default function MerchantOrderDetailPage({ params }: PageProps) {
   const { merchant } = useMerchantAuth();
+  const { t } = useMerchantLocale();
   const [order, setOrder] = useState<MerchantOrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [isPartialOpen, setIsPartialOpen] = useState(false);
+  const [isWhatsappLoading, setIsWhatsappLoading] = useState(false);
+  const [whatsappError, setWhatsappError] = useState<string | null>(null);
   const autoStartedPreparationOrderIds = useRef<Set<string>>(new Set());
 
   const loadOrder = useCallback(async () => {
@@ -102,6 +107,26 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
       setError(apiErrorMessage(err));
     } finally {
       setIsMutating(false);
+    }
+  };
+
+  const handleWhatsappContact = async () => {
+    if (!merchant) return;
+
+    setIsWhatsappLoading(true);
+    setWhatsappError(null);
+    try {
+      const contact = await prepareMerchantOrderWhatsappContact(merchant.store.id, params.orderId);
+      window.open(contact.whatsapp_url, '_blank', 'noopener');
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      setWhatsappError(
+        status === 409
+          ? t('merchant.orderDetail.whatsappUnavailable')
+          : t('merchant.orderDetail.whatsappError'),
+      );
+    } finally {
+      setIsWhatsappLoading(false);
     }
   };
 
@@ -169,6 +194,20 @@ export default function MerchantOrderDetailPage({ params }: PageProps) {
           <p className="mt-1 text-sm text-muted">
             {order.customer_phone ?? 'Téléphone non renseigné'}
           </p>
+          <Button
+            className="mt-3"
+            variant="ghost"
+            size="md"
+            disabled={isWhatsappLoading}
+            onClick={() => void handleWhatsappContact()}
+          >
+            {t('merchant.orderDetail.whatsappContact')}
+          </Button>
+          {whatsappError && (
+            <p role="alert" className="mt-2 text-sm text-status-cancel">
+              {whatsappError}
+            </p>
+          )}
         </div>
         <div className="rounded-md bg-card p-5 shadow-card">
           <h2 className="font-black">Note client</h2>
