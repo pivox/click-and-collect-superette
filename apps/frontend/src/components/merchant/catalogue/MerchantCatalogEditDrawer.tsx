@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { MerchantCategorySelector } from '@/components/merchant/catalogue/MerchantCategorySelector';
+import { MerchantLocalProductPhotoSection } from '@/components/merchant/catalogue/MerchantLocalProductPhotoSection';
 import { Button } from '@/components/ui/Button';
 import {
   getMerchantProductPriceHistory,
@@ -38,9 +39,13 @@ interface MerchantCatalogEditDrawerProps {
   product: MerchantCatalogProduct | null;
   categories: MerchantCategory[];
   categoryMessage?: string | null;
+  /** Shop id — required to manage the photo of a local product (#583). */
+  storeId?: string | null;
   onCreateCategory?: (nameFr: string) => Promise<MerchantCategory>;
   onClose: () => void;
   onSaved: () => void;
+  /** Called after the local product photo changed (upload / delete). */
+  onPhotoChanged?: () => void;
 }
 
 function productCategory(product: MerchantCatalogProduct): string {
@@ -84,8 +89,10 @@ export function MerchantCatalogEditDrawer({
   categoryMessage,
   onCreateCategory,
   onClose,
+  onPhotoChanged,
   onSaved,
   product,
+  storeId,
 }: MerchantCatalogEditDrawerProps) {
   const [priceTnd, setPriceTnd] = useState('');
   const [promotionPriceTnd, setPromotionPriceTnd] = useState('');
@@ -435,6 +442,17 @@ export function MerchantCatalogEditDrawer({
             disabled={isSubmitting}
             message={categoryMessage}
           />
+
+          {product.local_product_id && storeId && (
+            <MerchantLocalProductPhotoSection
+              storeId={storeId}
+              localProductId={product.local_product_id}
+              productName={product.name_fr}
+              categoryName={product.merchant_category_name ?? product.category}
+              image={product.image ?? null}
+              onChanged={onPhotoChanged}
+            />
+          )}
 
           <div>
             <label htmlFor="merchant-catalog-note" className="mb-1 block text-sm font-bold">
