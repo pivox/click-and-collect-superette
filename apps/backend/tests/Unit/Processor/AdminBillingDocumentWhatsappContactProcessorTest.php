@@ -16,6 +16,7 @@ use App\Processor\AdminBillingDocumentWhatsappContactProcessor;
 use App\Repository\BillingDocumentRepository;
 use App\Repository\SubscriptionPaymentReminderRepository;
 use App\Service\AdminAuditLogger;
+use App\Service\WhatsappContactLinkFactory;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -107,6 +108,7 @@ final class AdminBillingDocumentWhatsappContactProcessorTest extends TestCase
             $security,
             new MockClock(new \DateTimeImmutable('2026-06-18T10:00:00+01:00')),
             new AdminAuditLogger($entityManager, $security, new RequestStack()),
+            new WhatsappContactLinkFactory(),
         );
 
         $output = $processor->process(
