@@ -6,6 +6,7 @@ import { formatTnd } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import { ProductThumbnail } from "./ProductThumbnail";
+import { categoryPlaceholder } from "@/lib/category-placeholder";
 
 export interface ProductCardProps {
   product: ProductOffer;
@@ -38,7 +39,7 @@ export function ProductCard({ product, onAdd, isFavorite = false, onToggleFavori
         <ProductThumbnail
           image={product.image}
           nameFr={product.nameFr}
-          emoji={product.emoji}
+          emoji={product.emoji ?? categoryPlaceholder(product.category, product.categoryNameFr)}
           sizes="(max-width: 768px) 45vw, 200px"
           className="mb-2 h-[94px] rounded-md text-3xl"
         />

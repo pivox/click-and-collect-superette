@@ -6,6 +6,7 @@ import { QtyControl } from "@/components/ui/QtyControl";
 import { formatTnd } from "@/lib/format";
 import { useClientLocale } from "@/lib/i18n/ClientLocaleContext";
 import { ProductThumbnail } from "./ProductThumbnail";
+import { categoryPlaceholder } from "@/lib/category-placeholder";
 
 export interface KadhiaLineRowProps {
   line: KadhiaLine;
@@ -24,7 +25,7 @@ export function KadhiaLineRow({ line, onQuantity }: KadhiaLineRowProps) {
       <ProductThumbnail
         image={p.image}
         nameFr={p.nameFr}
-        emoji={p.emoji}
+        emoji={p.emoji ?? categoryPlaceholder(p.category, p.categoryNameFr)}
         sizes="54px"
         className="h-[54px] w-[54px] flex-shrink-0 rounded-md text-2xl"
       />
