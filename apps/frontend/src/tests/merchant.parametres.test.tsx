@@ -36,6 +36,10 @@ describe('MerchantSettingsPage (MS-001 / MS-004)', () => {
       'href',
       '/merchant/notifications',
     );
+    expect(screen.getByRole('link', { name: /Temps minimum avant le retrait/i })).toHaveAttribute(
+      'href',
+      '/merchant/parametres/delai-retrait',
+    );
   });
 
   it('links the store profile, account and language shortcuts to their pages', () => {
