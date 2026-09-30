@@ -12,7 +12,10 @@ final class MerchantSubscriptionApiTest extends FunctionalApiTestCase
     public function testMerchantCanReadTheirOwnSubscription(): void
     {
         $merchant = $this->createUser('merchant-subscription-read@example.test', ['ROLE_MERCHANT']);
-        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        // Relative start date: a hardcoded one rots once the 3-month trial
+        // window passes (the output exposes the effective phase).
+        $startedAt = new \DateTimeImmutable('first day of last month midnight', new \DateTimeZone('+01:00'));
+        $subscription = Subscription::startTrial($merchant, $startedAt);
         $subscription->setLifecycle(SubscriptionLifecycle::Active);
         $this->entityManager->persist($subscription);
         $this->entityManager->flush();
@@ -27,8 +30,8 @@ final class MerchantSubscriptionApiTest extends FunctionalApiTestCase
         self::assertSame('trial', $payload['pricing_phase']);
         self::assertSame('0.000', $payload['monthly_price_tnd']);
         self::assertSame('TND', $payload['currency']);
-        self::assertSame('2026-06-01T00:00:00+01:00', $payload['started_at']);
-        self::assertSame('2026-09-01T00:00:00+01:00', $payload['next_phase_change_at']);
+        self::assertSame($startedAt->format(\DateTimeInterface::ATOM), $payload['started_at']);
+        self::assertSame($startedAt->modify('+3 months')->format(\DateTimeInterface::ATOM), $payload['next_phase_change_at']);
         self::assertArrayNotHasKey('payment_method', $payload);
         self::assertArrayNotHasKey('invoice', $payload);
     }
