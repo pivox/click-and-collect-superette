@@ -101,8 +101,14 @@ class OrderRepository extends ServiceEntityRepository
     public function findReadableByCustomerPaginated(User $customer, int $limit, int $offset): array
     {
         /* @var list<Order> */
+        // GROUP BY on the primary key instead of DISTINCT over the entity:
+        // the orders table carries a `json` column and PostgreSQL has no
+        // equality operator for the json type (SQLSTATE 42883, invisible on
+        // the SQLite test database). Grouping by the PK dedupes the rows
+        // produced by the kadhia-members join on every platform.
         return $this->createReadableByCustomerQueryBuilder($customer)
-            ->select('DISTINCT o')
+            ->select('o')
+            ->groupBy('o.id')
             ->orderBy('o.createdAt', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult($offset)
