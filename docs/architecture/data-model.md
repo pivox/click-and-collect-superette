@@ -92,14 +92,15 @@ Produit global normalisé.
 
 ```yaml
 id: uuid
-brand_id: uuid
+brand_id: uuid|null (null réservé au kind generic)
 category_id: uuid
+kind: industrial|generic (défaut industrial — ADR-0006)
 name_fr: string
 name_ar: string|null
 variant_fr: string|null
 variant_ar: string|null
 volume: decimal|null
-unit: litre|millilitre|kilogramme|gramme|piece|paquet
+unit: litre|millilitre|kilogramme|gramme|piece|paquet|botte
 barcode: string|null
 aliases: json
 country: TN
@@ -107,6 +108,14 @@ status: draft|pending_review|approved|rejected|archived
 created_at: datetime
 updated_at: datetime
 ```
+
+Produits génériques partagés (PRODUCT-IMAGE-001, ADR-0006) : `kind: generic`
+= produit sans marque ni GTIN (tomate, baguette, œuf, persil…), mutualisé
+entre marchands — chaque marchand active la référence avec son propre prix et
+sa disponibilité via `MerchantProduct` ; l'image générique commune passe par
+`ProductImage` (rattachée à la référence, donc partagée sans faux SKU). Les
+processors d'écriture imposent : marque obligatoire pour `industrial`,
+interdite pour `generic`.
 
 ## MerchantProduct
 

@@ -344,6 +344,7 @@ class MerchantProductRepository extends ServiceEntityRepository
             ProductUnit::Gramme => $normalizedVolume.'g',
             ProductUnit::Piece => $normalizedVolume.'pc',
             ProductUnit::Paquet => $normalizedVolume.'pq',
+            ProductUnit::Botte => $normalizedVolume.'btt',
         };
     }
 

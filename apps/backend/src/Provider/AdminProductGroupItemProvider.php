@@ -97,7 +97,7 @@ final readonly class AdminProductGroupItemProvider implements ProviderInterface
             id: $productReference->getId()->toRfc4122(),
             nameFr: $productReference->getNameFr(),
             nameAr: $productReference->getNameAr(),
-            brandName: $productReference->getBrand()->getCanonicalName(),
+            brandName: $productReference->getBrand()?->getCanonicalName(),
             categoryNameFr: $productReference->getCategory()->getNameFr(),
             unit: $productReference->getUnit()->value,
             volume: $productReference->getVolume(),

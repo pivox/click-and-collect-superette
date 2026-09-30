@@ -2691,7 +2691,8 @@ Règles :
 
 ### Référentiel produit
 
-Statut : **S5-007 livré**.
+Statut : **S5-007 livré** — produits génériques ajoutés par PRODUCT-IMAGE-001
+(#581, ADR-0006).
 
 ```http
 GET    /api/admin/product-references?page=1&limit=20&q=&categoryId=&brandId=&status=
@@ -2702,6 +2703,21 @@ PATCH  /api/admin/product-references/{productReferenceId}/archive
 POST   /api/admin/product-references/{productReferenceId}/image     # multipart, S13-005
 DELETE /api/admin/product-references/{productReferenceId}/image     # S13-005
 ```
+
+Produits génériques (PRODUCT-IMAGE-001) :
+
+- champ additif `kind` (`industrial` par défaut | `generic`) au `POST` et dans
+  les sorties admin ;
+- `kind: generic` → sans marque ni GTIN : `brandId` **interdit**
+  (`422 ADMIN_PRODUCT_REFERENCE_GENERIC_BRAND_FORBIDDEN`) ; `industrial` →
+  `brandId` **obligatoire** (`422 ADMIN_PRODUCT_REFERENCE_BRAND_REQUIRED`,
+  également au `PATCH` qui tenterait de retirer la marque) ;
+- `brand_id`/`brand_name` deviennent nullables dans les sorties admin, la
+  recherche référentiel marchand et les groupes (propriété nulle exclue du
+  JSON) ;
+- unité `botte` ajoutée (persil…) ;
+- l'image générique commune passe par l'upload d'image existant (S13-005)
+  sur la référence — partagée par tous les marchands qui l'activent.
 
 #### Image officielle du produit référentiel (US-041 / S13-005)
 

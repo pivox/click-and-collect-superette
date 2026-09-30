@@ -234,7 +234,7 @@ final readonly class ProductReferenceDeduplicationService
     private function identityKey(ProductReference $reference): string
     {
         return implode('|', [
-            $reference->getBrand()->getId()->toRfc4122(),
+            (string) $reference->getBrand()?->getId()->toRfc4122(),
             $reference->getCategory()->getId()->toRfc4122(),
             $this->normalize($reference->getNameFr()),
             $this->normalize($reference->getVariantFr() ?? ''),
@@ -282,7 +282,7 @@ final readonly class ProductReferenceDeduplicationService
         return [
             'id' => $reference->getId()->toRfc4122(),
             'name_fr' => $reference->getNameFr(),
-            'brand_id' => $reference->getBrand()->getId()->toRfc4122(),
+            'brand_id' => $reference->getBrand()?->getId()->toRfc4122(),
             'category_id' => $reference->getCategory()->getId()->toRfc4122(),
             'volume' => $reference->getVolume(),
             'unit' => $reference->getUnit()->value,

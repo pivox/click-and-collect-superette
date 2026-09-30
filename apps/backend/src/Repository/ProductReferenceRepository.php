@@ -32,7 +32,7 @@ class ProductReferenceRepository extends ServiceEntityRepository
         ?string $barcode = null,
     ): array {
         $qb = $this->createQueryBuilder('pr')
-            ->join('pr.brand', 'b')
+            ->leftJoin('pr.brand', 'b')
             ->join('pr.category', 'c')
             ->where('pr.status = :status')
             ->setParameter('status', ProductReferenceStatus::Approved)
@@ -41,7 +41,7 @@ class ProductReferenceRepository extends ServiceEntityRepository
             ->setFirstResult($offset);
 
         if (null !== $query) {
-            $qb->andWhere('(LOWER(pr.nameFr) LIKE LOWER(:q) OR LOWER(b.canonicalName) LIKE LOWER(:q) OR pr.barcode = :exact)')
+            $qb->andWhere('(LOWER(pr.nameFr) LIKE LOWER(:q) OR (b.canonicalName IS NOT NULL AND LOWER(b.canonicalName) LIKE LOWER(:q)) OR pr.barcode = :exact)')
                 ->setParameter('q', '%'.$query.'%')
                 ->setParameter('exact', $query);
         }
@@ -73,13 +73,13 @@ class ProductReferenceRepository extends ServiceEntityRepository
     ): int {
         $qb = $this->createQueryBuilder('pr')
             ->select('COUNT(pr.id)')
-            ->join('pr.brand', 'b')
+            ->leftJoin('pr.brand', 'b')
             ->join('pr.category', 'c')
             ->where('pr.status = :status')
             ->setParameter('status', ProductReferenceStatus::Approved);
 
         if (null !== $query) {
-            $qb->andWhere('(LOWER(pr.nameFr) LIKE LOWER(:q) OR LOWER(b.canonicalName) LIKE LOWER(:q) OR pr.barcode = :exact)')
+            $qb->andWhere('(LOWER(pr.nameFr) LIKE LOWER(:q) OR (b.canonicalName IS NOT NULL AND LOWER(b.canonicalName) LIKE LOWER(:q)) OR pr.barcode = :exact)')
                 ->setParameter('q', '%'.$query.'%')
                 ->setParameter('exact', $query);
         }

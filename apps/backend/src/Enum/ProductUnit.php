@@ -12,6 +12,8 @@ enum ProductUnit: string
     case Gramme = 'gramme';
     case Piece = 'piece';
     case Paquet = 'paquet';
+    // PRODUCT-IMAGE-001: usual sale mode for generic fresh products (persil…).
+    case Botte = 'botte';
 
     /**
      * @return list<string>

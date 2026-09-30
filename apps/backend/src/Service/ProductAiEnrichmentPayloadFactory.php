@@ -32,7 +32,7 @@ final class ProductAiEnrichmentPayloadFactory
                         'product_reference_id' => $productReference->getId()->toRfc4122(),
                         'name_fr' => $productReference->getNameFr(),
                         'name_ar' => $productReference->getNameAr(),
-                        'brand' => $productReference->getBrand()->getCanonicalName(),
+                        'brand' => (string) $productReference->getBrand()?->getCanonicalName(),
                         'category' => $productReference->getCategory()->getNameFr(),
                         'volume' => $productReference->getVolume(),
                         'unit' => $productReference->getUnit()->value,
