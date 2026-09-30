@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowLeft, UserPlus } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { useMerchantLocale } from '@/lib/i18n/MerchantLocaleContext';
@@ -48,6 +48,15 @@ export default function MerchantTeamPage() {
   const [confirmTarget, setConfirmTarget] = useState<MerchantTeamAccount | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
+  const confirmPanelRef = useRef<HTMLDivElement | null>(null);
+
+  // A11y: move focus into the confirmation panel when it opens, so keyboard and
+  // screen reader users are informed instead of staying on the triggering button.
+  useEffect(() => {
+    if (confirmTarget) {
+      confirmPanelRef.current?.focus();
+    }
+  }, [confirmTarget]);
 
   const load = useCallback(async () => {
     if (!storeId) return;
@@ -258,7 +267,9 @@ export default function MerchantTeamPage() {
                           }}
                           className="rounded-md border border-danger/40 px-3 py-1.5 text-sm font-bold text-red-600 hover:bg-danger/10"
                         >
-                          {t('merchant.settings.team.revoke')}
+                          {account.status === 'invited'
+                            ? t('merchant.settings.team.cancelInvitation')
+                            : t('merchant.settings.team.revoke')}
                         </button>
                       )}
                     </div>
@@ -276,21 +287,38 @@ export default function MerchantTeamPage() {
 
           {confirmTarget && (
             <div
+              ref={confirmPanelRef}
+              tabIndex={-1}
               role="alertdialog"
-              aria-modal="false"
               aria-labelledby="revoke-title"
               className="space-y-3 rounded-lg border border-danger/40 bg-danger/10 p-4"
             >
               <p id="revoke-title" className="font-bold text-ink">
-                {t('merchant.settings.team.revokeConfirmTitle').replace(
+                {t(
+                  confirmTarget.status === 'invited'
+                    ? 'merchant.settings.team.cancelInvitationConfirmTitle'
+                    : 'merchant.settings.team.revokeConfirmTitle',
+                ).replace(
                   '{name}',
                   [confirmTarget.firstName, confirmTarget.lastName].filter(Boolean).join(' ') ||
                     confirmTarget.email,
                 )}
               </p>
               <p className="text-sm text-ink">{confirmTarget.email}</p>
-              <p className="text-sm text-muted">{t('merchant.settings.team.revokeConfirmBody')}</p>
-              <p className="text-sm text-muted">{t('merchant.settings.team.revokeHistoryKept')}</p>
+              {confirmTarget.status === 'invited' ? (
+                <p className="text-sm text-muted">
+                  {t('merchant.settings.team.cancelInvitationConfirmBody')}
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-muted">
+                    {t('merchant.settings.team.revokeConfirmBody')}
+                  </p>
+                  <p className="text-sm text-muted">
+                    {t('merchant.settings.team.revokeHistoryKept')}
+                  </p>
+                </>
+              )}
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -300,7 +328,11 @@ export default function MerchantTeamPage() {
                 >
                   {actionBusy
                     ? t('merchant.settings.team.revoking')
-                    : t('merchant.settings.team.revokeConfirmAction')}
+                    : t(
+                        confirmTarget.status === 'invited'
+                          ? 'merchant.settings.team.cancelInvitationConfirmAction'
+                          : 'merchant.settings.team.revokeConfirmAction',
+                      )}
                 </button>
                 <button
                   type="button"

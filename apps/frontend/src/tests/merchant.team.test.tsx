@@ -94,9 +94,10 @@ describe('MerchantTeamPage (MERCHANT-TEAM-006)', () => {
     expect(screen.getByText('2 / 10 comptes')).toBeInTheDocument();
     expect(screen.getByText('Principal')).toBeInTheDocument();
     expect(screen.getByText('Invitation en attente')).toBeInTheDocument();
-    // Invited account gets a resend action; the primary account never gets revoke.
+    // Invited account gets resend + cancel-invitation actions; the primary account never gets revoke.
     expect(screen.getByRole('button', { name: 'Renvoyer l’invitation' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Révoquer l’accès' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Annuler l’invitation' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Révoquer l’accès' })).not.toBeInTheDocument();
   });
 
   it('invite une personne avec le bon payload et affiche le succès', async () => {
@@ -212,6 +213,8 @@ describe('MerchantTeamPage (MERCHANT-TEAM-006)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Révoquer l’accès' }));
 
     const dialog = await screen.findByRole('alertdialog');
+    // A11y: focus moves into the alertdialog panel when it opens.
+    await waitFor(() => expect(dialog).toHaveFocus());
     expect(dialog).toHaveTextContent('Révoquer l’accès de Ahmed Ben Ali ?');
     expect(dialog).toHaveTextContent('ahmed@example.test');
     expect(dialog).toHaveTextContent('L’accès sera retiré immédiatement');
@@ -225,11 +228,37 @@ describe('MerchantTeamPage (MERCHANT-TEAM-006)', () => {
     );
   });
 
+  it("annule une invitation en attente avec un libellé et un avertissement dédiés", async () => {
+    vi.mocked(revokeMerchantTeamAccount).mockResolvedValue(undefined);
+
+    renderPage();
+    await screen.findByText('Ali Ben Salah');
+
+    // Invited account: the destructive action reads as invitation cancellation, not revocation.
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler l’invitation' }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    await waitFor(() => expect(dialog).toHaveFocus());
+    expect(dialog).toHaveTextContent('Annuler l’invitation de Ahmed Ben Ali ?');
+    expect(dialog).toHaveTextContent(
+      'L’invitation sera annulée ; le lien reçu ne fonctionnera plus.',
+    );
+    expect(dialog).not.toHaveTextContent('L’accès sera retiré immédiatement');
+    expect(dialog).not.toHaveTextContent('L’historique de ses actions est conservé.');
+    expect(revokeMerchantTeamAccount).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer l’annulation' }));
+
+    await waitFor(() =>
+      expect(revokeMerchantTeamAccount).toHaveBeenCalledWith('store-1', 'user-2'),
+    );
+  });
+
   it('annule la confirmation de révocation sans appel API', async () => {
     renderPage();
     await screen.findByText('Ali Ben Salah');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Révoquer l’accès' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler l’invitation' }));
     await screen.findByRole('alertdialog');
     fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
 
