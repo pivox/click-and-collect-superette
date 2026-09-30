@@ -16,6 +16,7 @@ use App\Repository\MerchantCrmProfileRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\AdminAuditLogger;
 use App\Service\MerchantOperationalJournalCalculator;
+use App\Service\RefreshTokenRevokerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -35,6 +36,7 @@ final readonly class AdminSuspendMerchantProcessor implements ProcessorInterface
         private EntityManagerInterface $entityManager,
         private AdminAuditLogger $auditLogger,
         private MerchantOperationalJournalCalculator $operationalJournalCalculator,
+        private RefreshTokenRevokerInterface $refreshTokenRevoker,
         #[Autowire(service: 'monolog.logger.admin')]
         private LoggerInterface $logger,
     ) {
@@ -57,6 +59,8 @@ final readonly class AdminSuspendMerchantProcessor implements ProcessorInterface
 
         try {
             $merchant->setActive(false);
+            // #616: suspension invalidates every mobile session of the merchant.
+            $this->refreshTokenRevoker->revokeAllForUser($merchant);
             $this->auditLogger->log(
                 action: 'merchant.suspend',
                 resourceType: 'merchant',

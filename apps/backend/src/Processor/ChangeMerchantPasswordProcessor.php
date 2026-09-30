@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\MerchantPasswordChangeInput;
 use App\Entity\User;
+use App\Service\RefreshTokenRevokerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -22,6 +23,7 @@ final readonly class ChangeMerchantPasswordProcessor implements ProcessorInterfa
     public function __construct(
         private Security $security,
         private UserPasswordHasherInterface $passwordHasher,
+        private RefreshTokenRevokerInterface $refreshTokenRevoker,
         private EntityManagerInterface $entityManager,
     ) {
     }
@@ -52,6 +54,8 @@ final readonly class ChangeMerchantPasswordProcessor implements ProcessorInterfa
             ->setPassword($this->passwordHasher->hashPassword($merchant, $data->newPassword))
             ->setPasswordChangeRequired(false)
             ->clearTemporaryPasswordWindow();
+        // #616: a password change invalidates every mobile session.
+        $this->refreshTokenRevoker->revokeAllForUser($merchant);
         $this->entityManager->flush();
 
         return null;
