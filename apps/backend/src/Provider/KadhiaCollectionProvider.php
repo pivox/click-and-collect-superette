@@ -63,6 +63,7 @@ final readonly class KadhiaCollectionProvider implements ProviderInterface
                 totalTnd: self::computeTotal($k),
                 createdAt: $k->getCreatedAt()->format(\DateTimeInterface::ATOM),
                 updatedAt: $k->getUpdatedAt()->format(\DateTimeInterface::ATOM),
+                notes: $k->getNotes(),
             ),
             $kadhias,
         );
