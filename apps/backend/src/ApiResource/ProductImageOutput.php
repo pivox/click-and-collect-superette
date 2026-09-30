@@ -23,34 +23,34 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 final readonly class ProductImageOutput
 {
     public function __construct(
-        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read', 'merchant_catalog:read'])]
         #[SerializedName('original_url')]
         public ?string $originalUrl,
-        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read', 'merchant_catalog:read'])]
         #[SerializedName('thumbnail_url')]
         public ?string $thumbnailUrl,
-        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read', 'merchant_catalog:read'])]
         #[SerializedName('card_url')]
         public ?string $cardUrl,
-        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read', 'merchant_catalog:read'])]
         #[SerializedName('detail_url')]
         public ?string $detailUrl,
-        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read', 'merchant_catalog:read'])]
         #[SerializedName('zoom_url')]
         public ?string $zoomUrl,
-        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read', 'merchant_catalog:read'])]
         #[SerializedName('fallback_jpeg_url')]
         public ?string $fallbackJpegUrl,
-        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read', 'merchant_catalog:read'])]
         public ?string $alt,
-        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read', 'merchant_catalog:read'])]
         public ?string $status,
         // PRODUCT-IMAGE-004 — attribution to display when the license requires it
         // (CC BY / CC BY-SA); omitted from JSON when null (pattern #18).
-        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read', 'merchant_catalog:read'])]
         #[SerializedName('attribution_text')]
         public ?string $attributionText = null,
-        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read'])]
+        #[Groups(['store_catalog:read', 'admin_product_reference:read', 'admin_product_reference_list:read', 'merchant_catalog:read'])]
         #[SerializedName('license_code')]
         public ?string $licenseCode = null,
     ) {

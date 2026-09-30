@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\MerchantLocalProduct;
 use App\Entity\ProductImage;
 use App\Entity\ProductReference;
 use App\Enum\ProductImageLicenseCode;
@@ -46,6 +47,52 @@ class ProductImageRepository extends ServiceEntityRepository
             ['productReference' => $productReference, 'status' => ProductImageStatus::Verified],
             ['updatedAt' => 'DESC'],
         );
+    }
+
+    /**
+     * The current merchant photo of a local product (PRODUCT-IMAGE-003): the
+     * still-candidate contribution, the archived ones being its history.
+     * Criteria API keeps UUID matching reliable on SQLite (backend-pattern #2).
+     */
+    public function findCurrentForMerchantLocalProduct(MerchantLocalProduct $localProduct): ?ProductImage
+    {
+        return $this->findOneBy(
+            ['merchantLocalProduct' => $localProduct, 'status' => ProductImageStatus::Candidate],
+            ['updatedAt' => 'DESC'],
+        );
+    }
+
+    /**
+     * Batch-load the current merchant photos for a set of local products, keyed
+     * by the local product RFC-4122 id. Avoids N+1 queries on catalog pages.
+     *
+     * @param list<MerchantLocalProduct> $localProducts
+     *
+     * @return array<string, ProductImage> map merchantLocalProductId => current photo
+     */
+    public function findCurrentByMerchantLocalProducts(array $localProducts): array
+    {
+        if ([] === $localProducts) {
+            return [];
+        }
+
+        /** @var list<ProductImage> $images */
+        $images = $this->findBy([
+            'merchantLocalProduct' => $localProducts,
+            'status' => ProductImageStatus::Candidate,
+        ], ['updatedAt' => 'ASC']);
+
+        $map = [];
+        foreach ($images as $image) {
+            $localProduct = $image->getMerchantLocalProduct();
+            if (null === $localProduct) {
+                continue;
+            }
+            // Later (ASC) candidates overwrite earlier ones → keep the most recent.
+            $map[$localProduct->getId()->toRfc4122()] = $image;
+        }
+
+        return $map;
     }
 
     /**

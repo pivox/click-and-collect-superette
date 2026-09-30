@@ -6,10 +6,21 @@ namespace App\Mapper;
 
 use App\ApiResource\MerchantCatalogProductOutput;
 use App\Entity\MerchantProduct;
+use App\Entity\ProductImage;
+use App\Service\ProductImage\ProductImageUrlBuilder;
 
 final readonly class MerchantCatalogProductMapper
 {
-    public function toOutput(MerchantProduct $merchantProduct): MerchantCatalogProductOutput
+    public function __construct(
+        private ProductImageUrlBuilder $productImageUrlBuilder,
+    ) {
+    }
+
+    /**
+     * @param ?ProductImage $image official image of the backing reference, or
+     *                             merchant photo of the local product (#583)
+     */
+    public function toOutput(MerchantProduct $merchantProduct, ?ProductImage $image = null): MerchantCatalogProductOutput
     {
         $productReference = $merchantProduct->getProductReference();
         $localProduct = $merchantProduct->getLocalProduct();
@@ -35,6 +46,7 @@ final readonly class MerchantCatalogProductMapper
             isVisible: $merchantProduct->isVisible(),
             requiresPriceCompletion: 0 === bccomp($merchantProduct->getPriceTnd(), '0.000', 3),
             merchantNote: $merchantProduct->getMerchantNote(),
+            image: $this->productImageUrlBuilder->build($image),
         );
     }
 }

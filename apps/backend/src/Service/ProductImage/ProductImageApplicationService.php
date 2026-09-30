@@ -52,11 +52,16 @@ final readonly class ProductImageApplicationService
             throw new ConflictHttpException('PRODUCT_IMAGE_LICENSE_UNKNOWN');
         }
 
-        $generated = $this->variantGenerator->generate($command->contents);
+        $generated = $this->variantGenerator->generate(
+            $command->contents,
+            $command->stripOriginalMetadata,
+            $command->minDimension,
+        );
 
         $image = (new ProductImage())
             ->setProductReference($command->productReference)
             ->setProductReferenceProposal($command->proposal)
+            ->setMerchantLocalProduct($command->merchantLocalProduct)
             ->setSource($command->source)
             ->setStatus($status)
             ->setMimeType($generated->mimeType)
@@ -92,6 +97,11 @@ final readonly class ProductImageApplicationService
         $replaced = null;
         if (ProductImageStatus::Verified === $status && null !== $command->productReference) {
             $replaced = $this->repository->findOfficialForProductReference($command->productReference);
+        } elseif (null !== $command->merchantLocalProduct) {
+            // PRODUCT-IMAGE-003: a local product carries a single current merchant
+            // photo — replacing it archives the previous one with the supersession
+            // trail (#584 mechanism), files kept on disk.
+            $replaced = $this->repository->findCurrentForMerchantLocalProduct($command->merchantLocalProduct);
         }
 
         $this->entityManager->persist($image);
@@ -109,6 +119,7 @@ final readonly class ProductImageApplicationService
             'status' => $status->value,
             'license_code' => $licenseCode->value,
             'product_reference_id' => $command->productReference?->getId()->toRfc4122(),
+            'merchant_local_product_id' => $command->merchantLocalProduct?->getId()->toRfc4122(),
         ]);
 
         return $image;
