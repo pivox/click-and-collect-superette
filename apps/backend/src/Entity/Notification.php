@@ -12,7 +12,9 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'notifications')]
 #[ORM\Index(name: 'IDX_NOTIFICATIONS_USER_READ_CREATED', columns: ['user_id', 'is_read', 'created_at'])]
 #[ORM\Index(name: 'IDX_NOTIFICATIONS_ORDER', columns: ['order_id'])]
-#[ORM\UniqueConstraint(name: 'UNIQ_NOTIFICATIONS_ORDER_TYPE', columns: ['order_id', 'type'])]
+// MERCHANT-TEAM-005: one notification per recipient — a retried event stays
+// idempotent per account, while several accounts each get their own row.
+#[ORM\UniqueConstraint(name: 'UNIQ_NOTIFICATIONS_ORDER_TYPE_USER', columns: ['order_id', 'type', 'user_id'])]
 class Notification
 {
     #[ORM\Id]

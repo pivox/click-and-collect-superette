@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Enum\OrderStatus;
+use App\Enum\OrderStatusActorType;
 use App\Repository\OrderStatusLogRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
@@ -28,16 +29,43 @@ class OrderStatusLog
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $note = null;
 
+    // MERCHANT-TEAM-005: which account performed the transition. Nullable for
+    // historical rows; SET NULL keeps log integrity if the User is removed
+    // (actor_type stays as the durable trace).
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: 'actor_user_id', nullable: true, onDelete: 'SET NULL')]
+    private ?User $actorUser = null;
+
+    #[ORM\Column(length: 16, nullable: true, enumType: OrderStatusActorType::class)]
+    private ?OrderStatusActorType $actorType = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    public function __construct(Order $order, OrderStatus $status, ?string $note = null)
-    {
+    public function __construct(
+        Order $order,
+        OrderStatus $status,
+        ?string $note = null,
+        ?User $actorUser = null,
+        ?OrderStatusActorType $actorType = null,
+    ) {
         $this->id = Uuid::v4();
         $this->order = $order;
         $this->status = $status;
         $this->note = $note;
+        $this->actorUser = $actorUser;
+        $this->actorType = $actorType;
         $this->createdAt = new \DateTimeImmutable();
+    }
+
+    public function getActorUser(): ?User
+    {
+        return $this->actorUser;
+    }
+
+    public function getActorType(): ?OrderStatusActorType
+    {
+        return $this->actorType;
     }
 
     public function getId(): Uuid

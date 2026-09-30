@@ -300,6 +300,12 @@ Transition (expand/backfill) :
 - `Store.merchant_organization_id` est nullable ; `Store.owner_id` reste
   présent et autoritaire pour les contrôles d'accès jusqu'à la tranche
   autorisation (#572) ;
+- MERCHANT-TEAM-005 : `Notification` est unique par `(order_id, type,
+  user_id)` — une notification par destinataire avec état lu indépendant,
+  idempotence par compte au retry ; `OrderStatusLog` porte `actor_user_id`
+  (nullable, `SET NULL`) et `actor_type`
+  (`customer|merchant|admin|system`) — les lignes historiques restent à null,
+  la révocation d'un compte ne supprime jamais ses traces ;
 - MERCHANT-TEAM-002 : `Subscription.merchant_organization_id` et
   `MerchantCrmProfile.merchant_organization_id` sont nullable et uniques —
   une seule souscription et un seul profil CRM par organisation ; les

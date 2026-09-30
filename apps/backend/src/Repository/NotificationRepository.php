@@ -83,6 +83,15 @@ class NotificationRepository extends ServiceEntityRepository
         ]);
     }
 
+    public function existsForOrderTypeAndUser(Order $order, string $type, User $user): bool
+    {
+        return null !== $this->findOneBy([
+            'order' => $order,
+            'type' => $type,
+            'user' => $user,
+        ]);
+    }
+
     public function markAllReadForUser(User $user): int
     {
         return (int) $this->getEntityManager()
