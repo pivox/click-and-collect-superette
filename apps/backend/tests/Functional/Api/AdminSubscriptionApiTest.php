@@ -14,7 +14,7 @@ final class AdminSubscriptionApiTest extends FunctionalApiTestCase
     {
         $admin = $this->createUser('admin-subscription-list@example.test', ['ROLE_ADMIN']);
         $merchant = $this->createUser('merchant-subscription-list@example.test', ['ROLE_MERCHANT']);
-        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('first day of last month midnight', new \DateTimeZone('+01:00')));
         $subscription->setLifecycle(SubscriptionLifecycle::PaymentDue);
         $this->entityManager->persist($subscription);
         $this->entityManager->flush();
@@ -39,7 +39,8 @@ final class AdminSubscriptionApiTest extends FunctionalApiTestCase
     {
         $admin = $this->createUser('admin-subscription-detail@example.test', ['ROLE_ADMIN']);
         $merchant = $this->createUser('merchant-subscription-detail@example.test', ['ROLE_MERCHANT']);
-        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-09-01T00:00:00+01:00'));
+        $startedAt = new \DateTimeImmutable('first day of last month midnight', new \DateTimeZone('+01:00'));
+        $subscription = Subscription::startTrial($merchant, $startedAt);
         $this->entityManager->persist($subscription);
         $this->entityManager->flush();
 
@@ -52,13 +53,13 @@ final class AdminSubscriptionApiTest extends FunctionalApiTestCase
         self::assertSame('merchant-subscription-detail@example.test', $payload['merchant_email']);
         self::assertSame('active', $payload['lifecycle']);
         self::assertSame('trial', $payload['pricing_phase']);
-        self::assertSame('2026-12-01T00:00:00+01:00', $payload['next_phase_change_at']);
+        self::assertSame($startedAt->modify('+3 months')->format(\DateTimeInterface::ATOM), $payload['next_phase_change_at']);
     }
 
     public function testMerchantIsForbiddenFromAdminSubscriptionEndpoints(): void
     {
         $merchant = $this->createUser('merchant-admin-subscription-forbidden@example.test', ['ROLE_MERCHANT']);
-        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('2026-06-01T00:00:00+01:00'));
+        $subscription = Subscription::startTrial($merchant, new \DateTimeImmutable('first day of last month midnight', new \DateTimeZone('+01:00')));
         $this->entityManager->persist($subscription);
         $this->entityManager->flush();
 
