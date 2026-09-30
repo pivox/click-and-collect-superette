@@ -57,6 +57,45 @@ La commande vérifie la connexion base de données, le transport Messenger `asyn
 
 ---
 
+## Configuration mobile
+
+### Version minimale d'application et mode maintenance
+
+Statut : **livré backend #618** (MOBILE-API).
+
+Public — consulté au démarrage par les applications mobiles client et marchand (écrans E18 client / E17 marchand de mise à jour obligatoire, ADR-0007).
+
+```http
+GET /api/mobile/config
+```
+
+Réponse `200` :
+
+```json
+{
+  "minimum_app_version": {
+    "client": { "android": "0.0.0", "ios": "0.0.0" },
+    "merchant": { "android": "0.0.0", "ios": "0.0.0" }
+  },
+  "maintenance": {
+    "enabled": false,
+    "message_fr": null,
+    "message_ar": null
+  }
+}
+```
+
+Règles :
+
+- la comparaison semver se fait côté application (ADR-0007 : semver indépendant par app) ; une version installée strictement inférieure au seuil de sa plateforme déclenche l'écran de mise à jour obligatoire ;
+- **fail-open** : le défaut `0.0.0` signifie « aucune contrainte de version » et la maintenance est désactivée par défaut ; un échec réseau du contrôle côté app n'est jamais bloquant (cadrages E17/E18) ;
+- valeurs servies depuis la configuration (variables d'environnement `MOBILE_MIN_VERSION_CLIENT_ANDROID`, `MOBILE_MIN_VERSION_CLIENT_IOS`, `MOBILE_MIN_VERSION_MERCHANT_ANDROID`, `MOBILE_MIN_VERSION_MERCHANT_IOS`, `MOBILE_MAINTENANCE_ENABLED`, `MOBILE_MAINTENANCE_MESSAGE_FR`, `MOBILE_MAINTENANCE_MESSAGE_AR`) — pas de table dédiée en V1 ;
+- `maintenance.enabled: true` annonce un mode maintenance ; `message_fr` / `message_ar` sont `null` quand aucun message n'est configuré (message vide → `null`) ;
+- réponse mise en cache HTTP : `Cache-Control: public, max-age=300` ;
+- aucun secret ni détail d'infrastructure dans la réponse.
+
+---
+
 ## Authentification et profil
 
 ### Connexion
