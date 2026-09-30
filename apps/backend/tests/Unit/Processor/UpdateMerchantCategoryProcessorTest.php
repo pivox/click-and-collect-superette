@@ -54,7 +54,7 @@ final class UpdateMerchantCategoryProcessorTest extends TestCase
 
         $processor = new UpdateMerchantCategoryProcessor(
             $repository,
-            new MerchantShopAccessChecker($security),
+            new MerchantShopAccessChecker($security, $this->createStub(\App\Repository\MerchantMembershipRepository::class)),
             new MerchantCategoryMapper(),
             $this->createStub(EntityManagerInterface::class),
         );

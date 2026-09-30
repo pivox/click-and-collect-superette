@@ -104,7 +104,10 @@ final class ShopOwnerVoterTest extends TestCase
             ->with('ROLE_ADMIN')
             ->willReturn($isAdmin);
 
-        return new ShopOwnerVoter($security);
+        $membershipRepository = $this->createStub(\App\Repository\MerchantMembershipRepository::class);
+        $membershipRepository->method('findOneActiveByUser')->willReturn(null);
+
+        return new ShopOwnerVoter($security, new \App\Security\MerchantShopAccessChecker($security, $membershipRepository));
     }
 
     private function tokenReturningUser(mixed $user): TokenInterface
