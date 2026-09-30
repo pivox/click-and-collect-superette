@@ -100,6 +100,8 @@ Règles :
 
 ### Connexion
 
+Statut : **livré** (enrichi refresh token — #616).
+
 ```http
 POST /api/auth/login
 ```
@@ -109,11 +111,78 @@ Payload :
 ```json
 {
   "email": "client@example.com",
-  "password": "password"
+  "password": "password",
+  "device_label": "Pixel 7 de Haythem"
 }
 ```
 
-Réponse : JWT selon LexikJWTAuthenticationBundle.
+`device_label` est optionnel (libellé libre ≤ 120 caractères fourni par l'app, jamais un identifiant matériel).
+
+Réponse `200` :
+
+```json
+{
+  "token": "eyJ...",
+  "password_change_required": false,
+  "refresh_token": "opaque-base64url-43-chars",
+  "expires_in": 3600
+}
+```
+
+- `token` : JWT RS256 stateless, durée 1 h (inchangé).
+- `refresh_token` : token opaque (256 bits aléatoires, base64url), retourné **une seule fois** — seul son hash sha256 est stocké en base. Durée 30 jours par défaut (`REFRESH_TOKEN_TTL`). Champ **additif**, non cassant pour la PWA.
+- `expires_in` : durée de vie du JWT en secondes.
+
+Multi-appareils : chaque login crée une nouvelle famille de rotation ; plusieurs refresh tokens actifs par utilisateur sont autorisés.
+
+### Rafraîchissement de session (mobile)
+
+Statut : **livré** (#616).
+
+```http
+POST /api/auth/refresh
+```
+
+Route publique (`PUBLIC_ACCESS`). Payload :
+
+```json
+{ "refresh_token": "opaque-base64url" }
+```
+
+Réponse `200` : `{ "token": "eyJ...", "refresh_token": "nouveau-token-opaque", "expires_in": 3600 }`.
+
+Rotation **à usage unique** : le token présenté est consommé et remplacé par un nouveau token de la même famille.
+
+Erreurs `401` (problem+json, code stable dans `detail`, volontairement génériques — pas d'énumération) :
+
+- `AUTH_REFRESH_TOKEN_INVALID` — token inconnu, expiré ou révoqué (logout, reset, suspension) ;
+- `AUTH_REFRESH_TOKEN_REUSED` — réutilisation d'un token déjà consommé par une rotation : **toute la famille est révoquée** (détection de vol), re-login obligatoire ;
+- `AUTH_ACCOUNT_DISABLED` — compte suspendu (`active = false`) ou supprimé (soft delete) : aucun nouveau token n'est émis.
+
+### Déconnexion
+
+Statut : **livré** (#616).
+
+```http
+POST /api/auth/logout
+```
+
+Authentifié (JWT). Payload (tous les champs optionnels) :
+
+```json
+{ "refresh_token": "opaque-base64url", "all": false }
+```
+
+- `refresh_token` : révoque ce token (s'il appartient à l'utilisateur courant) ;
+- `all: true` : révoque tous les refresh tokens actifs de l'utilisateur (tous appareils).
+
+Réponse `204`, idempotente (token inconnu ou déjà révoqué → `204` quand même, pas d'énumération). Le JWT d'accès courant reste valide jusqu'à son expiration naturelle (≤ 1 h, stateless assumé).
+
+### Révocation automatique des refresh tokens
+
+Tous les refresh tokens de l'utilisateur sont révoqués lors de : réinitialisation de mot de passe réussie (`/api/auth/password-reset/confirm`), changement de mot de passe marchand (`PATCH /api/merchant/me/password`), suspension admin d'un marchand, suppression de compte client.
+
+Purge : commande console `app:auth:purge-refresh-tokens` (supprime les tokens expirés/révoqués depuis plus de 30 jours) — à planifier en cron quotidien.
 
 ### Inscription client
 
