@@ -291,7 +291,10 @@
       "viewKadhia": "Voir ma Kadhia",
       "showPickupQr": "Afficher le QR retrait",
       "pickupDone": "Retrait finalisé",
-      "pickupWhenReady": "QR retrait — disponible quand la commande est prête"
+      "pickupWhenReady": "QR retrait — disponible quand la commande est prête",
+      "whatsappContact": "Contacter la supérette sur WhatsApp",
+      "whatsappUnavailable": "Le numéro WhatsApp de la supérette n'est pas disponible pour le moment.",
+      "whatsappError": "Impossible de préparer le contact WhatsApp. Réessaie."
     },
     "orderStatus": {
       "draft": "Brouillon",
@@ -506,6 +509,11 @@
       "topProducts": "Produits les plus demandés",
       "topSlots": "Créneaux les plus utilisés",
       "noData": "Aucune donnée sur cette période"
+    },
+    "orderDetail": {
+      "whatsappContact": "Contacter le client sur WhatsApp",
+      "whatsappUnavailable": "Le numéro WhatsApp du client n'est pas disponible pour le moment.",
+      "whatsappError": "Impossible de préparer le contact WhatsApp. Réessaie."
     }
   },
   "admin": {

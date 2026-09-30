@@ -291,7 +291,10 @@
       "viewKadhia": "عرض Kadhia",
       "showPickupQr": "عرض رمز QR للاستلام",
       "pickupDone": "تم الاستلام",
-      "pickupWhenReady": "رمز QR للاستلام — متاح عندما يصبح الطلب جاهزاً"
+      "pickupWhenReady": "رمز QR للاستلام — متاح عندما يصبح الطلب جاهزاً",
+      "whatsappContact": "التواصل مع المتجر عبر واتساب",
+      "whatsappUnavailable": "رقم واتساب المتجر غير متوفر حالياً.",
+      "whatsappError": "تعذّر تحضير التواصل عبر واتساب. أعد المحاولة."
     },
     "orderStatus": {
       "draft": "مسودة",
@@ -506,6 +509,11 @@
       "topProducts": "المنتجات الأكثر طلباً",
       "topSlots": "أكثر الفترات استخداماً",
       "noData": "لا توجد بيانات في هذه الفترة"
+    },
+    "orderDetail": {
+      "whatsappContact": "التواصل مع العميل عبر واتساب",
+      "whatsappUnavailable": "رقم واتساب العميل غير متوفر حالياً.",
+      "whatsappError": "تعذّر تحضير التواصل عبر واتساب. أعد المحاولة."
     }
   },
   "admin": {

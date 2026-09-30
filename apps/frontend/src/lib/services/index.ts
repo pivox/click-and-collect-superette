@@ -23,6 +23,7 @@ export * from "./catalog.service";
 export * from "./kadhia.service";
 export * from "./slots.service";
 export * from "./orders.service";
+export * from "./order-whatsapp.service";
 export * from "./auth.service";
 export * from "./store-search.service";
 export * from "./store-theme.service";
