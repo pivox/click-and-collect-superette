@@ -24,7 +24,18 @@ final class MerchantOrganizationsAuditCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $anomalies = $this->auditor->audit();
+        $result = $this->auditor->audit();
+        $anomalies = $result['anomalies'];
+        $warnings = $result['warnings'];
+
+        // Warnings are legitimate transient states: reported for visibility,
+        // but they never affect the exit code.
+        if ([] !== $warnings) {
+            $output->writeln(\sprintf('merchant_organizations_audit: %d warning(s)', \count($warnings)));
+            foreach ($warnings as $warning) {
+                $output->writeln(\sprintf('warning: %s', $warning));
+            }
+        }
 
         if ([] === $anomalies) {
             $output->writeln('merchant_organizations_audit: OK');

@@ -43,7 +43,8 @@ final class AdminMerchantOnboardingOrganizationTest extends FunctionalApiTestCas
         $organizations = $this->entityManager->getRepository(MerchantOrganization::class)->findAll();
         self::assertCount(1, $organizations);
         $organization = $organizations[0];
-        self::assertSame('Noura Trabelsi', $organization->getName());
+        // The organization carries the commercial identity: the shop name, not the person's.
+        self::assertSame('Supérette Organisation', $organization->getName());
         self::assertTrue($organization->isActive());
         self::assertSame($merchant->getId()->toRfc4122(), $organization->getPrimaryAccount()?->getId()->toRfc4122());
 
