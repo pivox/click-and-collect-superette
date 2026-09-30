@@ -25,11 +25,15 @@ final readonly class MerchantOrganizationAuditor
     }
 
     /**
-     * @return list<string> human-readable anomalies, empty when the model is sound
+     * Anomalies are data inconsistencies that must fail the audit; warnings are
+     * legitimate transient states reported for visibility only.
+     *
+     * @return array{anomalies: list<string>, warnings: list<string>}
      */
     public function audit(): array
     {
         $anomalies = [];
+        $warnings = [];
 
         foreach ($this->shopRepository->findBy(['active' => true, 'merchantOrganization' => null]) as $shop) {
             $anomalies[] = \sprintf('active_shop_without_organization: %s', $shop->getId()->toRfc4122());
@@ -82,7 +86,9 @@ final readonly class MerchantOrganizationAuditor
 
             $shops = $this->shopRepository->findBy(['merchantOrganization' => $organization]);
             if ([] === $shops) {
-                $anomalies[] = \sprintf('organization_without_shop: %s', $orgId);
+                // Legitimate transient state: an organization can exist before
+                // its first shop is created. Reported, but never blocking.
+                $warnings[] = \sprintf('organization_without_shop: %s', $orgId);
             }
 
             foreach ($shops as $shop) {
@@ -96,7 +102,7 @@ final readonly class MerchantOrganizationAuditor
             }
         }
 
-        return $anomalies;
+        return ['anomalies' => $anomalies, 'warnings' => $warnings];
     }
 
     /**

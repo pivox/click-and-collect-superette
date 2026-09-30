@@ -56,10 +56,28 @@ final class MerchantOrganizationsAuditCommandTest extends FunctionalApiTestCase
             'organization_without_primary_account: '.$organization->getId()->toRfc4122(),
             $tester->getDisplay(),
         );
+        // organization_without_shop is a transient state: reported as warning only.
         self::assertStringContainsString(
-            'organization_without_shop: '.$organization->getId()->toRfc4122(),
+            'warning: organization_without_shop: '.$organization->getId()->toRfc4122(),
             $tester->getDisplay(),
         );
+    }
+
+    public function testOrganizationWithoutShopIsAWarningAndDoesNotFailTheAudit(): void
+    {
+        $merchant = $this->createUser('audit-org-noshop@example.test', ['ROLE_MERCHANT']);
+        $organization = $this->createOrganization($merchant);
+        $this->createActiveMembership($organization, $merchant);
+
+        $tester = $this->runAudit();
+
+        self::assertSame(Command::SUCCESS, $tester->getStatusCode(), $tester->getDisplay());
+        self::assertStringContainsString('merchant_organizations_audit: 1 warning(s)', $tester->getDisplay());
+        self::assertStringContainsString(
+            'warning: organization_without_shop: '.$organization->getId()->toRfc4122(),
+            $tester->getDisplay(),
+        );
+        self::assertStringContainsString('merchant_organizations_audit: OK', $tester->getDisplay());
     }
 
     public function testPrimaryAccountWithoutActiveMembershipIsReported(): void
