@@ -76,7 +76,7 @@ Exclus du MVP :
 - Backend MVP : 100 % (Sprint 7 audité et clôturé — S7-008 livré ; S7-009 transport Messenger persistant livré).
 - Produit terrain testable : très avancé — parcours client complet validé par simulation Playwright historique (rapport `docs/qa/client-journey-simulation-report-v2.md`) et frontend marchand avancé livré. Les parcours live client/marchand/admin restent à rejouer avant go/no-go.
 - Sprint 6 (personnalisation visuelle) : implémenté côté backend (`PlatformTheme`, `ShopTheme`, thème public par supérette).
-- Sprint 7 terminé côté backend : S7-001 (archive supérette), S7-002 (export CSV marchand), S7-003 (suppression compte client), S7-004 (audit trail admin), S7-005 (observabilité production / healthcheck). PHPStan niveau 8 clean, CS Fixer clean. 81 tests Sprint 7.
+- Sprint 7 terminé côté backend : S7-001 (archive supérette), S7-002 (export CSV marchand), S7-003 (suppression compte client), S7-004 (audit trail admin), S7-005 (observabilité production / healthcheck). PHPStan clean, CS Fixer clean. 81 tests Sprint 7.
 - Frontend admin backoffice livré : PRs #130–#132 — auth admin, référentiel produits, marchands, supérettes, audit logs, dashboard KPI.
 - Frontend client livré : parcours inscription → catalogue → Kadhia → suivi commande fonctionnel, notifications client, QR de retrait, confirmation client, thèmes supérette, liste/sélection supérettes, i18n FR/AR avec RTL client (S14-004 / #401).
 - Frontend marchand livré : login, dashboard, commandes actives, détail et actions jusqu'à `ready`, retrait sécurisé, historique, notifications, catalogue, créneaux/règles/fermetures/horaires, onboarding, QR magasin, thème/apparence, paramètres profil/compte/langue et export CSV.
@@ -91,7 +91,7 @@ Exclus du MVP :
 - S7-009 livré : transport Messenger persistant (`doctrine://default`), `failure_transport`, `retry_strategy`, migration `messenger_messages`, config Supervisor — R1 et R2 résolus.
 - Prochaine priorité recommandée : maintenir #527, traiter ou reporter explicitement #378, garder Messenger optionnel, et rejouer les parcours terrain avant go/no-go.
 - Documentation API OpenAPI exposée publiquement : `docs_formats` configuré dans `api_platform.yaml` (`json`, `html`, `jsonopenapi`, `yamlopenapi`) — endpoints accessibles sans auth sur `/api/docs.json`, `/api/docs.html`, `/api/docs.jsonopenapi`, `/api/docs.yamlopenapi`.
-- PHPStan niveau 8 : 0 erreur. CS Fixer : 0 diff. `lint:container` : OK.
+- PHPStan **niveau 6** (`apps/backend/phpstan.neon`) : 0 erreur — attention, les appels sur types nullable ne sont pas détectés à ce niveau, revue manuelle nécessaire lors d'un passage nullable. CS Fixer : 0 diff. `lint:container` : OK.
 
 ## Limites connues
 
