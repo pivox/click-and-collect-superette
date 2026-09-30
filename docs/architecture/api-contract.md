@@ -2900,6 +2900,8 @@ PATCH  /api/admin/product-references/{productReferenceId}
 PATCH  /api/admin/product-references/{productReferenceId}/archive
 POST   /api/admin/product-references/{productReferenceId}/image     # multipart, S13-005
 DELETE /api/admin/product-references/{productReferenceId}/image     # S13-005
+GET    /api/admin/product-images?page=&limit=&license=&status=      # PRODUCT-IMAGE-004
+PATCH  /api/admin/product-images/{productImageId}/provenance        # PRODUCT-IMAGE-004
 ```
 
 Produits génériques (PRODUCT-IMAGE-001) :
@@ -2954,6 +2956,78 @@ Erreurs : `400 PRODUCT_IMAGE_FILE_REQUIRED` ; `422` (`PRODUCT_IMAGE_TOO_LARGE`,
 `DELETE .../image` → `204` (ou `404 PRODUCT_IMAGE_NOT_FOUND`). Le GET détail/liste admin
 expose le même objet `image` (absent si aucune image). Voir
 `docs/roadmap/product-images-web-mobile.md`.
+
+#### Provenance et droits d'usage (PRODUCT-IMAGE-004)
+
+Chaque `ProductImage` porte un registre de provenance : `license_code`
+(`platform_owned` | `merchant_authorized` | `manufacturer_authorized` |
+`distributor_authorized` | `cc_by` | `cc_by_sa` | `public_domain` | `unknown`),
+`source_name`, `source_url`, `attribution_text`, `permission_reference`,
+`captured_at`, `collected_at` (posée automatiquement à l'ingestion),
+`approved_at` / `approved_by` (trace d'approbation) et `superseded_by_id`
+(historique de remplacement). Le *type* d'origine reste porté par l'enum
+`source` existante (`admin_upload`, `ai_enrichment`…) — pas de champ
+`source_type` dupliqué.
+
+**Règle bloquante `UNKNOWN`** : une image dont les droits sont `unknown` ne peut
+jamais devenir l'image officielle (`verified`). Appliquée au point unique de
+vérification (pipeline `ProductImageApplicationService`) →
+`409 PRODUCT_IMAGE_LICENSE_UNKNOWN`. Symétriquement, repasser la licence d'une
+image déjà `verified` à `unknown` est refusé (`409`).
+
+Upload admin (`POST .../image`) — champs multipart optionnels supplémentaires :
+`license_code` (défaut `platform_owned` : un upload admin est présumé être une
+prise de vue interne ou autorisée), `source_name`, `source_url` (https/http
+uniquement), `attribution_text`, `permission_reference`, `captured_at`
+(ISO 8601). `license_code=unknown` explicite → `409` (l'upload admin crée
+directement une image officielle). Champ invalide →
+`422 PRODUCT_IMAGE_INVALID_PROVENANCE` (ou `PRODUCT_IMAGE_INVALID_CAPTURED_AT`).
+Remplacement d'une image officielle : l'ancienne n'est plus supprimée — elle
+passe `archived` avec `superseded_by_id` pointant vers la nouvelle.
+
+```
+PATCH /api/admin/product-images/{productImageId}/provenance   # ROLE_ADMIN
+GET   /api/admin/product-images?page=&limit=&license=&status= # ROLE_ADMIN
+```
+
+`PATCH .../provenance` — mise à jour partielle par présence de clé (mêmes champs
+que ci-dessus, `null` explicite efface un champ nullable). Quand `license_code`
+passe d'`unknown` à une valeur publiable, `approved_at` et `approved_by` sont
+renseignés avec l'admin courant. Chaque modification effective est auditée
+(`product_image.provenance_updated`, metadata `before`/`after`). Réponse `200` :
+
+```json
+{
+  "id": "image-uuid",
+  "product_reference_id": "product-ref-uuid",
+  "license_code": "cc_by",
+  "source": "open_source",
+  "source_name": "Openverse",
+  "source_url": "https://exemple.tn/photos/biscuit",
+  "attribution_text": "Photo: A. Trabelsi (CC BY 4.0)",
+  "permission_reference": "OPENVERSE-123",
+  "captured_at": "2026-08-01T10:00:00+01:00",
+  "collected_at": "2026-09-30T09:00:00+00:00",
+  "approved_at": "2026-09-30T09:05:00+00:00",
+  "approved_by_email": "admin@kadhia.tn",
+  "superseded_by_id": null,
+  "status": "needs_review"
+}
+```
+
+Erreurs : `404 PRODUCT_IMAGE_NOT_FOUND` ; `422` (validation, URL non https/http,
+`PRODUCT_IMAGE_INVALID_CAPTURED_AT`) ; `409 PRODUCT_IMAGE_LICENSE_UNKNOWN`.
+
+`GET /api/admin/product-images` — liste paginée (`page`, `limit` max 50) des
+images du registre, du plus récent au plus ancien, avec filtres `license` et
+`status` validés côté provider (`400 ADMIN_PRODUCT_IMAGE_INVALID_LICENSE_FILTER`
+/ `ADMIN_PRODUCT_IMAGE_INVALID_STATUS_FILTER`). Cas d'usage clé :
+`?license=unknown` liste les images à droits inconnus à documenter. Réponse
+`200` : `{ "items": [<objet provenance ci-dessus>], "page", "limit", "total" }`.
+
+Exposition catalogue : l'objet `image` (public + admin) expose désormais
+`license_code` et `attribution_text` (omis si null) — le frontend doit afficher
+l'attribution quand la licence l'exige (`cc_by`, `cc_by_sa`).
 
 Payload `POST` :
 
