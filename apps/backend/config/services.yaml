@@ -128,6 +128,11 @@ services:
     App\Billing\MerchantPaymentReminderEmailSenderInterface:
         alias: App\Billing\MerchantPaymentReminderEmailSender
 
+    # MOBILE-PUSH #620: Expo is the V1 provider (ADR-0007); tests mock the
+    # interface (pattern #9), never the adapter.
+    App\Service\Push\PushSenderInterface:
+        alias: App\Service\Push\ExpoPushSender
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 

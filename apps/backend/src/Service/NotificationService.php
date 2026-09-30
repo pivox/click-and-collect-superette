@@ -7,6 +7,8 @@ namespace App\Service;
 use App\Entity\Notification;
 use App\Entity\Order;
 use App\Repository\NotificationRepository;
+use App\Service\Push\MobilePushDispatcher;
+use App\Service\Push\MobilePushEventCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -60,12 +62,13 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
         private LoggerInterface $logger,
         private ?WebPushService $webPushService = null,
         private ?MerchantNotificationRecipientResolver $merchantRecipientResolver = null,
+        private ?MobilePushDispatcher $mobilePushDispatcher = null,
     ) {
     }
 
     public function notifyCustomerOrderAccepted(Order $order): void
     {
-        $this->persistForCustomer(
+        $notification = $this->persistForCustomer(
             $order,
             'Kadhia acceptée',
             'تم قبول القاضية',
@@ -73,11 +76,12 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم قبول طلبكم من طرف العطار.',
             self::TYPE_ORDER_ACCEPTED,
         );
+        $this->dispatchMobilePush($notification);
     }
 
     public function notifyCustomerOrderRejected(Order $order): void
     {
-        $this->persistForCustomer(
+        $notification = $this->persistForCustomer(
             $order,
             'Kadhia refusée',
             'تم رفض القاضية',
@@ -85,11 +89,12 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم رفض طلبكم من طرف العطار.',
             self::TYPE_ORDER_REJECTED,
         );
+        $this->dispatchMobilePush($notification);
     }
 
     public function notifyCustomerOrderPartiallyAccepted(Order $order): void
     {
-        $this->persistForCustomer(
+        $notification = $this->persistForCustomer(
             $order,
             'Kadhia partiellement acceptée',
             'تم قبول جزء من القاضية',
@@ -97,6 +102,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'بعض المنتجات غير متوفرة. يرجى مراجعة القاضية.',
             self::TYPE_ORDER_PARTIALLY_ACCEPTED,
         );
+        $this->dispatchMobilePush($notification);
     }
 
     public function notifyCustomerOrderPreparing(Order $order): void
@@ -113,7 +119,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
 
     public function notifyCustomerOrderReady(Order $order): void
     {
-        $this->persistForCustomer(
+        $notification = $this->persistForCustomer(
             $order,
             'Kadhia prête',
             'القاضية واجدة',
@@ -121,6 +127,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'طلبكم واجد للاستلام. أظهروا رمز QR في العطار.',
             self::TYPE_ORDER_READY,
         );
+        $this->dispatchMobilePush($notification);
 
         // best-effort push notification
         if (null !== $this->webPushService) {
@@ -140,7 +147,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
 
     public function notifyCustomerOrderCompleted(Order $order): void
     {
-        $this->persistForCustomer(
+        $notification = $this->persistForCustomer(
             $order,
             'Kadhia retirée',
             'تم استلام القاضية',
@@ -148,6 +155,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم استلام طلبكم بنجاح.',
             self::TYPE_ORDER_COMPLETED,
         );
+        $this->dispatchMobilePush($notification);
     }
 
     public function notifyCustomerPickupReminder(Order $order): void
@@ -178,7 +186,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             $bodyAr = \sprintf('قاضيتك في %s واجدة. تذكروا استلامها خلال الموعد المحدد.', $shopName);
         }
 
-        $this->persistForCustomer(
+        $notification = $this->persistForCustomer(
             $order,
             'Rappel de retrait',
             'تذكير بالاستلام',
@@ -186,6 +194,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             $bodyAr,
             self::TYPE_PICKUP_REMINDER,
         );
+        $this->dispatchMobilePush($notification);
 
         // best-effort push notification
         if (null !== $this->webPushService) {
@@ -209,7 +218,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             return;
         }
 
-        $this->persistForCustomer(
+        $notification = $this->persistForCustomer(
             $order,
             'Commande annulée automatiquement',
             'تم إلغاء الطلب آليًا',
@@ -217,6 +226,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم إلغاء القاضية لأن التاجر لم يرد في الوقت المناسب.',
             self::TYPE_MERCHANT_RESPONSE_TIMEOUT,
         );
+        $this->dispatchMobilePush($notification);
     }
 
     public function notifyCustomerPartialAcceptanceReminder(Order $order, string $cycleType): void
@@ -225,7 +235,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             return;
         }
 
-        $this->persistForCustomer(
+        $notification = $this->persistForCustomer(
             $order,
             'Réponse nécessaire',
             'يلزم الرد',
@@ -233,6 +243,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم قبول القاضية جزئياً. أكدوا التعديلات قبل انتهاء المهلة.',
             $cycleType,
         );
+        $this->dispatchMobilePush($notification);
     }
 
     public function notifyCustomerPartialAcceptanceTimeout(Order $order): void
@@ -241,7 +252,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             return;
         }
 
-        $this->persistForCustomer(
+        $notification = $this->persistForCustomer(
             $order,
             'Commande annulée automatiquement',
             'تم إلغاء الطلب آليًا',
@@ -249,6 +260,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             'تم إلغاء القاضية لأن القبول الجزئي لم يتم تأكيده في الوقت المناسب.',
             self::TYPE_PARTIAL_ACCEPTANCE_TIMEOUT,
         );
+        $this->dispatchMobilePush($notification);
     }
 
     public function notifyMerchantOrderSubmitted(Order $order): void
@@ -382,6 +394,9 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
             return;
         }
 
+        /** @var list<Notification> $createdNotifications */
+        $createdNotifications = [];
+
         foreach ($recipients as $recipient) {
             // Retry idempotence per account (also enforced by the unique
             // constraint on order/type/user).
@@ -400,6 +415,7 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
                     type: $type,
                 );
                 $this->entityManager->persist($notification);
+                $createdNotifications[] = $notification;
                 $this->logger->info('notification.persisted', [
                     'type' => $type,
                     'order_id' => $orderId,
@@ -415,6 +431,13 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
 
                 throw $e;
             }
+        }
+
+        // MOBILE-PUSH #620 lot D: one dispatch per recipient notification —
+        // each eligible merchant account (MERCHANT-TEAM-005 resolver) fans out
+        // to its own active devices. Best-effort, never blocking.
+        foreach ($createdNotifications as $createdNotification) {
+            $this->dispatchMobilePush($createdNotification);
         }
 
         if (null === $pushUrl || null === $this->webPushService) {
@@ -438,6 +461,33 @@ final readonly class NotificationService implements PickupReminderNotifierInterf
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+    }
+
+    /**
+     * MOBILE-PUSH #620 lot D: fans a persisted V1 notification out to the
+     * recipient's active mobile devices, AFTER a successful flush of the
+     * notification row (best-effort + second flush, PR #232). Types outside
+     * the V1 catalog emit nothing; any failure is logged and never interrupts
+     * the business transition.
+     */
+    private function dispatchMobilePush(Notification $notification): void
+    {
+        if (null === $this->mobilePushDispatcher || !MobilePushEventCatalog::isPushEvent($notification->getType())) {
+            return;
+        }
+
+        try {
+            // The async handler reloads the notification by id: its row must
+            // be flushed before the message is emitted.
+            $this->entityManager->flush();
+            $this->mobilePushDispatcher->dispatchForNotification($notification);
+        } catch (\Throwable $e) {
+            $this->logger->warning('notification.mobile_push_dispatch_failed', [
+                'type' => $notification->getType(),
+                'notification_id' => $notification->getId()->toRfc4122(),
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }
