@@ -40,6 +40,7 @@ security:
         - { path: ^/api/auth/merchant-invitations/(verify|complete)$, roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/api/health$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/client-logs$, roles: PUBLIC_ACCESS, methods: [POST] }
+        - { path: ^/api/mobile/config$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/docs(?:\..+)?$, roles: PUBLIC_ACCESS }
         - { path: ^/api/stores/by-qr, roles: PUBLIC_ACCESS }
         - { path: ^/api/stores/search$, roles: PUBLIC_ACCESS, methods: [GET] }

@@ -47,6 +47,19 @@ parameters:
     app.openai.api_key: '%env(default:app.openai.api_key_default:string:OPENAI_API_KEY)%'
     app.catalog_photo_import.model_default: 'gpt-4o-mini'
     app.catalog_photo_import.model: '%env(default:app.catalog_photo_import.model_default:string:OPENAI_CATALOG_PHOTO_IMPORT_MODEL)%'
+    # Public mobile configuration endpoint (#618). Fail-open defaults: '0.0.0'
+    # means "no minimum version constraint", maintenance is disabled and empty
+    # messages are exposed as null. No database table in V1 (issue contract).
+    app.mobile_config.min_version_default: '0.0.0'
+    app.mobile_config.min_version_client_android: '%env(default:app.mobile_config.min_version_default:string:MOBILE_MIN_VERSION_CLIENT_ANDROID)%'
+    app.mobile_config.min_version_client_ios: '%env(default:app.mobile_config.min_version_default:string:MOBILE_MIN_VERSION_CLIENT_IOS)%'
+    app.mobile_config.min_version_merchant_android: '%env(default:app.mobile_config.min_version_default:string:MOBILE_MIN_VERSION_MERCHANT_ANDROID)%'
+    app.mobile_config.min_version_merchant_ios: '%env(default:app.mobile_config.min_version_default:string:MOBILE_MIN_VERSION_MERCHANT_IOS)%'
+    app.mobile_config.maintenance_enabled_default: false
+    app.mobile_config.maintenance_enabled: '%env(default:app.mobile_config.maintenance_enabled_default:bool:MOBILE_MAINTENANCE_ENABLED)%'
+    app.mobile_config.maintenance_message_default: ''
+    app.mobile_config.maintenance_message_fr: '%env(default:app.mobile_config.maintenance_message_default:string:MOBILE_MAINTENANCE_MESSAGE_FR)%'
+    app.mobile_config.maintenance_message_ar: '%env(default:app.mobile_config.maintenance_message_default:string:MOBILE_MAINTENANCE_MESSAGE_AR)%'
 
 services:
     # default configuration for services in *this* file
@@ -72,6 +85,13 @@ services:
             int $minimumCatalogProducts: '%app.store_activation.minimum_catalog_products%'
             string $catalogPhotoImportOpenAiApiKey: '%app.openai.api_key%'
             string $catalogPhotoImportOpenAiModel: '%app.catalog_photo_import.model%'
+            string $mobileMinVersionClientAndroid: '%app.mobile_config.min_version_client_android%'
+            string $mobileMinVersionClientIos: '%app.mobile_config.min_version_client_ios%'
+            string $mobileMinVersionMerchantAndroid: '%app.mobile_config.min_version_merchant_android%'
+            string $mobileMinVersionMerchantIos: '%app.mobile_config.min_version_merchant_ios%'
+            bool $mobileMaintenanceEnabled: '%app.mobile_config.maintenance_enabled%'
+            string $mobileMaintenanceMessageFr: '%app.mobile_config.maintenance_message_fr%'
+            string $mobileMaintenanceMessageAr: '%app.mobile_config.maintenance_message_ar%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
