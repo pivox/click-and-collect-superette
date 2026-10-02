@@ -278,3 +278,77 @@ Vérifications recommandées selon les fichiers modifiés :
 - Marketplace multi-supérette.
 - Gestion de stock avancée ou multi-entrepôts.
 - Modification directe du référentiel commun par un marchand.
+
+
+---
+
+## Extension 2026-10-02 — Import photo IA marchand et référentiel admin
+
+La conception initiale du catalogue reste valide pour la gestion unitaire, les produits locaux, les catégories et les actions d'exploitation.
+
+Le parcours photo historique de `MerchantCatalogWizard` évolue désormais vers le chantier #637–#649.
+
+### Nouveau checkpoint G — Importer mes rayons
+
+Depuis la page Catalogue :
+
+```text
+[ + Ajouter un produit ]   [ ✨ Importer mes rayons ]
+```
+
+Le nouveau parcours remplace progressivement le bloc photo synchrone monolithique par :
+
+```text
+quota → session → plusieurs photos → analyse asynchrone
+→ propositions → correction/prix → validation idempotente
+```
+
+Règles :
+
+- quota de 10 photos par `Shop`, partagé entre comptes autorisés ;
+- le nombre de fournisseurs IA ne multiplie pas le débit marchand ;
+- une seule liste de propositions visible au marchand ;
+- aucun prix inventé ;
+- aucune offre existante écrasée par défaut ;
+- reprise de session après navigation ;
+- FR/AR/RTL et mobile-first.
+
+La logique photo doit être extraite progressivement du composant `MerchantCatalogWizard` vers des composants dédiés afin de conserver un wizard lisible.
+
+Composants cibles :
+
+```text
+components/merchant/catalogue/photo-import/
+  MerchantPhotoImportLauncher
+  MerchantPhotoImportUploader
+  MerchantPhotoImportProgress
+  MerchantPhotoImportReview
+  MerchantPhotoImportItemCard
+  MerchantPhotoImportSummary
+```
+
+### Extension admin
+
+Le même socle technique alimente un second parcours :
+
+```text
+Admin > Référentiel > Produits
+→ Importer des images
+→ extraction/matching
+→ proposition de création ou mise à jour
+→ comparaison actuel/proposé/preuves
+→ validation champ par champ
+→ ProductReference
+```
+
+L'admin n'a pas de quota commercial de photos. Il reste soumis aux limites techniques et au budget IA.
+
+Ce parcours ne remplace pas la table référentiel, le score qualité, les doublons, l'édition rapide ou l'enrichissement IA déjà présents : il les complète.
+
+### Documentation de référence
+
+- `docs/product/catalog-photo-import-multi-ai.md` — règles métier et parcours complet ;
+- `docs/product/catalog-photo-import-ui.md` — conception visuelle et frontend ;
+- `docs/architecture/catalog-photo-import.md` — architecture backend, sessions, providers, matching, sécurité et contrats API cibles.
+
+Les routes session-based documentées sont une cible et ne doivent pas être déclarées livrées tant que le code et `docs/architecture/api-contract.md` ne sont pas alignés.
