@@ -1490,13 +1490,18 @@ Statut : **livré Sprint 3**.
 GET /api/merchant/stores/{storeId}/orders
 GET /api/merchant/stores/{storeId}/orders?status=submitted
 GET /api/merchant/stores/{storeId}/orders?page=1&limit=20
+GET /api/merchant/stores/{storeId}/orders?sort=priority&status=submitted,accepted,preparing,ready
 ```
 
 Règles :
 
 - marchand connecté uniquement ;
 - le marchand doit être propriétaire de la supérette ;
-- la liste ne doit pas exposer les coordonnées client.
+- pagination `{items, total, page, limit}` : 20 résultats par défaut, 50 maximum ;
+- `sort=recent` (défaut) : création décroissante puis identifiant croissant ; `sort=priority` : `submitted`, puis `accepted`/`preparing`, puis `ready`, puis autres statuts. À priorité égale : création décroissante puis identifiant croissant. Le tri est appliqué en base **avant** pagination et combinable avec `status` (valeurs séparées par virgules) ;
+- chaque résumé expose `id`, `store_id`, `order_number`, `order_number_display`, `status`, `total_tnd`, `pickup_slot` (`id`, `starts_at`, `ends_at` ou null), `line_count`, `created_at`, `updated_at` ;
+- champ additif `customer_name` : nom du client uniquement pour `submitted`, `accepted`, `partially_accepted`, `preparing`, `ready`, `pickup_pending` ; null pour `draft`, `rejected`, `cancelled`, `completed` ou si aucun nom n'est renseigné ;
+- aucun téléphone, email, token ou ligne complète dans le résumé.
 
 ### Historique complet des commandes marchand
 
@@ -1709,7 +1714,47 @@ Règles :
 - marchand connecté uniquement ;
 - le marchand doit être propriétaire de la supérette ;
 - retourne les compteurs du jour, les compteurs par statut, les créneaux du jour et les commandes `submitted` urgentes ;
+- `pickup_slots_today` conserve les créneaux et leur capacité ;
+- champ additif `pickup_orders_today` : commandes dont le rendez-vous commence le jour courant en `Africa/Tunis` (minuit inclus, minuit suivant exclu), y compris `completed`, sans `draft`, `rejected`, `cancelled`. Une commande sans rendez-vous est exclue. Tri par début du rendez-vous puis identifiant croissant ;
 - n'expose pas de données client ni de lignes de commande.
+
+Extrait de réponse :
+
+```json
+{
+  "pickup_orders_today": [
+    {
+      "order_id": "<uuid>",
+      "order_number_display": "#0042",
+      "status": "ready",
+      "pickup_slot": {
+        "starts_at": "2026-10-03T10:00:00+01:00",
+        "ends_at": "2026-10-03T11:00:00+01:00"
+      }
+    }
+  ]
+}
+```
+
+`order_number_display` peut être null pour une ancienne commande non numérotée ; une journée sans commande retourne `[]`.
+
+### Retrait par code manuel
+
+```http
+POST /api/merchant/stores/{storeId}/orders/redeem-by-code
+Content-Type: application/json
+
+{"pickupCode":"0012"}
+```
+
+- Marchand authentifié autorisé à opérer la supérette ; code transmis comme **chaîne de quatre chiffres**, en préservant les zéros initiaux. Format invalide : `422`.
+- Le code est limité à cette supérette et à une commande `ready`. Une absence, un rejeu ou plusieurs commandes prêtes partageant le code donnent `404 PICKUP_CODE_NOT_FOUND`, sans révéler de commande ni consommer un code ambigu. En cas de collision, utiliser le scan QR ou la validation manuelle avec justification.
+- Succès `200 {"order_id":"<uuid>","status":"completed"}` : finalisation directe du retrait, code invalidé et session associée marquée utilisée. Ce fallback ne conduit pas à l'écran de double validation du QR.
+- Recherche verrouillée et finalisation transactionnelle pour empêcher deux consommations simultanées du même code.
+- Limitation après autorisation : par marchand et supérette, **5 tentatives / fenêtre fixe de 60 secondes** par défaut, succès et échecs compris. `429 RATE_LIMITED` avec `Retry-After` en secondes ; respecter ce délai avant nouvelle tentative.
+- Configuration : `PICKUP_CODE_RATE_LIMIT`, `PICKUP_CODE_RATE_WINDOW_SECONDS` (entiers positifs), et interrupteur global `RATE_LIMIT_ENABLED`. Le limiteur réutilise le cache applicatif existant ; ses compteurs ne sont pas atomiques sous forte concurrence.
+- Les échecs sont journalisés avec la supérette et une empreinte du compte marchand, jamais avec le code ou le token QR.
+- Le token QR est opaque : il est uniquement scanné puis envoyé à `POST /api/merchant/pickup-sessions/scan`, jamais affiché ni saisi manuellement dans l'application mobile. Le secours manuel est ce code à quatre chiffres.
 
 ### Statistiques marchand
 
@@ -1905,15 +1950,18 @@ Réponse génération :
   "skipped_existing_count": 4,
   "skipped_closure_count": 2,
   "horizon_start": "2026-05-16T00:00:00+01:00",
-  "horizon_end": "2026-06-13T00:00:00+01:00"
+  "horizon_end": "2026-06-16T00:00:00+01:00"
 }
 ```
 
 Règles :
 
 - marchand connecté uniquement ;
-- ownership strict via `Shop.owner` ;
-- génération de `PickupSlot` ponctuels sur 4 semaines ;
+- autorisation par membership marchand active, avec fallback propriétaire historique ;
+- génération de `PickupSlot` ponctuels sur **1 ou 3 mois calendaires** : corps `{"horizon_months": 1}` (1 par défaut), toute autre valeur est refusée ;
+- le jour est borné au dernier jour du mois cible (31 janvier +1 mois →28/29 février), avec borne de fin exclusive ;
+- découpage des règles en créneaux complets d’une heure, reliquat ignoré ;
+- génération et création ponctuelle sérialisées par verrou sur la supérette, sans doublon même si plusieurs règles se chevauchent dans le même lot ;
 - génération idempotente, sans duplication de créneaux existants ;
 - fenêtre de génération exclusive à `horizon_end`, avec exclusion des créneaux déjà passés au moment de l'appel ;
 - `DELETE` désactive la règle plutôt que de la supprimer physiquement ;
@@ -3827,3 +3875,29 @@ POST   /api/orders/{orderId}/submit
 ```
 
 Le modèle valide est `Kadhia -> submit -> Order`.
+
+
+### Authentification sociale mobile et sécurité du profil — issues mobile #26/#27
+
+Les opérations et prérequis de Google/Facebook sont détaillés dans
+[le contrat et runbook social](../qa/issue-26-social-backend.md).
+
+| Opération | Entrée / sortie | Accès |
+| --- | --- | --- |
+| `GET /api/auth/social/providers` | `{providers: ["google", "facebook"]}` ; uniquement fournisseurs configurés | Public |
+| `POST /api/auth/social/start` | `{provider,mode,code_challenge}` → `{authorization_url,state}` | Public login ; compte authentifié pour link |
+| `GET /api/auth/social/callback/{provider}` | Retour HTTPS du fournisseur → code court et state via `kadhia://social-auth` | Public, state à usage unique |
+| `POST /api/auth/social/exchange` | `{code,state,code_verifier}` → session JWT/refresh ou `{linked:true}` | Preuve PKCE ; même compte authentifié pour link |
+| `GET /api/me/auth-methods` | `{has_password,providers}` | Client/marchand |
+| `PATCH /api/me/password` | `{current_password,new_password}` → 204 | Client |
+
+Aucune fusion sur simple égalité d’e-mail. Une nouvelle identité Google avec
+un e-mail vérifié peut créer un client ; une identité sans e-mail vérifiable
+(notamment Facebook) suit l’inscription locale puis l’association explicite
+au profil. Les identités déjà associées retrouvent leur compte. L’e-mail reste
+non modifiable dans les profils. `PATCH /api/me/profile` accepte déjà `phone`
+au format `+216XXXXXXXX`, ou `null` pour effacer la valeur.
+
+Le mobile propose les règles récurrentes et leur génération à la demande.
+Le renouvellement automatique par tâche planifiée demeure hors de ce lot.
+Voir [les garanties et tests de génération](../qa/issue-27-backend.md).

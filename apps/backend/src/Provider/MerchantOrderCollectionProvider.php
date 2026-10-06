@@ -11,6 +11,7 @@ use App\ApiResource\MerchantOrderOutput;
 use App\ApiResource\MerchantOrderSummaryOutput;
 use App\Entity\Order;
 use App\Entity\OrderLine;
+use App\Enum\OrderStatus;
 use App\Repository\OrderRepository;
 use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
@@ -56,7 +57,7 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
         $limit = min(50, max(1, (int) ($request?->query->get('limit') ?? 20)));
         $offset = ($page - 1) * $limit;
 
-        $orders = $this->orderRepository->findByShopPaginated($shop, $status, $limit, $offset);
+        $orders = $this->orderRepository->findByShopPaginated($shop, $status, $limit, $offset, 'priority' === $request?->query->get('sort'));
         $total = $this->orderRepository->countByShop($shop, $status);
 
         $items = array_map(
@@ -76,6 +77,14 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
     private static function toSummaryOutput(Order $order): MerchantOrderSummaryOutput
     {
         $slot = $order->getPickupSlot();
+        $canExposeCustomerName = \in_array($order->getStatus(), [
+            OrderStatus::Submitted,
+            OrderStatus::Accepted,
+            OrderStatus::PartiallyAccepted,
+            OrderStatus::Preparing,
+            OrderStatus::Ready,
+            OrderStatus::PickupPending,
+        ], true);
 
         return new MerchantOrderSummaryOutput(
             id: $order->getId()->toRfc4122(),
@@ -89,6 +98,7 @@ final readonly class MerchantOrderCollectionProvider implements ProviderInterfac
                 'starts_at' => PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()),
                 'ends_at' => PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()),
             ],
+            customerName: $canExposeCustomerName ? $order->getCustomer()->getName() : null,
             lineCount: $order->getLines()->count(),
             createdAt: $order->getCreatedAt()->format(\DateTimeInterface::ATOM),
             updatedAt: $order->getUpdatedAt()->format(\DateTimeInterface::ATOM),

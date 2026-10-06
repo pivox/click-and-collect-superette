@@ -240,6 +240,37 @@ final class MerchantDashboardApiTest extends FunctionalApiTestCase
         self::assertStringNotContainsString('customer-dashboard-private@example.test', $content);
     }
 
+    public function testDashboardListsOnlyTodayPickupOrdersChronologically(): void
+    {
+        $merchant = $this->createUser('merchant-dashboard-orders@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-dashboard-orders@example.test', ['ROLE_CUSTOMER']);
+        $early = $this->createPickupSlot($shop, '-9 hours', '-8 hours');
+        $late = $this->createPickupSlot($shop, '+14 hours', '+15 hours');
+        $tomorrow = $this->createPickupSlot($shop, '+15 hours', '+16 hours');
+        $yesterday = $this->createPickupSlot($shop, '-10 hours', '-9 hours');
+        $completed = $this->createOrder($customer, $shop, $late, OrderStatus::Completed);
+        $submitted = $this->createOrder($customer, $shop, $early, OrderStatus::Submitted);
+        $submitted->assignOrderNumber(42);
+        $this->entityManager->flush();
+        foreach ([OrderStatus::Draft, OrderStatus::Rejected, OrderStatus::Cancelled] as $status) {
+            $this->createOrder($customer, $shop, $early, $status);
+        }
+        $this->createOrder($customer, $shop, $tomorrow, OrderStatus::Ready);
+        $this->createOrder($customer, $shop, $yesterday, OrderStatus::Ready);
+        $otherShop = $this->createShop();
+        $this->createOrder($customer, $otherShop, $this->createPickupSlot($otherShop, '+1 hour', '+2 hours'), OrderStatus::Ready);
+        $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/dashboard/today', $shop->getId()), null, $merchant);
+        self::assertSame(200, $response->getStatusCode());
+        $items = $this->decodeJson($response)['pickup_orders_today'];
+        self::assertSame([$submitted->getId()->toRfc4122(), $completed->getId()->toRfc4122()], array_column($items, 'order_id'));
+        self::assertSame('#0042', $items[0]['order_number_display']);
+        self::assertSame('submitted', $items[0]['status']);
+        self::assertSame($early->getStartsAt()->format(\DateTimeInterface::ATOM), $items[0]['pickup_slot']['starts_at']);
+        self::assertSame($early->getEndsAt()->format(\DateTimeInterface::ATOM), $items[0]['pickup_slot']['ends_at']);
+        self::assertSame(['order_id', 'order_number_display', 'status', 'pickup_slot'], array_keys($items[0]));
+    }
+
     private function createPickupSlot(
         Shop $shop,
         string $startsAtModifier,

@@ -7,6 +7,7 @@ namespace App\Provider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\MerchantDashboardOutput;
+use App\ApiResource\MerchantDashboardPickupOrderOutput;
 use App\ApiResource\MerchantDashboardPickupSlotOutput;
 use App\Entity\PickupSlot;
 use App\Enum\OrderStatus;
@@ -75,6 +76,23 @@ final readonly class MerchantDashboardProvider implements ProviderInterface
             $this->pickupSlotRepository->findForShopBetweenStartsAt($shop, $dayStart, $dayEnd),
         );
 
+        $pickupOrders = [];
+        foreach ($this->orderRepository->findPickupOrdersForShopBetweenStarts($shop, $dayStart, $dayEnd) as $order) {
+            $slot = $order->getPickupSlot();
+            if (null === $slot) {
+                continue;
+            }
+            $pickupOrders[] = new MerchantDashboardPickupOrderOutput(
+                orderId: $order->getId()->toRfc4122(),
+                orderNumberDisplay: $order->getOrderNumberDisplay(),
+                status: $order->getStatus()->value,
+                pickupSlot: [
+                    'starts_at' => PickupSlotDisplayTime::toLocalAtom($slot->getStartsAt()),
+                    'ends_at' => PickupSlotDisplayTime::toLocalAtom($slot->getEndsAt()),
+                ],
+            );
+        }
+
         return new MerchantDashboardOutput(
             storeId: $shop->getId()->toRfc4122(),
             date: $dayStart->format('Y-m-d'),
@@ -91,6 +109,7 @@ final readonly class MerchantDashboardProvider implements ProviderInterface
             pickupPendingCount: $ordersByStatus[OrderStatus::PickupPending->value],
             urgentSubmittedCount: $urgentSubmittedCount,
             pickupSlotsToday: $slots,
+            pickupOrdersToday: $pickupOrders,
         );
     }
 

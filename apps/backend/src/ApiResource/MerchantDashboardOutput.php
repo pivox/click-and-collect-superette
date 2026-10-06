@@ -21,7 +21,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
                 'storeId' => new Link(fromClass: Shop::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
-            normalizationContext: ['groups' => ['merchant_dashboard:read']],
+            normalizationContext: ['groups' => ['merchant_dashboard:read'], 'skip_null_values' => false],
             provider: MerchantDashboardProvider::class,
             security: "is_granted('ROLE_MERCHANT')",
         ),
@@ -30,8 +30,9 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 final readonly class MerchantDashboardOutput
 {
     /**
-     * @param array<string, int>                      $ordersByStatus
-     * @param list<MerchantDashboardPickupSlotOutput> $pickupSlotsToday
+     * @param array<string, int>                       $ordersByStatus
+     * @param list<MerchantDashboardPickupSlotOutput>  $pickupSlotsToday
+     * @param list<MerchantDashboardPickupOrderOutput> $pickupOrdersToday
      */
     public function __construct(
         #[ApiProperty(identifier: true)]
@@ -79,6 +80,9 @@ final readonly class MerchantDashboardOutput
         #[Groups(['merchant_dashboard:read'])]
         #[SerializedName('pickup_slots_today')]
         public array $pickupSlotsToday,
+        #[Groups(['merchant_dashboard:read'])]
+        #[SerializedName('pickup_orders_today')]
+        public array $pickupOrdersToday,
     ) {
     }
 }

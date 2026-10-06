@@ -101,16 +101,50 @@ final class MerchantPickupCodeApiTest extends FunctionalApiTestCase
         $merchant = $this->createUser('merchant-redeem-wrong@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
         $customer = $this->createUser('customer-redeem-wrong@example.test', ['ROLE_CUSTOMER']);
-        $this->createReadyOrder($customer, $shop);
+        $order = $this->createReadyOrder($customer, $shop);
 
         $response = $this->requestJson(
             'POST',
             \sprintf('/api/merchant/stores/%s/orders/redeem-by-code', $shop->getId()),
-            ['pickupCode' => '0000'],
+            ['pickupCode' => '0000' === $order->getPickupCode() ? '0001' : '0000'],
             $merchant,
         );
 
         self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testRedeemRejectsCollidingReadyCodesWithoutCompletingEitherOrder(): void
+    {
+        $merchant = $this->createUser('merchant-redeem-collision@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-redeem-collision@example.test', ['ROLE_CUSTOMER']);
+        $first = $this->createReadyOrder($customer, $shop);
+        $second = $this->createReadyOrder($customer, $shop);
+        (new \ReflectionProperty(Order::class, 'pickupCode'))->setValue($second, $first->getPickupCode());
+        $this->entityManager->flush();
+        $response = $this->requestJson('POST', \sprintf('/api/merchant/stores/%s/orders/redeem-by-code', $shop->getId()), ['pickupCode' => $first->getPickupCode()], $merchant);
+        self::assertSame(404, $response->getStatusCode());
+        self::assertStringContainsString('PICKUP_CODE_NOT_FOUND', (string) $response->getContent());
+        $this->entityManager->refresh($first);
+        $this->entityManager->refresh($second);
+        self::assertSame(OrderStatus::Ready, $first->getStatus());
+        self::assertSame(OrderStatus::Ready, $second->getStatus());
+    }
+
+    public function testRedeemLeadingZeroCodeIsShopScopedAndCannotBeReplayed(): void
+    {
+        $merchant = $this->createUser('merchant-redeem-leading@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $otherShop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-redeem-leading@example.test', ['ROLE_CUSTOMER']);
+        $order = $this->createReadyOrder($customer, $shop);
+        (new \ReflectionProperty(Order::class, 'pickupCode'))->setValue($order, '0012');
+        $this->entityManager->flush();
+        $wrongShop = $this->requestJson('POST', \sprintf('/api/merchant/stores/%s/orders/redeem-by-code', $otherShop->getId()), ['pickupCode' => '0012'], $merchant);
+        self::assertSame(404, $wrongShop->getStatusCode());
+        $url = \sprintf('/api/merchant/stores/%s/orders/redeem-by-code', $shop->getId());
+        self::assertSame(200, $this->requestJson('POST', $url, ['pickupCode' => '0012'], $merchant)->getStatusCode());
+        self::assertSame(404, $this->requestJson('POST', $url, ['pickupCode' => '0012'], $merchant)->getStatusCode());
     }
 
     public function testRedeemByCodeReturns403WhenNotOwner(): void

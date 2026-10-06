@@ -90,12 +90,62 @@ final class MerchantOrderApiTest extends FunctionalApiTestCase
         self::assertCount(1, $payload['items']);
         $item = $payload['items'][0];
 
-        self::assertArrayNotHasKey('customer_name', $item);
+        self::assertSame('Client Privé', $item['customer_name']);
         self::assertArrayNotHasKey('customer_phone', $item);
         self::assertArrayNotHasKey('customer_email', $item);
         self::assertArrayNotHasKey('password', $item);
         self::assertArrayNotHasKey('roles', $item);
         self::assertArrayNotHasKey('token', $item);
+    }
+
+    public function testPrioritySortAppliesBeforePaginationAndKeepsStableTies(): void
+    {
+        $merchant = $this->createUser('merchant-priority@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-priority@example.test', ['ROLE_CUSTOMER']);
+        $statuses = [OrderStatus::Ready, OrderStatus::Preparing, OrderStatus::Accepted, OrderStatus::Submitted, OrderStatus::Submitted];
+        $orders = [];
+        foreach ($statuses as $index => $status) {
+            $order = $this->createOrderWithStatus($customer, $shop, $status);
+            (new \ReflectionProperty(Order::class, 'createdAt'))->setValue($order, new \DateTimeImmutable('-'.(10 + $index).' minutes'));
+            $orders[] = $order;
+        }
+        (new \ReflectionProperty(Order::class, 'createdAt'))->setValue($orders[4], $orders[3]->getCreatedAt());
+        $this->entityManager->flush();
+        $submittedIds = [$orders[3]->getId()->toRfc4122(), $orders[4]->getId()->toRfc4122()];
+        sort($submittedIds);
+        $expected = [...$submittedIds, $orders[1]->getId()->toRfc4122(), $orders[2]->getId()->toRfc4122(), $orders[0]->getId()->toRfc4122()];
+        $actual = [];
+        for ($page = 1; $page <= 3; ++$page) {
+            $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/orders?sort=priority&limit=2&page=%d', $shop->getId(), $page), null, $merchant);
+            self::assertSame(200, $response->getStatusCode());
+            $payload = $this->decodeJson($response);
+            self::assertSame(5, $payload['total']);
+            $actual = [...$actual, ...array_column($payload['items'], 'id')];
+        }
+        self::assertSame($expected, $actual);
+        $filtered = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/orders?sort=priority&status=ready,submitted', $shop->getId()), null, $merchant);
+        self::assertSame([...$submittedIds, $orders[0]->getId()->toRfc4122()], array_column($this->decodeJson($filtered)['items'], 'id'));
+        $default = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/orders?limit=1', $shop->getId()), null, $merchant);
+        self::assertSame($orders[0]->getId()->toRfc4122(), $this->decodeJson($default)['items'][0]['id']);
+    }
+
+    public function testSummaryCustomerNameIsNullForTerminalAndDraftOrders(): void
+    {
+        $merchant = $this->createUser('merchant-summary-terminal@example.test', ['ROLE_MERCHANT']);
+        $shop = $this->createShop($merchant);
+        $customer = $this->createUser('customer-summary-terminal@example.test', ['ROLE_CUSTOMER']);
+        $customer->setName('Private Customer');
+        foreach ([OrderStatus::Draft, OrderStatus::Completed, OrderStatus::Cancelled, OrderStatus::Rejected] as $status) {
+            $this->createOrderWithStatus($customer, $shop, $status);
+        }
+        $response = $this->requestJson('GET', \sprintf('/api/merchant/stores/%s/orders', $shop->getId()), null, $merchant);
+        self::assertSame(200, $response->getStatusCode());
+        foreach ($this->decodeJson($response)['items'] as $item) {
+            self::assertArrayHasKey('customer_name', $item);
+            self::assertNull($item['customer_name']);
+        }
+        self::assertStringNotContainsString('Private Customer', (string) $response->getContent());
     }
 
     public function testListOrdersFilterByStatus(): void

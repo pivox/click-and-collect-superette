@@ -45,7 +45,7 @@ corrige sans changer le produit.
 
 | Point | V1 mobile | Référence PWA / justification |
 |---|---|---|
-| Compteurs du jour et « À faire maintenant » | **Inclus** | PWA `merchant/` → `GET /api/merchant/stores/{storeId}/dashboard/today` (submitted, urgentes, accepted, preparing, ready, rendez-vous du jour avec capacité). |
+| Compteurs du jour et « À faire maintenant » | **Inclus** | PWA `merchant/` → `GET /api/merchant/stores/{storeId}/dashboard/today` (submitted, urgentes, accepted, preparing, ready, rendez-vous du jour avec capacité ; `pickup_orders_today` associe chaque commande active ou finalisée à son rendez-vous). |
 | Actions prioritaires cliquables | **Inclus** | Cartes → liste commandes filtrée / écran retrait, comme en PWA. |
 | Actualisation | **Inclus** | Pull-to-refresh natif + rafraîchissement au retour au premier plan ; indicateur de fraîcheur des données (heure du dernier chargement) — écart PWA corrigé : la PWA n'a qu'un bouton « Actualiser ». |
 | Bandeau onboarding | **Inclus (lecture)** | `GET /api/merchant/onboarding` : progression affichée en bannière ; les étapes de configuration (catalogue complet, thème…) renvoient vers le web. Pas d'écran onboarding dédié en V1 mobile (guide de configuration = usage ponctuel de bureau). |
@@ -54,7 +54,7 @@ corrige sans changer le produit.
 
 | Point | V1 mobile | Référence PWA / justification |
 |---|---|---|
-| Liste des commandes actives (filtres) | **Inclus** | PWA `merchant/commandes` → `GET /api/merchant/stores/{storeId}/orders?status=…` (onglet actif : `submitted,accepted,partially_accepted,preparing,ready,pickup_pending` ; filtres « À accepter / À préparer / Prêtes »). |
+| Liste des commandes actives (filtres) | **Inclus** | PWA `merchant/commandes` → `GET /api/merchant/stores/{storeId}/orders?status=…` (tri serveur `sort=priority` avant pagination ; résumé `customer_name` actif seulement ; onglet actif : `submitted,accepted,partially_accepted,preparing,ready,pickup_pending` ; filtres « À accepter / À préparer / Prêtes »). |
 | Détail de commande | **Inclus** | `GET /api/merchant/stores/{storeId}/orders/{orderId}` (lignes, note client, coordonnées client sur commandes actives uniquement). |
 | Accepter | **Inclus** | `POST .../orders/{orderId}/accept` (statut `submitted` uniquement). |
 | Refuser avec raison | **Inclus** | `POST .../orders/{orderId}/reject` (`{reason}`) — libère la capacité du rendez-vous. |
@@ -69,8 +69,8 @@ corrige sans changer le produit.
 
 | Point | V1 mobile | Référence PWA / justification |
 |---|---|---|
-| Scan du QR de retrait | **Inclus — apport mobile majeur** | PWA `merchant/retrait` (onglet QR) exige de **coller le token à la main** ; le mobile scanne avec la caméra (expo-camera) et envoie `POST /api/merchant/pickup-sessions/scan` (`{token}`). La saisie manuelle du token reste en secours. |
-| Code à 4 chiffres | **Inclus** | Onglet PWA « Code 4 chiffres » → `POST /api/merchant/stores/{storeId}/orders/redeem-by-code` (`{pickupCode}`) — endpoint livré, **absent du contrat documenté** (renvoi #565). |
+| Scan du QR de retrait | **Inclus — apport mobile majeur** | PWA `merchant/retrait` (onglet QR) exige de **coller le token à la main** ; le mobile scanne avec la caméra (expo-camera) et envoie `POST /api/merchant/pickup-sessions/scan` (`{token}`). Le token est opaque, jamais affiché ni saisi. Le secours est le code à quatre chiffres. |
+| Code à 4 chiffres | **Inclus** | Onglet PWA « Code 4 chiffres » → `POST /api/merchant/stores/{storeId}/orders/redeem-by-code` (`{pickupCode}` chaîne de quatre chiffres, zéros initiaux conservés) — contrat documenté, finalisation directe `completed`, quota et erreurs décrits ci-dessous. |
 | Double validation (confirmation marchand) | **Inclus** | `PATCH /api/merchant/pickup-sessions/{id}/confirm` ; la commande passe `completed` après la confirmation client. |
 | Force completion | **Inclus** | `PATCH /api/merchant/pickup-sessions/{id}/force-complete` (`{note}` obligatoire) — possible ≥ 5 min après confirmation marchande sans confirmation client. |
 | Validation manuelle avec justification | **Inclus** | Onglet PWA « Manuel » → `POST .../orders/{orderId}/validate-manually` (`{note}` ≥ 5 caractères) — endpoint livré, **absent du contrat documenté** (renvoi #565). |
@@ -145,7 +145,7 @@ App
 │   │   ├── Détail commande                (PWA /merchant/commandes/[orderId])
 │   │   └── Acceptation partielle          (modale PWA)
 │   ├── Onglet Retrait
-│   │   ├── Scan QR (caméra + saisie secours)   (PWA /merchant/retrait, onglet QR)
+│   │   ├── Scan QR (caméra ; secours code court)   (PWA /merchant/retrait, onglet QR)
 │   │   ├── Session de retrait (double validation)
 │   │   └── Code 4 chiffres / validation manuelle
 │   └── Onglet Boutique
@@ -186,7 +186,7 @@ Règles :
 3. Au moment de préparer : `POST .../start-preparation` → la commande passe `preparing`.
 4. Il coche chaque ligne préparée (`PATCH .../lines/{merchantProductId}/preparation`).
 5. Toutes lignes cochées → « Marquer prête » (`POST .../mark-ready`) ; la `PickupSession` est créée, le client est notifié.
-6. Le client se présente : le marchand ouvre l'onglet Retrait et **scanne le QR** du client (`POST /api/merchant/pickup-sessions/scan`) — ou saisit le **code à 4 chiffres** (`POST .../orders/redeem-by-code`).
+6. Le client se présente : le marchand ouvre l'onglet Retrait et **scanne le QR** du client (`POST /api/merchant/pickup-sessions/scan`). En secours, le **code à 4 chiffres** (`POST .../orders/redeem-by-code`) finalise directement la remise après succès ; les étapes 7–9 concernent uniquement le QR.
 7. L'écran session affiche client, lignes et total TND ; le marchand remet la Kadhia et confirme (`PATCH /api/merchant/pickup-sessions/{id}/confirm`).
 8. Le client confirme sur son téléphone (double validation) → la commande passe `completed` ; notification de finalisation des deux côtés.
 9. Si le client ne confirme pas (parti, téléphone déchargé) : après 5 minutes, force completion avec note (`PATCH .../force-complete`) — parcours 3.6.
@@ -267,12 +267,12 @@ tap) ; un 409 déclenche systématiquement un re-GET.
 | 7 | Multi-boutique | `409 MERCHANT_MULTIPLE_ACTIVE_STORES` sur `GET /api/merchant/me` | « Ce compte gère plusieurs supérettes actives — non pris en charge sur mobile pour l'instant. » (`errors.merchant.multipleStores`) | Déconnexion ; résolution côté admin (parcours 3.8). |
 | 8 | QR de retrait invalide, expiré ou déjà utilisé | Scan → 404 (token inconnu ou d'une autre supérette — aucune fuite), `PICKUP_SESSION_EXPIRED`, `PICKUP_SESSION_ALREADY_USED`, `ORDER_NOT_READY` | « Ce QR de retrait n'est pas valide ou a déjà servi. » (`errors.pickup.invalidQr`) | Re-scanner ; code 4 chiffres ; en dernier recours validation manuelle avec note. |
 | 9 | Session de retrait expirée (TTL 24 h avant scan) | Scan → `PICKUP_SESSION_EXPIRED` | « La session de retrait a expiré. » (`errors.pickup.sessionExpired`) | Validation manuelle avec note (auditée) ; pas de réouverture admin dans le MVP. |
-| 10 | Code 4 chiffres erroné | `redeem-by-code` → 404 (code inconnu / commande non éligible) ou 409 (commande pas `ready`) | « Code incorrect ou commande non éligible. » (`errors.pickup.wrongCode`) | Nouvelle saisie ; vérifier avec le client ; bascule QR ou manuel. |
+| 10 | Code 4 chiffres erroné | `redeem-by-code` → 404 `PICKUP_CODE_NOT_FOUND` (inconnu, ambigu, déjà utilisé ou commande non éligible) ; 429 `RATE_LIMITED` avec `Retry-After` | « Code incorrect ou commande non éligible. » (`errors.pickup.wrongCode`) | Nouvelle saisie après le délai `Retry-After` si 429 ; vérifier avec le client ; bascule QR ou manuel. |
 | 11 | Réseau absent au moment du scan | Échec/timeout sans statut HTTP | « Connexion requise pour valider un retrait. » (`errors.network.pickupOffline`) | Le token scanné est conservé, bouton « Réessayer » à la reconnexion ; **jamais** de remise déclarée réussie hors-ligne. |
 | 12 | Commande déjà traitée par un autre compte / la PWA | Action → 409 (`ORDER_NOT_SUBMITTED`, `ORDER_NOT_PREPARING`, `ORDER_NOT_READY`, `ORDER_INVALID_STATUS`, `ORDER_ALREADY_COMPLETED`) | « Cette commande a déjà été traitée par {actor_name / un autre appareil}. » (`errors.order.conflict`) | Re-GET automatique, affichage de l'état serveur + historique de statuts avec auteur ; jamais d'écrasement. |
 | 13 | Lignes non toutes préparées | `mark-ready` → 422 | « Cochez toutes les lignes avant de marquer la commande prête. » (`errors.order.linesNotPrepared`) | Focus sur la première ligne non cochée ; re-GET si écart (ligne cochée ailleurs). |
 | 14 | Validation manuelle sans note | Contrôle local (note < 5 caractères) puis 422 serveur | « Une note d'au moins 5 caractères est obligatoire. » (`errors.pickup.manualNoteRequired`) | Le champ note est requis avant envoi. |
-| 15 | Permission caméra refusée | API permissions OS (refus ou refus définitif) | « Sans caméra, saisissez le token ou utilisez le code à 4 chiffres. » (`errors.permissions.camera`) | Saisie manuelle du token / code 4 chiffres ; lien réglages système (différence Android/iOS). |
+| 15 | Permission caméra refusée | API permissions OS (refus ou refus définitif) | « Sans caméra, utilisez le code à 4 chiffres. » (`errors.permissions.camera`) | Saisie du code 4 chiffres ; lien réglages système (différence Android/iOS). |
 | 16 | Permission notifications refusée | API permissions OS à l'opt-in | « Vous ne serez pas alerté des nouvelles commandes. Le centre de notifications reste disponible. » (`errors.permissions.notifications`) | L'app fonctionne (in-app + rafraîchissement) ; relance de l'opt-in au premier passage `submitted` manqué ; lien réglages. |
 | 17 | Supérette suspendue (abonnement) | `STORE_SUSPENDED_FOR_SUBSCRIPTION` (soumissions client bloquées) ; lifecycle `suspended` | « Supérette suspendue : les nouvelles Kadhia clients sont bloquées. Régularisez votre abonnement (web). » (`errors.store.suspendedSubscription`) | Bandeau persistant ; le traitement des commandes déjà soumises reste possible ; renvoi web abonnement. |
 | 18 | Erreur serveur avec `request_id` | 5xx | « Une erreur est survenue. Réessayez. Réf. : {request_id} » (`errors.server.generic`) | Bouton « Réessayer » ; `request_id` copiable pour le support. |
@@ -386,9 +386,9 @@ action serveur verrouille son bouton pendant l'envoi.
 
 - **Objectif** : identifier la session de retrait en scannant le QR du client (apport natif — la PWA exige de coller le token).
 - **Préconditions** : session valide ; permission caméra demandée à la première ouverture.
-- **Données affichées** : viseur caméra, aide, repli « Saisir le token » et lien « Code à 4 chiffres » (E09).
+- **Données affichées** : viseur caméra, aide, repli « Code à 4 chiffres » (E09).
 - **Endpoints** : `POST /api/merchant/pickup-sessions/scan` (`{token}` — payload du QR = token UUID opaque).
-- **Actions** : scanner ; saisie manuelle du token (validation format UUID, comme la PWA) ; basculer vers E09.
+- **Actions** : scanner le token opaque sans jamais l’afficher ni proposer sa saisie ; basculer vers E09 pour le code à quatre chiffres.
 - **Validations** : payload scanné conforme (UUID), sinon cas 8 sans appel serveur.
 - **États** : loading (caméra puis requête) ; error (permission → cas 15 ; QR invalide/expiré/déjà utilisé → cas 8 ; réseau → cas 11 avec token conservé) ; success → E08.
 - **Navigation** : entrante — tab bar, E03 (« Prêtes à remettre »), E05 (`ready`) ; sortante — E08, E09.
@@ -400,13 +400,13 @@ action serveur verrouille son bouton pendant l'envoi.
 ### E08 — Retrait : session et double validation
 
 - **Objectif** : vérifier la commande, remettre la Kadhia, confirmer côté marchand, forcer la finalisation si nécessaire.
-- **Préconditions** : session scannée (E07) ou identifiée par code (E09).
+- **Préconditions** : session scannée (E07). Le code (E09) finalise directement le retrait.
 - **Données affichées** : commande (code court), client (nom, téléphone), lignes et total TND, état de session (scannée / confirmée marchand / en attente client / clôturée), heure de scan.
 - **Endpoints** : `PATCH /api/merchant/pickup-sessions/{id}/confirm` ; `PATCH /api/merchant/pickup-sessions/{id}/force-complete` (`{note}`).
 - **Actions** : « Remettre la Kadhia » (confirmation marchand) ; « Forcer la finalisation » (visible si marchand confirmé, client non confirmé, ≥ 5 min, note obligatoire) ; « Scanner un autre QR ».
 - **Validations** : confirmation marchand unique (bouton désactivé ensuite) ; note de force obligatoire (cas 14) ; erreurs 409 mappées (`PICKUP_SESSION_NOT_SCANNED`, `ORDER_NOT_PICKUP_PENDING`…).
 - **États** : loading ; error (cas 8/12/18) ; success intermédiaire (« En attente de confirmation client ») ; success final (« Retrait finalisé », commande `completed`).
-- **Navigation** : entrante — E07, E09 ; sortante — E07 (nouveau scan), E03.
+- **Navigation** : entrante — E07 ; sortante — E07 (nouveau scan), E03.
 - **FR/AR/RTL** : récapitulatif miroir.
 - **Hors-ligne** : inaccessible pour les actions (cas 11) ; le récapitulatif déjà chargé reste lisible.
 - **Analytics** : `merchant_pickup_confirmed`, `merchant_pickup_force_completed`.
@@ -417,11 +417,11 @@ action serveur verrouille son bouton pendant l'envoi.
 - **Objectif** : finaliser un retrait sans QR — code dicté par le client, ou validation manuelle auditée en dernier recours.
 - **Préconditions** : session valide ; commande `ready` (revalidé serveur).
 - **Données affichées** : volet Code — champ 4 chiffres (clavier numérique) ; volet Manuel — sélection de la commande (depuis la liste `ready`, remplace la saisie d'UUID de la PWA — écart PWA corrigé) + champ note obligatoire.
-- **Endpoints** : `POST /api/merchant/stores/{storeId}/orders/redeem-by-code` (`{pickupCode}`) ; `POST /api/merchant/stores/{storeId}/orders/{orderId}/validate-manually` (`{note}`) — deux endpoints livrés mais **hors contrat documenté** (renvoi #565).
+- **Endpoints** : `POST /api/merchant/stores/{storeId}/orders/redeem-by-code` (`{pickupCode}`) ; `POST /api/merchant/stores/{storeId}/orders/{orderId}/validate-manually` (`{note}`) — retrait par code documenté dans le contrat API ; validation manuelle avec note inchangée.
 - **Actions** : valider le code ; valider manuellement ; basculer vers E07.
-- **Validations** : code = 4 chiffres exactement ; note manuelle ≥ 5 caractères (cas 14).
-- **États** : loading ; error (code erroné → cas 10 ; commande non `ready` → 409 ; réseau → cas 11) ; success (« Retrait validé », commande `completed` ou session à confirmer selon le flux serveur — à figer en #565).
-- **Navigation** : entrante — E07, tab Retrait ; sortante — E08 ou confirmation finale, E03.
+- **Validations** : code = chaîne de 4 chiffres exactement, y compris les zéros initiaux ; note manuelle ≥ 5 caractères (cas 14).
+- **États** : loading ; error (code erroné, ambigu ou non éligible → 404, cas 10 ; quota → 429 et attente `Retry-After` ; validation manuelle non `ready` → 409 ; réseau → cas 11) ; success (« Retrait validé », commande `completed`, finalisation directe).
+- **Navigation** : entrante — E07, tab Retrait ; sortante — confirmation finale, E03.
 - **FR/AR/RTL** : saisie du code LTR (chiffres), habillage miroir.
 - **Hors-ligne** : inaccessible (cas 11).
 - **Analytics** : `merchant_pickup_code_redeemed`, `merchant_pickup_validated_manually` (sans code ni note).
@@ -629,7 +629,6 @@ consentement : décision humaine §8 (commune au cadrage client).
     version API minimale (E17) — communs au cadrage client ;
   - confirmation au contrat des endpoints **utilisés par la PWA marchand mais
     absents de `docs/architecture/api-contract.md`** :
-    `POST /api/merchant/stores/{storeId}/orders/redeem-by-code`,
     `POST /api/merchant/stores/{storeId}/orders/{orderId}/validate-manually`,
     `POST /api/merchant/stores/{storeId}/local-products/{localProductId}/photo`
     (#583, avec limites taille/format),
@@ -642,8 +641,7 @@ consentement : décision humaine §8 (commune au cadrage client).
     `product-groups`, `local-products/bulk`) ;
   - format d'enregistrement push natif (FCM/APNs) vs
     `POST /api/merchant/push-subscriptions` actuel (Web Push) ;
-  - sémantique exacte de `redeem-by-code` et `validate-manually`
-    (finalisation directe vs session à confirmer) ;
+  - retrait par code : sémantique confirmée et documentée en QA mobile #12, finalisation directe `completed` ; validation manuelle avec note conservée ;
   - convention `request_id` sur les erreurs 5xx ;
   - règles d'idempotence des transitions sensibles (double tap réseau lent sur
     accept/ready/confirm) — matrice à produire en #565.
