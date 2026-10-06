@@ -4,6 +4,10 @@ parameters:
     app.merchant_team_invitation_resend_cooldown: 0
 
 services:
+    App\Service\SocialOAuthProvider:
+        autowire: true
+        public: true
+
     App\Tests\Support\Security\TestAuthenticator:
         autowire: true
         autoconfigure: true

@@ -69,7 +69,13 @@ parameters:
     # test environment (see when@test below) to keep the existing suite green.
     app.rate_limit.enabled_default: true
     app.rate_limit.enabled: '%env(default:app.rate_limit.enabled_default:bool:RATE_LIMIT_ENABLED)%'
+    app.rate_limit.pickup_code_limit_default: 5
+    app.rate_limit.pickup_code_window_default: 60
+    app.rate_limit.pickup_code_limit: '%env(default:app.rate_limit.pickup_code_limit_default:int:PICKUP_CODE_RATE_LIMIT)%'
+    app.rate_limit.pickup_code_window: '%env(default:app.rate_limit.pickup_code_window_default:int:PICKUP_CODE_RATE_WINDOW_SECONDS)%'
     app.rate_limit.policies:
+        social_start_ip: { method: POST, path: /api/auth/social/start, by: ip, limit: 10, window: 60 }
+        social_exchange_ip: { method: POST, path: /api/auth/social/exchange, by: ip, limit: 15, window: 60 }
         login_ip_email: { method: POST, path: /api/auth/login, by: ip_email, limit: 5, window: 60 }
         login_ip: { method: POST, path: /api/auth/login, by: ip, limit: 20, window: 60 }
         refresh_ip: { method: POST, path: /api/auth/refresh, by: ip, limit: 10, window: 60 }
@@ -117,6 +123,9 @@ services:
     App\:
         resource: '../src/'
 
+    App\Monolog\SocialAuthRedactionProcessor:
+        tags: [monolog.processor]
+
     App\Monolog\CorrelationIdProcessor:
         tags:
             - { name: monolog.processor }
@@ -152,6 +161,12 @@ services:
     # (migration seam towards symfony/rate-limiter if the dependency lands).
     App\Service\RateLimit\RateLimiterInterface:
         alias: App\Service\RateLimit\FixedWindowCacheRateLimiter
+
+    App\Processor\MerchantRedeemByCodeProcessor:
+        arguments:
+            $rateLimitEnabled: '%app.rate_limit.enabled%'
+            $pickupCodeLimit: '%app.rate_limit.pickup_code_limit%'
+            $pickupCodeWindowSeconds: '%app.rate_limit.pickup_code_window%'
 
     App\EventSubscriber\RateLimitSubscriber:
         arguments:

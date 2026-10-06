@@ -31,6 +31,8 @@ security:
             jwt: ~
 
     access_control:
+        - { path: ^/api/auth/social/(providers|start|exchange|callback/(google|facebook))$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/me/auth-methods$, roles: ROLE_USER, methods: [GET] }
         - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/register/customer$, roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/api/auth/password-reset/request$, roles: PUBLIC_ACCESS, methods: [POST] }
