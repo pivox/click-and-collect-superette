@@ -1,7 +1,9 @@
 'use client';
 import { isAxiosError } from 'axios';
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { safeLoginDestination } from '@/lib/auth/loginPortal';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useAdminAuth } from '@/lib/auth/AdminAuthContext';
 import { Button } from '@/components/ui/Button';
 import { useHydrated } from '@/lib/hooks/useHydrated';
@@ -31,8 +33,13 @@ function getAdminLoginErrorMessage(err: unknown): string {
 }
 
 export default function AdminLoginPage() {
-  const { login } = useAdminAuth();
+  const { login, user, isLoading } = useAdminAuth();
   const isHydrated = useHydrated();
+  const router = useRouter();
+  const submitLock = useRef(false);
+  useEffect(() => {
+    if (!isLoading && user) router.replace(safeLoginDestination('admin', new URLSearchParams(window.location.search).get('redirect')));
+  }, [user, isLoading, router]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +47,8 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
     setError(null);
     setIsSubmitting(true);
     try {
@@ -47,9 +56,12 @@ export default function AdminLoginPage() {
     } catch (err) {
       setError(getAdminLoginErrorMessage(err));
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading || user) return <p role="status">Chargement…</p>;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg">

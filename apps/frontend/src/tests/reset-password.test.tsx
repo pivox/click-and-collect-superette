@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ResetPasswordPage from '@/app/(auth)/reset-password/page';
 
@@ -21,7 +21,7 @@ async function submitNewPassword() {
   fireEvent.change(screen.getByLabelText('Confirmer le mot de passe'), {
     target: { value: 'newSecret123' },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le mot de passe' }));
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le mot de passe' })); });
 }
 
 describe('ResetPasswordPage', () => {
@@ -54,4 +54,10 @@ describe('ResetPasswordPage', () => {
       ),
     );
   });
+});
+
+it('keeps the merchant portal when requesting another reset link',()=>{
+ searchParams.value=new URLSearchParams('portal=merchant');
+ render(<ResetPasswordPage/>);
+ expect(screen.getByRole('link',{name:'Demander un nouveau lien'})).toHaveAttribute('href','/forgot-password?portal=merchant');
 });

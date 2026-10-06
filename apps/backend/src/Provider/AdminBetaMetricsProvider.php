@@ -110,7 +110,7 @@ final readonly class AdminBetaMetricsProvider implements ProviderInterface
     private function fetchStatusRows(\DateTimeImmutable $dateFrom, \DateTimeImmutable $dateTo, ?string $storeId): array
     {
         $queryBuilder = $this->entityManager->createQueryBuilder()
-            ->select('IDENTITY(orderEntity.shop) AS store_id')
+            ->select('shop.id AS store_id')
             ->addSelect('shop.name AS store_name')
             ->addSelect('log.status AS status')
             ->addSelect('COUNT(log.id) AS count')

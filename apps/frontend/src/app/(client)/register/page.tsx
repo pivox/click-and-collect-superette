@@ -1,15 +1,19 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { useClientAuth } from '@/lib/auth/ClientAuthContext';
 import { useHydrated } from '@/lib/hooks/useHydrated';
 import { clientRegister } from '@/lib/services/auth.service';
 
 export default function ClientRegisterPage() {
   const router = useRouter();
+  const { user, isLoading } = useClientAuth();
+  const submitLock = useRef(false);
+  useEffect(() => { if (!isLoading && user) router.replace('/'); }, [user, isLoading, router]);
   const isHydrated = useHydrated();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,6 +25,7 @@ export default function ClientRegisterPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
     setError(null);
 
     const formData = new FormData(e.currentTarget as HTMLFormElement);
@@ -34,6 +39,7 @@ export default function ClientRegisterPage() {
       return;
     }
     if (password.trim().length < 8) { setError('Le mot de passe doit contenir au moins 8 caractères.'); return; }
+    submitLock.current = true;
     setIsSubmitting(true);
     try {
       await clientRegister(email, password, name);
@@ -50,9 +56,12 @@ export default function ClientRegisterPage() {
         setError("Erreur lors de l'inscription. Réessaie dans quelques instants.");
       }
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading || user) return <p role="status">Chargement…</p>;
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4">

@@ -1,5 +1,6 @@
 'use client';
 
+import { tunisCalendarDate, tunisDayBounds } from '@/lib/merchant-slot-calendar';
 import { cn } from '@/lib/cn';
 import type { MerchantPickupSlot, MerchantExceptionalClosure } from '@/lib/types/merchant-slots.types';
 
@@ -20,10 +21,7 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 function hasClosure(date: Date, closures: MerchantExceptionalClosure[]): boolean {
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(date);
-  dayEnd.setHours(23, 59, 59, 999);
+  const { start: dayStart, end: dayEnd } = tunisDayBounds(date);
   return closures.some((c) => {
     const start = new Date(c.starts_at);
     const end = new Date(c.ends_at);
@@ -33,7 +31,7 @@ function hasClosure(date: Date, closures: MerchantExceptionalClosure[]): boolean
 
 function slotCountForDay(date: Date, slots: MerchantPickupSlot[]): number {
   return slots.filter(
-    (s) => s.is_active && isSameDay(new Date(s.starts_at), date),
+    (s) => s.is_active && isSameDay(tunisCalendarDate(new Date(s.starts_at)), date),
   ).length;
 }
 

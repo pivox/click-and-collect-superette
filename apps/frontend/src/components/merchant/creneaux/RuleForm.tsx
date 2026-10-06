@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import type { CreateSlotRulePayload } from '@/lib/types/merchant-slots.types';
 
@@ -19,15 +19,17 @@ const ALL_WEEKDAYS = new Set<number>(WEEKDAYS.map((d) => d.value));
 export interface RuleFormProps {
   onSubmit: (payload: CreateSlotRulePayload) => Promise<void>;
   onCancel: () => void;
+  onComplete?: () => void;
 }
 
-export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
+export function RuleForm({ onSubmit, onCancel, onComplete }: RuleFormProps) {
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set(ALL_WEEKDAYS));
   const [startTime, setStartTime] = useState('17:00');
   const [endTime, setEndTime] = useState('18:00');
   const [capacity, setCapacity] = useState('6');
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const submitting = useRef(false);
 
   function toggleDay(value: number) {
     setSelectedDays((prev) => {
@@ -43,6 +45,7 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting.current) return;
     setErrors([]);
 
     if (selectedDays.size === 0) {
@@ -65,7 +68,9 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
       return;
     }
 
+    submitting.current = true;
     setSaving(true);
+    const failedDays = new Set<number>();
     const dayErrors: string[] = [];
     const sorted = Array.from(selectedDays).sort((a, b) => a - b);
 
@@ -73,14 +78,19 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
       try {
         await onSubmit({ weekday, start_time: startTime, end_time: endTime, capacity: cap });
       } catch {
+        failedDays.add(weekday);
         const label = WEEKDAYS.find((d) => d.value === weekday)?.label ?? String(weekday);
         dayErrors.push(`${label} : doublon ou erreur serveur.`);
       }
     }
 
+    submitting.current = false;
     setSaving(false);
     if (dayErrors.length > 0) {
+      setSelectedDays(failedDays);
       setErrors(dayErrors);
+    } else {
+      onComplete?.();
     }
   }
 
@@ -96,6 +106,8 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
                 key={d.value}
                 type="button"
                 onClick={() => toggleDay(d.value)}
+                disabled={saving}
+                aria-pressed={selected}
                 className={[
                   'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
                   selected
@@ -120,6 +132,7 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
             required
+            disabled={saving}
             className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none"
           />
         </div>
@@ -133,6 +146,7 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
             required
+            disabled={saving}
             className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none"
           />
         </div>
@@ -148,6 +162,7 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
           value={capacity}
           onChange={(e) => setCapacity(e.target.value)}
           required
+          disabled={saving}
           className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none"
         />
       </div>
@@ -166,7 +181,7 @@ export function RuleForm({ onSubmit, onCancel }: RuleFormProps) {
             ? 'Création…'
             : `Ajouter ${selectedDays.size > 1 ? `${selectedDays.size} règles` : 'la règle'}`}
         </Button>
-        <Button type="button" variant="ghost" onClick={onCancel}>
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
           Annuler
         </Button>
       </div>

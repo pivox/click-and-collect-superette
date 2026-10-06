@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { decodeJwtPayload, adminLogin } from '@/lib/services/auth.service';
+import { decodeJwtPayload, adminLogin, getClientProfile } from '@/lib/services/auth.service';
 import { apiClient } from '@/lib/api';
 
 vi.mock('@/lib/api', () => ({
   apiClient: {
     post: vi.fn(),
+    get: vi.fn(),
   },
 }));
 
@@ -66,4 +67,10 @@ describe('adminLogin', () => {
     vi.mocked(apiClient.post).mockRejectedValue(new Error('Network Error'));
     await expect(adminLogin('admin@kadhia.tn', 'wrong')).rejects.toThrow('Network Error');
   });
+});
+
+it('loads the customer identity from the explicit profile endpoint',async()=>{
+ vi.mocked(apiClient.get).mockResolvedValue({data:{name:'Recette Web',email:'client@example.tn'}});
+ expect(await getClientProfile()).toEqual({name:'Recette Web',email:'client@example.tn'});
+ expect(apiClient.get).toHaveBeenCalledWith('/api/me/profile',expect.objectContaining({skipAuthRedirect:true,timeout:10000}));
 });

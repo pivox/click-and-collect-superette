@@ -4,9 +4,12 @@ import ClientRegisterPage from '@/app/(client)/register/page';
 import { clientRegister } from '@/lib/services/auth.service';
 
 const routerPush = vi.fn();
+const routerReplace = vi.fn();
+let existingUser: object | null = null;
+vi.mock('@/lib/auth/ClientAuthContext', () => ({ useClientAuth: () => ({ user: existingUser, isLoading: false }) }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: routerPush, replace: vi.fn() }),
+  useRouter: () => ({ push: routerPush, replace: routerReplace }),
 }));
 
 vi.mock('@/lib/services/auth.service', () => ({
@@ -16,6 +19,7 @@ vi.mock('@/lib/services/auth.service', () => ({
 describe('ClientRegisterPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    existingUser = null;
   });
 
   it('soumet les valeurs présentes dans le DOM même sans événements change React', async () => {
@@ -42,4 +46,11 @@ describe('ClientRegisterPage', () => {
     );
     expect(routerPush).toHaveBeenCalledWith('/login');
   });
+});
+
+it('does not offer a second registration to an authenticated client', async () => {
+ existingUser = { email: 'client@example.tn' };
+ render(<ClientRegisterPage />);
+ await waitFor(() => expect(routerReplace).toHaveBeenCalledWith('/'));
+ expect(screen.queryByLabelText('Email')).toBeNull();
 });

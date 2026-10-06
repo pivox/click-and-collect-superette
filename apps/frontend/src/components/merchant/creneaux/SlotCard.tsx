@@ -26,8 +26,12 @@ export function SlotCard({ slot, onPatch, onDelete }: SlotCardProps) {
   const isFull = remaining <= 0;
 
   async function handleSaveCapacity() {
-    const val = parseInt(capacity, 10);
-    if (!val || val <= 0) return;
+    const val = Number(capacity);
+    if (!Number.isSafeInteger(val) || val <= 0) {
+      setSaveError('La capacité doit être un nombre entier positif.');
+      return;
+    }
+    setSaveError(null);
     setSaving(true);
     try {
       await onPatch(slot.id, { capacity: val });

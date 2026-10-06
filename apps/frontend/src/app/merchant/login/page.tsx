@@ -1,14 +1,21 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { safeLoginDestination } from '@/lib/auth/loginPortal';
 import { Button } from '@/components/ui/Button';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
 import { useHydrated } from '@/lib/hooks/useHydrated';
 
 export default function MerchantLoginPage() {
-  const { login } = useMerchantAuth();
+  const { login, merchant, isLoading } = useMerchantAuth();
   const isHydrated = useHydrated();
+  const router = useRouter();
+  const submitLock = useRef(false);
+  useEffect(() => {
+    if (!isLoading && merchant) router.replace(merchant.password_change_required ? '/merchant/premiere-connexion' : safeLoginDestination('merchant', new URLSearchParams(window.location.search).get('redirect')));
+  }, [merchant, isLoading, router]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -16,6 +23,8 @@ export default function MerchantLoginPage() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
     setError(null);
     setIsSubmitting(true);
 
@@ -24,9 +33,12 @@ export default function MerchantLoginPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Identifiants marchand incorrects');
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading || merchant) return <p role="status">Chargement…</p>;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4">

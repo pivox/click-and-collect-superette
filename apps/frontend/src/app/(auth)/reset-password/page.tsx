@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, type FormEvent } from 'react';
+import { Suspense, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { isAxiosError } from 'axios';
@@ -17,6 +17,9 @@ function ResetPasswordForm() {
   // the user back to the right login (customer / merchant / admin).
   const loginHref = loginHrefForPortal(searchParams.get('portal'));
   const isHydrated = useHydrated();
+  const portal = searchParams.get('portal');
+  const requestHref = portal === 'merchant' || portal === 'admin' ? `/forgot-password?portal=${portal}` : '/forgot-password';
+  const submitLock = useRef(false);
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -37,7 +40,7 @@ function ResetPasswordForm() {
           Ce lien de réinitialisation est invalide ou a expiré.
         </p>
         <Link
-          href="/forgot-password"
+          href={requestHref}
           className="block text-center text-sm font-extrabold text-primary hover:underline"
         >
           Demander un nouveau lien
@@ -48,6 +51,7 @@ function ResetPasswordForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
     setError(null);
 
     if (password.length < 8) {
@@ -59,6 +63,7 @@ function ResetPasswordForm() {
       return;
     }
 
+    submitLock.current = true;
     setIsSubmitting(true);
     try {
       await confirmPasswordReset(token, password);
@@ -69,7 +74,11 @@ function ResetPasswordForm() {
     } catch (err) {
       if (isAxiosError(err)) {
         const status = err.response?.status;
-        if (status === 422 || status === 400) {
+        if (status === 429) {
+          setError('Trop de tentatives. Réessaie dans quelques minutes.');
+        } else if (!err.response) {
+          setError('Impossible de joindre le serveur. Vérifie ta connexion.');
+        } else if (status === 422 || status === 400) {
           setError(
             'Ce lien est invalide ou a expiré. Demande un nouveau lien de réinitialisation.',
           );
@@ -80,6 +89,7 @@ function ResetPasswordForm() {
         setError('Une erreur est survenue. Réessaie plus tard.');
       }
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   };
@@ -158,7 +168,7 @@ function ResetPasswordForm() {
 
         <p className="text-center text-sm">
           <Link
-            href="/forgot-password"
+            href={requestHref}
             className="font-semibold text-muted hover:text-primary hover:underline"
           >
             Demander un nouveau lien

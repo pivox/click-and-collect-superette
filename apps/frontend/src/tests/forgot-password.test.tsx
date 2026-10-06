@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {requestPasswordReset} from '@/lib/services/auth.service';
 import ForgotPasswordPage from '@/app/(auth)/forgot-password/page';
 
 const searchParams = { value: new URLSearchParams() };
@@ -45,4 +46,13 @@ describe('ForgotPasswordPage', () => {
       '/admin/login',
     );
   });
+});
+
+it('reports reset request quota explicitly without claiming success',async()=>{
+ vi.mocked(requestPasswordReset).mockRejectedValueOnce({isAxiosError:true,response:{status:429}});
+ render(<ForgotPasswordPage/>);
+ fireEvent.change(screen.getByLabelText('Adresse email'),{target:{value:'client@example.tn'}});
+ fireEvent.click(screen.getByRole('button',{name:'Envoyer le lien'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent('Trop de tentatives');
+ expect(screen.queryByText(/un lien de réinitialisation a été envoyé/)).toBeNull();
 });

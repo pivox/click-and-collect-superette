@@ -30,8 +30,8 @@ export function ClosureForm({ onSubmit, onCancel }: ClosureFormProps) {
     setSaving(true);
     try {
       await onSubmit({
-        starts_at: new Date(startsAt).toISOString(),
-        ends_at: new Date(endsAt).toISOString(),
+        starts_at: `${startsAt}:00+01:00`,
+        ends_at: `${endsAt}:00+01:00`,
         ...(reason.trim() ? { reason: reason.trim() } : {}),
       });
     } catch {

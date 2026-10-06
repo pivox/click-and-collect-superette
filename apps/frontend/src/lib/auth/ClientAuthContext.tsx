@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   clientLogin as apiClientLogin,
   decodeJwtPayload,
+  getClientProfile,
   type ClientUser,
 } from '@/lib/services/auth.service';
 
@@ -22,43 +23,76 @@ const ClientAuthContext = createContext<ClientAuthContextValue | null>(null);
 export function ClientAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<ClientUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const generation = useRef(0);
 
-  useEffect(() => {
-    const token = localStorage.getItem('jwt_token');
-    if (token) {
-      try {
-        const payload = decodeJwtPayload(token);
-        const exp = typeof payload.exp === 'number' ? payload.exp : 0;
-        if (exp <= 0 || Date.now() / 1000 >= exp) {
-          localStorage.removeItem('jwt_token');
-          localStorage.removeItem(PROFILE_NAME_KEY);
-        } else {
-          const nameOverride = localStorage.getItem(PROFILE_NAME_KEY);
-          setUser({
-            token,
-            email: typeof payload.email === 'string' ? payload.email : '',
-            name: nameOverride ?? (typeof payload.name === 'string' ? payload.name : ''),
-          });
-        }
-      } catch {
+  const loadProfile = useCallback(async (fallback: ClientUser, current: number) => {
+    let resolved = fallback;
+    try {
+      const profile = await getClientProfile();
+      resolved = { ...fallback, name: profile.name, email: profile.email };
+    } catch (error) {
+      if (current !== generation.current) return;
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 401 || status === 403) {
         localStorage.removeItem('jwt_token');
         localStorage.removeItem(PROFILE_NAME_KEY);
+        setUser(null);
+        throw error;
       }
+      // A transient profile request failure must not destroy a usable session.
     }
-    setIsLoading(false);
+    if (current !== generation.current) return;
+    setUser(resolved);
   }, []);
 
+  useEffect(() => {
+    const current = ++generation.current;
+    const token = localStorage.getItem('jwt_token');
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const payload = decodeJwtPayload(token);
+      const exp = typeof payload.exp === 'number' ? payload.exp : 0;
+      if (exp <= Date.now() / 1000 || !Array.isArray(payload.roles) || !payload.roles.includes('ROLE_CUSTOMER')) {
+        throw new Error('Invalid customer session');
+      }
+      const fallback = {
+        token,
+        email: typeof payload.email === 'string' ? payload.email : '',
+        name: localStorage.getItem(PROFILE_NAME_KEY) ?? (typeof payload.name === 'string' ? payload.name : ''),
+      };
+      void loadProfile(fallback, current)
+        .catch(() => undefined)
+        .finally(() => { if (current === generation.current) setIsLoading(false); });
+    } catch {
+      localStorage.removeItem('jwt_token');
+      localStorage.removeItem(PROFILE_NAME_KEY);
+      setIsLoading(false);
+    }
+    return () => { generation.current += 1; };
+  }, [loadProfile]);
+
   const login = async (email: string, password: string) => {
+    const current = ++generation.current;
     const clientUser = await apiClientLogin(email, password);
+    if (current !== generation.current) return;
     localStorage.setItem('jwt_token', clientUser.token);
     localStorage.removeItem(PROFILE_NAME_KEY);
-    setUser(clientUser);
+    try {
+      await loadProfile(clientUser, current);
+    } finally {
+      if (current === generation.current) setIsLoading(false);
+    }
   };
 
   const logout = () => {
+    generation.current += 1;
     localStorage.removeItem('jwt_token');
     localStorage.removeItem(PROFILE_NAME_KEY);
     setUser(null);
+    setIsLoading(false);
   };
 
   const updateUser = (name: string) => {

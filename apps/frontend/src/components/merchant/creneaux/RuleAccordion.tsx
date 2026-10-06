@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { RuleForm } from './RuleForm';
 import type {
@@ -8,6 +8,10 @@ import type {
   GenerateSlotsResult,
   MerchantPickupSlotRule,
 } from '@/lib/types/merchant-slots.types';
+
+const formatGenerationDate = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', {
+  day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Africa/Tunis',
+});
 
 const WEEKDAY_LABELS: Record<number, string> = {
   1: 'Lundi', 2: 'Mardi', 3: 'Mercredi', 4: 'Jeudi',
@@ -30,26 +34,33 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }:
   const [generating, setGenerating] = useState<1 | 3 | null>(null);
   const [generateResult, setGenerateResult] = useState<GenerateSlotsResult | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const generationLock = useRef(false);
+  const deletionLock = useRef(false);
+  const hasActiveRules = rules.some((rule) => rule.is_active);
 
   async function handleCreate(payload: CreateSlotRulePayload) {
     await onCreateRule(payload);
-    setShowForm(false);
   }
 
   async function handleDelete(ruleId: string) {
+    if (deletionLock.current) return;
+    deletionLock.current = true;
     setDeletingId(ruleId);
     setDeleteError(null);
     try {
       await onDeleteRule(ruleId);
     } catch {
-      setDeleteError('Impossible de supprimer cette règle.');
+      setDeleteError('Impossible de désactiver cette règle.');
     } finally {
+      deletionLock.current = false;
       setDeletingId(null);
       setConfirmId(null);
     }
   }
 
   async function handleGenerate(horizonMonths: 1 | 3) {
+    if (generationLock.current || !hasActiveRules) return;
+    generationLock.current = true;
     setGenerating(horizonMonths);
     setGenerateResult(null);
     setGenerateError(null);
@@ -59,6 +70,7 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }:
     } catch {
       setGenerateError('Impossible de générer les créneaux. Réessayez.');
     } finally {
+      generationLock.current = false;
       setGenerating(null);
     }
   }
@@ -96,7 +108,7 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }:
                 </span>
                 {confirmId === rule.id ? (
                   <span className="flex items-center gap-2 text-xs">
-                    Supprimer ?
+                    Désactiver ?
                     <button
                       type="button"
                       onClick={() => handleDelete(rule.id)}
@@ -116,7 +128,8 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }:
                 ) : (
                   <button
                     type="button"
-                    aria-label={`Supprimer la règle ${WEEKDAY_LABELS[rule.weekday]} ${rule.start_time}`}
+                    disabled={!rule.is_active || deletingId !== null}
+                    aria-label={`Désactiver la règle ${WEEKDAY_LABELS[rule.weekday]} ${rule.start_time}`}
                     onClick={() => setConfirmId(rule.id)}
                     className="rounded p-1 text-muted hover:bg-soft hover:text-danger"
                   >
@@ -127,6 +140,12 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }:
             ))}
           </ul>
 
+          {confirmId && (
+            <p className="mt-2 text-xs text-muted">
+              La règle ne participera plus aux prochaines générations. Les rendez-vous existants sont conservés.
+            </p>
+          )}
+
           {deleteError && (
             <p role="alert" aria-atomic="true" className="mt-2 text-xs text-danger">{deleteError}</p>
           )}
@@ -135,6 +154,7 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }:
             <RuleForm
               onSubmit={handleCreate}
               onCancel={() => setShowForm(false)}
+              onComplete={() => setShowForm(false)}
             />
           ) : (
             <button
@@ -150,11 +170,12 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }:
           {rules.length > 0 && (
             <div className="mt-4 border-t border-line pt-4">
               <p className="mb-2 text-xs font-bold text-muted">Générer les créneaux</p>
+              {!hasActiveRules && <p className="mb-2 text-xs text-muted">Ajoutez une règle active pour générer des créneaux.</p>}
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => handleGenerate(1)}
-                  disabled={generating !== null}
+                  disabled={generating !== null || !hasActiveRules}
                   className="rounded-md border border-line bg-white px-3 py-1.5 text-xs font-semibold hover:bg-soft disabled:opacity-50"
                 >
                   {generating === 1 ? 'Génération…' : 'Générer 1 mois'}
@@ -162,16 +183,19 @@ export function RuleAccordion({ rules, onCreateRule, onDeleteRule, onGenerate }:
                 <button
                   type="button"
                   onClick={() => handleGenerate(3)}
-                  disabled={generating !== null}
+                  disabled={generating !== null || !hasActiveRules}
                   className="rounded-md border border-line bg-white px-3 py-1.5 text-xs font-semibold hover:bg-soft disabled:opacity-50"
                 >
                   {generating === 3 ? 'Génération…' : 'Générer 3 mois'}
                 </button>
               </div>
               {generateResult && (
-                <p className="mt-2 text-xs text-success">
-                  ✓ {generateResult.generated_count} créneau{generateResult.generated_count !== 1 ? 'x' : ''} généré{generateResult.generated_count !== 1 ? 's' : ''}.
-                </p>
+                <div role="status" className="mt-2 text-xs text-success">
+                  <p>✓ {generateResult.generated_count} créneau{generateResult.generated_count !== 1 ? 'x' : ''} généré{generateResult.generated_count !== 1 ? 's' : ''}.</p>
+                  <p>{generateResult.skipped_existing_count} existants ignorés · {generateResult.skipped_closure_count} fermetures ignorées.</p>
+                  <p>Du {formatGenerationDate(generateResult.horizon_start)} au {formatGenerationDate(generateResult.horizon_end)} exclu, heure de Tunis.</p>
+                  {generateResult.generated_count === 0 && <p>Aucun nouveau créneau : les plages sont déjà couvertes, passées ou exclues par une fermeture.</p>}
+                </div>
               )}
               {generateError && (
                 <p role="alert" aria-atomic="true" className="mt-2 text-xs text-danger">{generateError}</p>

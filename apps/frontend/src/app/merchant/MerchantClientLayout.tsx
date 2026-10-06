@@ -21,15 +21,6 @@ function MerchantContent({ children }: { children: React.ReactNode }) {
     }
   }, [merchant, isLoading, error, isPublicMerchantPath, router]);
 
-  useEffect(() => {
-    if (isLoading || !merchant) return;
-    if (merchant.password_change_required && !isFirstLogin && !isInvitation) {
-      router.push('/merchant/premiere-connexion');
-    }
-    if (!merchant.password_change_required && isFirstLogin) {
-      router.push('/merchant');
-    }
-  }, [merchant, isLoading, isFirstLogin, isInvitation, router]);
 
   if (isPublicMerchantPath) return <>{children}</>;
 

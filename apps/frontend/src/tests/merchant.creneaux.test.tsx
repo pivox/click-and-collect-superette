@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,12 +8,14 @@ import { SlotCreateModal } from '@/components/merchant/creneaux/SlotCreateModal'
 import { RuleAccordion } from '@/components/merchant/creneaux/RuleAccordion';
 import { RuleForm } from '@/components/merchant/creneaux/RuleForm';
 import { GenerateBanner } from '@/components/merchant/creneaux/GenerateBanner';
+import { ClosureForm } from '@/components/merchant/creneaux/ClosureForm';
 import { ClosureAccordion } from '@/components/merchant/creneaux/ClosureAccordion';
 import { SlotCoverageWarning } from '@/components/merchant/SlotCoverageWarning';
 import MerchantCreneauxPage from '@/app/merchant/creneaux/page';
 import {
   listMerchantSlotRules,
   createMerchantSlotRule,
+  generateMerchantSlots,
 } from '@/lib/services/merchant-slot-rules.service';
 import {
   listMerchantSlots,
@@ -109,6 +111,22 @@ function setupPageMocks() {
 describe('DayStrip', () => {
   const days = [today, new Date(today.getTime() + 86400000)];
 
+  it('counts a near-midnight slot on its Tunis calendar day', () => {
+    const date = new Date(2028, 0, 31);
+    render(<DayStrip days={[date]} selectedDate={date} slots={[makeSlot({
+      starts_at: '2028-01-30T23:30:00Z', ends_at: '2028-01-31T00:30:00Z',
+    })]} closures={[]} onSelectDate={vi.fn()} />);
+    expect(screen.getByLabelText('1 créneau')).toBeInTheDocument();
+  });
+
+  it('marks a closure against Tunis midnight instead of browser midnight', () => {
+    const date = new Date(2028, 0, 31);
+    render(<DayStrip days={[date]} selectedDate={date} slots={[]} closures={[{
+      ...closure, starts_at: '2028-01-30T23:10:00Z', ends_at: '2028-01-30T23:50:00Z',
+    }]} onSelectDate={vi.fn()} />);
+    expect(screen.getByLabelText('Fermeture exceptionnelle')).toBeInTheDocument();
+  });
+
   it('renders all days', () => {
     render(
       React.createElement(DayStrip, {
@@ -170,8 +188,8 @@ describe('DayStrip', () => {
     // Closure starts at 14:00 today — not at midnight, so the old `date >= start` check would miss it
     const partialClosure: MerchantExceptionalClosure = {
       id: 'closure-partial',
-      starts_at: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 0).toISOString(),
-      ends_at: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 18, 0).toISOString(),
+      starts_at: todayIso(14),
+      ends_at: todayIso(18),
       reason: 'Pause déjeuner',
       is_active: true,
     };
@@ -351,6 +369,16 @@ describe('SlotCard', () => {
     expect(screen.getByText(/2\/6 réservé/)).toBeInTheDocument();
   });
 
+  it('rejects a fractional capacity without silently truncating it', async () => {
+    const onPatch = vi.fn().mockResolvedValue(undefined);
+    render(<SlotCard slot={makeSlot()} onPatch={onPatch} onDelete={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier capacité' }));
+    fireEvent.change(screen.getByLabelText('Capacité'), { target: { value: '2.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(onPatch).not.toHaveBeenCalled();
+    expect(await screen.findByRole('alert')).toHaveTextContent('entier');
+  });
+
   it('shows Complet badge when fully booked', () => {
     const slot = makeSlot({ capacity: 4, booked_count: 4 });
     render(React.createElement(SlotCard, { slot, onPatch: vi.fn(), onDelete: vi.fn() }));
@@ -437,8 +465,8 @@ describe('RuleAccordion', () => {
       }),
     );
     fireEvent.click(screen.getByText('Règles récurrentes'));
-    fireEvent.click(screen.getByLabelText(/Supprimer la règle/));
-    expect(screen.getByText('Supprimer ?')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/Désactiver la règle/));
+    expect(screen.getByText('Désactiver ?')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Oui'));
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith('rule-1'));
   });
@@ -454,10 +482,10 @@ describe('RuleAccordion', () => {
       }),
     );
     fireEvent.click(screen.getByText('Règles récurrentes'));
-    fireEvent.click(screen.getByLabelText(/Supprimer la règle/));
+    fireEvent.click(screen.getByLabelText(/Désactiver la règle/));
     fireEvent.click(screen.getByText('Oui'));
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Impossible de supprimer cette règle');
+      expect(screen.getByRole('alert')).toHaveTextContent('Impossible de désactiver cette règle');
     });
   });
 
@@ -565,6 +593,23 @@ describe('GenerateBanner', () => {
 // ─── ClosureAccordion ────────────────────────────────────────────────────────
 
 describe('ClosureAccordion', () => {
+  it('sends closure wall times in Tunis independently of the browser timezone', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<ClosureForm onSubmit={onSubmit} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Début'), { target: { value: '2028-01-31T09:00' } });
+    fireEvent.change(screen.getByLabelText('Fin'), { target: { value: '2028-01-31T10:00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter la fermeture' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({
+      starts_at: '2028-01-31T09:00:00+01:00', ends_at: '2028-01-31T10:00:00+01:00',
+    }));
+  });
+
+  it('displays closure times in Tunis rather than the browser timezone', () => {
+    render(<ClosureAccordion closures={[{ ...closure, starts_at: '2028-01-31T08:00:00Z', ends_at: '2028-01-31T09:00:00Z' }]} onCreateClosure={vi.fn()} onDeleteClosure={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Fermetures exceptionnelles/ }));
+    expect(screen.getByText(/09:00 → .*10:00/)).toBeInTheDocument();
+  });
+
   it('shows no closures message when empty', () => {
     render(
       React.createElement(ClosureAccordion, {
@@ -629,6 +674,41 @@ describe('MerchantCreneauxPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setupPageMocks();
+  });
+
+  it('waits for each rule reload before submitting the next weekday', async () => {
+    let resolve!: (data: { total: number; items: MerchantPickupSlotRule[] }) => void;
+    vi.mocked(listMerchantSlotRules)
+      .mockResolvedValueOnce({ total: 0, items: [] })
+      .mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    vi.mocked(createMerchantSlotRule).mockResolvedValue(rule);
+    render(<MerchantCreneauxPage />);
+    await screen.findByText(/Aucun créneau ce jour/);
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle règle' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter 7 règles' }));
+    await waitFor(() => expect(listMerchantSlotRules).toHaveBeenCalledTimes(2));
+    expect(createMerchantSlotRule).toHaveBeenCalledTimes(1);
+    await act(async () => resolve({ total: 1, items: [rule] }));
+    await waitFor(() => expect(createMerchantSlotRule).toHaveBeenCalledTimes(7));
+  });
+
+  it('does not claim the selected day is empty before loading finishes', async () => {
+    let resolve!: (slots: MerchantPickupSlot[]) => void;
+    vi.mocked(listMerchantSlots).mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    render(React.createElement(MerchantCreneauxPage));
+    expect(screen.queryByText(/Aucun créneau ce jour/)).not.toBeInTheDocument();
+    resolve([]);
+    await screen.findByText(/Aucun créneau ce jour/);
+  });
+
+  it('rereads slots after an uncertain generation before allowing another attempt', async () => {
+    vi.mocked(listMerchantSlotRules).mockResolvedValue({ total: 1, items: [rule] });
+    vi.mocked(generateMerchantSlots).mockRejectedValueOnce(new Error('network'));
+    render(React.createElement(MerchantCreneauxPage));
+    await screen.findByRole('button', { name: 'Générer 1 mois' });
+    fireEvent.click(screen.getByRole('button', { name: 'Générer 1 mois' }));
+    await waitFor(() => expect(listMerchantSlots).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText(/Impossible de générer les créneaux/)).toBeInTheDocument();
   });
 
   it('renders the page heading', async () => {
