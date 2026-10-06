@@ -254,6 +254,63 @@ final class AuthRefreshTokenApiTest extends FunctionalApiTestCase
         }
     }
 
+    public function testPasswordChangeRejectsARefreshTokenMissedByRevocation(): void
+    {
+        $customer = $this->createCustomer('client.refresh-credential-change@example.test');
+        $rawToken = $this->issueToken($customer, new \DateTimeImmutable('+30 days'));
+        $customer->setPassword(self::getContainer()->get(UserPasswordHasherInterface::class)->hashPassword($customer, 'newSecret123'));
+        $this->entityManager->flush();
+
+        // A concurrent issuer can escape the revocation snapshot. Its old
+        // credentials must still prevent this token from extending the session.
+        self::assertFalse($this->tokenByRaw($rawToken)->isRevoked());
+        $response = $this->requestJson('POST', '/api/auth/refresh', ['refresh_token' => $rawToken]);
+
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+        self::assertStringContainsString('AUTH_REFRESH_TOKEN_INVALID', (string) $response->getContent());
+        self::assertCount(1, $this->allTokens());
+        self::assertTrue($this->tokenByRaw($rawToken)->isRevoked());
+    }
+
+    public function testSuccessorPersistedAfterRevocationSnapshotCannotExtendSession(): void
+    {
+        $customer = $this->createCustomer('client.refresh-late-successor@example.test');
+        $firstRaw = $this->issueToken($customer, new \DateTimeImmutable('+30 days'));
+        $first = $this->tokenByRaw($firstRaw);
+        $first->consumeForRotation();
+        $this->entityManager->flush();
+        $manager = self::getContainer()->get(RefreshTokenManager::class);
+        // Rotation has read the old password and queued its successor, but has
+        // not flushed yet. The password-change SELECT cannot see that row.
+        $lateRaw = $manager->issue($customer, familyId: $first->getFamilyId());
+        self::assertSame(0, $manager->revokeAllForUser($customer));
+        $customer->setPassword(self::getContainer()->get(UserPasswordHasherInterface::class)->hashPassword($customer, 'newSecret123'));
+        $this->entityManager->flush();
+        self::assertFalse($this->tokenByRaw($lateRaw)->isRevoked());
+
+        $response = $this->requestJson('POST', '/api/auth/refresh', ['refresh_token' => $lateRaw]);
+
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+        self::assertStringContainsString('AUTH_REFRESH_TOKEN_INVALID', (string) $response->getContent());
+        self::assertCount(2, $this->allTokens());
+        self::assertTrue($this->tokenByRaw($lateRaw)->isRevoked());
+    }
+
+    public function testLegacyTokenFailsClosedWithoutRevokingAFreshLogin(): void
+    {
+        $customer = $this->createCustomer('client.refresh-legacy@example.test');
+        $legacyRaw = $this->issueToken($customer, new \DateTimeImmutable('+30 days'));
+        (new \ReflectionProperty(RefreshToken::class, 'credentialHash'))->setValue($this->tokenByRaw($legacyRaw), null);
+        $this->entityManager->flush();
+        $freshRaw = $this->issueToken($customer, new \DateTimeImmutable('+30 days'));
+
+        $response = $this->requestJson('POST', '/api/auth/refresh', ['refresh_token' => $legacyRaw]);
+
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+        self::assertFalse($this->tokenByRaw($freshRaw)->isRevoked());
+        self::assertSame(Response::HTTP_OK, $this->requestJson('POST', '/api/auth/refresh', ['refresh_token' => $freshRaw])->getStatusCode());
+    }
+
     public function testAdminSuspendMerchantRevokesRefreshTokens(): void
     {
         $admin = $this->createUser('admin.suspend-revoke@example.test', ['ROLE_ADMIN']);
