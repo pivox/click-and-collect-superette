@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Package,
   Percent,
+  Sparkles,
   Store,
   Users,
   type LucideIcon,
@@ -37,6 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/admin/beta-metrics', label: 'Métriques bêta', icon: BarChart3 },
   { href: '/admin/superettes', label: 'Supérettes', icon: Store },
   { href: '/admin/promotions', label: 'Promotions', icon: Percent },
+  { href: '/admin/parametres-ia', label: 'Paramètres IA', icon: Sparkles },
   {
     href: '/admin/referentiel/produits',
     label: 'Référentiel produits',

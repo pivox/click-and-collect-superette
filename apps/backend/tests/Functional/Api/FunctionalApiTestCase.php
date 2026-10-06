@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\AiBudgetPolicy;
 use App\Entity\PlatformTheme;
 use App\Entity\Shop;
 use App\Entity\ShopTheme;
@@ -31,6 +32,7 @@ abstract class FunctionalApiTestCase extends KernelTestCase
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $this->rebuildSchema();
         $this->createDefaultPlatformTheme();
+        $this->createDefaultAiBudgetPolicy();
     }
 
     private function useSqliteDatabaseForFunctionalTest(): void
@@ -237,6 +239,17 @@ abstract class FunctionalApiTestCase extends KernelTestCase
         $this->entityManager->flush();
 
         return $theme;
+    }
+
+    private function createDefaultAiBudgetPolicy(): AiBudgetPolicy
+    {
+        $policy = new AiBudgetPolicy();
+        $this->setPrivateProperty($policy, 'id', Uuid::fromString(AiBudgetPolicy::DEFAULT_ID));
+
+        $this->entityManager->persist($policy);
+        $this->entityManager->flush();
+
+        return $policy;
     }
 
     /**
