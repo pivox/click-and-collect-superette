@@ -124,6 +124,7 @@ onboarding marchand.
 |---|---|
 | Validation terrain billing/support | Vérifier en environnement de démo que documents, paiements manuels, relances, suspension et réactivation sont compris par l'équipe opérationnelle. |
 | Nettoyage priorités #527 | Garder uniquement les tâches réellement importantes et lier les issues enfants. |
+| Recherche produit instantanée FR/AR #636 (P1 proposé) | Étude d'architecture et protocole de recette rédigés le 2026-10-06 ([docs/architecture/product-search.md](../architecture/product-search.md), [docs/qa/product-search-performance.md](../qa/product-search-performance.md)). Aucune implémentation ; affectation à un sprint et découpage en PRs à arbitrer PO. |
 
 ## Hors périmètre
 

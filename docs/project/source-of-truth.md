@@ -102,6 +102,7 @@ clôture.
 - Contrat API : [docs/architecture/api-contract.md](../architecture/api-contract.md).
 - Audit fonctionnel : [docs/product/mvp-functional-audit.md](../product/mvp-functional-audit.md).
 - Audit QA #527 : [docs/qa/mvp-audit-527.md](../qa/mvp-audit-527.md).
+- Étude recherche produit #636 : [docs/architecture/product-search.md](../architecture/product-search.md) et protocole [docs/qa/product-search-performance.md](../qa/product-search-performance.md) (étude, non planifiée).
 
 ## Limites produit importantes
 
