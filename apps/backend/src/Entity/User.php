@@ -66,6 +66,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $onboardingCompletedAt = null;
 
+    // Issue mobile #35 — client terms-of-service consent, recorded server-side
+    // so it is tied to the account rather than to one device.
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $cguAcceptedAt = null;
+
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $deletedAt = null;
 
@@ -275,6 +280,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setOnboardingCompletedAt(\DateTimeImmutable $at): static
     {
         $this->onboardingCompletedAt = $at;
+
+        return $this;
+    }
+
+    public function getCguAcceptedAt(): ?\DateTimeImmutable
+    {
+        return $this->cguAcceptedAt;
+    }
+
+    public function setCguAcceptedAt(\DateTimeImmutable $at): static
+    {
+        $this->cguAcceptedAt = $at;
 
         return $this;
     }

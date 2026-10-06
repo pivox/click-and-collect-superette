@@ -258,6 +258,60 @@ final class CustomerProfileApiTest extends FunctionalApiTestCase
         self::assertFalse($passwordHasher->isPasswordValid($stored, 'newSecret123'));
     }
 
+    public function testProfileOmitsCguAcceptedAtBeforeConsent(): void
+    {
+        $customer = $this->createCustomer('client.profile-cgu-default@example.test');
+
+        $response = $this->requestJson('GET', '/api/me/profile', user: $customer);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertArrayNotHasKey('cgu_accepted_at', $payload);
+    }
+
+    public function testCustomerCanAcceptTermsOnce(): void
+    {
+        $customer = $this->createCustomer('client.profile-cgu-accept@example.test');
+
+        $response = $this->requestJson('PATCH', '/api/me/terms/accept', [], $customer);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decodeJson($response);
+        self::assertArrayHasKey('cgu_accepted_at', $payload);
+        self::assertNotNull($payload['cgu_accepted_at']);
+
+        $this->entityManager->clear();
+        $stored = $this->findUserByEmail('client.profile-cgu-accept@example.test');
+        self::assertInstanceOf(User::class, $stored);
+        self::assertNotNull($stored->getCguAcceptedAt());
+    }
+
+    public function testAcceptingTermsTwiceKeepsTheFirstTimestamp(): void
+    {
+        $customer = $this->createCustomer('client.profile-cgu-idempotent@example.test');
+
+        $first = $this->decodeJson($this->requestJson('PATCH', '/api/me/terms/accept', [], $customer));
+        $second = $this->decodeJson($this->requestJson('PATCH', '/api/me/terms/accept', [], $customer));
+
+        self::assertSame($first['cgu_accepted_at'], $second['cgu_accepted_at']);
+    }
+
+    public function testAnonymousCannotAcceptTerms(): void
+    {
+        $response = $this->requestJson('PATCH', '/api/me/terms/accept', []);
+
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+    }
+
+    public function testMerchantCannotAcceptCustomerTerms(): void
+    {
+        $merchant = $this->createUser('merchant.profile-cgu@example.test', ['ROLE_MERCHANT']);
+
+        $response = $this->requestJson('PATCH', '/api/me/terms/accept', [], $merchant);
+
+        self::assertSame(Response::HTTP_FORBIDDEN, $response->getStatusCode());
+    }
+
     public function testMerchantCannotUseCustomerProfileEndpoint(): void
     {
         $merchant = $this->createUser('merchant.profile@example.test', ['ROLE_MERCHANT']);
