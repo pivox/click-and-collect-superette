@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Patch;
 use App\Dto\CustomerProfilePatchInput;
 use App\Entity\User;
+use App\Processor\AcceptCustomerTermsProcessor;
 use App\Processor\CustomerDeleteAccountProcessor;
 use App\Processor\CustomerProfileProcessor;
 use App\Provider\CustomerProfileProvider;
@@ -42,6 +43,18 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             processor: CustomerDeleteAccountProcessor::class,
             security: "is_granted('ROLE_CUSTOMER')",
         ),
+        // Issue mobile #35 — bodyless consent action, mirrors the merchant
+        // onboarding /complete pattern (idempotent, no DTO).
+        new Patch(
+            uriTemplate: '/me/terms/accept',
+            formats: ['json' => ['application/json']],
+            normalizationContext: ['groups' => ['customer_profile:read']],
+            input: false,
+            read: false,
+            status: 200,
+            processor: AcceptCustomerTermsProcessor::class,
+            security: "is_granted('ROLE_CUSTOMER')",
+        ),
     ],
 )]
 final readonly class CustomerProfileOutput
@@ -67,6 +80,9 @@ final readonly class CustomerProfileOutput
         public string $name,
         #[Groups(['customer_profile:read'])]
         public ?string $phone,
+        #[Groups(['customer_profile:read'])]
+        #[SerializedName('cgu_accepted_at')]
+        public ?string $cguAcceptedAt,
     ) {
     }
 
@@ -80,6 +96,7 @@ final readonly class CustomerProfileOutput
             $user->getLastName(),
             $user->getName(),
             $user->getPhone(),
+            $user->getCguAcceptedAt()?->format(\DateTimeInterface::ATOM),
         );
     }
 }
