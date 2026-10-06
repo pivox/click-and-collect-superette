@@ -10,6 +10,11 @@ import {
 } from '@/lib/services/merchant-pickup.service';
 import type { MerchantPickupSessionScanResult } from '@/lib/types/merchant.types';
 
+let merchantLocale: 'fr' | 'ar' = 'fr';
+vi.mock('@/lib/i18n/MerchantLocaleContext', () => ({
+  useMerchantLocale: () => ({ locale: merchantLocale }),
+}));
+
 vi.mock('@/lib/auth/MerchantAuthContext', () => ({
   useMerchantAuth: () => ({
     merchant: {
@@ -54,6 +59,7 @@ const scanResult: MerchantPickupSessionScanResult = {
 describe('MerchantPickupPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    merchantLocale = 'fr';
   });
 
   it('blocks an invalid token before calling the API', async () => {
@@ -107,10 +113,15 @@ describe('MerchantPickupPage', () => {
     expect(screen.queryByText('Client non renseigné')).not.toBeInTheDocument();
   });
 
-  it('displays a backend error message when the scan fails', async () => {
+  it.each([
+    ['fr', 'PICKUP_SESSION_NOT_FOUND', 'Ce QR de retrait est introuvable. Demande au client de rouvrir son QR.'],
+    ['fr', 'PICKUP_SESSION_TOKEN_NOT_FOUND', 'Ce QR de retrait est introuvable. Demande au client de rouvrir son QR.'],
+    ['ar', 'PICKUP_SESSION_NOT_FOUND', 'رمز الاستلام غير موجود. اطلب من العميل إعادة فتح رمز الاستلام.'],
+  ] as const)('explains an unknown pickup QR in %s (%s)', async (locale, code, message) => {
+    merchantLocale = locale;
     vi.mocked(scanMerchantPickupSession).mockRejectedValueOnce({
       isAxiosError: true,
-      response: { data: { detail: 'PICKUP_SESSION_TOKEN_NOT_FOUND' } },
+      response: { status: 404, data: { detail: code } },
     });
 
     render(<MerchantPickupPage />);
@@ -120,7 +131,8 @@ describe('MerchantPickupPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Identifier la Kadhia' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('PICKUP_SESSION_TOKEN_NOT_FOUND');
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.queryByText(code)).not.toBeInTheDocument();
     expect(screen.queryByText(/Session de retrait/)).not.toBeInTheDocument();
   });
 

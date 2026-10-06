@@ -9,6 +9,10 @@ import {
 } from '@/lib/services/merchant-local-product-photo.service';
 import type { MerchantCatalogProductImage } from '@/lib/types/merchant-catalog.types';
 
+vi.hoisted(() => {
+  vi.stubEnv('NEXT_PUBLIC_API_URL', 'http://localhost:8000');
+});
+
 vi.mock('@/lib/services/merchant-local-product-photo.service', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('@/lib/services/merchant-local-product-photo.service')>();

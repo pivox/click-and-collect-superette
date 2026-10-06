@@ -102,3 +102,15 @@ describe('MerchantAuthContext première connexion', () => {
     });
   });
 });
+
+it('a late bootstrap response cannot reconnect a logged-out merchant',async()=>{
+ localStorage.setItem('merchant_token','stored');
+ let finish!:(value:ReturnType<typeof merchantContext>)=>void;
+ vi.mocked(getMerchantMe).mockReturnValue(new Promise(resolve=>{finish=resolve;}));
+ function LogoutTrigger(){const {merchant,logout}=useMerchantAuth();return <><span>{merchant?.name??'none'}</span><button onClick={logout}>Déconnexion test</button></>;}
+ render(<MerchantAuthProvider><LogoutTrigger/></MerchantAuthProvider>);
+ await act(async()=>{screen.getByText('Déconnexion test').click();});
+ await act(async()=>{finish(merchantContext(false));});
+ expect(screen.getByText('none')).toBeTruthy();
+ expect(localStorage.getItem('merchant_token')).toBeNull();
+});

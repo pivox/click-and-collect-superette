@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { tunisCalendarDate } from '@/lib/merchant-slot-calendar';
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Timer } from 'lucide-react';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
@@ -39,8 +40,7 @@ import type {
 
 function buildDays(count = 14): Date[] {
   const days: Date[] = [];
-  const base = new Date();
-  base.setHours(0, 0, 0, 0);
+  const base = tunisCalendarDate(new Date());
   for (let i = 0; i < count; i++) {
     const d = new Date(base);
     d.setDate(d.getDate() + i);
@@ -67,11 +67,13 @@ export default function MerchantCreneauxPage() {
   const [slots, setSlots] = useState<MerchantPickupSlot[]>([]);
   const [closures, setClosures] = useState<MerchantExceptionalClosure[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadAll = useCallback(async () => {
     if (!storeId) return;
     setLoadError(null);
+    setLoading(true);
     try {
       const [rulesData, slotsData, closuresData] = await Promise.all([
         listMerchantSlotRules(storeId),
@@ -83,6 +85,8 @@ export default function MerchantCreneauxPage() {
       setClosures(closuresData.items);
     } catch {
       setLoadError('Impossible de charger les données. Vérifiez votre connexion et réessayez.');
+    } finally {
+      setLoading(false);
     }
   }, [storeId]);
 
@@ -91,12 +95,12 @@ export default function MerchantCreneauxPage() {
   }, [loadAll]);
 
   const slotsForDay = slots.filter((s) =>
-    isSameDay(new Date(s.starts_at), selectedDate),
+    isSameDay(tunisCalendarDate(new Date(s.starts_at)), selectedDate),
   );
 
   async function handleCreateRule(payload: CreateSlotRulePayload) {
     await createMerchantSlotRule(storeId, payload);
-    void loadAll();
+    await loadAll();
   }
 
   async function handleDeleteRule(ruleId: string) {
@@ -105,9 +109,12 @@ export default function MerchantCreneauxPage() {
   }
 
   async function handleGenerate(horizonMonths: 1 | 3) {
-    const result = await generateMerchantSlots(storeId, horizonMonths);
-    void loadAll();
-    return result;
+    try {
+      return await generateMerchantSlots(storeId, horizonMonths);
+    } finally {
+      // A failed response may follow a successful write: reconcile before retrying.
+      await loadAll();
+    }
   }
 
   async function handleCreateSlot(payload: CreateSlotPayload) {
@@ -170,12 +177,13 @@ export default function MerchantCreneauxPage() {
         onSelectDate={setSelectedDate}
       />
 
-      <section>
-        {slotsForDay.length === 0 ? (
+      <section aria-busy={loading}>
+        {loading && <p role="status" className="text-sm text-muted">Chargement des créneaux…</p>}
+        {slotsForDay.length === 0 ? (!loading && !loadError ? (
           <p className="text-sm text-muted">
             Aucun créneau ce jour. Ajoutez une règle récurrente ou un créneau ponctuel.
           </p>
-        ) : (
+        ) : null) : (
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {slotsForDay.map((slot) => (
               <li key={slot.id}>

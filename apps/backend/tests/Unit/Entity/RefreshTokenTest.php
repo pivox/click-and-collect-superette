@@ -80,6 +80,35 @@ final class RefreshTokenTest extends TestCase
         self::assertFalse($first->getId()->equals($successor->getId()));
     }
 
+    public function testCredentialFingerprintRemainsBoundToIssuancePassword(): void
+    {
+        $token = $this->makeToken();
+        self::assertTrue($token->hasCurrentCredentials());
+
+        $token->getUser()->setPassword('new-password-hash');
+
+        self::assertFalse($token->hasCurrentCredentials());
+    }
+
+    public function testLegacyTokenWithoutFingerprintFailsClosed(): void
+    {
+        $token = $this->makeToken();
+        (new \ReflectionProperty($token, 'credentialHash'))->setValue($token, null);
+
+        self::assertFalse($token->hasCurrentCredentials());
+    }
+
+    public function testPasswordlessSocialTokenBecomesInvalidWhenPasswordIsEstablished(): void
+    {
+        $user = (new User())->setPassword('');
+        $token = new RefreshToken($user, hash('sha256', 'token'), Uuid::v4(), new \DateTimeImmutable('+1 day'));
+        self::assertTrue($token->hasCurrentCredentials());
+
+        $user->setPassword('new-local-password-hash');
+
+        self::assertFalse($token->hasCurrentCredentials());
+    }
+
     private function makeToken(?Uuid $familyId = null, ?\DateTimeImmutable $expiresAt = null): RefreshToken
     {
         $user = (new User())

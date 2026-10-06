@@ -22,6 +22,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     if (token) {
       try {
         const payload = decodeJwtPayload(token);
+        const exp = typeof payload.exp === 'number' ? payload.exp : 0;
+        if (exp <= Date.now() / 1000 || !Array.isArray(payload.roles) || !payload.roles.includes('ROLE_ADMIN')) {
+          throw new Error('Invalid admin session');
+        }
         setUser({
           token,
           email: typeof payload.email === 'string' ? payload.email : '',
@@ -34,6 +38,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         });
       } catch {
         localStorage.removeItem('admin_token');
+        document.cookie = 'admin_token=; path=/admin; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       }
     }
     setIsLoading(false);
@@ -44,7 +49,6 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('admin_token', adminUser.token);
     document.cookie = `admin_token=${adminUser.token}; path=/admin; SameSite=Lax; Max-Age=${60 * 60 * 8}`;
     setUser(adminUser);
-    router.push('/admin/dashboard');
   };
 
   const logout = () => {

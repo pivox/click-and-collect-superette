@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MerchantLoginPage from '@/app/merchant/login/page';
 
 const login = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 vi.mock('@/lib/auth/MerchantAuthContext', () => ({
   useMerchantAuth: () => ({ login }),

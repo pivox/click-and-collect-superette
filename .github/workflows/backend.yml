@@ -74,6 +74,11 @@ jobs:
           APP_ENV: test
           DATABASE_URL: postgresql://app:app@localhost:5432/clickcollect?serverVersion=16
           JWT_PASSPHRASE: changeme_jwt_passphrase
+          SOCIAL_GOOGLE_CLIENT_ID: ''
+          SOCIAL_GOOGLE_CLIENT_SECRET: ''
+          SOCIAL_FACEBOOK_CLIENT_ID: ''
+          SOCIAL_FACEBOOK_CLIENT_SECRET: ''
+          SOCIAL_CALLBACK_ORIGIN: ''
 
       - name: Migrations
         run: php bin/console doctrine:migrations:migrate --no-interaction
@@ -88,3 +93,8 @@ jobs:
           APP_ENV: test
           DATABASE_URL: postgresql://app:app@localhost:5432/clickcollect?serverVersion=16
           JWT_PASSPHRASE: changeme_jwt_passphrase
+          SOCIAL_GOOGLE_CLIENT_ID: ''
+          SOCIAL_GOOGLE_CLIENT_SECRET: ''
+          SOCIAL_FACEBOOK_CLIENT_ID: ''
+          SOCIAL_FACEBOOK_CLIENT_SECRET: ''
+          SOCIAL_CALLBACK_ORIGIN: ''

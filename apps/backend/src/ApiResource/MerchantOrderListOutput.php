@@ -19,13 +19,17 @@ use Symfony\Component\Serializer\Attribute\Groups;
             uriTemplate: '/merchant/stores/{storeId}/orders',
             uriVariables: ['storeId' => new Link(fromClass: Shop::class, identifiers: ['id'])],
             formats: ['json' => ['application/json']],
-            normalizationContext: ['groups' => ['merchant_order_summary:read']],
+            normalizationContext: ['groups' => ['merchant_order_summary:read'], 'skip_null_values' => false],
             provider: MerchantOrderCollectionProvider::class,
             security: "is_granted('ROLE_MERCHANT')",
             parameters: [
                 'status' => new QueryParameter(
                     schema: ['type' => 'string'],
                     description: 'Filtrer par statut (submitted, accepted, preparing, ready, …).',
+                ),
+                'sort' => new QueryParameter(
+                    schema: ['type' => 'string', 'enum' => ['recent', 'priority'], 'default' => 'recent'],
+                    description: 'Priorité métier avant pagination, puis création décroissante et identifiant stable.',
                 ),
                 'page' => new QueryParameter(
                     schema: ['type' => 'integer', 'default' => 1],

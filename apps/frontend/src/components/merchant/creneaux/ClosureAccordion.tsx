@@ -12,6 +12,7 @@ function formatClosureRange(closure: MerchantExceptionalClosure): string {
       month: 'short',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'Africa/Tunis',
     });
   return `${fmt(closure.starts_at)} → ${fmt(closure.ends_at)}`;
 }

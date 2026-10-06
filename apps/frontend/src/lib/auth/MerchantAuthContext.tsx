@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   getMerchantMe,
@@ -31,20 +31,24 @@ function responseStatus(err: unknown): number | undefined {
 }
 
 export function MerchantAuthProvider({ children }: { children: React.ReactNode }) {
+  const generation = useRef(0);
   const [merchant, setMerchant] = useState<MerchantMe | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
+    const current = generation.current;
     const context = await getMerchantMe();
+    if (current !== generation.current) throw new Error('SESSION_SUPERSEDED');
     setMerchant(context);
     setError(null);
     return context;
-  };
+  }, []);
 
   useEffect(() => {
+    const current = generation.current;
     const token = localStorage.getItem('merchant_token');
     if (!token) {
       setIsLoading(false);
@@ -53,6 +57,7 @@ export function MerchantAuthProvider({ children }: { children: React.ReactNode }
 
     void refresh()
       .catch((err: unknown) => {
+        if (current !== generation.current) return;
         const status = responseStatus(err);
         if (status === 401 || status === 403) {
           clearMerchantToken();
@@ -60,10 +65,11 @@ export function MerchantAuthProvider({ children }: { children: React.ReactNode }
         setMerchant(null);
         setError(merchantErrorMessage(status));
       })
-      .finally(() => setIsLoading(false));
-  }, []);
+      .finally(() => { if (current === generation.current) setIsLoading(false); });
+  }, [refresh]);
 
   const login = async (email: string, password: string) => {
+    const current = ++generation.current;
     let user;
     try {
       user = await loginMerchant({ email, password });
@@ -75,18 +81,23 @@ export function MerchantAuthProvider({ children }: { children: React.ReactNode }
           : 'La connexion a échoué. Réessayez.',
       );
     }
+    if (current !== generation.current) throw new Error('SESSION_SUPERSEDED');
     localStorage.setItem('merchant_token', user.token);
     document.cookie = `merchant_token=${user.token}; path=/merchant; SameSite=Lax; Max-Age=${60 * 60 * 8}`;
     try {
-      const context = await refresh();
-      router.push(context.password_change_required ? '/merchant/premiere-connexion' : '/merchant');
+      await refresh();
     } catch (err) {
-      clearMerchantToken();
-      throw new Error(merchantErrorMessage(responseStatus(err)));
+      if (current !== generation.current) throw err;
+      const status = responseStatus(err);
+      if (status === 401 || status === 403) clearMerchantToken();
+      setError(merchantErrorMessage(status));
+      throw new Error(merchantErrorMessage(status));
     }
   };
 
   const logout = () => {
+    generation.current += 1;
+    setIsLoading(false);
     clearMerchantToken();
     setMerchant(null);
     setError(null);
@@ -94,7 +105,7 @@ export function MerchantAuthProvider({ children }: { children: React.ReactNode }
   };
 
   useEffect(() => {
-    if (!merchant) return;
+    if (!merchant || pathname === '/merchant/login' || pathname === '/merchant/invitation') return;
     if (merchant.password_change_required && pathname !== '/merchant/premiere-connexion') {
       router.push('/merchant/premiere-connexion');
       return;

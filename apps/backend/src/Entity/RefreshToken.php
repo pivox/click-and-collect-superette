@@ -34,6 +34,10 @@ class RefreshToken
     #[ORM\Column(length: 64, unique: true)]
     private string $tokenHash;
 
+    /** Password-hash snapshot; legacy tokens without one must fail closed. */
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $credentialHash = null;
+
     /** Rotation family: shared by every token descending from the same login. */
     #[ORM\Column(type: 'uuid')]
     private Uuid $familyId;
@@ -69,6 +73,7 @@ class RefreshToken
         $this->id = Uuid::v4();
         $this->user = $user;
         $this->tokenHash = $tokenHash;
+        $this->credentialHash = hash('sha256', $user->getPassword());
         $this->familyId = $familyId;
         $this->expiresAt = $expiresAt;
         $this->createdAt = new \DateTimeImmutable();
@@ -89,6 +94,12 @@ class RefreshToken
     public function getTokenHash(): string
     {
         return $this->tokenHash;
+    }
+
+    public function hasCurrentCredentials(): bool
+    {
+        return null !== $this->credentialHash
+            && hash_equals($this->credentialHash, hash('sha256', $this->user->getPassword()));
     }
 
     public function getFamilyId(): Uuid

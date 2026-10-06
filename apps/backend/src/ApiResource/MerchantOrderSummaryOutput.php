@@ -33,6 +33,9 @@ final readonly class MerchantOrderSummaryOutput
         #[SerializedName('pickup_slot')]
         public ?array $pickupSlot,
         #[Groups(['merchant_order_summary:read'])]
+        #[SerializedName('customer_name')]
+        public ?string $customerName,
+        #[Groups(['merchant_order_summary:read'])]
         #[SerializedName('line_count')]
         public int $lineCount,
         #[Groups(['merchant_order_summary:read'])]

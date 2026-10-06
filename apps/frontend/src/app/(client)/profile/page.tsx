@@ -305,18 +305,18 @@ export default function ProfilePage() {
               onCancel={() => setEditing(false)}
             />
           ) : (
-            <div className="grid gap-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted">{t("client.profile.firstName")}</span>
-                <span className="font-extrabold">{splitName(user.name).firstName || "—"}</span>
+            <div className="grid grid-cols-1 gap-2 text-sm">
+              <div className="flex items-start justify-between gap-4">
+                <span className="shrink-0 text-muted">{t("client.profile.firstName")}</span>
+                <span className="min-w-0 break-words text-end font-extrabold">{splitName(user.name).firstName || "—"}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted">{t("client.profile.lastName")}</span>
-                <span className="font-extrabold">{splitName(user.name).lastName || "—"}</span>
+              <div className="flex items-start justify-between gap-4">
+                <span className="shrink-0 text-muted">{t("client.profile.lastName")}</span>
+                <span className="min-w-0 break-words text-end font-extrabold">{splitName(user.name).lastName || "—"}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted">{t("client.profile.email")}</span>
-                <span className="font-extrabold text-muted">{user.email}</span>
+              <div className="flex items-start justify-between gap-4">
+                <span className="shrink-0 text-muted">{t("client.profile.email")}</span>
+                <span className="min-w-0 break-words text-end font-extrabold text-muted">{user.email}</span>
               </div>
             </div>
           )}

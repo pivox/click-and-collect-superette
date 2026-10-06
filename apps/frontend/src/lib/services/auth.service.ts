@@ -42,6 +42,15 @@ export interface ClientUser {
   name: string;
 }
 
+/** JWT claims do not carry the customer's editable profile. */
+export async function getClientProfile(): Promise<Pick<ClientUser, 'name' | 'email'>> {
+  const { data } = await apiClient.get<Pick<ClientUser, 'name' | 'email'>>('/api/me/profile', {
+    skipAuthRedirect: true,
+    timeout: 10_000,
+  });
+  return data;
+}
+
 export async function clientLogin(email: string, password: string): Promise<ClientUser> {
   const { data } = await apiClient.post<{ token: string }>('/api/auth/login', {
     email,
@@ -83,8 +92,8 @@ export async function updateProfile(
   if (USE_MOCKS) {
     return mockDelay({ name });
   }
-  await apiClient.patch('/api/me/profile', { first_name: firstName, last_name: lastName });
-  return { name };
+  const { data } = await apiClient.patch<{ name: string }>('/api/me/profile', { first_name: firstName, last_name: lastName });
+  return { name: data.name };
 }
 
 export async function deleteAccount(): Promise<void> {

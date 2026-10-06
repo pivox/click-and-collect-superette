@@ -1,24 +1,25 @@
 'use client';
 
 import { isAxiosError } from 'axios';
-import { Suspense, useEffect, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useClientAuth } from '@/lib/auth/ClientAuthContext';
+import { safeLoginDestination } from '@/lib/auth/loginPortal';
 import { useHydrated } from '@/lib/hooks/useHydrated';
 
 function LoginForm() {
-  const { login } = useClientAuth();
+  const { login, user, isLoading } = useClientAuth();
   const router = useRouter();
   const isHydrated = useHydrated();
   const searchParams = useSearchParams();
-  const rawRedirect = searchParams.get('redirect') ?? '/';
-  const redirect =
-    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
-      ? rawRedirect
-      : '/';
+  const redirect = safeLoginDestination('client', searchParams.get('redirect'));
+  const submitLock = useRef(false);
+  useEffect(() => {
+    if (!isLoading && user) router.replace(redirect);
+  }, [user, isLoading, router, redirect]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,11 +37,12 @@ function LoginForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
     setError(null);
     setIsSubmitting(true);
     try {
       await login(email, password);
-      router.push(redirect);
     } catch (err) {
       if (isAxiosError(err)) {
         const status = err.response?.status;
@@ -55,9 +57,12 @@ function LoginForm() {
         setError('Une erreur est survenue. Réessaie plus tard.');
       }
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading || user) return <p role="status">Chargement…</p>;
 
   return (
     <Card className="w-full max-w-sm">

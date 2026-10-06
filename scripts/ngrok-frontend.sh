@@ -13,13 +13,14 @@ usage() {
   echo
   echo "Environment:"
   echo "  NGROK_HOST      Local host to expose. Default: localhost"
-  echo "  NGROK_PORT      Local port to expose. Default: 3000"
+  echo "  NGROK_PORT      Local port to expose (frontend). Default: 3000"
   echo "  NGROK_LOG_FILE  Log file used with --detach. Default: /tmp/kadhia-ngrok-frontend.log"
 }
 
 public_urls() {
   curl -fsS --max-time 2 "${NGROK_API_URL}" 2>/dev/null \
-    | sed -n 's/.*"public_url":"\([^"]*\)".*/\1/p'
+    | tr ',' '\n' \
+    | sed -n 's/.*"public_url":"\(https:\/\/[^"]*\)".*/\1/p'
 }
 
 wait_for_tunnel() {
@@ -39,20 +40,20 @@ wait_for_tunnel() {
   return 1
 }
 
-check_api_proxy() {
+check_app_access() {
   public_url="$1"
 
   if ! command -v curl >/dev/null 2>&1; then
     return 0
   fi
 
-  if curl -fsS --max-time 10 -H 'ngrok-skip-browser-warning: true' "${public_url}/api/docs.json" >/dev/null 2>&1; then
-    echo "API proxy: ${public_url}/api"
+  if curl -fsS --max-time 10 -H 'ngrok-skip-browser-warning: true' "${public_url}/" >/dev/null 2>&1; then
+    echo "Application URL: ${public_url}"
     return 0
   fi
 
-  echo "Warning: ${public_url}/api/docs.json does not respond." >&2
-  echo "Restart the frontend if next.config.mjs changed: docker compose restart frontend" >&2
+  echo "Warning: ${public_url}/ does not respond." >&2
+  echo "Check the frontend with: curl -I ${TARGET_URL}" >&2
 }
 
 if ! command -v ngrok >/dev/null 2>&1; then
@@ -76,21 +77,24 @@ case "${MODE}" in
     existing_url="$(public_urls || true)"
     if [ -n "${existing_url}" ]; then
       echo "ngrok is already running for this machine."
-      echo "External URL: ${existing_url}"
-      check_api_proxy "${existing_url}"
+      echo "Frontend URL: ${existing_url}"
+      check_app_access "${existing_url}"
       exit 0
     fi
 
     echo "Starting ngrok for Kadhia frontend in background: ${TARGET_URL}"
+
     if command -v setsid >/dev/null 2>&1; then
       setsid ngrok http "${TARGET_URL}" --log=stdout >"${LOG_FILE}" 2>&1 </dev/null &
     else
       nohup ngrok http "${TARGET_URL}" --log=stdout >"${LOG_FILE}" 2>&1 </dev/null &
     fi
-    echo "ngrok PID: $!"
+    NGROK_PID=$!
+    echo "ngrok PID: ${NGROK_PID}"
+
     external_url="$(wait_for_tunnel)"
-    echo "External URL: ${external_url}"
-    check_api_proxy "${external_url}"
+    echo "Frontend URL: ${external_url}"
+    check_app_access "${external_url}"
     ;;
   --foreground)
     echo "Starting ngrok for Kadhia frontend: ${TARGET_URL}"

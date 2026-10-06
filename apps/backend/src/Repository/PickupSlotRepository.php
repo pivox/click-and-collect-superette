@@ -51,6 +51,7 @@ class PickupSlotRepository extends ServiceEntityRepository
             ->andWhere('IDENTITY(slot.shop) = :shopId')
             ->andWhere('slot.startsAt = :startsAt')
             ->andWhere('slot.endsAt = :endsAt')
+            ->setMaxResults(1)
             ->setParameter('shopId', $shop->getId(), 'uuid')
             ->setParameter('startsAt', $startsAt, Types::DATETIME_IMMUTABLE)
             ->setParameter('endsAt', $endsAt, Types::DATETIME_IMMUTABLE)

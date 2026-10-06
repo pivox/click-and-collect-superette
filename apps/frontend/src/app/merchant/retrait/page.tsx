@@ -13,6 +13,7 @@ import {
   validateManually,
 } from '@/lib/services/merchant-pickup.service';
 import { useMerchantAuth } from '@/lib/auth/MerchantAuthContext';
+import { useMerchantLocale, type MerchantLocale } from '@/lib/i18n/MerchantLocaleContext';
 import type {
   MerchantPickupSessionActionResult,
   MerchantPickupSessionForceCompleteResult,
@@ -26,9 +27,14 @@ type Tab = 'qr' | 'code' | 'manual';
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function apiErrorMessage(error: unknown): string {
+function apiErrorMessage(error: unknown, locale: MerchantLocale): string {
   if (axios.isAxiosError(error)) {
     const detail = error.response?.data?.detail;
+    if (detail === 'PICKUP_SESSION_NOT_FOUND' || detail === 'PICKUP_SESSION_TOKEN_NOT_FOUND') {
+      return locale === 'ar'
+        ? 'رمز الاستلام غير موجود. اطلب من العميل إعادة فتح رمز الاستلام.'
+        : 'Ce QR de retrait est introuvable. Demande au client de rouvrir son QR.';
+    }
     if (typeof detail === 'string') return detail;
     if (error.response?.status === 404) return 'Code incorrect ou commande non éligible.';
     if (error.response?.status === 409) return 'La commande n\'est pas en état "prête".';
@@ -97,6 +103,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function MerchantPickupPage() {
   const { merchant } = useMerchantAuth();
+  const { locale } = useMerchantLocale();
   const storeId = merchant?.store?.id ?? '';
 
   // QR tab state
@@ -149,7 +156,7 @@ export default function MerchantPickupPage() {
       setActionResult(null);
       setForceNote('');
     } catch (err) {
-      setError(apiErrorMessage(err));
+      setError(apiErrorMessage(err, locale));
     } finally {
       setIsScanning(false);
     }
@@ -162,7 +169,7 @@ export default function MerchantPickupPage() {
     try {
       setActionResult(await confirmMerchantPickupSession(session.id));
     } catch (err) {
-      setError(apiErrorMessage(err));
+      setError(apiErrorMessage(err, locale));
     } finally {
       setIsMutating(false);
     }
@@ -180,7 +187,7 @@ export default function MerchantPickupPage() {
     try {
       setActionResult(await forceCompleteMerchantPickupSession(session.id, note));
     } catch (err) {
-      setError(apiErrorMessage(err));
+      setError(apiErrorMessage(err, locale));
     } finally {
       setIsMutating(false);
     }
@@ -212,7 +219,7 @@ export default function MerchantPickupPage() {
       setCodeResult(result);
       setPickupCode('');
     } catch (err) {
-      setError(apiErrorMessage(err));
+      setError(apiErrorMessage(err, locale));
     } finally {
       setIsRedeemingCode(false);
     }
@@ -242,7 +249,7 @@ export default function MerchantPickupPage() {
       setManualOrderId('');
       setManualNote('');
     } catch (err) {
-      setError(apiErrorMessage(err));
+      setError(apiErrorMessage(err, locale));
     } finally {
       setIsValidatingManually(false);
     }

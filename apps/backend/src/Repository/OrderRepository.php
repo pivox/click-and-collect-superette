@@ -11,7 +11,9 @@ use App\Entity\User;
 use App\Enum\OrderStatus;
 use App\Service\PickupSlotDisplayTime;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\LockMode;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 
@@ -156,31 +158,33 @@ class OrderRepository extends ServiceEntityRepository
     /**
      * @return list<Order>
      */
-    public function findByShopPaginated(Shop $shop, ?string $statusFilter, int $limit, int $offset): array
+    public function findByShopPaginated(Shop $shop, ?string $statusFilter, int $limit, int $offset, bool $prioritySort = false): array
     {
         $statuses = $this->parseStatusFilter($statusFilter);
-
-        if (null === $statuses) {
-            return $this->findBy(['shop' => $shop], ['createdAt' => 'DESC'], $limit, $offset);
-        }
-
         if ([] === $statuses) {
             return [];
         }
 
-        if (1 === \count($statuses)) {
-            return $this->findBy(['shop' => $shop, 'status' => $statuses[0]], ['createdAt' => 'DESC'], $limit, $offset);
+        $queryBuilder = $this->createQueryBuilder('o')
+            ->leftJoin('o.customer', 'customer')->addSelect('customer')
+            ->leftJoin('o.pickupSlot', 'pickupSlot')->addSelect('pickupSlot')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->setParameter('shopId', $shop->getId(), 'uuid');
+
+        if (null !== $statuses) {
+            $queryBuilder->andWhere('o.status IN (:statuses)')
+                ->setParameter('statuses', array_map(static fn (OrderStatus $status): string => $status->value, $statuses));
+        }
+        if ($prioritySort) {
+            $queryBuilder->addSelect("CASE WHEN o.status = 'submitted' THEN 0 WHEN o.status IN ('accepted', 'preparing') THEN 1 WHEN o.status = 'ready' THEN 2 ELSE 3 END AS HIDDEN priority")
+                ->orderBy('priority', 'ASC');
         }
 
-        $statusValues = array_map(static fn (OrderStatus $s): string => $s->value, $statuses);
-
-        return $this->getEntityManager()
-            ->createQuery('SELECT o FROM App\Entity\Order o WHERE o.shop = :shop AND o.status IN (:statuses) ORDER BY o.createdAt DESC')
-            ->setParameter('shop', $shop)
-            ->setParameter('statuses', $statusValues)
+        return $queryBuilder->addOrderBy('o.createdAt', 'DESC')
+            ->addOrderBy('o.id', 'ASC')
             ->setMaxResults($limit)
             ->setFirstResult($offset)
-            ->getResult();
+            ->getQuery()->getResult();
     }
 
     public function countByShop(Shop $shop, ?string $statusFilter): int
@@ -526,13 +530,45 @@ class OrderRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
+    /**
+     * Must run inside a transaction. Lock candidates and refuse ambiguous codes.
+     */
     public function findReadyByPickupCodeAndShop(string $code, Shop $shop): ?Order
     {
-        return $this->findOneBy([
-            'pickupCode' => $code,
-            'shop' => $shop,
-            'status' => OrderStatus::Ready,
-        ]);
+        $orders = $this->createQueryBuilder('o')
+            ->andWhere('o.pickupCode = :code')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->andWhere('o.status = :status')
+            ->setParameter('code', $code)
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('status', OrderStatus::Ready)
+            ->orderBy('o.id', 'ASC')
+            ->setMaxResults(2)
+            ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getResult();
+
+        return 1 === \count($orders) ? $orders[0] : null;
+    }
+
+    /**
+     * @return list<Order>
+     */
+    public function findPickupOrdersForShopBetweenStarts(Shop $shop, \DateTimeImmutable $dayStart, \DateTimeImmutable $dayEnd): array
+    {
+        return $this->createQueryBuilder('o')
+            ->innerJoin('o.pickupSlot', 'pickupSlot')->addSelect('pickupSlot')
+            ->andWhere('IDENTITY(o.shop) = :shopId')
+            ->andWhere('pickupSlot.startsAt >= :dayStart AND pickupSlot.startsAt < :dayEnd')
+            ->andWhere('o.status NOT IN (:excludedStatuses)')
+            ->setParameter('shopId', $shop->getId(), 'uuid')
+            ->setParameter('dayStart', $dayStart, Types::DATETIME_IMMUTABLE)
+            ->setParameter('dayEnd', $dayEnd, Types::DATETIME_IMMUTABLE)
+            ->setParameter('excludedStatuses', [OrderStatus::Draft->value, OrderStatus::Rejected->value, OrderStatus::Cancelled->value])
+            ->orderBy('pickupSlot.startsAt', 'ASC')
+            ->addOrderBy('o.id', 'ASC')
+            ->getQuery()->getResult();
     }
 
     private function createReadableByCustomerQueryBuilder(User $customer): \Doctrine\ORM\QueryBuilder

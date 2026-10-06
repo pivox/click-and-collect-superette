@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminLoginPage from '@/app/admin/login/page';
 
 const login = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 vi.mock('@/lib/auth/AdminAuthContext', () => ({
   useAdminAuth: () => ({ login }),

@@ -91,6 +91,17 @@ final readonly class AuthRefreshTokenProcessor implements ProcessorInterface
             throw new UnauthorizedHttpException('Bearer', 'AUTH_ACCOUNT_DISABLED');
         }
 
+        if (!$token->hasCurrentCredentials()) {
+            // A concurrent rotation may have persisted this token after a
+            // password change took its revocation snapshot. Do not prolong it.
+            $this->refreshTokenManager->revokeFamily($token->getFamilyId(), $now);
+            $this->entityManager->flush();
+            $this->logger->warning('security.refresh_token.credentials_changed', [
+                'user_id' => $user->getId()->toRfc4122(),
+            ]);
+            throw new UnauthorizedHttpException('Bearer', 'AUTH_REFRESH_TOKEN_INVALID');
+        }
+
         $token->consumeForRotation($now);
         $newRawToken = $this->refreshTokenManager->issue(
             $user,

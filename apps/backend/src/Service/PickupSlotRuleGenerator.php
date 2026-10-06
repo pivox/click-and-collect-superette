@@ -9,6 +9,7 @@ use App\Entity\Shop;
 use App\Repository\ExceptionalClosureRepository;
 use App\Repository\PickupSlotRepository;
 use App\Repository\PickupSlotRuleRepository;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class PickupSlotRuleGenerator
@@ -25,10 +26,25 @@ final readonly class PickupSlotRuleGenerator
 
     public function generateForShop(Shop $shop, ?\DateTimeImmutable $now = null, int $horizonMonths = 1): PickupSlotRuleGenerationResult
     {
+        return $this->entityManager->wrapInTransaction(function () use ($shop, $now, $horizonMonths): PickupSlotRuleGenerationResult {
+            $this->entityManager->lock($shop, LockMode::PESSIMISTIC_WRITE);
+
+            return $this->generateWhileShopLocked($shop, $now, $horizonMonths);
+        });
+    }
+
+    private function generateWhileShopLocked(Shop $shop, ?\DateTimeImmutable $now, int $horizonMonths): PickupSlotRuleGenerationResult
+    {
         $timezone = new \DateTimeZone(self::TIMEZONE);
         $now = ($now ?? new \DateTimeImmutable('now', $timezone))->setTimezone($timezone);
         $horizonStart = $now->setTime(0, 0, 0);
-        $horizonEnd = $horizonStart->modify("+{$horizonMonths} months");
+        $targetMonth = $horizonStart->modify('first day of this month')->modify("+{$horizonMonths} months");
+        $horizonEnd = $targetMonth->setDate(
+            (int) $targetMonth->format('Y'),
+            (int) $targetMonth->format('m'),
+            min((int) $horizonStart->format('d'), (int) $targetMonth->format('t')),
+        );
+        $generatedSlots = [];
         $generatedCount = 0;
         $skippedExistingCount = 0;
         $skippedClosureCount = 0;
@@ -62,7 +78,8 @@ final readonly class PickupSlotRuleGenerator
                     }
 
                     if (
-                        null !== $this->pickupSlotRepository->findOneForShopAndRange($shop, $startsAt, $endsAt)
+                        $this->overlapsGeneratedSlot($generatedSlots, $startsAt, $endsAt)
+                        || null !== $this->pickupSlotRepository->findOneForShopAndRange($shop, $startsAt, $endsAt)
                         || $this->pickupSlotRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)
                     ) {
                         ++$skippedExistingCount;
@@ -77,12 +94,11 @@ final readonly class PickupSlotRuleGenerator
                         ->setActive(true);
 
                     $this->entityManager->persist($slot);
+                    $generatedSlots[] = $slot;
                     ++$generatedCount;
                 }
             }
         }
-
-        $this->entityManager->flush();
 
         return new PickupSlotRuleGenerationResult(
             generatedCount: $generatedCount,
@@ -91,6 +107,20 @@ final readonly class PickupSlotRuleGenerator
             horizonStart: $horizonStart,
             horizonEnd: $horizonEnd,
         );
+    }
+
+    /**
+     * @param list<PickupSlot> $generatedSlots
+     */
+    private function overlapsGeneratedSlot(array $generatedSlots, \DateTimeImmutable $startsAt, \DateTimeImmutable $endsAt): bool
+    {
+        foreach ($generatedSlots as $slot) {
+            if ($slot->getStartsAt() < $endsAt && $slot->getEndsAt() > $startsAt) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

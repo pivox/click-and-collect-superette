@@ -9,11 +9,12 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/services/auth.service', () => ({
   clientLogin: vi.fn(),
   clientRegister: vi.fn(),
+  getClientProfile: vi.fn(),
   decodeJwtPayload: vi.fn(),
 }));
 
 import { ClientAuthProvider, useClientAuth } from '@/lib/auth/ClientAuthContext';
-import { clientLogin, decodeJwtPayload } from '@/lib/services/auth.service';
+import { clientLogin, decodeJwtPayload, getClientProfile } from '@/lib/services/auth.service';
 
 function TestConsumer() {
   const auth = useClientAuth();
@@ -31,6 +32,7 @@ describe('ClientAuthContext', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    vi.mocked(getClientProfile).mockRejectedValue(new Error('offline'));
   });
 
   it('user est null sans token en localStorage', async () => {
@@ -104,4 +106,36 @@ describe('ClientAuthContext', () => {
     );
     expect(localStorage.getItem('jwt_token')).toBeNull();
   });
+});
+
+it('does not restore another role into the client portal',async()=>{
+ localStorage.setItem('jwt_token','wrong-role');
+ vi.mocked(decodeJwtPayload).mockReturnValue({roles:['ROLE_ADMIN'],exp:Date.now()/1000+3600,email:'admin@example.tn'});
+ render(<ClientAuthProvider><TestConsumer/></ClientAuthProvider>);
+ await waitFor(()=>expect(screen.getByTestId('user').textContent).toBe('none'));
+ expect(localStorage.getItem('jwt_token')).toBeNull();
+});
+
+it('restores the profile name from the server when the JWT contains no name',async()=>{
+ localStorage.setItem('jwt_token','token-without-name');
+ localStorage.setItem('profile_name_override','Old cached name');
+ vi.mocked(decodeJwtPayload).mockReturnValue({roles:['ROLE_CUSTOMER'],exp:Date.now()/1000+3600,email:'client@example.tn'});
+ vi.mocked(getClientProfile).mockResolvedValue({email:'client@example.tn',name:'Recette Web'});
+ function ProfileName(){const {user}=useClientAuth();return <span>{user?.name??'none'}</span>;}
+ render(<ClientAuthProvider><ProfileName/></ClientAuthProvider>);
+ expect(await screen.findByText('Recette Web')).toBeTruthy();
+ expect(getClientProfile).toHaveBeenCalled();
+});
+
+it('ignores a late profile response after logout',async()=>{
+ localStorage.setItem('jwt_token','client-token');
+ vi.mocked(decodeJwtPayload).mockReturnValue({roles:['ROLE_CUSTOMER'],exp:Date.now()/1000+3600,email:'client@example.tn'});
+ let finish!:(profile:{name:string;email:string})=>void;
+ vi.mocked(getClientProfile).mockReturnValue(new Promise(resolve=>{finish=resolve;}));
+ function LogoutWhileLoading(){const {user,logout}=useClientAuth();return <><span>{user?.name??'none'}</span><button onClick={logout}>stop</button></>;}
+ render(<ClientAuthProvider><LogoutWhileLoading/></ClientAuthProvider>);
+ act(()=>screen.getByText('stop').click());
+ await act(async()=>{finish({name:'Ancien compte',email:'client@example.tn'});});
+ expect(screen.getByText('none')).toBeTruthy();
+ expect(localStorage.getItem('jwt_token')).toBeNull();
 });

@@ -1,6 +1,7 @@
 'use client';
 
-import { Suspense, useState, type FormEvent } from 'react';
+import { Suspense, useRef, useState, type FormEvent } from 'react';
+import { isAxiosError } from 'axios';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +14,7 @@ function ForgotPasswordForm() {
   const searchParams = useSearchParams();
   const loginHref = loginHrefForPortal(searchParams.get('portal'));
   const isHydrated = useHydrated();
+  const submitLock = useRef(false);
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -20,14 +22,21 @@ function ForgotPasswordForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
     setError(null);
     setIsSubmitting(true);
     try {
       await requestPasswordReset(email.trim());
       setSubmitted(true);
-    } catch {
-      setError('Une erreur est survenue. Réessaie plus tard.');
+    } catch (cause) {
+      setError(isAxiosError(cause) && cause.response?.status === 429
+        ? 'Trop de tentatives. Réessaie dans quelques minutes.'
+        : isAxiosError(cause) && !cause.response
+          ? 'Impossible de joindre le serveur. Vérifie ta connexion.'
+          : 'Une erreur est survenue. Réessaie plus tard.');
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   };

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Entity\ExceptionalClosure;
+use App\Entity\Order;
 use App\Entity\PickupSlot;
 use App\Entity\PickupSlotRule;
 use App\Entity\Shop;
 use App\Service\PickupSlotRuleGenerator;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
 {
@@ -297,7 +300,7 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         self::assertCount(0, $this->entityManager->getRepository(PickupSlot::class)->findBy(['shop' => $shop]));
     }
 
-    public function testGenerateCreatesFourWeeksOfPickupSlotsFromActiveRules(): void
+    public function testGenerateCreatesOneMonthOfPickupSlotsFromActiveRules(): void
     {
         $merchant = $this->createUser('merchant-slot-rule-generate@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
@@ -437,7 +440,7 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         self::assertSame($total, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
     }
 
-    public function testGeneratorDoesNotCreatePastSlotOrFifthOccurrenceWhenRuleMatchesToday(): void
+    public function testGeneratorOnlyCreatesFutureSlotsWithinCalendarMonthWhenRuleMatchesToday(): void
     {
         $merchant = $this->createUser('merchant-slot-rule-horizon@example.test', ['ROLE_MERCHANT']);
         $shop = $this->createShop($merchant);
@@ -533,6 +536,137 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
         ], $routes);
     }
 
+    public function testGenerateSkipsOverlapsBetweenRulesWithinTheSameBatch(): void
+    {
+        $shop = $this->createShop();
+        $this->createRule($shop, 1, '09:00', '12:00', 5);
+        $this->createRule($shop, 1, '09:00', '10:00', 8);
+        $this->createRule($shop, 1, '09:30', '11:30', 9);
+        $generator = self::getContainer()->get(PickupSlotRuleGenerator::class);
+        $now = new \DateTimeImmutable('2026-06-01T08:00:00+01:00');
+
+        $first = $generator->generateForShop($shop, $now);
+        self::assertSame(15, $first->generatedCount);
+        self::assertSame(15, $first->skippedExistingCount);
+        $second = $generator->generateForShop($shop, $now);
+        self::assertSame(0, $second->generatedCount);
+        self::assertSame(30, $second->skippedExistingCount);
+        self::assertSame(15, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
+    public function testGenerationToleratesHistoricalDuplicateSlotsWithoutModifyingThem(): void
+    {
+        $shop = $this->createShop();
+        $this->createRule($shop, 1, '09:00', '10:00', 5);
+        foreach ([true, false] as $active) {
+            $slot = (new PickupSlot())->setShop($shop)
+                ->setStartsAt(new \DateTimeImmutable('2026-06-01T09:00:00+01:00'))
+                ->setEndsAt(new \DateTimeImmutable('2026-06-01T10:00:00+01:00'))
+                ->setCapacity(2)->setActive($active);
+            $slot->book();
+            $this->entityManager->persist($slot);
+        }
+        $this->entityManager->flush();
+        $result = self::getContainer()->get(PickupSlotRuleGenerator::class)->generateForShop($shop, new \DateTimeImmutable('2026-06-01T08:00:00+01:00'));
+        self::assertSame(4, $result->generatedCount);
+        self::assertSame(1, $result->skippedExistingCount);
+        self::assertSame(6, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+        $this->entityManager->refresh($slot);
+        self::assertFalse($slot->isActive());
+        self::assertSame(2, $slot->getCapacity());
+        self::assertSame(1, $slot->getBookedCount());
+    }
+
+    public function testEditingAndDisablingRulePreservesBookedSlotAndAssociatedOrder(): void
+    {
+        $merchant = $this->createUser('merchant-rule-preserves-order@example.test', ['ROLE_MERCHANT']);
+        $customer = $this->createUser('client-rule-preserves-order@example.test', ['ROLE_CUSTOMER']);
+        $shop = $this->createShop($merchant);
+        $rule = $this->createRule($shop, 1, '09:00', '10:00', 5);
+        $generator = self::getContainer()->get(PickupSlotRuleGenerator::class);
+        $now = new \DateTimeImmutable('2026-06-01T08:00:00+01:00');
+        $generator->generateForShop($shop, $now);
+        $slot = $this->entityManager->getRepository(PickupSlot::class)->findOneBy(['shop' => $shop], ['startsAt' => 'ASC']);
+        self::assertNotNull($slot);
+        $slot->book();
+        $order = (new Order())->setShop($shop)->setCustomer($customer)->setPickupSlot($slot);
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+        $path = \sprintf('/api/merchant/stores/%s/pickup-slot-rules/%s', $shop->getId(), $rule->getId());
+        self::assertSame(200, $this->requestJson('PATCH', $path, ['start_time' => '14:00', 'end_time' => '15:00', 'capacity' => 9], $merchant)->getStatusCode());
+        self::assertSame(204, $this->requestJson('DELETE', $path, user: $merchant)->getStatusCode());
+        $shop = $this->entityManager->find(Shop::class, $shop->getId());
+        self::assertNotNull($shop);
+        $generator = self::getContainer()->get(PickupSlotRuleGenerator::class);
+        self::assertSame(0, $generator->generateForShop($shop, $now)->generatedCount);
+        $slot = $this->entityManager->find(PickupSlot::class, $slot->getId());
+        $order = $this->entityManager->find(Order::class, $order->getId());
+        self::assertNotNull($slot);
+        self::assertNotNull($order);
+        self::assertSame('2026-06-01 09:00', $slot->getStartsAt()->format('Y-m-d H:i'));
+        self::assertSame(5, $slot->getCapacity());
+        self::assertSame(1, $slot->getBookedCount());
+        self::assertTrue($slot->isActive());
+        self::assertSame($slot->getId()->toRfc4122(), $order->getPickupSlot()?->getId()->toRfc4122());
+        self::assertSame(5, $this->entityManager->getRepository(PickupSlot::class)->count(['shop' => $shop]));
+    }
+
+    #[DataProvider('calendarHorizons')]
+    public function testGenerationClampsCalendarHorizonAndKeepsItsEndExclusive(string $now, int $months, string $end): void
+    {
+        $shop = $this->createShop();
+        for ($weekday = 1; $weekday <= 7; ++$weekday) {
+            $this->createRule($shop, $weekday, '09:00', '10:30', 5);
+        }
+        $instant = new \DateTimeImmutable($now);
+        $result = self::getContainer()->get(PickupSlotRuleGenerator::class)->generateForShop($shop, $instant, $months);
+        self::assertSame($end.'T00:00:00+01:00', $result->horizonEnd->format(\DateTimeInterface::ATOM));
+        self::assertSame('Africa/Tunis', $result->horizonStart->getTimezone()->getName());
+        $slots = $this->entityManager->getRepository(PickupSlot::class)->findBy(['shop' => $shop], ['startsAt' => 'ASC']);
+        self::assertNotEmpty($slots);
+        foreach ($slots as $slot) {
+            self::assertGreaterThan($instant, $slot->getStartsAt());
+            self::assertLessThan($result->horizonEnd, $slot->getStartsAt());
+            self::assertSame('09:00', $slot->getStartsAt()->format('H:i'));
+            self::assertSame('10:00', $slot->getEndsAt()->format('H:i'));
+        }
+        self::assertSame($result->horizonEnd->modify('-1 day')->format('Y-m-d'), $slots[array_key_last($slots)]->getStartsAt()->format('Y-m-d'));
+    }
+
+    public static function calendarHorizons(): iterable
+    {
+        yield 'January to February' => ['2026-01-31T08:00:00+01:00', 1, '2026-02-28'];
+        yield 'leap February' => ['2028-01-31T08:00:00+01:00', 1, '2028-02-29'];
+        yield 'three months' => ['2026-01-31T08:00:00+01:00', 3, '2026-04-30'];
+        yield 'year boundary and foreign timezone' => ['2026-12-30T23:30:00-05:00', 3, '2027-03-31'];
+    }
+
+    public function testGenerationPreservesInactiveSlotsAndSkipsPartialClosures(): void
+    {
+        $shop = $this->createShop();
+        $this->createRule($shop, 1, '09:00', '12:30', 9);
+        $inactive = (new PickupSlot())->setShop($shop)
+            ->setStartsAt(new \DateTimeImmutable('2026-06-01T09:00:00+01:00'))
+            ->setEndsAt(new \DateTimeImmutable('2026-06-01T10:00:00+01:00'))
+            ->setCapacity(2)->setActive(false);
+        $inactive->book();
+        $closure = (new ExceptionalClosure())->setShop($shop)
+            ->setStartsAt(new \DateTimeImmutable('2026-06-01T10:30:00+01:00'))
+            ->setEndsAt(new \DateTimeImmutable('2026-06-01T11:00:00+01:00'));
+        $this->entityManager->persist($inactive);
+        $this->entityManager->persist($closure);
+        $this->entityManager->flush();
+
+        $result = self::getContainer()->get(PickupSlotRuleGenerator::class)->generateForShop($shop, new \DateTimeImmutable('2026-06-01T08:00:00+01:00'));
+        self::assertSame(13, $result->generatedCount);
+        self::assertSame(1, $result->skippedExistingCount);
+        self::assertSame(1, $result->skippedClosureCount);
+        $this->entityManager->refresh($inactive);
+        self::assertFalse($inactive->isActive());
+        self::assertSame(2, $inactive->getCapacity());
+        self::assertSame(1, $inactive->getBookedCount());
+    }
+
     /**
      * @param array<string, mixed> $overrides
      *
@@ -574,7 +708,8 @@ final class MerchantPickupSlotRuleApiTest extends FunctionalApiTestCase
     {
         $timezone = new \DateTimeZone(PickupSlotRuleGenerator::TIMEZONE);
         $start = (new \DateTimeImmutable('now', $timezone))->setTime(0, 0, 0);
-        $end = $start->modify('+1 month');
+        $targetMonth = $start->modify('first day of next month');
+        $end = $targetMonth->setDate((int) $targetMonth->format('Y'), (int) $targetMonth->format('m'), min((int) $start->format('d'), (int) $targetMonth->format('t')));
         $count = 0;
         for ($date = $start; $date < $end; $date = $date->modify('+1 day')) {
             if ((int) $date->format('N') === $weekday) {
