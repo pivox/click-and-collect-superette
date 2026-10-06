@@ -14,6 +14,7 @@ use App\Repository\ShopRepository;
 use App\Security\MerchantShopAccessChecker;
 use App\Service\PickupSlotDisplayTime;
 use App\Service\PickupSlotDuration;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -66,22 +67,26 @@ final readonly class CreateMerchantPickupSlotProcessor implements ProcessorInter
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_MUST_LAST_ONE_HOUR');
         }
 
-        if ($this->pickupSlotRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)) {
-            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXISTING_SLOT');
-        }
+        $this->entityManager->getConnection()->transactional(function () use ($shop, $startsAt, $endsAt, $data): void {
+            $this->entityManager->lock($shop, LockMode::PESSIMISTIC_WRITE);
 
-        if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)) {
-            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXCEPTIONAL_CLOSURE');
-        }
+            if ($this->pickupSlotRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)) {
+                throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXISTING_SLOT');
+            }
 
-        $slot = (new PickupSlot())
-            ->setShop($shop)
-            ->setStartsAt($startsAt)
-            ->setEndsAt($endsAt)
-            ->setCapacity($data->capacity)
-            ->setActive(true);
+            if ($this->exceptionalClosureRepository->hasActiveOverlapForShop($shop, $startsAt, $endsAt)) {
+                throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'PICKUP_SLOT_OVERLAPS_EXCEPTIONAL_CLOSURE');
+            }
 
-        $this->entityManager->persist($slot);
-        $this->entityManager->flush();
+            $slot = (new PickupSlot())
+                ->setShop($shop)
+                ->setStartsAt($startsAt)
+                ->setEndsAt($endsAt)
+                ->setCapacity($data->capacity)
+                ->setActive(true);
+
+            $this->entityManager->persist($slot);
+            $this->entityManager->flush();
+        });
     }
 }
