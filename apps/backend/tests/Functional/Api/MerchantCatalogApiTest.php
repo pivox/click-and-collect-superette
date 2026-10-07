@@ -567,14 +567,22 @@ final class MerchantCatalogApiTest extends FunctionalApiTestCase
 
         self::assertSame([
             'DELETE /api/merchant/catalog/{merchantProductId}',
+            'DELETE /api/merchant/stores/{storeId}/catalog/photo-import/sessions/{sessionId}/images/{imageId}',
             'GET /api/merchant/stores/{storeId}/catalog',
+            'GET /api/merchant/stores/{storeId}/catalog/photo-import/quota',
+            'GET /api/merchant/stores/{storeId}/catalog/photo-import/sessions',
+            'GET /api/merchant/stores/{storeId}/catalog/photo-import/sessions/{sessionId}',
             'GET /api/stores/{storeId}/catalog',
             'PATCH /api/merchant/catalog/{merchantProductId}',
+            'PATCH /api/merchant/stores/{storeId}/catalog/photo-import/sessions/{sessionId}',
             'POST /api/merchant/stores/{storeId}/catalog',
             'POST /api/merchant/stores/{storeId}/catalog/import-csv',
             'POST /api/merchant/stores/{storeId}/catalog/import-from-product-group',
             'POST /api/merchant/stores/{storeId}/catalog/photo-import/commit',
             'POST /api/merchant/stores/{storeId}/catalog/photo-import/preview',
+            'POST /api/merchant/stores/{storeId}/catalog/photo-import/sessions',
+            'POST /api/merchant/stores/{storeId}/catalog/photo-import/sessions/{sessionId}/cancel',
+            'POST /api/merchant/stores/{storeId}/catalog/photo-import/sessions/{sessionId}/images',
         ], $catalogRoutes);
     }
 
