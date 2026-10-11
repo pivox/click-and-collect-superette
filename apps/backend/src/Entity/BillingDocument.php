@@ -49,6 +49,10 @@ class BillingDocument
     #[ORM\Column(name: 'pricing_phase', length: 20, enumType: SubscriptionPricingPhase::class)]
     private SubscriptionPricingPhase $pricingPhase = SubscriptionPricingPhase::Trial;
 
+    /** @var array<string, mixed>|null */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $pricingSnapshot = null;
+
     #[ORM\Column(length: 3)]
     private string $currency = 'TND';
 
@@ -101,6 +105,7 @@ class BillingDocument
         $this->updatedAt = $now;
     }
 
+    /** @param array<string, mixed>|null $pricingSnapshot */
     public static function issueMonthlyStatement(
         Subscription $subscription,
         string $documentNumber,
@@ -110,6 +115,8 @@ class BillingDocument
         \DateTimeImmutable $dueAt,
         SubscriptionPricingPhase $pricingPhase,
         string $amountTnd,
+        ?array $pricingSnapshot = null,
+        BillingDocumentType $documentType = BillingDocumentType::MonthlyStatement,
     ): self {
         if ($billingPeriodEnd <= $billingPeriodStart) {
             throw new \InvalidArgumentException('BILLING_DOCUMENT_INVALID_PERIOD');
@@ -119,7 +126,8 @@ class BillingDocument
         $document->subscription = $subscription;
         $document->merchant = $subscription->getMerchant();
         $document->documentNumber = $documentNumber;
-        $document->documentType = BillingDocumentType::MonthlyStatement;
+        $document->documentType = $documentType;
+        $document->pricingSnapshot = $pricingSnapshot;
         $document->status = BillingDocumentStatus::Issued;
         $document->pricingPhase = $pricingPhase;
         $document->billingPeriodStart = $billingPeriodStart;
@@ -213,6 +221,12 @@ class BillingDocument
     public function getPricingPhase(): SubscriptionPricingPhase
     {
         return $this->pricingPhase;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function getPricingSnapshot(): ?array
+    {
+        return $this->pricingSnapshot;
     }
 
     public function getCurrency(): string

@@ -39,6 +39,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 )]
 final readonly class BillingDocumentOutput
 {
+    /** @param array<string, mixed>|null $pricingSnapshot */
     public function __construct(
         #[ApiProperty(identifier: true)]
         #[Groups(['billing_document:read', 'billing_document_list:read'])]
@@ -111,6 +112,9 @@ final readonly class BillingDocumentOutput
         #[Groups(['billing_document:read'])]
         #[SerializedName('created_at')]
         public string $createdAt,
+        #[Groups(['billing_document:read'])]
+        #[SerializedName('pricing_snapshot')]
+        public ?array $pricingSnapshot = null,
     ) {
     }
 }

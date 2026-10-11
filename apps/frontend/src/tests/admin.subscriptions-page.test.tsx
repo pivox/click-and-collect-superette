@@ -6,11 +6,18 @@ import {
   listAdminSubscriptions,
 } from '@/lib/services/subscriptions.service';
 import type { MerchantSubscription } from '@/lib/types/subscriptions.types';
+import { listMerchants } from '@/lib/services/admin/merchants.service';
 
 vi.mock('@/lib/services/subscriptions.service', () => ({
   listAdminSubscriptions: vi.fn(),
   getAdminSubscription: vi.fn(),
+  createAdminSubscription: vi.fn(),
+  previewAdminSubscriptionPricing: vi.fn(),
+  previewNewAdminSubscription: vi.fn(),
+  updateAdminSubscriptionPricing: vi.fn(),
+  issueSubscriptionBillingDocument: vi.fn(),
 }));
+vi.mock('@/lib/services/admin/merchants.service', () => ({ listMerchants: vi.fn() }));
 
 const SUBSCRIPTION: MerchantSubscription = {
   id: 'sub-1',
@@ -74,5 +81,40 @@ describe('AdminSubscriptionsPage', () => {
     render(<AdminSubscriptionsPage />);
 
     expect(await screen.findByText('Aucun abonnement marchand à afficher.')).toBeInTheDocument();
+  });
+
+  it('opens pricing management from the subscription detail', async () => {
+    render(<AdminSubscriptionsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail abonnement' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Modifier les conditions' }));
+    expect(screen.getByLabelText('Périodicité')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Programmer les conditions' })).toBeDisabled();
+  });
+
+  it('selects a merchant before showing the subscription creation form', async () => {
+    vi.mocked(listMerchants).mockResolvedValue({
+      id: 'merchants', page: 1, limit: 20, total: 1,
+      items: [{ id: 'm-new', email: 'nouveau@example.test', first_name: 'Ali', last_name: null, phone: null,
+        is_active: true, subscription_lifecycle: null, created_at: '', stores_count: 1 }],
+    });
+    render(<AdminSubscriptionsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Créer un abonnement' }));
+    fireEvent.click(await screen.findByRole('button', { name: /nouveau@example.test/ }));
+    expect(screen.getByLabelText('Conditions tarifaires')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Créer l’abonnement' })).toBeDisabled();
+  });
+
+  it('allows selecting a merchant when the API omits a null subscription field', async () => {
+    vi.mocked(listMerchants).mockResolvedValue({
+      id: 'merchants', page: 1, limit: 20, total: 1,
+      items: [{ id: 'm-new', email: 'sans-abonnement@example.test', first_name: 'Ali', last_name: null,
+        is_active: true, created_at: '', stores_count: 1 } as Awaited<ReturnType<typeof listMerchants>>['items'][number]],
+    });
+    render(<AdminSubscriptionsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Créer un abonnement' }));
+    const merchant = await screen.findByRole('button', { name: /sans-abonnement@example.test/ });
+    expect(merchant).toBeEnabled();
+    fireEvent.click(merchant);
+    expect(screen.getByLabelText('Périodicité')).toBeInTheDocument();
   });
 });

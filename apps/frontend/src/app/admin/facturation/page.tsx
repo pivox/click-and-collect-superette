@@ -1,4 +1,5 @@
 'use client';
+import { BillingDocumentPricingSummary } from '@/components/subscriptions/BillingDocumentPricingSummary';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
@@ -109,7 +110,7 @@ export default function AdminBillingDocumentsPage() {
       setTotal(data.total);
     } catch (err) {
       console.error('[admin-billing-documents] list failed', err);
-      setError('Impossible de charger les documents mensuels.');
+      setError('Impossible de charger les documents d’abonnement.');
     } finally {
       setIsLoading(false);
     }
@@ -136,7 +137,7 @@ export default function AdminBillingDocumentsPage() {
     } catch (err) {
       if (detailRequestSeq.current !== requestSeq) return;
       console.error('[admin-billing-documents] detail failed', err);
-      setError('Impossible de charger le détail du document mensuel.');
+      setError('Impossible de charger le détail du document d’abonnement.');
     } finally {
       if (detailRequestSeq.current === requestSeq) {
         setIsDetailLoading(false);
@@ -280,7 +281,7 @@ export default function AdminBillingDocumentsPage() {
         <div>
           <h1 className="text-h1 font-black">Facturation</h1>
           <p className="mt-1 text-sm text-muted">
-            Documents mensuels internes non fiscaux liés aux abonnements marchands.
+            Documents mensuels et annuels internes non fiscaux liés aux abonnements marchands.
           </p>
         </div>
         <Button variant="ghost" size="md" onClick={() => void load()}>
@@ -298,7 +299,7 @@ export default function AdminBillingDocumentsPage() {
         columns={columns}
         data={items}
         isLoading={isLoading}
-        emptyMessage="Aucun document mensuel à afficher."
+        emptyMessage="Aucun document d’abonnement à afficher."
         pagination={{ page, total, limit: PAGE_SIZE, onPageChange: setPage }}
       />
 
@@ -306,8 +307,8 @@ export default function AdminBillingDocumentsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <section
             role="dialog"
-            aria-label="Détail document mensuel"
-            className="w-full max-w-xl rounded-md bg-card p-5 shadow-xl"
+            aria-label="Détail document d’abonnement"
+            className="max-h-[90dvh] w-full max-w-xl overflow-y-auto rounded-md bg-card p-5 shadow-xl"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -327,6 +328,8 @@ export default function AdminBillingDocumentsPage() {
               <Detail label="Montant" value={formatMoney(detail.amount_tnd, detail.currency)} />
               <Detail label="Reste à payer" value={formatMoney(detail.amount_due_tnd, detail.currency)} />
             </dl>
+
+            <BillingDocumentPricingSummary document={detail} />
 
             <section className="mt-5 space-y-3 rounded-md border border-line bg-soft p-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

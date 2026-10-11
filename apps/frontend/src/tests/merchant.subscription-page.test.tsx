@@ -166,4 +166,20 @@ describe('MerchantSubscriptionPage', () => {
       '/merchant/parametres/abonnement',
     );
   });
+
+  it('shows the annual total and scheduled free conditions instead of a monthly charge', async () => {
+    vi.mocked(getMerchantSubscription).mockResolvedValue({
+      ...SUBSCRIPTION,
+      billing_interval: 'annual', pricing_mode: 'discounted', period_price_tnd: '375.000',
+      scheduled_pricing: {
+        billing_interval: 'annual', pricing_mode: 'free', base_price_tnd: '600.000',
+        free_months: null, discounts: [], effective_at: '2027-06-01T00:00:00+01:00',
+      },
+    });
+    renderWithLocale(<MerchantSubscriptionPage />);
+    expect(await screen.findByText('Montant annuel')).toBeInTheDocument();
+    expect(screen.getByText('375,000 TND')).toBeInTheDocument();
+    expect(screen.getByText('Gratuité sans date de fin.')).toBeInTheDocument();
+    expect(screen.queryByText('Montant mensuel')).not.toBeInTheDocument();
+  });
 });

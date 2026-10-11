@@ -6,14 +6,17 @@ namespace App\Service;
 
 use App\Entity\BillingDocument;
 use App\Entity\Subscription;
+use App\Enum\BillingDocumentType;
 use App\Enum\SubscriptionPricingPhase;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 
 final readonly class BillingDocumentIssuer
 {
-    public function __construct(private Connection $connection)
-    {
+    public function __construct(
+        private Connection $connection,
+        private SubscriptionPricingSchedule $schedule,
+    ) {
     }
 
     public function issueMonthlyStatement(
@@ -35,6 +38,28 @@ final readonly class BillingDocumentIssuer
             dueAt: $issuedAt->modify('+7 days'),
             pricingPhase: $pricingPhase,
             amountTnd: $amountTnd,
+        );
+    }
+
+    public function issueCurrentPeriod(Subscription $subscription, \DateTimeImmutable $issuedAt): ?BillingDocument
+    {
+        $pricing = $this->schedule->forSubscription($subscription, $issuedAt);
+        $amount = $pricing->periodPriceTnd ?? $pricing->monthlyPriceTnd;
+        if (bccomp($amount, '0', 3) <= 0) {
+            return null;
+        }
+
+        return BillingDocument::issueMonthlyStatement(
+            subscription: $subscription,
+            documentNumber: $this->nextDocumentNumber((int) $issuedAt->format('Y')),
+            billingPeriodStart: $pricing->currentPeriodStartedAt,
+            billingPeriodEnd: $pricing->currentPeriodEndsAt,
+            issuedAt: $issuedAt,
+            dueAt: $issuedAt->modify('+7 days'),
+            pricingPhase: $pricing->pricingPhase,
+            amountTnd: $amount,
+            pricingSnapshot: ['pricing_terms' => $pricing->pricingTerms, 'period_breakdown' => $pricing->periodBreakdown, 'period_price_tnd' => $amount, 'billing_interval' => $pricing->billingInterval],
+            documentType: 'annual' === $pricing->billingInterval ? BillingDocumentType::AnnualStatement : BillingDocumentType::MonthlyStatement,
         );
     }
 
