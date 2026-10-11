@@ -3725,7 +3725,8 @@ Payload `POST` :
   "amount_tnd": "10.000",
   "method": "cash",
   "paid_at": "2026-06-04T10:30:00+01:00",
-  "reference": "Caisse Tunis 42"
+  "reference": "Caisse Tunis 42",
+  "idempotency_key": "87220c14-7cae-40c5-9c18-6d6b04543eb7"
 }
 ```
 
@@ -3733,11 +3734,42 @@ Règles :
 
 - `POST` réservé à `ROLE_ADMIN` ;
 - `method` : `cash` ou `bank_transfer` ;
-- un paiement confirmé marque le document payé si le montant couvre le dû ;
+- plusieurs règlements complets ou partiels peuvent être rattachés au même document ;
+- montant strictement positif, au maximum égal au solde, calculé à trois décimales TND ;
+- un règlement augmente `amount_paid_tnd` et diminue `amount_due_tnd` ; seul le
+  dernier versement marque le document `paid`. Un versement partiel conserve le
+  statut `issued` ou `overdue` et les relances portent sur le solde restant ;
 - si l'abonnement était `payment_due`, `grace_period` ou `suspended`, le
-  paiement peut réactiver le lifecycle en `active` ;
+  paiement réactive le lifecycle en `active` uniquement après règlement complet
+  du document et absence d'autres documents exigibles impayés de cet abonnement ;
+- `idempotency_key` est un UUID facultatif pour compatibilité. Une nouvelle
+  tentative avec la même clé, le même contenu normalisé et le même admin retourne
+  le règlement existant sans modifier le solde ni répéter l'audit ;
+- une clé réutilisée pour un autre contenu/admin renvoie `409`
+  `SUBSCRIPTION_PAYMENT_IDEMPOTENCY_CONFLICT` ;
+- les documents brouillons, annulés ou déjà payés et les abonnements annulés
+  refusent un nouveau règlement (`409`). Une date future, un montant nul ou un
+  dépassement du solde sont refusés (`422`) ;
 - chaque paiement confirmé est audité ;
-- le marchand consulte uniquement ses paiements.
+- le marchand consulte uniquement ses paiements ;
+- `document_number` est ajouté à la représentation de chaque règlement.
+
+Filtres admin appliqués avant pagination (`page`, `limit`, maximum 50) :
+
+| Route | Filtres |
+| --- | --- |
+| `GET /api/admin/billing-documents` | `subscription_id` UUID, `q` email marchand ou numéro de document, `outstanding=true` documents émis/en retard avec solde positif ; `false` sélection complémentaire ; omis : tous |
+| `GET /api/admin/subscription-payments` | `subscription_id` UUID, `billing_document_id` UUID, `q` email marchand, numéro de document ou référence |
+
+`total` respecte les mêmes filtres. Un filtre invalide renvoie `400`. Les routes
+marchand conservent leurs règles d'accès et leur pagination.
+
+La page admin `/admin/reglements` propose les documents à régler et l'historique
+des versements. Les fiches abonnement et document pointent vers cette page avec
+les filtres correspondants. Le formulaire partagé avec Facturation conserve une
+demande ambiguë dans le stockage de session pour pouvoir la rejouer sans doublon.
+Les règlements sont confirmés immédiatement par l'admin ; remboursement,
+suppression, échéancier automatique et paiement en ligne restent hors périmètre.
 
 ### Suspension douce et réactivation
 

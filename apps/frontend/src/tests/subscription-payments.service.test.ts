@@ -78,4 +78,12 @@ describe('subscription payments service', () => {
       params: { page: 1, limit: 20 },
     });
   });
+
+  it('sends server-side subscription, document and search filters', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { items: [], total: 0 } });
+    await listAdminSubscriptionPayments({ subscription_id: 'sub-1', billing_document_id: 'doc-1', q: 'virement' });
+    expect(apiClient.get).toHaveBeenCalledWith('/api/admin/subscription-payments', {
+      params: { page: 1, limit: 20, subscription_id: 'sub-1', billing_document_id: 'doc-1', q: 'virement' },
+    });
+  });
 });

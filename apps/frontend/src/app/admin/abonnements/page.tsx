@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
@@ -240,6 +241,7 @@ export default function AdminSubscriptionsPage() {
             </dl>
             {detail.period_price_tnd !== undefined && <SubscriptionPricingSummary subscription={detail} />}
             <Button className="mt-5" size="md" disabled={dialogBusy || detail.lifecycle === 'cancelled'} onClick={() => setEditing(true)}>Modifier les conditions</Button>
+            <Link href={`/admin/reglements?subscription_id=${detail.id}`} className="mt-3 block min-h-[44px] py-3 text-sm font-semibold text-primary underline">Voir les règlements de cet abonnement</Link>
             {detail.lifecycle !== 'cancelled' && <IssueSubscriptionDocument key={`${detail.id}:${detail.current_period_started_at}`} subscriptionId={detail.id} amountTnd={detail.period_price_tnd ?? detail.monthly_price_tnd} onBusyChange={setDialogBusy} />}
           </>}
         </SubscriptionDialog>

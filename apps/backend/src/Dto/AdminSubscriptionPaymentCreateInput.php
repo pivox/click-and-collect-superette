@@ -28,6 +28,11 @@ final class AdminSubscriptionPaymentCreateInput
     #[Assert\DateTime(format: \DateTimeInterface::ATOM)]
     public ?string $paidAt = null;
 
+    #[SerializedName('idempotency_key')]
+    #[Assert\NotBlank(allowNull: true)]
+    #[Assert\Uuid]
+    public ?string $idempotencyKey = null;
+
     #[Assert\Length(max: 120)]
     public ?string $reference = null;
 }

@@ -6,6 +6,9 @@ import type {
 } from '@/lib/types/billing-documents.types';
 
 interface ListBillingDocumentsOptions {
+  subscription_id?: string;
+  q?: string;
+  outstanding?: boolean;
   page?: number;
   limit?: number;
 }
@@ -17,6 +20,9 @@ export async function listAdminBillingDocuments(
     params: {
       page: options.page ?? 1,
       limit: options.limit ?? 20,
+      ...(options.subscription_id !== undefined ? { subscription_id: options.subscription_id } : {}),
+      ...(options.q !== undefined ? { q: options.q } : {}),
+      ...(options.outstanding !== undefined ? { outstanding: options.outstanding } : {}),
     },
   });
 

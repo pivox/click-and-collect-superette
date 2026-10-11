@@ -8,6 +8,7 @@ import { issueSubscriptionBillingDocument } from '@/lib/services/subscriptions.s
 
 export function IssueSubscriptionDocument({ subscriptionId, amountTnd, onBusyChange }: { subscriptionId: string; amountTnd: string; onBusyChange?: (busy: boolean) => void }) {
   const [documentNumber, setDocumentNumber] = useState<string | null>(null);
+  const [documentId, setDocumentId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lock = useRef(false);
@@ -22,6 +23,7 @@ export function IssueSubscriptionDocument({ subscriptionId, amountTnd, onBusyCha
     try {
       const document = await issueSubscriptionBillingDocument(subscriptionId);
       setDocumentNumber(document.document_number);
+      setDocumentId(document.id);
     } catch (err) {
       setError(isAxiosError(err) && err.response?.status === 422
         ? 'Cette période est gratuite. Aucun document de paiement à émettre.'
@@ -35,7 +37,7 @@ export function IssueSubscriptionDocument({ subscriptionId, amountTnd, onBusyCha
     {error && <p role="alert" className="text-sm text-status-cancel">{error}</p>}
     {documentNumber ? <div role="status" className="space-y-2 text-sm">
       <p>Document disponible : <strong>{documentNumber}</strong>.</p>
-      <Link href="/admin/facturation" className="inline-block min-h-[44px] py-2 font-semibold text-primary underline">Enregistrer le paiement manuel</Link>
+      <Link href={`/admin/reglements?subscription_id=${subscriptionId}&billing_document_id=${documentId}`} className="inline-block min-h-[44px] py-2 font-semibold text-primary underline">Enregistrer le paiement manuel</Link>
     </div> : <Button type="button" variant="ghost" size="md" disabled={busy} onClick={() => void issue()}>
       {busy ? 'Émission en cours…' : 'Émettre le document de période'}
     </Button>}

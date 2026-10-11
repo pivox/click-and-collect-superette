@@ -33,6 +33,9 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             provider: AdminSubscriptionPaymentCollectionProvider::class,
             security: "is_granted('ROLE_ADMIN')",
             parameters: [
+                'subscription_id' => new QueryParameter(schema: ['type' => 'string']),
+                'billing_document_id' => new QueryParameter(schema: ['type' => 'string']),
+                'q' => new QueryParameter(schema: ['type' => 'string']),
                 'page' => new QueryParameter(schema: ['type' => 'integer', 'default' => 1]),
                 'limit' => new QueryParameter(schema: ['type' => 'integer', 'default' => 20]),
             ],
@@ -59,6 +62,9 @@ final readonly class SubscriptionPaymentOutput
         #[Groups(['subscription_payment:read', 'subscription_payment_list:read'])]
         #[SerializedName('billing_document_id')]
         public string $billingDocumentId,
+        #[Groups(['subscription_payment:read', 'subscription_payment_list:read'])]
+        #[SerializedName('document_number')]
+        public string $documentNumber,
         #[Groups(['subscription_payment:read', 'subscription_payment_list:read'])]
         #[SerializedName('subscription_id')]
         public string $subscriptionId,

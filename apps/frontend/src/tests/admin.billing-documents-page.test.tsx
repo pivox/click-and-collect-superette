@@ -223,7 +223,8 @@ describe('AdminBillingDocumentsPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
     const detail = await screen.findByRole('dialog', { name: 'Détail document d’abonnement' });
     fireEvent.change(within(detail).getByLabelText('Moyen'), { target: { value: 'cash' } });
-    fireEvent.click(within(detail).getByRole('button', { name: 'Enregistrer paiement' }));
+    // happy-dom incorrectly rejects decimal step values; Chromium is checked separately.
+    fireEvent.submit(within(detail).getByRole('form', { name: 'Paiement manuel' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirmer le paiement manuel' }));
 
     await waitFor(() => expect(createAdminSubscriptionPayment).toHaveBeenCalledWith({
@@ -232,6 +233,7 @@ describe('AdminBillingDocumentsPage', () => {
       method: 'cash',
       paid_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/),
       reference: '',
+      idempotency_key: expect.stringMatching(/^[0-9a-f-]{36}$/),
     }));
     expect(getAdminBillingDocument).toHaveBeenLastCalledWith('doc-1');
   });

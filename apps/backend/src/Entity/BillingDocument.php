@@ -147,6 +147,22 @@ class BillingDocument
         $this->updatedAt = new \DateTimeImmutable();
     }
 
+    public function recordPayment(string $amountTnd, \DateTimeImmutable $paidAt): void
+    {
+        if (!\in_array($this->status, [BillingDocumentStatus::Issued, BillingDocumentStatus::Overdue], true)) {
+            throw new \LogicException('BILLING_DOCUMENT_NOT_ISSUED');
+        }
+        if (bccomp($amountTnd, '0', 3) <= 0 || bccomp($amountTnd, $this->amountDueTnd, 3) > 0) {
+            throw new \InvalidArgumentException('BILLING_DOCUMENT_PAYMENT_AMOUNT_INVALID');
+        }
+
+        $this->amountPaidTnd = bcadd($this->amountPaidTnd, $amountTnd, 3);
+        $this->amountDueTnd = bcsub($this->amountDueTnd, $amountTnd, 3);
+        if (0 === bccomp($this->amountDueTnd, '0', 3)) {
+            $this->markPaid($paidAt);
+        }
+    }
+
     public function markPaid(\DateTimeImmutable $paidAt): static
     {
         if (BillingDocumentStatus::Cancelled === $this->status) {

@@ -111,4 +111,12 @@ describe('billing documents service', () => {
     });
     expect(result.total).toBe(1);
   });
+
+  it('sends the outstanding and subscription filters with the search query', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { items: [], total: 0 } });
+    await listAdminBillingDocuments({ subscription_id: 'sub-1', outstanding: true, q: 'MS-2026' });
+    expect(apiClient.get).toHaveBeenCalledWith('/api/admin/billing-documents', {
+      params: { page: 1, limit: 20, subscription_id: 'sub-1', outstanding: true, q: 'MS-2026' },
+    });
+  });
 });

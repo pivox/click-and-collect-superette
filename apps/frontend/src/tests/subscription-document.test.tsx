@@ -8,12 +8,12 @@ vi.mock('@/lib/services/subscriptions.service', () => ({ issueSubscriptionBillin
 beforeEach(() => vi.clearAllMocks());
 
 it('emits the period document and links to manual payment management', async () => {
-  vi.mocked(issueSubscriptionBillingDocument).mockResolvedValue({ document_number: 'MS-2026-000123' } as Awaited<ReturnType<typeof issueSubscriptionBillingDocument>>);
+  vi.mocked(issueSubscriptionBillingDocument).mockResolvedValue({ id: 'doc-1', document_number: 'MS-2026-000123' } as Awaited<ReturnType<typeof issueSubscriptionBillingDocument>>);
   render(<IssueSubscriptionDocument subscriptionId="sub-1" amountTnd="375.000" />);
   fireEvent.click(screen.getByRole('button', { name: 'Émettre le document de période' }));
   await waitFor(() => expect(issueSubscriptionBillingDocument).toHaveBeenCalledWith('sub-1'));
   expect(await screen.findByText(/MS-2026-000123/)).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Enregistrer le paiement manuel' })).toHaveAttribute('href', '/admin/facturation');
+  expect(screen.getByRole('link', { name: 'Enregistrer le paiement manuel' })).toHaveAttribute('href', '/admin/reglements?subscription_id=sub-1&billing_document_id=doc-1');
 });
 
 it('does not offer to issue a debt for a free period', () => {

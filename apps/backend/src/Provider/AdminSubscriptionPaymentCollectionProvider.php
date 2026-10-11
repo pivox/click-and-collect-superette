@@ -39,9 +39,14 @@ final readonly class AdminSubscriptionPaymentCollectionProvider implements Provi
         $limit = min(self::MAX_LIMIT, $limit);
         $offset = ($page - 1) * $limit;
 
+        $filters = $request?->query->all() ?? [];
+        $subscriptionId = AdminBillingFilterParser::uuid($filters['subscription_id'] ?? null, 'ADMIN_SUBSCRIPTION_PAYMENT_INVALID_SUBSCRIPTION_ID');
+        $q = AdminBillingFilterParser::search($filters['q'] ?? null, 'ADMIN_SUBSCRIPTION_PAYMENT_INVALID_QUERY');
+        $documentId = AdminBillingFilterParser::uuid($filters['billing_document_id'] ?? null, 'ADMIN_SUBSCRIPTION_PAYMENT_INVALID_BILLING_DOCUMENT_ID');
+
         $items = array_map(
             fn ($payment) => $this->outputFactory->fromSubscriptionPayment($payment),
-            $this->subscriptionPaymentRepository->findPaginated($limit, $offset),
+            $this->subscriptionPaymentRepository->findPaginated($limit, $offset, $subscriptionId, $documentId, $q),
         );
 
         return new SubscriptionPaymentListOutput(
@@ -49,7 +54,7 @@ final readonly class AdminSubscriptionPaymentCollectionProvider implements Provi
             items: $items,
             page: $page,
             limit: $limit,
-            total: $this->subscriptionPaymentRepository->countAll(),
+            total: $this->subscriptionPaymentRepository->countAll($subscriptionId, $documentId, $q),
         );
     }
 
