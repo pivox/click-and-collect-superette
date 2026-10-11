@@ -25,6 +25,11 @@ function requestKey(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+// Tunisia stays on UTC+01:00 all year, matching the offset sent to the API.
+function tunisDateTimeLocal(date: Date = new Date()): string {
+  return new Date(date.getTime() + 3_600_000).toISOString().slice(0, 16);
+}
+
 function readPending(storageKey: string): CreateSubscriptionPaymentPayload | null {
   try { return JSON.parse(sessionStorage.getItem(storageKey) ?? 'null'); } catch { return null; }
 }
@@ -38,7 +43,10 @@ export function SubscriptionPaymentForm({ document, onSaved, onBusyChange }: {
   const [pending, setPending] = useState<CreateSubscriptionPaymentPayload | null>(() => readPending(storageKey));
   const [amount, setAmount] = useState(pending?.amount_tnd ?? document.amount_due_tnd);
   const [method, setMethod] = useState<SubscriptionPaymentMethod>(pending?.method ?? 'cash');
-  const [paidAt, setPaidAt] = useState('');
+  const [paidAt, setPaidAt] = useState(() => {
+    const pendingDate = pending ? new Date(pending.paid_at) : null;
+    return pendingDate && Number.isFinite(pendingDate.getTime()) ? tunisDateTimeLocal(pendingDate) : tunisDateTimeLocal();
+  });
   const [reference, setReference] = useState(pending?.reference ?? '');
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -110,7 +118,7 @@ export function SubscriptionPaymentForm({ document, onSaved, onBusyChange }: {
       </label>
       <label className="text-sm font-semibold">Date de paiement
         <input type="datetime-local" value={paidAt} onChange={(event) => setPaidAt(event.target.value)} className="mt-1 min-h-[44px] w-full min-w-0 rounded-md border border-line bg-card px-3" />
-        <span className="text-xs font-normal text-muted">Heure de Tunisie. Vide : maintenant.</span>
+        <span className="text-xs font-normal text-muted">Heure de Tunisie. Pré-remplie avec la date et l’heure actuelles.</span>
       </label>
       <label className="text-sm font-semibold">Référence
         <input maxLength={120} value={reference} onChange={(event) => setReference(event.target.value)} className="mt-1 min-h-[44px] w-full rounded-md border border-line bg-card px-3" />

@@ -29,6 +29,26 @@ describe('SubscriptionPaymentForm', () => {
     }));
   });
 
+  it('prefills the payment date with the current Tunisia date and time', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-11T09:11:30Z'));
+    try {
+      render(<SubscriptionPaymentForm document={PAYMENT_DOCUMENT} onSaved={vi.fn()} />);
+      expect(screen.getByLabelText(/Date de paiement/)).toHaveValue('2026-10-11T10:11');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('restores the pending payment date instead of the current time', () => {
+    sessionStorage.setItem('kadhia:pending-subscription-payment:doc-1', JSON.stringify({
+      billing_document_id: 'doc-1', amount_tnd: '20.001', method: 'cash',
+      paid_at: '2026-10-01T08:30:00+01:00', reference: '', idempotency_key: 'key',
+    }));
+    render(<SubscriptionPaymentForm document={PAYMENT_DOCUMENT} onSaved={vi.fn()} />);
+    expect(screen.getByLabelText(/Date de paiement/)).toHaveValue('2026-10-01T08:30');
+  });
+
   it('rejects zero and overpayment before making a request', () => {
     render(<SubscriptionPaymentForm document={PAYMENT_DOCUMENT} onSaved={vi.fn()} />);
     prepare('50.001');
