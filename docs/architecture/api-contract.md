@@ -3564,12 +3564,101 @@ GET /api/admin/subscriptions/{subscriptionId}
 Règles :
 
 - le marchand lit uniquement son abonnement ;
-- l'admin liste et consulte les abonnements ;
+- l'admin liste, crée et programme les conditions des abonnements ;
 - `lifecycle` : `active`, `payment_due`, `grace_period`, `suspended`,
   `cancelled` ;
 - `pricing_phase` : `trial`, `promo`, `standard`.
 
-### Documents mensuels internes non fiscaux
+#### Conditions mensuelles et annuelles (octobre 2026)
+
+Les fonctionnalités accessibles sont identiques pour les abonnements payants,
+avec remise et gratuits. L'abonnement est partagé par les comptes de
+l'organisation marchande ; le rattachement historique au marchand reste utilisé
+pour les comptes sans organisation.
+
+```http
+POST /api/admin/subscriptions
+POST /api/admin/subscriptions/pricing-preview
+PUT  /api/admin/subscriptions/{subscriptionId}/pricing
+POST /api/admin/subscriptions/{subscriptionId}/pricing-preview
+POST /api/admin/subscriptions/{subscriptionId}/billing-document
+```
+
+Création et simulation de création : ajouter `merchant_id` au corps suivant.
+Programmation et simulation sur un abonnement existant :
+
+```json
+{
+  "billing_interval": "annual",
+  "pricing_mode": "discounted",
+  "base_price_tnd": "600.000",
+  "free_months": null,
+  "discounts": [
+    { "from_month": 1, "to_month": 3, "type": "percentage", "value": "100" },
+    { "from_month": 4, "to_month": 6, "type": "percentage", "value": "50" }
+  ],
+  "reason": "Offre de lancement"
+}
+```
+
+Règles :
+
+- `ROLE_ADMIN` pour toutes ces mutations et simulations ; `reason` requis pour
+  les conditions, réservé au journal admin.
+- `billing_interval` : `monthly` (1 mois) ou `annual` (12 mois).
+- `base_price_tnd` : tarif de **la période entière**, chaîne décimale en TND à
+  trois décimales maximum. Le prix annuel est librement configurable ; aucune
+  réduction annuelle supplémentaire n'est appliquée automatiquement.
+- `pricing_mode` d'entrée : `paid`, `discounted` ou `free`. `discounts` est vide
+  hors mode `discounted`. En mode `free`, `free_months: null` signifie permanent ;
+  une durée positive signifie retour au tarif de base après cette durée.
+- Les plages mensuelles inclusives vont de 1 à 120, à compter de la date d'effet
+  des conditions. Elles ne se chevauchent pas et ne se répètent pas chaque année.
+  `percentage` réduit le prix de base du mois ; `fixed` enlève des TND par mois.
+  Le montant net ne peut pas être négatif.
+- L'annuel est réparti en 12 parts au millime, avec reliquat au dernier mois.
+  On applique les remises mensuelles puis on additionne les montants nets.
+  L'exemple donne **375.000 TND pour la première année**, puis 600.000 TND pour
+  la suivante. Une gratuité limitée peut donc produire une année partiellement
+  payante.
+- Une création démarre immédiatement. Une modification prend effet au prochain
+  renouvellement ; elle remplace l'éventuelle programmation future et est
+  auditée. Les conditions en cours et documents émis ne sont pas réécrits.
+- Sans configuration explicite, les abonnements existants conservent leur
+  parcours historique (3 mois gratuits, 3 mois à 10 TND puis 50 TND/mois).
+- Les aperçus ne persistent rien : ils renvoient l'abonnement calculé au début
+  de la période visée. L'interface exige un nouvel aperçu après chaque édition.
+- Doublon de marchand/organisation ou abonnement annulé : `409` ; conditions
+  invalides : `422` ; mauvais types JSON ou désérialisation impossible : `400` ;
+  abonnement introuvable : `404`.
+
+Les lectures et aperçus conservent les champs historiques et ajoutent :
+
+| Champ | Signification |
+|---|---|
+| `billing_interval` | Périodicité en cours |
+| `pricing_mode` | Mode effectif du montant de période : gratuit, réduit ou payant |
+| `base_price_tnd` | Prix de base de la période |
+| `period_price_tnd` | Total net dû pour cette période, notamment annuelle |
+| `pricing_terms` | Conditions configurées et `effective_at`, sans motif admin |
+| `scheduled_pricing` | Conditions futures et date d'effet, si présentes |
+| `period_breakdown` | Mois, dates, base, remise et montant net par mois |
+
+Chaque ligne de `period_breakdown` expose `month`, `starts_at`, `ends_at`,
+`base_amount_tnd`, `discount_amount_tnd`, `amount_tnd`. Pour un abonnement annuel,
+`monthly_price_tnd` est un équivalent mensuel conservé pour compatibilité ;
+**le montant à demander est `period_price_tnd`**.
+
+`POST /{subscriptionId}/billing-document` prend un corps vide et émet le document
+de la période courante à partir du calcul central. Un document existant pour
+cette période est réutilisé ; les doubles clics ne doivent pas créer de double
+créance. La réponse est un `BillingDocumentOutput`. Une période gratuite est
+refusée avec `422 SUBSCRIPTION_PERIOD_FREE` : aucun paiement ni document de dette
+n'est créé. Les éventuelles dettes des périodes précédentes restent inchangées.
+L'émission est manuelle depuis l'admin, sans nouvelle tâche de facturation
+automatique.
+
+### Documents de période internes non fiscaux
 
 Statut : **livré #361**.
 
@@ -3607,9 +3696,15 @@ Règles :
 
 - `ROLE_MERCHANT` : lecture uniquement de ses documents ;
 - `ROLE_ADMIN` : lecture globale ;
-- `document_type` MVP = `monthly_statement` ;
-- le libellé doit rester explicite : document mensuel interne non fiscal ;
+- `document_type` = `monthly_statement` ou `annual_statement` ;
+- le libellé doit rester explicite : document mensuel ou annuel interne non fiscal ;
 - pas de PDF fiscal complet ni numérotation `INV` dans ce contrat.
+
+Les nouveaux documents de période exposent en détail un `pricing_snapshot`
+contenant `pricing_terms`, `period_breakdown`, `period_price_tnd` et
+`billing_interval`. Ce détail conserve les conditions à l'émission, indépendamment
+des modifications ultérieures de l'abonnement. Les anciens documents peuvent ne
+pas avoir ce snapshot. Le motif admin n'y est pas exposé.
 
 `POST /whatsapp-contact` prépare un lien WhatsApp manuel pour relance paiement
 et écrit une trace admin. Il ne constitue pas une API WhatsApp Business.
@@ -3630,7 +3725,8 @@ Payload `POST` :
   "amount_tnd": "10.000",
   "method": "cash",
   "paid_at": "2026-06-04T10:30:00+01:00",
-  "reference": "Caisse Tunis 42"
+  "reference": "Caisse Tunis 42",
+  "idempotency_key": "87220c14-7cae-40c5-9c18-6d6b04543eb7"
 }
 ```
 
@@ -3638,11 +3734,42 @@ Règles :
 
 - `POST` réservé à `ROLE_ADMIN` ;
 - `method` : `cash` ou `bank_transfer` ;
-- un paiement confirmé marque le document payé si le montant couvre le dû ;
+- plusieurs règlements complets ou partiels peuvent être rattachés au même document ;
+- montant strictement positif, au maximum égal au solde, calculé à trois décimales TND ;
+- un règlement augmente `amount_paid_tnd` et diminue `amount_due_tnd` ; seul le
+  dernier versement marque le document `paid`. Un versement partiel conserve le
+  statut `issued` ou `overdue` et les relances portent sur le solde restant ;
 - si l'abonnement était `payment_due`, `grace_period` ou `suspended`, le
-  paiement peut réactiver le lifecycle en `active` ;
+  paiement réactive le lifecycle en `active` uniquement après règlement complet
+  du document et absence d'autres documents exigibles impayés de cet abonnement ;
+- `idempotency_key` est un UUID facultatif pour compatibilité. Une nouvelle
+  tentative avec la même clé, le même contenu normalisé et le même admin retourne
+  le règlement existant sans modifier le solde ni répéter l'audit ;
+- une clé réutilisée pour un autre contenu/admin renvoie `409`
+  `SUBSCRIPTION_PAYMENT_IDEMPOTENCY_CONFLICT` ;
+- les documents brouillons, annulés ou déjà payés et les abonnements annulés
+  refusent un nouveau règlement (`409`). Une date future, un montant nul ou un
+  dépassement du solde sont refusés (`422`) ;
 - chaque paiement confirmé est audité ;
-- le marchand consulte uniquement ses paiements.
+- le marchand consulte uniquement ses paiements ;
+- `document_number` est ajouté à la représentation de chaque règlement.
+
+Filtres admin appliqués avant pagination (`page`, `limit`, maximum 50) :
+
+| Route | Filtres |
+| --- | --- |
+| `GET /api/admin/billing-documents` | `subscription_id` UUID, `q` email marchand ou numéro de document, `outstanding=true` documents émis/en retard avec solde positif ; `false` sélection complémentaire ; omis : tous |
+| `GET /api/admin/subscription-payments` | `subscription_id` UUID, `billing_document_id` UUID, `q` email marchand, numéro de document ou référence |
+
+`total` respecte les mêmes filtres. Un filtre invalide renvoie `400`. Les routes
+marchand conservent leurs règles d'accès et leur pagination.
+
+La page admin `/admin/reglements` propose les documents à régler et l'historique
+des versements. Les fiches abonnement et document pointent vers cette page avec
+les filtres correspondants. Le formulaire partagé avec Facturation conserve une
+demande ambiguë dans le stockage de session pour pouvoir la rejouer sans doublon.
+Les règlements sont confirmés immédiatement par l'admin ; remboursement,
+suppression, échéancier automatique et paiement en ligne restent hors périmètre.
 
 ### Suspension douce et réactivation
 

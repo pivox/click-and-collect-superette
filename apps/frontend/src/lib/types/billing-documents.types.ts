@@ -1,6 +1,8 @@
+import type { SubscriptionBillingInterval, SubscriptionMonthAmount, SubscriptionPricingTerms } from './subscriptions.types';
+
 export type BillingDocumentStatus = 'draft' | 'issued' | 'paid' | 'overdue' | 'cancelled';
 
-export type BillingDocumentType = 'monthly_statement';
+export type BillingDocumentType = 'monthly_statement' | 'annual_statement';
 
 export type BillingDocumentPricingPhase = 'trial' | 'promo' | 'standard';
 
@@ -41,6 +43,12 @@ export interface BillingDocument {
   reminder_schedule: BillingDocumentReminderScheduleItem[];
   whatsapp_manual_contacted_at: string | null;
   created_at: string;
+  pricing_snapshot?: {
+    pricing_terms: SubscriptionPricingTerms | null;
+    period_breakdown: SubscriptionMonthAmount[];
+    period_price_tnd: string;
+    billing_interval: SubscriptionBillingInterval;
+  } | null;
 }
 
 export interface BillingDocumentListResponse {

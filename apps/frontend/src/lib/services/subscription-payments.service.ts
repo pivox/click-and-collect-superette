@@ -6,6 +6,9 @@ import type {
 } from '@/lib/types/subscription-payments.types';
 
 interface ListSubscriptionPaymentsOptions {
+  subscription_id?: string;
+  billing_document_id?: string;
+  q?: string;
   page?: number;
   limit?: number;
 }
@@ -25,6 +28,9 @@ export async function listAdminSubscriptionPayments(
     params: {
       page: options.page ?? 1,
       limit: options.limit ?? 20,
+      ...(options.subscription_id !== undefined ? { subscription_id: options.subscription_id } : {}),
+      ...(options.billing_document_id !== undefined ? { billing_document_id: options.billing_document_id } : {}),
+      ...(options.q !== undefined ? { q: options.q } : {}),
     },
   });
 

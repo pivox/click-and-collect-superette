@@ -61,8 +61,8 @@ final readonly class AdminBillingDocumentWhatsappContactProcessor implements Pro
         $whatsappUrl = null;
         $this->entityManager->beginTransaction();
         try {
-            $this->entityManager->refresh($document, LockMode::PESSIMISTIC_WRITE);
             $this->entityManager->refresh($document->getSubscription(), LockMode::PESSIMISTIC_WRITE);
+            $this->entityManager->refresh($document, LockMode::PESSIMISTIC_WRITE);
             if (!$this->isRelaunchable($document)) {
                 throw new ConflictHttpException('BILLING_DOCUMENT_NOT_RELAUNCHABLE');
             }

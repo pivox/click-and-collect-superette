@@ -39,9 +39,14 @@ final readonly class AdminBillingDocumentCollectionProvider implements ProviderI
         $limit = min(self::MAX_LIMIT, $limit);
         $offset = ($page - 1) * $limit;
 
+        $filters = $request?->query->all() ?? [];
+        $subscriptionId = AdminBillingFilterParser::uuid($filters['subscription_id'] ?? null, 'ADMIN_BILLING_DOCUMENT_INVALID_SUBSCRIPTION_ID');
+        $q = AdminBillingFilterParser::search($filters['q'] ?? null, 'ADMIN_BILLING_DOCUMENT_INVALID_QUERY');
+        $outstanding = AdminBillingFilterParser::boolean($filters['outstanding'] ?? null, 'ADMIN_BILLING_DOCUMENT_INVALID_OUTSTANDING');
+
         $items = array_map(
             fn ($document) => $this->outputFactory->fromBillingDocument($document),
-            $this->billingDocumentRepository->findPaginated($limit, $offset),
+            $this->billingDocumentRepository->findPaginated($limit, $offset, $subscriptionId, $q, $outstanding),
         );
 
         return new AdminBillingDocumentListOutput(
@@ -49,7 +54,7 @@ final readonly class AdminBillingDocumentCollectionProvider implements ProviderI
             items: $items,
             page: $page,
             limit: $limit,
-            total: $this->billingDocumentRepository->countAll(),
+            total: $this->billingDocumentRepository->countAll($subscriptionId, $q, $outstanding),
         );
     }
 

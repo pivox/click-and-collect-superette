@@ -20,6 +20,9 @@ use Symfony\Component\Serializer\Attribute\Groups;
             provider: AdminBillingDocumentCollectionProvider::class,
             security: "is_granted('ROLE_ADMIN')",
             parameters: [
+                'subscription_id' => new QueryParameter(schema: ['type' => 'string']),
+                'q' => new QueryParameter(schema: ['type' => 'string']),
+                'outstanding' => new QueryParameter(schema: ['type' => 'boolean']),
                 'page' => new QueryParameter(schema: ['type' => 'integer', 'default' => 1]),
                 'limit' => new QueryParameter(schema: ['type' => 'integer', 'default' => 20]),
             ],

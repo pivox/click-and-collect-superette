@@ -17,8 +17,8 @@ final readonly class SubscriptionOutputFactory
 
     public function fromSubscription(Subscription $subscription, ?\DateTimeImmutable $now = null): SubscriptionOutput
     {
-        $pricing = $this->pricingSchedule->calculate(
-            $subscription->getStartedAt(),
+        $pricing = $this->pricingSchedule->forSubscription(
+            $subscription,
             $now ?? new \DateTimeImmutable(),
         );
         $merchant = $subscription->getMerchant();
@@ -31,6 +31,13 @@ final readonly class SubscriptionOutputFactory
             pricingPhase: $pricing->pricingPhase->value,
             monthlyPriceTnd: $pricing->monthlyPriceTnd,
             currency: $subscription->getCurrency(),
+            billingInterval: $pricing->billingInterval,
+            pricingMode: $pricing->pricingMode,
+            basePriceTnd: $pricing->basePriceTnd ?? $pricing->monthlyPriceTnd,
+            periodPriceTnd: $pricing->periodPriceTnd ?? $pricing->monthlyPriceTnd,
+            pricingTerms: $pricing->pricingTerms,
+            scheduledPricing: $pricing->scheduledPricing,
+            periodBreakdown: $pricing->periodBreakdown,
             startedAt: $subscription->getStartedAt()->format(\DateTimeInterface::ATOM),
             currentPeriodStartedAt: $pricing->currentPeriodStartedAt->format(\DateTimeInterface::ATOM),
             currentPeriodEndsAt: $pricing->currentPeriodEndsAt->format(\DateTimeInterface::ATOM),

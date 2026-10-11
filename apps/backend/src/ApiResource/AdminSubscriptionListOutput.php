@@ -16,7 +16,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Get(
             uriTemplate: '/admin/subscriptions',
             formats: ['json' => ['application/json']],
-            normalizationContext: ['groups' => ['admin_subscription_list:read']],
+            normalizationContext: ['groups' => ['admin_subscription_list:read'], 'skip_null_values' => false],
             provider: AdminSubscriptionCollectionProvider::class,
             security: "is_granted('ROLE_ADMIN')",
             parameters: [

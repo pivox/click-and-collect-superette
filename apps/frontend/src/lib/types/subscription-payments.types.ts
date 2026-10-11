@@ -4,6 +4,7 @@ export type SubscriptionPaymentStatus = 'confirmed';
 export interface SubscriptionPayment {
   id: string;
   billing_document_id: string;
+  document_number?: string;
   subscription_id: string;
   merchant_id: string;
   merchant_email: string;
@@ -33,4 +34,5 @@ export interface CreateSubscriptionPaymentPayload {
   method: SubscriptionPaymentMethod;
   paid_at: string;
   reference?: string;
+  idempotency_key?: string;
 }

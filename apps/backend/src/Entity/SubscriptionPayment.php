@@ -13,7 +13,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: SubscriptionPaymentRepository::class)]
 #[ORM\Table(name: 'subscription_payments')]
-#[ORM\UniqueConstraint(name: 'UNIQ_SUBSCRIPTION_PAYMENTS_DOCUMENT', columns: ['billing_document_id'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_SUBSCRIPTION_PAYMENTS_IDEMPOTENCY', columns: ['idempotency_key'])]
+#[ORM\Index(name: 'IDX_SUBSCRIPTION_PAYMENTS_DOCUMENT', columns: ['billing_document_id'])]
 #[ORM\Index(name: 'IDX_SUBSCRIPTION_PAYMENTS_SUBSCRIPTION', columns: ['subscription_id'])]
 #[ORM\Index(name: 'IDX_SUBSCRIPTION_PAYMENTS_MERCHANT', columns: ['merchant_id'])]
 #[ORM\Index(name: 'IDX_SUBSCRIPTION_PAYMENTS_STATUS', columns: ['status'])]
@@ -81,6 +82,9 @@ class SubscriptionPayment
     #[ORM\Column(name: 'updated_at')]
     private \DateTimeImmutable $updatedAt;
 
+    #[ORM\Column(name: 'idempotency_key', type: 'uuid', nullable: true)]
+    private ?Uuid $idempotencyKey = null;
+
     public function __construct()
     {
         $now = new \DateTimeImmutable();
@@ -101,9 +105,11 @@ class SubscriptionPayment
         \DateTimeImmutable $paidAt,
         User $createdByAdmin,
         ?string $reference,
+        ?Uuid $idempotencyKey = null,
     ): self {
         $payment = new self();
         $payment->billingDocument = $billingDocument;
+        $payment->idempotencyKey = $idempotencyKey;
         $payment->subscription = $billingDocument->getSubscription();
         $payment->merchant = $billingDocument->getMerchant();
         $payment->amountTnd = bcadd($amountTnd, '0', 3);
@@ -130,6 +136,11 @@ class SubscriptionPayment
     public function getId(): Uuid
     {
         return $this->id;
+    }
+
+    public function getIdempotencyKey(): ?Uuid
+    {
+        return $this->idempotencyKey;
     }
 
     public function getBillingDocument(): BillingDocument

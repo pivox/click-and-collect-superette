@@ -119,7 +119,7 @@ describe('AdminBillingDocumentsPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
 
     await waitFor(() => expect(getAdminBillingDocument).toHaveBeenCalledWith('doc-1'));
-    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+    const detail = await screen.findByRole('dialog', { name: 'Détail document d’abonnement' });
     expect(within(detail).getByText('MS-2026-000001')).toBeInTheDocument();
     expect(within(detail).getByText('Reste à payer')).toBeInTheDocument();
     expect(within(detail).getAllByText('10,000 TND')).toHaveLength(2);
@@ -141,7 +141,7 @@ describe('AdminBillingDocumentsPage', () => {
     render(<AdminBillingDocumentsPage />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
-    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+    const detail = await screen.findByRole('dialog', { name: 'Détail document d’abonnement' });
     fireEvent.click(within(detail).getByRole('button', { name: 'Contacter sur WhatsApp' }));
 
     expect(openSpy).toHaveBeenCalledWith('', '_blank');
@@ -159,7 +159,7 @@ describe('AdminBillingDocumentsPage', () => {
     render(<AdminBillingDocumentsPage />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
-    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+    const detail = await screen.findByRole('dialog', { name: 'Détail document d’abonnement' });
     fireEvent.click(within(detail).getByRole('button', { name: 'Contacter sur WhatsApp' }));
 
     expect(openSpy).toHaveBeenCalledWith('', '_blank');
@@ -182,7 +182,7 @@ describe('AdminBillingDocumentsPage', () => {
     render(<AdminBillingDocumentsPage />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
-    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+    const detail = await screen.findByRole('dialog', { name: 'Détail document d’abonnement' });
 
     expect(within(detail).queryByRole('button', { name: 'Contacter sur WhatsApp' })).not.toBeInTheDocument();
     expect(openAdminBillingDocumentWhatsappContact).not.toHaveBeenCalled();
@@ -201,7 +201,7 @@ describe('AdminBillingDocumentsPage', () => {
     render(<AdminBillingDocumentsPage />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
-    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+    const detail = await screen.findByRole('dialog', { name: 'Détail document d’abonnement' });
 
     expect(within(detail).queryByRole('button', { name: 'Contacter sur WhatsApp' })).not.toBeInTheDocument();
   });
@@ -221,9 +221,10 @@ describe('AdminBillingDocumentsPage', () => {
     render(<AdminBillingDocumentsPage />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail document' }));
-    const detail = await screen.findByRole('dialog', { name: 'Détail document mensuel' });
+    const detail = await screen.findByRole('dialog', { name: 'Détail document d’abonnement' });
     fireEvent.change(within(detail).getByLabelText('Moyen'), { target: { value: 'cash' } });
-    fireEvent.click(within(detail).getByRole('button', { name: 'Enregistrer paiement' }));
+    // happy-dom incorrectly rejects decimal step values; Chromium is checked separately.
+    fireEvent.submit(within(detail).getByRole('form', { name: 'Paiement manuel' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirmer le paiement manuel' }));
 
     await waitFor(() => expect(createAdminSubscriptionPayment).toHaveBeenCalledWith({
@@ -232,6 +233,7 @@ describe('AdminBillingDocumentsPage', () => {
       method: 'cash',
       paid_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/),
       reference: '',
+      idempotency_key: expect.stringMatching(/^[0-9a-f-]{36}$/),
     }));
     expect(getAdminBillingDocument).toHaveBeenLastCalledWith('doc-1');
   });
@@ -247,6 +249,6 @@ describe('AdminBillingDocumentsPage', () => {
 
     render(<AdminBillingDocumentsPage />);
 
-    expect(await screen.findByText('Aucun document mensuel à afficher.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucun document d’abonnement à afficher.')).toBeInTheDocument();
   });
 });

@@ -1,8 +1,14 @@
 'use client';
+import Link from 'next/link';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminTable, type Column } from '@/components/admin/ui/AdminTable';
 import { Button } from '@/components/ui/Button';
+import { NewSubscriptionPanel } from '@/components/admin/subscriptions/NewSubscriptionPanel';
+import { SubscriptionPricingForm } from '@/components/admin/subscriptions/SubscriptionPricingForm';
+import { SubscriptionDialog } from '@/components/admin/subscriptions/SubscriptionDialog';
+import { IssueSubscriptionDocument } from '@/components/admin/subscriptions/IssueSubscriptionDocument';
+import { PRICING_MODE_LABELS, SubscriptionPricingSummary } from '@/components/subscriptions/SubscriptionPricingSummary';
 import {
   getAdminSubscription,
   listAdminSubscriptions,
@@ -68,6 +74,10 @@ export default function AdminSubscriptionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<MerchantSubscription | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [dialogBusy, setDialogBusy] = useState(false);
   const detailRequestSeq = useRef(0);
 
   const load = useCallback(async () => {
@@ -94,6 +104,7 @@ export default function AdminSubscriptionsPage() {
     detailRequestSeq.current = requestSeq;
     setIsDetailLoading(true);
     setError(null);
+    setEditing(false);
     try {
       const data = await getAdminSubscription(subscriptionId);
       if (detailRequestSeq.current !== requestSeq) return;
@@ -113,6 +124,15 @@ export default function AdminSubscriptionsPage() {
     detailRequestSeq.current += 1;
     setDetail(null);
     setIsDetailLoading(false);
+    setEditing(false);
+  };
+
+  const onSaved = (saved: MerchantSubscription) => {
+    setCreating(false);
+    setEditing(false);
+    setDetail(saved);
+    setNotice(creating ? 'Abonnement créé.' : 'Nouvelles conditions programmées pour le prochain renouvellement.');
+    void load();
   };
 
   const columns: Column<MerchantSubscription>[] = [
@@ -128,7 +148,7 @@ export default function AdminSubscriptionsPage() {
     },
     {
       key: 'lifecycle',
-      label: 'Lifecycle',
+      label: 'Statut',
       render: (row) => (
         <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusClass(row.lifecycle)}`}>
           {LIFECYCLE_LABELS[row.lifecycle]}
@@ -137,13 +157,17 @@ export default function AdminSubscriptionsPage() {
     },
     {
       key: 'pricing_phase',
-      label: 'Phase tarifaire',
-      render: (row) => PHASE_LABELS[row.pricing_phase],
+      label: 'Conditions',
+      render: (row) => row.pricing_mode ? PRICING_MODE_LABELS.fr[row.pricing_mode] : PHASE_LABELS[row.pricing_phase],
+    },
+    {
+      key: 'billing_interval', label: 'Périodicité',
+      render: (row) => row.billing_interval === 'annual' ? 'Annuel' : 'Mensuel',
     },
     {
       key: 'monthly_price_tnd',
       label: 'Montant',
-      render: (row) => <span className="tabular-nums">{formatMoney(row.monthly_price_tnd, row.currency)}</span>,
+      render: (row) => <span className="tabular-nums">{formatMoney(row.period_price_tnd ?? row.monthly_price_tnd, row.currency)}</span>,
     },
     {
       key: 'current_period_ends_at',
@@ -173,13 +197,18 @@ export default function AdminSubscriptionsPage() {
         <div>
           <h1 className="text-h1 font-black">Abonnements marchands</h1>
           <p className="mt-1 text-sm text-muted">
-            Consultation des phases tarifaires et du lifecycle commercial des marchands.
+            Abonnements mensuels ou annuels, gratuité et remises par mois.
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+        <Button size="md" onClick={() => { setCreating(true); setNotice(null); }}>Créer un abonnement</Button>
         <Button variant="ghost" size="md" onClick={() => void load()}>
           {error ? 'Réessayer' : 'Actualiser'}
         </Button>
+        </div>
       </div>
+
+      {notice && <p role="status" className="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-800">{notice}</p>}
 
       {error && (
         <div role="alert" aria-atomic="true" className="mb-4 rounded-md bg-status-cancel-bg px-4 py-2 text-sm text-status-cancel">
@@ -195,33 +224,27 @@ export default function AdminSubscriptionsPage() {
         pagination={{ page, total, limit: PAGE_SIZE, onPageChange: setPage }}
       />
 
-      {detail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <section
-            role="dialog"
-            aria-label="Détail abonnement"
-            className="w-full max-w-xl rounded-md bg-card p-5 shadow-xl"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-black text-ink">Détail abonnement</h2>
-                <p className="mt-1 text-sm text-muted">{detail.merchant_email}</p>
-              </div>
-              <button type="button" className="text-sm font-bold text-muted" onClick={closeDetail}>
-                Fermer
-              </button>
-            </div>
-
-            <dl className="mt-5 grid gap-3 sm:grid-cols-2">
-              <Detail label="Lifecycle" value={LIFECYCLE_LABELS[detail.lifecycle]} />
+      {creating && <SubscriptionDialog title="Créer un abonnement" busy={dialogBusy} onClose={() => setCreating(false)}>
+        <NewSubscriptionPanel onSaved={onSaved} onCancel={() => setCreating(false)} onBusyChange={setDialogBusy} />
+      </SubscriptionDialog>}
+      {detail && !creating && (
+        <SubscriptionDialog title="Détail abonnement" busy={dialogBusy} onClose={closeDetail}>
+          <p className="mb-4 text-sm text-muted">{detail.merchant_email}</p>
+          {editing ? <SubscriptionPricingForm key={detail.id} subscription={detail} onSaved={onSaved} onCancel={() => setEditing(false)} onBusyChange={setDialogBusy} /> : <>
+            <dl className="mb-5 grid gap-3 sm:grid-cols-2">
+              <Detail label="Statut" value={LIFECYCLE_LABELS[detail.lifecycle]} />
               <Detail label="Phase tarifaire" value={PHASE_LABELS[detail.pricing_phase]} />
-              <Detail label="Montant mensuel" value={formatMoney(detail.monthly_price_tnd, detail.currency)} />
+              {detail.period_price_tnd === undefined && <Detail label="Montant mensuel" value={formatMoney(detail.monthly_price_tnd, detail.currency)} />}
               <Detail label="Début période" value={formatDate(detail.current_period_started_at)} />
               <Detail label="Fin période" value={formatDate(detail.current_period_ends_at)} />
               <Detail label="Prochain changement" value={formatDate(detail.next_phase_change_at)} />
             </dl>
-          </section>
-        </div>
+            {detail.period_price_tnd !== undefined && <SubscriptionPricingSummary subscription={detail} />}
+            <Button className="mt-5" size="md" disabled={dialogBusy || detail.lifecycle === 'cancelled'} onClick={() => setEditing(true)}>Modifier les conditions</Button>
+            <Link href={`/admin/reglements?subscription_id=${detail.id}`} className="mt-3 block min-h-[44px] py-3 text-sm font-semibold text-primary underline">Voir les règlements de cet abonnement</Link>
+            {detail.lifecycle !== 'cancelled' && <IssueSubscriptionDocument key={`${detail.id}:${detail.current_period_started_at}`} subscriptionId={detail.id} amountTnd={detail.period_price_tnd ?? detail.monthly_price_tnd} onBusyChange={setDialogBusy} />}
+          </>}
+        </SubscriptionDialog>
       )}
     </div>
   );

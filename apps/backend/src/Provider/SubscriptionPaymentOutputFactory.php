@@ -16,6 +16,7 @@ final readonly class SubscriptionPaymentOutputFactory
         return new SubscriptionPaymentOutput(
             id: $payment->getId()->toRfc4122(),
             billingDocumentId: $payment->getBillingDocument()->getId()->toRfc4122(),
+            documentNumber: $payment->getBillingDocument()->getDocumentNumber(),
             subscriptionId: $payment->getSubscription()->getId()->toRfc4122(),
             merchantId: $merchant->getId()->toRfc4122(),
             merchantEmail: $merchant->getEmail(),

@@ -66,14 +66,14 @@ final class AdminBillingDocumentWhatsappContactProcessorTest extends TestCase
             ->willReturnCallback(static function (object $entity, LockMode $lockMode) use ($document, &$events): void {
                 self::assertSame(LockMode::PESSIMISTIC_WRITE, $lockMode);
                 if ($entity === $document) {
-                    self::assertContains('begin', $events);
+                    self::assertContains('subscription-refresh', $events);
                     $events[] = 'document-refresh';
 
                     return;
                 }
 
                 self::assertSame($document->getSubscription(), $entity);
-                self::assertContains('document-refresh', $events);
+                self::assertContains('begin', $events);
                 $events[] = 'subscription-refresh';
             });
         $entityManager
@@ -119,7 +119,7 @@ final class AdminBillingDocumentWhatsappContactProcessorTest extends TestCase
 
         self::assertSame($documentId, $output->billingDocumentId);
         self::assertSame('21620123456', $output->phone);
-        self::assertSame(['begin', 'document-refresh', 'subscription-refresh', 'trace-read', 'reminder-persist', 'audit-persist', 'flush', 'commit'], $events);
+        self::assertSame(['begin', 'subscription-refresh', 'document-refresh', 'trace-read', 'reminder-persist', 'audit-persist', 'flush', 'commit'], $events);
     }
 
     private function document(): BillingDocument

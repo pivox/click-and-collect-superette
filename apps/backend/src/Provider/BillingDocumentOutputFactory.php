@@ -52,6 +52,7 @@ final readonly class BillingDocumentOutputFactory
             reminderSchedule: $this->reminderSchedule($document, $reminderTraces),
             whatsappManualContactedAt: $this->whatsappManualContactedAt($reminderTraces),
             createdAt: $document->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            pricingSnapshot: $document->getPricingSnapshot(),
         );
     }
 

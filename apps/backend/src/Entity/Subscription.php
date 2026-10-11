@@ -45,6 +45,10 @@ class Subscription
     #[Assert\PositiveOrZero]
     private string $monthlyPriceTnd = '0.000';
 
+    /** @var list<array<string, mixed>> */
+    #[ORM\Column(type: 'json', options: ['default' => '[]'])]
+    private array $pricingVersions = [];
+
     #[ORM\Column(length: 3)]
     private string $currency = 'TND';
 
@@ -178,6 +182,19 @@ class Subscription
         $this->monthlyPriceTnd = bcadd($monthlyPriceTnd, '0', 3);
 
         return $this;
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getPricingVersions(): array
+    {
+        return $this->pricingVersions;
+    }
+
+    /** @param array<string, mixed> $terms */
+    public function schedulePricing(array $terms, \DateTimeImmutable $now): void
+    {
+        $this->pricingVersions = array_values(array_filter($this->pricingVersions, static fn (array $version): bool => new \DateTimeImmutable($version['effective_at']) <= $now));
+        $this->pricingVersions[] = $terms;
     }
 
     public function getCurrency(): string

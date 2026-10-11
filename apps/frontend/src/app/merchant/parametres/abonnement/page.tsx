@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { PRICING_MODE_LABELS, SubscriptionPricingSummary } from '@/components/subscriptions/SubscriptionPricingSummary';
+import { BillingDocumentPricingSummary } from '@/components/subscriptions/BillingDocumentPricingSummary';
 import { useMerchantLocale, type MerchantLocale } from '@/lib/i18n/MerchantLocaleContext';
 import {
   getMerchantBillingDocument,
@@ -143,8 +145,8 @@ export default function MerchantSubscriptionPage() {
       .catch(() => {
         if (!active) return;
         setDocumentsError(locale === 'ar'
-          ? 'تعذر تحميل المستندات الشهرية.'
-          : 'Impossible de charger les documents mensuels.');
+          ? 'تعذر تحميل مستندات الاشتراك.'
+          : 'Impossible de charger les documents d’abonnement.');
       })
       .finally(() => {
         if (active) setIsDocumentsLoading(false);
@@ -223,16 +225,17 @@ export default function MerchantSubscriptionPage() {
               </p>
             </div>
             <div className="rounded-md bg-soft px-3 py-2 text-sm font-black text-primary">
-              {PHASE_LABELS[locale][subscription.pricing_phase]}
+              {subscription.pricing_mode ? PRICING_MODE_LABELS[locale][subscription.pricing_mode] : PHASE_LABELS[locale][subscription.pricing_phase]}
             </div>
           </div>
 
           <dl className="grid gap-3 sm:grid-cols-2">
-            <Info label={t('merchant.settings.subscription.monthlyPrice')} value={formatMoney(subscription.monthly_price_tnd, subscription.currency, locale)} />
+            {subscription.period_price_tnd === undefined && <Info label={t('merchant.settings.subscription.monthlyPrice')} value={formatMoney(subscription.monthly_price_tnd, subscription.currency, locale)} />}
             <Info label={t('merchant.settings.subscription.currentPeriod')} value={`${formatDate(subscription.current_period_started_at, locale)} - ${formatDate(subscription.current_period_ends_at, locale)}`} />
             <Info label={t('merchant.settings.subscription.nextBilling')} value={formatDate(subscription.current_period_ends_at, locale)} />
             <Info label={t('merchant.settings.subscription.nextPhase')} value={formatDate(subscription.next_phase_change_at, locale)} />
           </dl>
+          {subscription.period_price_tnd !== undefined && <SubscriptionPricingSummary subscription={subscription} locale={locale} />}
         </Card>
       )}
 
@@ -252,7 +255,7 @@ export default function MerchantSubscriptionPage() {
       <Card as="section" className="space-y-4">
         <div>
           <h2 className="text-lg font-black text-ink">
-            {locale === 'ar' ? 'المستندات الشهرية' : 'Documents mensuels'}
+            {locale === 'ar' ? 'مستندات الاشتراك' : 'Documents d’abonnement'}
           </h2>
           <p className="mt-1 text-sm text-muted">
             {locale === 'ar'
@@ -275,7 +278,7 @@ export default function MerchantSubscriptionPage() {
 
         {!isDocumentsLoading && !documentsError && documents.length === 0 && (
           <p className="text-sm text-muted">
-            {locale === 'ar' ? 'لا يوجد مستند شهري لعرضه.' : 'Aucun document mensuel à afficher.'}
+            {locale === 'ar' ? 'لا يوجد مستند اشتراك لعرضه.' : 'Aucun document d’abonnement à afficher.'}
           </p>
         )}
 
@@ -333,8 +336,8 @@ export default function MerchantSubscriptionPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <section
             role="dialog"
-            aria-label={locale === 'ar' ? 'تفاصيل المستند الشهري' : 'Détail document mensuel'}
-            className="w-full max-w-xl rounded-md bg-card p-5 shadow-xl"
+            aria-label={locale === 'ar' ? 'تفاصيل مستند الاشتراك' : 'Détail document d’abonnement'}
+            className="max-h-[90dvh] w-full max-w-xl overflow-y-auto rounded-md bg-card p-5 shadow-xl"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -352,6 +355,7 @@ export default function MerchantSubscriptionPage() {
               <Info label={locale === 'ar' ? 'المبلغ' : 'Montant'} value={formatMoney(documentDetail.amount_tnd, documentDetail.currency, locale)} />
               <Info label={locale === 'ar' ? 'المتبقي' : 'Reste à payer'} value={formatMoney(documentDetail.amount_due_tnd, documentDetail.currency, locale)} />
             </dl>
+            <BillingDocumentPricingSummary document={documentDetail} locale={locale} />
           </section>
         </div>
       )}

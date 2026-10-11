@@ -33,6 +33,9 @@ final class AdminSubscriptionApiTest extends FunctionalApiTestCase
         self::assertSame('payment_due', $payload['items'][0]['lifecycle']);
         self::assertSame('trial', $payload['items'][0]['pricing_phase']);
         self::assertSame('0.000', $payload['items'][0]['monthly_price_tnd']);
+        self::assertSame('free', $payload['items'][0]['pricing_mode']);
+        self::assertNull($payload['items'][0]['pricing_terms']);
+        self::assertNull($payload['items'][0]['scheduled_pricing']);
     }
 
     public function testAdminCanReadSubscriptionDetail(): void

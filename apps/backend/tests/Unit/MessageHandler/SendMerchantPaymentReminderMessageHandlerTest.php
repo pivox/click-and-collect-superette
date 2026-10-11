@@ -62,6 +62,40 @@ final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
         self::assertSame(PaymentReminderStage::GracePeriod7, $sender->sent[0]->stage);
     }
 
+    public function testQueuedReminderUsesRemainingBalanceAfterPartialPayment(): void
+    {
+        $document = $this->document();
+        $sender = new CapturingMerchantPaymentReminderEmailSender();
+        $documents = $this->createStub(BillingDocumentRepository::class);
+        $documents->method('find')->willReturn($document);
+        $reminders = $this->createStub(SubscriptionPaymentReminderRepository::class);
+        $entityManager = $this->createStub(EntityManagerInterface::class);
+        $entityManager->method('refresh')->willReturnCallback(static function (object $entity) use ($document): void {
+            if ($entity === $document) {
+                $document->recordPayment('20.000', new \DateTimeImmutable('2026-06-17T10:00:00+01:00'));
+            }
+        });
+        $handler = new SendMerchantPaymentReminderMessageHandler(
+            $sender,
+            $documents,
+            $reminders,
+            $entityManager,
+            new MockClock('2026-06-18T10:00:00+01:00'),
+        );
+        $handler(new SendMerchantPaymentReminderMessage(
+            merchantEmail: 'marchand@example.test',
+            merchantName: 'Sami',
+            shopName: 'Supérette El Amal',
+            dueDate: '2026-06-11',
+            amountTnd: '50.000',
+            stage: 'j_plus_7',
+            billingDocumentId: $document->getId()->toRfc4122(),
+        ));
+
+        self::assertCount(1, $sender->sent);
+        self::assertSame('30.000', $sender->sent[0]->amountTnd);
+    }
+
     public function testHandlerUpdatesFailedReminderTraceOnRetrySuccess(): void
     {
         $document = $this->document();
@@ -250,14 +284,14 @@ final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
             ->willReturnCallback(static function (object $entity, LockMode $lockMode) use ($document, &$events): void {
                 self::assertSame(LockMode::PESSIMISTIC_WRITE, $lockMode);
                 if ($entity === $document) {
-                    self::assertContains('begin', $events);
+                    self::assertContains('subscription-refresh', $events);
                     $events[] = 'document-refresh';
 
                     return;
                 }
 
                 self::assertSame($document->getSubscription(), $entity);
-                self::assertContains('document-refresh', $events);
+                self::assertContains('begin', $events);
                 $events[] = 'subscription-refresh';
             });
         $entityManager
@@ -294,7 +328,7 @@ final class SendMerchantPaymentReminderMessageHandlerTest extends TestCase
             documentNumber: 'MS-2026-000401',
         ));
 
-        self::assertSame(['begin', 'document-refresh', 'subscription-refresh', 'trace-read', 'send', 'flush', 'commit'], $events);
+        self::assertSame(['begin', 'subscription-refresh', 'document-refresh', 'trace-read', 'send', 'flush', 'commit'], $events);
     }
 
     private function document(): BillingDocument

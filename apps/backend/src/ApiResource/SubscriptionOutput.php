@@ -18,7 +18,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
         new Get(
             uriTemplate: '/merchant/subscription',
             formats: ['json' => ['application/json']],
-            normalizationContext: ['groups' => ['subscription:read']],
+            normalizationContext: ['groups' => ['subscription:read'], 'skip_null_values' => false],
             provider: MerchantSubscriptionProvider::class,
             security: "is_granted('ROLE_MERCHANT')",
         ),
@@ -28,7 +28,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
                 'subscriptionId' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
             formats: ['json' => ['application/json']],
-            normalizationContext: ['groups' => ['subscription:read']],
+            normalizationContext: ['groups' => ['subscription:read'], 'skip_null_values' => false],
             provider: AdminSubscriptionItemProvider::class,
             security: "is_granted('ROLE_ADMIN')",
         ),
@@ -36,6 +36,11 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
 )]
 final readonly class SubscriptionOutput
 {
+    /**
+     * @param array<string, mixed>|null  $pricingTerms
+     * @param array<string, mixed>|null  $scheduledPricing
+     * @param list<array<string, mixed>> $periodBreakdown
+     */
     public function __construct(
         #[ApiProperty(identifier: true)]
         #[Groups(['subscription:read', 'admin_subscription_list:read'])]
@@ -71,6 +76,27 @@ final readonly class SubscriptionOutput
         #[Groups(['subscription:read'])]
         #[SerializedName('created_at')]
         public string $createdAt,
+        #[Groups(['subscription:read', 'admin_subscription_list:read'])]
+        #[SerializedName('billing_interval')]
+        public string $billingInterval = 'monthly',
+        #[Groups(['subscription:read', 'admin_subscription_list:read'])]
+        #[SerializedName('pricing_mode')]
+        public string $pricingMode = 'paid',
+        #[Groups(['subscription:read', 'admin_subscription_list:read'])]
+        #[SerializedName('base_price_tnd')]
+        public string $basePriceTnd = '0.000',
+        #[Groups(['subscription:read', 'admin_subscription_list:read'])]
+        #[SerializedName('period_price_tnd')]
+        public string $periodPriceTnd = '0.000',
+        #[Groups(['subscription:read', 'admin_subscription_list:read'])]
+        #[SerializedName('pricing_terms')]
+        public ?array $pricingTerms = null,
+        #[Groups(['subscription:read', 'admin_subscription_list:read'])]
+        #[SerializedName('scheduled_pricing')]
+        public ?array $scheduledPricing = null,
+        #[Groups(['subscription:read', 'admin_subscription_list:read'])]
+        #[SerializedName('period_breakdown')]
+        public array $periodBreakdown = [],
     ) {
     }
 }
