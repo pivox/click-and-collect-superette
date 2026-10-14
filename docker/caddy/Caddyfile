@@ -1,0 +1,154 @@
+# Kadhia — production edge.
+#
+# Caddy is the ONLY edge in production: it terminates TLS (ACME), serves the
+# product images written by php-fpm, speaks FastCGI to php-fpm for /api/*, and
+# reverse-proxies everything else to Next.js. nginx is not part of this stack;
+# docker/nginx/backend.conf stays in use for development only.
+#
+# Single domain for the frontend and the API: apps/frontend/src/app has no
+# `api/` route group, so /api/* cannot collide with a Next.js page. Same origin
+# also means no CORS preflight for the browser clients.
+#
+# Environment variables (resolved when the config is loaded, see
+# docker-compose.prod.yml):
+#   CADDY_DOMAIN      public hostname, e.g. kadhia.example.tn
+#   CADDY_ACME_EMAIL  contact address for the Let's Encrypt account
+{
+	# ACME account contact. Automatic HTTPS needs ports 80 and 443 reachable
+	# from the internet (HTTP-01 / TLS-ALPN-01 challenges).
+	email {$CADDY_ACME_EMAIL}
+
+	# `trusted_proxies` is deliberately NOT configured: Caddy is the outermost
+	# hop, so an inbound X-Forwarded-For header is attacker-controlled and must
+	# be ignored. Caddy sets X-Forwarded-For/-Proto itself on the upstream
+	# request, which is what Symfony reads once TRUSTED_PROXIES lists the Docker
+	# network. If a CDN or cloud load balancer is ever put in front of Caddy,
+	# this is the place to declare it.
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Snippet: Symfony front controller over FastCGI
+# ─────────────────────────────────────────────────────────────────────────────
+# php-fpm resolves the script itself, so Caddy needs no access to the backend
+# source tree: every matched request is rewritten onto the single front
+# controller and SCRIPT_FILENAME is derived from `root`. Caddy still forwards
+# the ORIGINAL request URI as REQUEST_URI, which is what Symfony routes on —
+# the same contract as the nginx `try_files $uri /index.php` setup in dev.
+(symfony_api) {
+	# Mirrors `client_max_body_size 4m` in docker/nginx/backend.conf. The
+	# application rejects product images over 2 MB itself with a proper error
+	# body; the edge limit is kept above it so the application, not the proxy,
+	# produces the message. PHP is more permissive still (6M/8M in
+	# docker/backend/php-prod.ini).
+	request_body {
+		max_size 4MB
+	}
+
+	# No query string on the target, so Caddy preserves the original one.
+	rewrite * /index.php
+
+	reverse_proxy backend:9000 {
+		transport fastcgi {
+			split .php
+			root /var/www/backend/public
+			# Above php.ini max_execution_time (60s) on purpose: PHP must be
+			# the one to time out and return a real error, not the proxy.
+			read_timeout 90s
+			write_timeout 90s
+		}
+	}
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Public site
+# ─────────────────────────────────────────────────────────────────────────────
+{$CADDY_DOMAIN} {
+	encode zstd gzip
+
+	# Access logs are opt-in in Caddy; enabling them here is what makes the
+	# OAuth masking below meaningful.
+	log {
+		output stderr
+		format json
+	}
+
+	# OAuth `code` and `state` arrive as QUERY PARAMETERS on this callback and
+	# must never be written to an access log. This is the port of the
+	# `map $request_uri $kadhia_access_loggable` rule in
+	# docker/nginx/backend.conf. Caddy cannot redact a single query parameter
+	# from a log entry, so the closest equivalent is to drop the entry
+	# entirely — same net effect as nginx's `access_log ... if=0`.
+	# NOTE: the `log_skip` directive requires Caddy >= 2.7; on older 2.x it is
+	# spelled `skip_log`. If neither is available, remove the `log` directive
+	# above instead of logging these URLs.
+	@oauth_callback path /api/auth/social/callback/*
+	log_skip @oauth_callback
+
+	header {
+		# TLS is always on here (automatic HTTPS + HTTP->HTTPS redirect).
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Cross-Origin-Opener-Policy "same-origin"
+		# camera=(self): the merchant barcode/QR scanner needs it on this
+		# origin (Sprint 15). Geolocation and microphone are unused.
+		Permissions-Policy "geolocation=(), microphone=(), camera=(self)"
+		-Server
+	}
+	# No Content-Security-Policy is set here: Next.js ships inline bootstrap
+	# scripts and a strict policy needs per-build nonces wired into the app.
+	# Adding a loose `unsafe-inline` policy would buy nothing. Tracked as a
+	# follow-up, not a blocker.
+
+	# Product image variants written by php-fpm into
+	# %kernel.project_dir%/public/uploads/products — shared named volume,
+	# mounted read-only here. handle_path strips the /uploads prefix.
+	handle_path /uploads/* {
+		root * /srv/uploads
+		header Cache-Control "public, max-age=86400"
+		file_server
+	}
+
+	# API. Everything the backend exposes lives under /api (including
+	# /api/docs.json and /api/health).
+	handle /api/* {
+		import symfony_api
+	}
+
+	# Everything else is the Next.js app (client, merchant and admin route
+	# groups, _next assets, PWA manifests and service worker).
+	# Known gap: Swagger UI at /api/docs.html loads its CSS/JS from /bundles/*,
+	# which is a static directory inside the backend image and is not exposed
+	# by this edge — it falls through to Next.js and 404s. The machine-readable
+	# specs (/api/docs.json, .jsonopenapi, .yamlopenapi) are unaffected.
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Internal plain-HTTP API door (server-side rendering)
+# ─────────────────────────────────────────────────────────────────────────────
+# apps/frontend/src/lib/api.ts uses API_URL for server-side requests. php-fpm
+# speaks FastCGI, not HTTP, so the frontend container cannot call backend:9000
+# directly. This site gives it an HTTP entry point to the same handler.
+# Reachable on the Docker network only — port 8080 is never published, and the
+# site has no hostname so automatic HTTPS does not apply to it.
+:8080 {
+	# No log_skip needed here: the OAuth callback is a browser redirect and
+	# therefore only ever reaches the public site above, never this internal
+	# server-side-rendering door.
+	log {
+		output stderr
+		format json
+	}
+
+	handle /api/* {
+		import symfony_api
+	}
+
+	handle {
+		respond "not found" 404
+	}
+}

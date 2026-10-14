@@ -20,3 +20,6 @@ prompts/
 *.pdf
 Kadhia*.html
 package-lock.json
+
+# Never bake JWT signing keys into an image layer (see apps/backend/.dockerignore).
+apps/backend/config/jwt/

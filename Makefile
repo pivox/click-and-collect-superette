@@ -157,3 +157,46 @@ product-ai-enrichment: ## Lance l'enrichissement IA produits (AI_LIMIT=100 AI_BA
 
 setup-dev-data: import-products seed-prices products-stats ## Prépare le jeu de données dev complet
 	@echo "✅ Jeu de données dev prêt"
+
+# ─── Production (docker-compose.prod.yml) ────────────────────────────────────
+# Runbook : docs/ops/deployment.md. Toutes les cibles lisent .env.prod (copie
+# remplie de docs/ops/env.prod.example). Les migrations restent un geste
+# séparé et explicite : aucune cible ci-dessous ne les lance implicitement.
+
+.PHONY: prod-config prod-build prod-up prod-down prod-logs prod-status \
+        prod-jwt-keys prod-migrate prod-migrate-status prod-shell-backend prod-health
+
+DOCKER_COMPOSE_PROD = docker compose --env-file .env.prod -f docker-compose.prod.yml
+
+prod-config: ## [prod] Valide .env.prod + docker-compose.prod.yml (affiche la config résolue, secrets inclus)
+	$(DOCKER_COMPOSE_PROD) config
+
+prod-build: ## [prod] Construit les images (backend, worker, frontend) — NEXT_PUBLIC_* figés au build
+	$(DOCKER_COMPOSE_PROD) build
+
+prod-up: ## [prod] Démarre la stack en arrière-plan (ne lance PAS les migrations)
+	$(DOCKER_COMPOSE_PROD) up -d
+
+prod-down: ## [prod] Arrête la stack (les volumes nommés sont conservés)
+	$(DOCKER_COMPOSE_PROD) down
+
+prod-logs: ## [prod] Logs en temps réel (SERVICE=worker pour un seul service)
+	$(DOCKER_COMPOSE_PROD) logs -f --tail=100 $(SERVICE)
+
+prod-status: ## [prod] État et santé des conteneurs
+	$(DOCKER_COMPOSE_PROD) ps
+
+prod-jwt-keys: ## [prod] Génère le keypair JWT — UNE SEULE FOIS, avant le premier démarrage
+	$(DOCKER_COMPOSE_PROD) run --rm backend php bin/console lexik:jwt:generate-keypair
+
+prod-migrate: ## [prod] Applique les migrations Doctrine (geste manuel, jamais enchaîné)
+	$(DOCKER_COMPOSE_PROD) run --rm backend php bin/console doctrine:migrations:migrate --no-interaction
+
+prod-migrate-status: ## [prod] Affiche l'état des migrations (lecture seule)
+	$(DOCKER_COMPOSE_PROD) run --rm backend php bin/console doctrine:migrations:status
+
+prod-shell-backend: ## [prod] Shell dans le conteneur backend en cours d'exécution
+	$(DOCKER_COMPOSE_PROD) exec backend sh
+
+prod-health: ## [prod] Interroge /api/health à travers Caddy (CADDY_DOMAIN=host make prod-health)
+	curl -fsS "https://$${CADDY_DOMAIN:?définir CADDY_DOMAIN, ex. CADDY_DOMAIN=kadhia.example.tn make prod-health}/api/health"

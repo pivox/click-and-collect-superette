@@ -13,3 +13,10 @@ phpunit.result.cache
 .phpunit.cache/
 
 *.log
+
+# Never bake JWT signing keys into an image layer. They are gitignored, so they
+# are absent from a fresh clone, but `lexik:jwt:generate-keypair` creates them
+# locally and a build from such a working copy would copy the private key in.
+# In production they are mounted from outside the image and must persist across
+# releases, otherwise every issued token is invalidated on each deploy.
+config/jwt/

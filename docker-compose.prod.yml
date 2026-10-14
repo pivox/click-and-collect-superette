@@ -1,0 +1,281 @@
+# Kadhia — production stack.
+#
+#   cp docs/ops/env.prod.example .env.prod   # then fill in the real values
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml build
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+#
+# Deliberate properties of this file:
+#   - no source-code bind mount: images are immutable build artifacts;
+#   - no published port except 80/443 on the edge;
+#   - no secret value inline: every secret comes from the env file, and the
+#     required ones use ${VAR:?...} so a missing value aborts the command
+#     instead of silently falling back to a development default;
+#   - Caddy is the only edge. nginx is NOT part of this stack.
+#
+# Required one-off before the first start: generate the JWT keypair into the
+# backend_jwt volume. It MUST persist across releases — regenerating it
+# invalidates every token already issued.
+
+name: kadhia-prod
+
+# ─── Shared fragments ─────────────────────────────────────────────────────────
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+# Backend environment, shared by php-fpm and the messenger worker. Both must
+# see exactly the same configuration: the worker handles deferred business
+# transitions (order expiry, pickup reminders) and sends e-mail and push.
+x-backend-env: &backend-env
+  APP_ENV: prod
+  APP_DEBUG: "0"
+  # 32+ random chars. Rotating it invalidates signed URLs and CSRF tokens.
+  APP_SECRET: ${APP_SECRET:?APP_SECRET is required (32+ random characters)}
+  DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+  # Persistent transport (S7-009). auto_setup=0: the messenger_messages table
+  # is created by migration Version20260527100000, not at runtime.
+  MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-doctrine://default?auto_setup=0}
+  MESSENGER_ASYNC_QUEUE_NAME: ${MESSENGER_ASYNC_QUEUE_NAME:-default}
+  # Container paths; the files themselves live in the backend_jwt volume.
+  JWT_SECRET_KEY: ${JWT_SECRET_KEY:-/var/www/backend/config/jwt/private.pem}
+  JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-/var/www/backend/config/jwt/public.pem}
+  JWT_PASSPHRASE: ${JWT_PASSPHRASE:?JWT_PASSPHRASE is required and must match the generated keypair}
+  # Mandatory behind Caddy: without it Request::getClientIp() returns the proxy
+  # address and admin_audit_logs.ip_address plus the IP rate limiter both
+  # degrade to a single shared client. See the caveat in docs/ops/env.prod.example.
+  TRUSTED_PROXIES: ${TRUSTED_PROXIES:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+  CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:?CORS_ALLOW_ORIGIN is required (regex, anchored on the public origin)}
+  FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required (absolute public URL, used in e-mail links)}
+  DEFAULT_URI: ${DEFAULT_URI:?DEFAULT_URI is required (absolute public URL, used to generate URLs from CLI commands)}
+  MAILER_DSN: ${MAILER_DSN:?MAILER_DSN is required}
+  MAILER_FROM_EMAIL: ${MAILER_FROM_EMAIL:?MAILER_FROM_EMAIL is required}
+  MAILER_FROM_NAME: ${MAILER_FROM_NAME:-Kadhia}
+  # Empty -> the API returns relative image paths, resolved by the frontend
+  # against NEXT_PUBLIC_API_URL (same origin here). Set it only when serving
+  # images from a CDN or object storage.
+  PRODUCT_IMAGE_BASE_URL: ${PRODUCT_IMAGE_BASE_URL:-}
+  # Social sign-in. These five have no default in the container
+  # (#[Autowire(env: ...)] on a non-nullable string), so they must be DEFINED
+  # even when unused — an empty client id/secret simply disables the provider.
+  SOCIAL_CALLBACK_ORIGIN: ${SOCIAL_CALLBACK_ORIGIN:-}
+  SOCIAL_GOOGLE_CLIENT_ID: ${SOCIAL_GOOGLE_CLIENT_ID:-}
+  SOCIAL_GOOGLE_CLIENT_SECRET: ${SOCIAL_GOOGLE_CLIENT_SECRET:-}
+  SOCIAL_FACEBOOK_CLIENT_ID: ${SOCIAL_FACEBOOK_CLIENT_ID:-}
+  SOCIAL_FACEBOOK_CLIENT_SECRET: ${SOCIAL_FACEBOOK_CLIENT_SECRET:-}
+  # Web Push (optional: unset -> WebPushService is a no-op).
+  VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+  VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+  VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+  RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-1}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+# Both backend services run the same image; declaring the build twice with the
+# same `image:` means `docker compose build` produces it once and the worker
+# reuses it.
+x-backend-build: &backend-build
+  context: ./apps/backend
+  dockerfile: ../../docker/backend/Dockerfile.prod
+  target: production
+  # The build context is apps/backend/ so that apps/backend/.dockerignore
+  # applies (it keeps config/jwt/ out of the image). php-prod.ini lives
+  # outside that context and is injected as a named additional context.
+  additional_contexts:
+    dockerconf: ./docker/backend
+
+services:
+
+  # ─── Caddy — TLS edge, the only published service ───────────────────────────
+  caddy:
+    # Pinned to a minor, not the floating `2-alpine` tag: docker/caddy/Caddyfile
+    # uses `log_skip`, which only exists from Caddy 2.7 onwards (it was spelled
+    # `skip_log` before). The Caddyfile was validated against 2.10.0 with
+    # `caddy validate`. Re-run that validation before moving this tag.
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:?CADDY_DOMAIN is required (public hostname, no scheme)}
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:?CADDY_ACME_EMAIL is required (ACME account contact)}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      # Configuration bind mount (not source code): the official Caddy image
+      # reads its Caddyfile from this path.
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # ACME account key and issued certificates — MUST persist, otherwise
+      # every restart re-issues and will hit Let's Encrypt rate limits.
+      - caddy_data:/data
+      - caddy_config:/config
+      # Product images, read-only at the edge: php-fpm writes, Caddy serves.
+      - uploads_products:/srv/uploads/products:ro
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    healthcheck:
+      # Caddy's admin API, bound to localhost inside the container by default.
+      # Checking the upstreams instead would report Caddy as unhealthy whenever
+      # the backend is down, which is not what this probe is for.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ─── Backend — Symfony on php-fpm (FastCGI only, never published) ───────────
+  backend:
+    build: *backend-build
+    image: ${BACKEND_IMAGE:-kadhia/backend}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    logging: *default-logging
+    environment: *backend-env
+    expose:
+      - "9000"
+    volumes:
+      # app.product_image.upload_dir — the exact subpath, so the rest of
+      # public/ stays the immutable image content.
+      - uploads_products:/var/www/backend/public/uploads/products
+      # JWT keypair, mounted writable so the one-off generation can run through
+      # this same service definition:
+      #   docker compose ... run --rm backend php bin/console lexik:jwt:generate-keypair
+      - backend_jwt:/var/www/backend/config/jwt
+      # Monolog writes rotating files to var/log in the prod environment.
+      - backend_logs:/var/www/backend/var/log
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # php-fpm speaks no HTTP: cgi-fcgi (apk package fcgi, installed in the
+      # image) calls the real application healthcheck through FastCGI.
+      test:
+        - CMD-SHELL
+        - >-
+          SCRIPT_NAME=/index.php
+          SCRIPT_FILENAME=/var/www/backend/public/index.php
+          DOCUMENT_ROOT=/var/www/backend/public
+          REQUEST_METHOD=GET
+          REQUEST_URI=/api/health
+          cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q '"status":"ok"'
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ─── Messenger worker — deferred business automations ──────────────────────
+  worker:
+    build: *backend-build
+    image: ${BACKEND_IMAGE:-kadhia/backend}:${IMAGE_TAG:-latest}
+    # Unprivileged: unlike php-fpm this process has no socket to create and no
+    # privileges to drop, so it runs directly as the application user.
+    user: www-data
+    command:
+      - php
+      - bin/console
+      - messenger:consume
+      - async
+      - --time-limit=3600
+      - --memory-limit=128M
+    # --time-limit makes the worker exit cleanly every hour; the restart policy
+    # is what brings it back, which is also the leak guard.
+    restart: unless-stopped
+    logging: *default-logging
+    environment: *backend-env
+    volumes:
+      - backend_jwt:/var/www/backend/config/jwt:ro
+      - backend_logs:/var/www/backend/var/log
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'messenger:consume' >/dev/null"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ─── Frontend — Next.js standalone server (never published) ────────────────
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: ../../docker/frontend/Dockerfile.prod
+      target: runner
+      # ⚠ NEXT_PUBLIC_* are inlined into the bundle at BUILD time. They are
+      # build args, not runtime env: putting them under `environment:` has no
+      # effect on what the browser receives. NEXT_PUBLIC_USE_MOCKS must be the
+      # string "0" or the build fails on purpose (unset and empty both mean
+      # "serve mock data" in src/lib/services/index.ts).
+      args:
+        NEXT_PUBLIC_USE_MOCKS: ${NEXT_PUBLIC_USE_MOCKS:?NEXT_PUBLIC_USE_MOCKS must be set to 0 for a production build}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required (public origin)}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?NEXT_PUBLIC_APP_URL is required (public origin)}
+        NEXT_PUBLIC_APP_VERSION: ${NEXT_PUBLIC_APP_VERSION:-0.1.0}
+        NEXT_PUBLIC_ENVIRONMENT: ${NEXT_PUBLIC_ENVIRONMENT:-production}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+    image: ${FRONTEND_IMAGE:-kadhia/frontend}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    logging: *default-logging
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      # Server-side only (apps/frontend/src/lib/api.ts). php-fpm speaks
+      # FastCGI, so SSR goes through Caddy's internal :8080 HTTP site.
+      API_URL: ${API_URL:-http://caddy:8080}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ─── PostgreSQL — OPTIONAL ─────────────────────────────────────────────────
+  # Keep this service only if the database runs on the same host. With a
+  # managed PostgreSQL (recommended: backups and PITR are someone else's job),
+  # delete this whole service, delete the `postgres_data` volume below, delete
+  # the two `depends_on: postgres` blocks above, and point DATABASE_URL at the
+  # managed instance.
+  # Either way the `unaccent` extension must exist in the database (migration
+  # Version20260526100000 creates it; it needs a role allowed to CREATE
+  # EXTENSION).
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # No published port: the database is reachable on the Docker network only.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  # ACME account + certificates. Losing this volume means re-issuing certs.
+  caddy_data:
+  caddy_config:
+  # Product image variants. Written by php-fpm, read by Caddy. Must be backed
+  # up: these files exist nowhere else.
+  uploads_products:
+  # JWT signing keypair. MUST survive every release: a new keypair invalidates
+  # every token already issued to clients, merchants and admins.
+  backend_jwt:
+  # Monolog rotating files (prod.log, error.log, front.prod.log). Shared by
+  # php-fpm and the worker: both append to the same dated file, which is safe.
+  backend_logs:
+  # Only used when the optional postgres service above is kept.
+  postgres_data:
