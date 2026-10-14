@@ -1,6 +1,6 @@
 # Kadhia — production stack.
 #
-#   cp .env.prod.example .env.prod      # then fill in the real values
+#   cp docs/ops/env.prod.example .env.prod   # then fill in the real values
 #   docker compose --env-file .env.prod -f docker-compose.prod.yml build
 #   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 #
@@ -45,7 +45,7 @@ x-backend-env: &backend-env
   JWT_PASSPHRASE: ${JWT_PASSPHRASE:?JWT_PASSPHRASE is required and must match the generated keypair}
   # Mandatory behind Caddy: without it Request::getClientIp() returns the proxy
   # address and admin_audit_logs.ip_address plus the IP rate limiter both
-  # degrade to a single shared client. See the caveat in .env.prod.example.
+  # degrade to a single shared client. See the caveat in docs/ops/env.prod.example.
   TRUSTED_PROXIES: ${TRUSTED_PROXIES:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
   CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:?CORS_ALLOW_ORIGIN is required (regex, anchored on the public origin)}
   FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required (absolute public URL, used in e-mail links)}
