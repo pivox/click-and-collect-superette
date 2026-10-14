@@ -1,0 +1,78 @@
+# Issues GitHub déclarées ouvertes — source de vérité vérifiable
+#
+# Ce fichier est le point de contrôle du garde-fou CI
+# (`scripts/ci/check-declared-state.php`, workflow `declared-state.yml`).
+# Il remplace toute tentative d'extraire les numéros d'issues de la prose
+# d'`AI_CONTEXT.md` : ce document narratif cite aussi des dizaines de numéros
+# de PR, l'extraction fiable y est impossible.
+#
+# Règles :
+#   - toute issue listée ici doit être réellement ouverte sur
+#     `pivox/click-and-collect-superette` ;
+#   - toute issue réellement ouverte doit être listée ici.
+#   Les deux sens font échouer la CI. C'est l'oubli du second sens qui a fait
+#   rater l'épic CATALOG-AI #637-#649 pendant plusieurs mois.
+#
+# Format accepté (sous-ensemble YAML volontairement étroit, voir
+# `docs/project/declared-state-guardrail.md`) :
+#   repository: owner/name
+#   issues:
+#     - number: 527
+#       title: "libellé court"
+#       note: "contexte optionnel"
+#
+# `title` et `note` sont informatifs : le garde-fou ne vérifie que `number`.
+# Mettre à jour ce fichier fait partie de la clôture ou de l'ouverture d'une
+# issue, pas d'une passe d'audit trimestrielle.
+#
+# État vérifié contre l'API GitHub le 14 octobre 2026 : 19 issues ouvertes.
+
+repository: pivox/click-and-collect-superette
+
+issues:
+  - number: 527
+    title: "[IMPORTANT] Suivi global des tâches prioritaires — À garder épinglée"
+    note: "Issue de suivi permanente — reste ouverte par conception"
+
+  - number: 636
+    title: "[P1][Recherche] Recherche produit instantanée FR/AR sans IA avec Meilisearch — Kadhia, catalogues et référentiel"
+
+  # Épic CATALOG-AI #637-#649 — import photo IA marchand + enrichissement du
+  # référentiel admin. Plus gros chantier ouvert à date (14 octobre 2026) ;
+  # c'est cet épic qu'AI_CONTEXT.md avait entièrement ignoré.
+  - number: 637
+    title: "[CATALOG-AI-000] Epic — Import photo IA marchand + enrichissement du référentiel admin"
+  - number: 638
+    title: "[CATALOG-AI-001] Sessions d'import persistées et quota de 10 photos partagé par supérette"
+  - number: 639
+    title: "[CATALOG-AI-002] Capture de rayons, préparation commune et stockage privé des photos"
+  - number: 640
+    title: "[CATALOG-AI-003] Adaptateurs Qwen, Mistral, OpenAI et Gemini avec contrat commun d'extraction"
+  - number: 641
+    title: "[CATALOG-AI-004] Orchestration asynchrone multi-fournisseur, pilote 10 supérettes et reprises contrôlées"
+  - number: 642
+    title: "[CATALOG-AI-005] Matching strict avec le référentiel, formats/packs, ambiguïtés et doublons"
+  - number: 643
+    title: "[CATALOG-AI-006] Parcours marchand de correction et ajout catalogue idempotent sans écrasement"
+  - number: 644
+    title: "[CATALOG-AI-007] Consommations IA, coût par fournisseur et plafonds budgétaires du pilote"
+  - number: 645
+    title: "[CATALOG-AI-008] Annotation humaine, comparatif admin des 4 IA et rapport pilote de 10 supérettes"
+  - number: 646
+    title: "[CATALOG-AI-009] Recette du pilote, choix du fournisseur et bascule contrôlée en production"
+  - number: 647
+    title: "[CATALOG-AI-010] Admin — Upload d'images sans quota commercial pour préparer et enrichir le référentiel"
+  - number: 648
+    title: "[CATALOG-AI-011] Admin — Propositions IA de création et mise à jour de ProductReference à partir des images"
+  - number: 649
+    title: "[CATALOG-AI-012] Admin — File de revue référentiel IA, validation en masse, provenance et audit"
+
+  # Applications natives Android/iOS client et marchand (hors MVP web)
+  - number: 386
+    title: "[S16-001] App native Android marchand"
+  - number: 387
+    title: "[S16-002] App native Android client"
+  - number: 388
+    title: "[S16-003] App native iOS client"
+  - number: 389
+    title: "[S16-004] App native iOS marchand (si besoin confirmé)"
