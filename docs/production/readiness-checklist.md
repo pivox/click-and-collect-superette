@@ -38,7 +38,7 @@
   - `Version20260521100000` — `shops.archived_at`, `shops.archive_reason`
   - `Version20260521110000` — `users.deleted_at`, `users.last_login_at`
   - `Version20260521120000` — table `admin_audit_logs`
-- [ ] Drift schéma nettoyé (table `product_import_raw` + colonne `product_references.source_import_raw_id` à supprimer manuellement avant prod)
+- [x] Drift schéma nettoyé — aucune action manuelle requise, contrairement à ce qui était indiqué ici. La migration `Version20260528072120` (committée le 2026-09-30) supprime la contrainte FK, l'index, la colonne `product_references.source_import_raw_id` puis la table `product_import_raw`, dans l'ordre imposé par PostgreSQL et avec des gardes `IF EXISTS`. Il suffit que les migrations soient appliquées.
 - [ ] Sauvegarde automatique configurée — outillage et runbook présents (`scripts/ops/`, `docs/ops/backup-restore.md`), mais ni planification en place ni exercice de restauration réalisé ; ne cocher qu'après un exercice de restauration réussi
 
 ## Qualité statique (à valider avant déploiement)
