@@ -18,6 +18,11 @@ const withPWA = withPWAInit({
 });
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  // Emit .next/standalone (server.js + traced node_modules) so the production
+  // image can run `node server.js` without the full dependency tree.
+  // See docker/frontend/Dockerfile.prod.
+  output: 'standalone',
+};
 
 export default withPWA(nextConfig);
