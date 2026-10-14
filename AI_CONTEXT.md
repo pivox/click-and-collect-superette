@@ -7,6 +7,20 @@ Roadmap active : `docs/Sprint14/README.md`.
 Contrat API : `docs/architecture/api-contract.md`.
 Audit fonctionnel : `docs/product/mvp-functional-audit.md`.
 
+> **À arbitrer — le pointeur « roadmap active » ne couvre plus le plus gros chantier ouvert.**
+> La chaîne documentaire est cohérente avec elle-même : `docs/roadmap/launch-readiness-reorganization.md`
+> et `docs/project/source-of-truth.md` désignent tous deux `docs/Sprint14/README.md`. Mais ce cadrage
+> est daté du 2026-06-07 (dernière révision de contenu 2026-06-23), alors que l'épic **CATALOG-AI
+> #637-#649** (13 issues, import photo IA marchand + enrichissement du référentiel) est aujourd'hui
+> le plus gros chantier ouvert. Sa documentation existe — `docs/architecture/catalog-photo-import.md`
+> et `docs/product/catalog-photo-import-multi-ai.md`, tous deux de 2026-10-02 — mais n'est référencée
+> ni ici, ni dans la chaîne ci-dessus. Décider si la roadmap active reste Sprint 14 ou bascule sur
+> CATALOG-AI relève du PO, pas d'une passe d'audit : le pointeur est donc laissé tel quel.
+>
+> À noter aussi : `docs/` ne contient **pas** de dossier `Sprint8`, `Sprint9`, `Sprint10`, `Sprint12`
+> ni `Sprint16`, alors que ce fichier déclare Sprint 10 et Sprint 16 livrés. Les livraisons sont
+> étayées par les issues GitHub fermées, pas par un dossier de sprint.
+
 ## Produit
 
 Application de click & collect pour les supérettes en Tunisie.
@@ -73,10 +87,25 @@ Exclus du MVP :
 ## Avancement global
 
 - État au 23 juin 2026 : cœur MVP livré sur `main`; la roadmap active à partir de Sprint 14 prépare une V1 de lancement officiel, pas une bêta publique fragile.
+- **Audit du 14 octobre 2026 — ce qui a été revérifié, et ce qui ne l'a pas été.**
+  Vérifié contre le dépôt et contre GitHub : l'état des issues ouvertes et fermées ; la liste
+  des entités Doctrine (24 documentées sur 61 réelles, corrigé) ; les 10 statuts de commande
+  (exacts) ; le niveau PHPStan déclaré (exact) ; l'existence de tous les endpoints, commandes
+  console, classes, migrations, codes d'erreur et routes frontend cités par ce fichier — aucun
+  n'est introuvable ; et les 17 limites de la section « Limites connues », confrontées une par
+  une au code. Résultat sur ces 17 : 6 étaient fausses, 3 partiellement, 1 l'était depuis sa
+  rédaction, 7 restent exactes.
+  **Non revérifié, à ne pas prendre pour acquis** : « Backend MVP : 100 % » n'a aucune base de
+  calcul explicitée et n'est pas vérifiable par lecture de code ; les résultats d'exécution
+  (« 0 erreur », « 0 diff », `lint:container` OK, `doctrine:schema:validate`) n'ont pas été
+  relancés, faute de démon Docker et parce qu'AGENTS.md interdit les vérifications projet via
+  `php`/`composer` hôte ; les numéros de PR cités (#91-#102, #130-#132, etc.) n'ont pas été
+  confrontés à l'historique git ; les comptages de tests sont statiques, pas des exécutions ;
+  les mentions « livré » côté frontend n'ont pas été réauditées écran par écran.
 - Backend MVP : 100 % (Sprint 7 audité et clôturé — S7-008 livré ; S7-009 transport Messenger persistant livré).
 - Produit terrain testable : très avancé — parcours client complet validé par simulation Playwright historique (rapport `docs/qa/client-journey-simulation-report-v2.md`) et frontend marchand avancé livré. Les parcours live client/marchand/admin restent à rejouer avant go/no-go.
 - Sprint 6 (personnalisation visuelle) : implémenté côté backend (`PlatformTheme`, `ShopTheme`, thème public par supérette).
-- Sprint 7 terminé côté backend : S7-001 (archive supérette), S7-002 (export CSV marchand), S7-003 (suppression compte client), S7-004 (audit trail admin), S7-005 (observabilité production / healthcheck). PHPStan clean, CS Fixer clean. 81 tests Sprint 7.
+- Sprint 7 terminé côté backend : S7-001 (archive supérette), S7-002 (export CSV marchand), S7-003 (suppression compte client), S7-004 (audit trail admin), S7-005 (observabilité production / healthcheck). PHPStan clean, CS Fixer clean. « 81 tests Sprint 7 » était un chiffre historique : le comptage statique des 5 classes concernées donne **78** au 14 octobre 2026 (`AdminAuditLogApiTest` 28, `StoreArchiveAdminApiTest` 21, `MerchantOrderExportApiTest` 20, `CustomerDeleteAccountApiTest` 7, `HealthCheckApiTest` 2). Pour information, la suite backend compte **1 865** méthodes `public function test` au total.
 - Frontend admin backoffice livré : PRs #130–#132 — auth admin, référentiel produits, marchands, supérettes, audit logs, dashboard KPI.
 - Frontend client livré : parcours inscription → catalogue → Kadhia → suivi commande fonctionnel, notifications client, QR de retrait, confirmation client, thèmes supérette, liste/sélection supérettes, i18n FR/AR avec RTL client (S14-004 / #401).
 - Frontend marchand livré : login, dashboard, commandes actives, détail et actions jusqu'à `ready`, retrait sécurisé, historique, notifications, catalogue, créneaux/règles/fermetures/horaires, onboarding, QR magasin, thème/apparence, paramètres profil/compte/langue et export CSV.
@@ -85,21 +114,23 @@ Exclus du MVP :
 - Sprint 14 mobile : #374 PWA client, #375 PWA marchand, #376 Web Push et #379 accessibilité minimum sont fermées GitHub et représentées dans le dépôt. Validation terrain installée / Lighthouse / audit WCAG complet non relancés dans la passe documentaire du 23 juin.
 - Sprint 15 business/exploitation : #361 document mensuel interne non fiscal, #364 suspension douce/réactivation et #365 import CSV + recherche code-barres fermées GitHub et représentées dans le dépôt. Le scan caméra mobile n'est pas retenu comme preuve livrée par cette passe.
 - Sprint 16 valeur commerciale : #380 statistiques marchand, #384 promotions simples et #385 CRM léger marchand fermées GitHub et représentées dans le dépôt.
-- Restent ouverts ou conditionnels : #378 WhatsApp semi-manuel commande, #490-#494 Facebook Messenger optionnel, #527 suivi global, #543 sécurisation `FRONTEND_URL`.
+- Parmi les issues historiquement listées ici comme ouvertes, seule **#527** (suivi global épinglé) l'est encore. Les autres ont été tranchées le 30 septembre 2026 : **#378** WhatsApp semi-manuel fermée complétée (PR #609) ; **#543** sécurisation `FRONTEND_URL` fermée complétée (PR #596, comportement documenté par environnement dans `docs/ops/frontend-url.md`) ; **#490** spike Facebook Messenger fermé sur un **NO-GO MVP** (PR #631), ce qui a entraîné le report puis la fermeture de #491-#494. Le canal Messenger n'est donc pas « optionnel en attente » : il est écarté du MVP.
+- Chantiers réellement ouverts à date (19 issues ouvertes) : épic **#637-#649** CATALOG-AI (import photo IA marchand + enrichissement du référentiel admin), **#636** recherche produit instantanée FR/AR avec Meilisearch, **#386-#389** applications natives Android/iOS client et marchand, et **#527** le suivi global.
 - Épic ORDER-LEAD #569 (délai minimal configurable avant retrait) : livrée fin septembre 2026 via PRs empilées #586 (entité `ShopOrderingPolicy` + API marchand `GET/PATCH /api/merchant/stores/{storeId}/ordering-policy`), #587 (`PickupSlotEligibilityChecker`, filtrage listing public + `booking_policy` additif + revalidation à la soumission `PICKUP_SLOT_MINIMUM_LEAD_TIME_NOT_MET`, exemption resoumission partielle même créneau), #588 (écran marchand `/merchant/parametres/delai-retrait`, FR/AR) et #589 (UX client créneaux : info délai, état vide expliqué, écran périmé avec Kadhia conservée, télémétrie `clientLog`). Défaut 0 = comportement historique inchangé.
 - Épic MERCHANT-TEAM #568 (plusieurs comptes par organisation marchande) : codée fin septembre 2026 via PRs empilées #590 (socle `MerchantOrganization`/`MerchantMembership`, backfill idempotent `app:merchant-organizations:backfill`, audit `app:merchant-organizations:audit`), #591 (abonnement/CRM/facturation portés par l'organisation, route additive `GET /api/admin/merchant-organizations`), #592 (autorisation par membership active avec révocation effective à la requête suivante, `/api/merchant/me` additif), #593 (invitations/renvoi/révocation des comptes secondaires réservés au compte principal, quota 10), #594 (notifications multi-comptes avec état lu par compte, auteur des transitions `OrderStatusLog.actor_*`) et #595 (écran Équipe `/merchant/parametres/equipe` FR/AR, bloc organisation dans le détail admin marchand, auteur dans l'historique marchand). Ordre de déploiement : migrations → backfill → audit. Le fallback owner reste actif pour les boutiques non backfillées.
 - S7-009 livré : transport Messenger persistant (`doctrine://default`), `failure_transport`, `retry_strategy`, migration `messenger_messages`, config Supervisor — R1 et R2 résolus.
-- Prochaine priorité recommandée : maintenir #527, traiter ou reporter explicitement #378, garder Messenger optionnel, et rejouer les parcours terrain avant go/no-go.
+- Prochaine priorité recommandée : rejouer les parcours terrain client, marchand et admin avant go/no-go, maintenir #527, et arbitrer l'épic CATALOG-AI #637-#649 qui est désormais le plus gros chantier ouvert. #378 et le canal Messenger sont tranchés : il n'y a plus rien à reporter de ce côté.
 - Documentation API OpenAPI exposée publiquement : `docs_formats` configuré dans `api_platform.yaml` (`json`, `html`, `jsonopenapi`, `yamlopenapi`) — endpoints accessibles sans auth sur `/api/docs.json`, `/api/docs.html`, `/api/docs.jsonopenapi`, `/api/docs.yamlopenapi`.
-- PHPStan **niveau 6** (`apps/backend/phpstan.neon`) : 0 erreur — attention, les appels sur types nullable ne sont pas détectés à ce niveau, revue manuelle nécessaire lors d'un passage nullable. CS Fixer : 0 diff. `lint:container` : OK.
+- PHPStan **niveau 6** — vérifié, `apps/backend/phpstan.neon` ligne 2 déclare bien `level: 6`. Attention, les appels sur types nullable ne sont pas détectés à ce niveau : revue manuelle nécessaire lors d'un passage nullable. En revanche « 0 erreur », « CS Fixer : 0 diff » et « `lint:container` : OK » sont des résultats d'exécution, non revérifiés par la passe du 14 octobre 2026 — à relancer avant de s'y fier (`make lint-backend`).
+- **Contradiction documentaire à trancher** : `docs/Sprint7/completion-report.md` (lignes 124 et 227) annonce « PHPStan niveau 8 clean », alors que `phpstan.neon` est à `level: 6`. Soit le niveau a été abaissé sans trace, soit le rapport Sprint 7 est faux. `docs/production/readiness-checklist.md` demande d'ailleurs le niveau 8 avant déploiement.
 
 ## Limites connues
 
-Limites Sprint 4 : le rappel de retrait 1h utilise Symfony Messenger et `DelayStamp`. ~~Un vrai différé en production nécessite un transport async persistant et un worker actif~~ — résolu S7-009 : transport Doctrine persistant + config Supervisor. Les notifications restent in-app, sans push mobile, SMS, email ni Mercure/WebSocket dans le MVP backend actuel. Le contenu du rappel US-064 reste générique et doit encore intégrer le nom de la supérette, l'heure du créneau et le numéro de commande. Après scan, la confirmation client et la force completion ne bloquent plus sur le TTL, mais la confirmation marchand conserve encore un contrôle d'expiration côté processor. Le MVP ne prévoit pas de réouverture admin d'une session expirée et les confirmations simultanées ne sont pas sérialisées par un `SELECT FOR UPDATE` dédié.
+Limites Sprint 4 : le rappel de retrait 1h utilise Symfony Messenger et `DelayStamp`. ~~Un vrai différé en production nécessite un transport async persistant et un worker actif~~ — résolu S7-009 : transport Doctrine persistant + config Supervisor. ~~Les notifications restent in-app, sans push mobile, SMS, email ni Mercure/WebSocket~~ — partiellement résolu : le Web Push est livré et câblé (`WebPushService` injecté dans `NotificationService:63`) et le push mobile l'est aussi (`SendMobilePushMessage` routé en `async` dans `messenger.yaml:29`, handler + `ExpoPushSender`, `dispatchMobilePush()` appelé sur chaque notification). Restent réellement absents : SMS, Mercure/WebSocket, et l'email sur le cycle de vie commande — l'email n'est utilisé que pour l'invitation marchand, le reset de mot de passe et les relances de paiement. Attention : sans les variables `VAPID_*`, `WebPushService` ignore silencieusement l'envoi. Le rappel US-064 intègre désormais le nom de la supérette et l'heure du créneau (fuseau `Africa/Tunis`), en FR et en AR (`NotificationService::notifyCustomerPickupReminder`). Il n'intègre toujours **pas** le numéro de commande, alors que `Order::orderNumber` existe. Après scan, la confirmation client et la force completion ne bloquent plus sur le TTL, mais la confirmation marchand conserve encore un contrôle d'expiration côté processor. Le MVP ne prévoit pas de réouverture admin d'une session expirée et les confirmations simultanées ne sont pas sérialisées par un `SELECT FOR UPDATE` dédié.
 
-Limites Sprint 5 : slug pas protégé contre race condition (faible risque admin-only ; une contrainte `UNIQUE` en base est recommandée avant charge élevée). S5-005 retourne `target_url` en chemin relatif — un QR imprimé nécessite une URL absolue composée côté interface. S5-008 n'expose pas `created_product_reference_id` quand null (propriété nullable exclue de la sérialisation JSON par API Platform par défaut). S5-008 : le statut `merged` de `ProductReferenceProposalStatus` est orphelin — l'endpoint `POST /merge` a été supprimé au profit de `PATCH /approve` + `productReferenceId` ; des enregistrements `merged` existants en base resteraient cohérents dans la lecture mais ne peuvent plus être créés ; prévoir un script one-shot de migration (`merged` → `approved`) avant passage en production si nécessaire. S5-008 : la collection `/api/admin/product-proposals` est paginée mais ne retourne pas de total (`X-Total-Count` / `hydra:totalItems`) — à ajouter dans une prochaine itération. S5-011 : le critère `qr_code` est toujours satisfait dès qu'un shop actif existe (`qrCodeToken` non-nullable) — redondant avec `store_profile` ; le label a été renommé "Accéder au QR code" pour refléter cette réalité. Le critère `theme` ne prend pas en compte le `PlatformTheme` (singleton toujours présent) : seul un `ShopTheme` explicitement configuré satisfait l'étape. `PATCH /complete` est idempotent (200) ; aucun prérequis de complétion des étapes n'est vérifié avant de l'accepter. Le calculateur exécute 1 + 4N requêtes pour un marchand avec N shops actifs ; impact négligeable dans le MVP (quasi-tous les marchands ont 1 shop). Les labels `step.label` sont en français uniquement — le frontend doit utiliser `step.key` comme clé i18n pour le support de l'arabe. Le backend ne couvre pas encore l'email d'invitation, le billing, l'analytics, l'upload ou le CSV export.
+Limites Sprint 5 : ~~slug pas protégé contre race condition ; une contrainte `UNIQUE` en base est recommandée~~ — la contrainte existait déjà quand cette phrase a été écrite : `Version20260507120000:23` crée `UNIQUE INDEX UNIQ_6F6A974989D9B62 ON shops (slug)`. La race condition subsiste en revanche, et l'index la transforme en **500 au lieu de 409** : `CreateAdminStoreProcessor:88` génère le slug en lire-puis-écrire et ne capture pas `UniqueConstraintViolationException`, alors que 9 autres processors du projet le font. Risque faible (admin-only), correctif simple. S5-005 retourne `target_url` en chemin relatif côté **admin** (`AdminStoreQrOutputFactory`, `/api/stores/by-qr/%s`) : un QR imprimé depuis l'admin nécessite une URL absolue composée côté interface. Côté **marchand** c'est résolu, S5-010 compose une URL absolue depuis `FRONTEND_URL` (`MerchantStoreQrTargetUrlFactory`). À arbitrer : les deux chemins divergent, `/api/stores/by-qr/` côté admin contre `/stores/by-qr/` côté marchand, donc un QR admin et un QR marchand ne pointent pas vers la même page. S5-008 n'expose pas `created_product_reference_id` quand null (propriété nullable exclue de la sérialisation JSON par API Platform par défaut). ~~S5-008 : le statut `merged` de `ProductReferenceProposalStatus` est orphelin — l'endpoint `/merge` a été supprimé ; prévoir un script one-shot de migration (`merged` → `approved`) avant passage en production~~ — **FAUX, corrigé le 14 octobre 2026 : ne pas exécuter ce script.** L'endpoint existe, en `PATCH` et non en `POST` : `PATCH /api/admin/product-proposals/{proposalId}/merge` (`src/ApiResource/AdminProductProposalOutput.php:61`, avec `AdminMergeProductProposalInput` et `AdminMergeProductProposalProcessor`), couvert par `tests/Functional/Api/AdminProductProposalValidationApiTest.php`. `case Merged = 'merged'` est bien présent dans `src/Enum/ProductReferenceProposalStatus.php:12` et reste atteignable. Migrer `merged` → `approved` écraserait donc des données valides et produites par un endpoint actif. ~~S5-008 : la collection `/api/admin/product-proposals` est paginée mais ne retourne pas de total~~ — résolu : `AdminProductProposalListOutput:54` expose `public int $total`, alimenté par `ProductReferenceProposalRepository::countFiltered()` (`AdminProductProposalCollectionProvider:61`). C'est un champ propre au DTO, ni `X-Total-Count` ni `hydra:totalItems`. S5-011 : le critère `qr_code` est toujours satisfait dès qu'un shop actif existe (`qrCodeToken` non-nullable) — redondant avec `store_profile` ; le label a été renommé "Accéder au QR code" pour refléter cette réalité. Le critère `theme` ne prend pas en compte le `PlatformTheme` (singleton toujours présent) : seul un `ShopTheme` explicitement configuré satisfait l'étape. `PATCH /complete` est idempotent (200) ; aucun prérequis de complétion des étapes n'est vérifié avant de l'accepter. Le calculateur exécute 1 + 4N requêtes pour un marchand avec N shops actifs ; impact négligeable dans le MVP (quasi-tous les marchands ont 1 shop). Les labels `step.label` sont en français uniquement — le frontend doit utiliser `step.key` comme clé i18n pour le support de l'arabe. ~~Le backend ne couvre pas encore l'email d'invitation, le billing, l'analytics, l'upload ou le CSV export~~ — **faux sur les cinq points**, c'était la phrase la plus trompeuse de cette section. Email d'invitation : `MerchantInvitationEmailSender`, injecté dans 4 processors, entité `MerchantInvitationToken`. Billing : entités `Subscription`, `BillingDocument`, `SubscriptionPayment`, `SubscriptionPaymentReminder`, namespace `src/Billing/`, endpoints `GET /api/admin/subscriptions` et `GET /api/admin/billing-documents`. Analytics : `MerchantStatisticsProvider`, `AdminBetaMetricsProvider`. Upload : `Service/ProductImage/*` avec deux contrôleurs d'entrée. Export CSV : `GET /api/merchant/stores/{storeId}/orders/export.csv`.
 
-Limites Sprint 7 : S7-004 — `ip_address` dans `admin_audit_logs` n'est fiable que si `trusted_proxies` est configuré côté Symfony ; sinon peut contenir l'IP du proxy. ~~Extension PostgreSQL `unaccent` non migrée~~ — résolu PR #152 + migration `Version20260526100000`. ~~Transport Messenger `sync://`~~ — résolu S7-009 : transport `doctrine://default` persistant, `failure_transport`, `retry_strategy`, table `messenger_messages`, config Supervisor. Table `product_import_raw` orpheline en base (entité supprimée depuis Sprint 5 mais table toujours présente) — drift cosmétique non bloquant, à nettoyer avant production. PWA, push et accessibilité WCAG restent ouverts. ~~Frontend client : `GET /api/me/stores/{shopId}/kadhias` retourne 405~~ — endpoint fonctionnel (GET et POST tous deux exposés). ~~i18n AR câblé~~ — livré côté client via S14-004 / #401 ; le marchand dispose aussi d'un contexte langue FR/AR léger.
+Limites Sprint 7 : S7-004 — `ip_address` dans `admin_audit_logs` n'est fiable que si `trusted_proxies` est configuré côté Symfony ; sinon peut contenir l'IP du proxy. ~~Extension PostgreSQL `unaccent` non migrée~~ — résolu PR #152 + migration `Version20260526100000`. ~~Transport Messenger `sync://`~~ — résolu S7-009 : transport `doctrine://default` persistant, `failure_transport`, `retry_strategy`, table `messenger_messages`, config Supervisor. ~~Table `product_import_raw` orpheline en base, à nettoyer manuellement avant production~~ — résolu : la migration `Version20260528072120` (2026-09-30) supprime la contrainte FK, l'index, la colonne `product_references.source_import_raw_id` puis la table, dans l'ordre imposé par PostgreSQL et avec gardes `IF EXISTS`. Aucune action manuelle requise, il suffit que les migrations soient appliquées. ~~PWA, push et accessibilité WCAG restent ouverts~~ — PWA et push livrés, WCAG réellement ouvert. PWA : `@ducanh2912/next-pwa` dans `next.config.mjs`, worker `worker/index.ts`, manifestes client et marchand ; limite documentée dans le fichier, un seul service worker au scope `/` partagé entre les deux PWA. Accessibilité : aucune dépendance axe, a11y, pa11y ni Lighthouse dans `apps/frontend/package.json`, aucun test a11y, et `src/app/layout.tsx:35` est figé sur `<html lang="fr">` sans `dir`/`lang` dynamique à la racine — ce qui est un vrai problème pour le RTL arabe annoncé comme livré. ~~Frontend client : `GET /api/me/stores/{shopId}/kadhias` retourne 405~~ — endpoint fonctionnel (GET et POST tous deux exposés). ~~i18n AR câblé~~ — livré côté client via S14-004 / #401 ; le marchand dispose aussi d'un contexte langue FR/AR léger.
 
 ## Statuts de commande
 
@@ -116,32 +147,59 @@ Limites Sprint 7 : S7-004 — `ip_address` dans `admin_audit_logs` n'est fiable 
 
 ## Entités métier de référence
 
-Entités présentes dans `apps/backend/src/Entity/` :
+**61 entités** dans `apps/backend/src/Entity/`, toutes portant `#[ORM\Entity]`.
+Liste vérifiée contre le dossier le 14 octobre 2026 ; regroupée par domaine pour
+la lisibilité, pas par arborescence de fichiers (ils sont tous à plat).
 
-- `Shop`
-- `CustomerShop`
-- `Category`
-- `Brand`
-- `ProductReference`
-- `ProductReferenceProposal`
-- `MerchantProduct` (anciennement `MerchantProductOffer`)
-- `OpenDataProduct`
-- `Kadhia`
-- `KadhiaLine`
-- `PickupSlot`
-- `PickupSlotRule`
-- `ExceptionalClosure`
-- `Order`
-- `OrderLine`
-- `OrderStatusLog`
-- `PasswordResetToken`
-- `PickupSession`
-- `Notification`
-- `PlatformTheme`
-- `ShopTheme`
-- `User` (`deletedAt` pour soft delete client, `lastLoginAt` alimenté après login JWT)
-- `AdminAuditLog` (journal append-only des actions admin critiques : `action`, `resourceType`, `resourceId`, `summary`, `metadata`, `ipAddress`, `userAgent`, `createdAt`)
-- `ProductFamily` (famille produit pour regrouper plusieurs formats d'un même produit : `baseNameFr`, `baseNameAr`, `brand` nullable, `category` nullable, `country` TN)
+Supérette, thème et politique de commande :
+`Shop`, `CustomerShop`, `ShopTheme`, `PlatformTheme`,
+`ShopOrderingPolicy` (délai minimal avant retrait, épic ORDER-LEAD #569 ; défaut 0 = comportement historique)
+
+Référentiel produit partagé :
+`Category`, `Brand`, `ProductReference`, `ProductReferenceProposal`,
+`ProductReferenceMergeHistory`, `ProductImage`, `OpenDataProduct`,
+`ProductFamily` (regroupe plusieurs formats d'un même produit : `baseNameFr`, `baseNameAr`, `brand` nullable, `category` nullable, `country` TN),
+`ProductGroup`, `ProductGroupItem`, `ProductPack`, `ProductPackItem`
+
+Offre marchand (prix, disponibilité et visibilité propres au marchand) :
+`MerchantProduct` (anciennement `MerchantProductOffer`), `MerchantLocalProduct`,
+`MerchantProductPriceHistory`, `MerchantCategory`
+
+Kadhia :
+`Kadhia`, `KadhiaLine`, `KadhiaMember`, `KadhiaShareLink`
+
+Créneaux et retrait :
+`PickupSlot`, `PickupSlotRule`, `ExceptionalClosure`, `PickupSession`
+
+Commande :
+`Order`, `OrderLine`, `OrderStatusLog` (porte aussi l'auteur de la transition via `actor_*`)
+
+Organisation marchande (épic MERCHANT-TEAM #568) :
+`MerchantOrganization`, `MerchantMembership`, `MerchantInvitationToken`
+
+Abonnement et facturation :
+`Subscription`, `SubscriptionPayment`, `SubscriptionPaymentReminder`, `BillingDocument`
+
+CRM marchand :
+`MerchantCrmProfile`, `MerchantCrmContact`
+
+Comptes et authentification :
+`User` (`deletedAt` pour soft delete client, `lastLoginAt` alimenté après login JWT),
+`PasswordResetToken`, `RefreshToken`, `SocialIdentity`, `SocialAuthFlow`
+
+Notifications et canaux :
+`Notification`, `PushSubscription`, `MobileDevice`
+
+Import photo et enrichissement IA :
+`CatalogPhotoImportSession`, `CatalogPhotoImportImage`, `CatalogPhotoQuotaEntry`,
+`CatalogPhotoQuotaGrant`, `ProductAiEnrichmentJob`, `AiBudgetPolicy` (plafonne la dépense IA)
+
+Exploitation, audit et support :
+`AdminAuditLog` (journal append-only des actions admin critiques : `action`, `resourceType`, `resourceId`, `summary`, `metadata`, `ipAddress`, `userAgent`, `createdAt`),
+`Incident`, `IncidentNote`, `FeedbackEntry`, `FeedbackSetting`
+
+Divers client :
+`CustomerProductFavorite`
 
 ## Stack cible recommandée
 
