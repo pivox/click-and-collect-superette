@@ -2,6 +2,15 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
+    # Behind the production edge, Request::getClientIp() only returns the real
+    # client address when the proxy is trusted. Without this, every client
+    # shares the proxy IP: AdminAuditLog.ipAddress records the wrong address
+    # and the per-IP rate limiter buckets all traffic into one counter (see the
+    # "known limit" note in RateLimitSubscriber). Empty when TRUSTED_PROXIES is
+    # unset, which leaves the development and test stacks unchanged.
+    trusted_proxies: '%env(default::TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-host']
+
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
