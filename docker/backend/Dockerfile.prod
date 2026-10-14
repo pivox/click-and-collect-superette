@@ -1,0 +1,151 @@
+# syntax=docker/dockerfile:1
+#
+# Kadhia backend — production image (Symfony 7 / API Platform 4 on php-fpm).
+#
+# Build context is apps/backend/ on purpose: apps/backend/.dockerignore is the
+# file that keeps config/jwt/ (the JWT signing keys) and vendor/ out of the
+# image. Building from the repository root would silently bypass it.
+#
+# Because the context is apps/backend/, the php.ini living in docker/backend/ is
+# outside it and is pulled in through a NAMED ADDITIONAL BUILD CONTEXT:
+#
+#   docker buildx build \
+#     --build-context dockerconf=docker/backend \
+#     -f docker/backend/Dockerfile.prod apps/backend
+#
+# docker-compose.prod.yml wires that up via build.additional_contexts.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Stage 1 — runtime base: PHP + extensions, no Composer, no application code
+# ──────────────────────────────────────────────────────────────────────────────
+FROM php:8.4-fpm-alpine AS runtime-base
+
+# Runtime shared libraries are installed permanently; the matching -dev headers
+# go into a virtual package that is dropped once the extensions are compiled.
+# fcgi provides cgi-fcgi, used by the container healthcheck to call /api/health
+# through the FastCGI socket (php-fpm speaks no HTTP).
+RUN set -eux; \
+    apk add --no-cache \
+        libpq \
+        libzip \
+        libcurl \
+        freetype \
+        libjpeg-turbo \
+        libpng \
+        libwebp \
+        icu-libs \
+        oniguruma \
+        fcgi; \
+    apk add --no-cache --virtual .build-deps \
+        $PHPIZE_DEPS \
+        curl-dev \
+        libpq-dev \
+        libzip-dev \
+        freetype-dev \
+        libjpeg-turbo-dev \
+        libpng-dev \
+        libwebp-dev \
+        icu-dev \
+        oniguruma-dev; \
+    docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
+    docker-php-ext-install -j"$(nproc)" \
+        pdo \
+        pdo_pgsql \
+        curl \
+        mbstring \
+        zip \
+        intl \
+        opcache \
+        bcmath \
+        gd; \
+    pecl install redis; \
+    docker-php-ext-enable redis; \
+    pecl clear-cache; \
+    apk del --no-network .build-deps; \
+    rm -rf /tmp/pear /usr/local/lib/php/doc
+
+WORKDIR /var/www/backend
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Stage 2 — build: Composer dependencies, optimized autoloader, warmed cache
+# ──────────────────────────────────────────────────────────────────────────────
+FROM runtime-base AS build
+
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    COMPOSER_NO_INTERACTION=1 \
+    APP_ENV=prod \
+    APP_DEBUG=0
+
+# Dependency layer first so a source-only change does not re-resolve Composer.
+COPY composer.json composer.lock symfony.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-progress
+
+COPY . .
+
+# --classmap-authoritative is safe here: no generated/evaled classes at runtime.
+# cache:warmup compiles the prod DI container and the API Platform / Doctrine /
+# Twig metadata at build time. Doing it here instead of on the first request
+# avoids a cold-start stampede where several php-fpm workers warm the same
+# cache concurrently. Env vars stay runtime placeholders in the compiled
+# container, so no build-time value is baked into it.
+# assets:install publishes bundle assets into public/ (Swagger UI at
+# /api/docs.html); composer runs with --no-scripts so it is called explicitly.
+RUN set -eux; \
+    composer dump-autoload --no-dev --optimize --classmap-authoritative --no-scripts; \
+    mkdir -p var/cache var/log; \
+    php bin/console cache:warmup --env=prod --no-debug; \
+    php bin/console assets:install public --env=prod --no-debug
+
+# Dev-only sources must not reach the runtime image.
+RUN rm -rf \
+        tests \
+        phpunit.dist.xml \
+        phpstan.neon \
+        .php-cs-fixer.dist.php \
+        compose.yaml \
+        compose.override.yaml \
+        .env.dev \
+        .env.test \
+        .env.local.dist \
+        .editorconfig \
+        README.md \
+        .claude
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Stage 3 — production: application + vendor only, no Composer binary
+# ──────────────────────────────────────────────────────────────────────────────
+FROM runtime-base AS production
+
+# Production php.ini overrides. zz- prefix so it is loaded last and wins over
+# the image's own conf.d files.
+COPY --from=dockerconf php-prod.ini /usr/local/etc/php/conf.d/zz-kadhia-prod.ini
+
+ENV APP_ENV=prod \
+    APP_DEBUG=0
+
+COPY --from=build --chown=www-data:www-data /var/www/backend /var/www/backend
+
+# Writable paths for the php-fpm workers (which run as www-data):
+#  - var/cache : Symfony runtime cache + the cache.app filesystem pool backing
+#                the rate limiter (#622)
+#  - var/log   : Monolog rotating_file handlers in the prod environment
+#  - public/uploads/products : product image variants (app.product_image.upload_dir)
+#  - config/jwt : JWT keypair, mounted from a named volume at runtime
+# Creating them here with the right owner matters: Docker seeds a named volume
+# from the image path on first start and inherits that ownership.
+RUN set -eux; \
+    mkdir -p var/cache var/log public/uploads/products config/jwt; \
+    chown -R www-data:www-data var public/uploads config/jwt
+
+# php-fpm keeps its master process as root on purpose: that is what lets it
+# create the listening socket and drop privileges to www-data for every worker
+# (user = www-data in the image's www.conf). Running the master as non-root
+# would require patching the pool config and gains nothing here. The messenger
+# worker, which needs no privileged bootstrap, runs as www-data (see
+# docker-compose.prod.yml).
+
+EXPOSE 9000
+
+CMD ["php-fpm"]

@@ -40,3 +40,10 @@ apps/frontend/public/workbox-*.js
 apps/frontend/public/worker-*.js
 apps/frontend/public/sw.js.map
 apps/frontend/public/workbox-*.js.map
+
+# Production environment files consumed by `docker compose --env-file`.
+# They hold APP_SECRET, the database password and the JWT passphrase, so they
+# must never be committed. Templates (*.example, *.dist) stay tracked.
+/.env.prod
+/.env.prod.local
+/.env.production
