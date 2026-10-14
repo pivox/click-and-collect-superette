@@ -118,32 +118,59 @@ Limites Sprint 7 : S7-004 — `ip_address` dans `admin_audit_logs` n'est fiable 
 
 ## Entités métier de référence
 
-Entités présentes dans `apps/backend/src/Entity/` :
+**61 entités** dans `apps/backend/src/Entity/`, toutes portant `#[ORM\Entity]`.
+Liste vérifiée contre le dossier le 14 octobre 2026 ; regroupée par domaine pour
+la lisibilité, pas par arborescence de fichiers (ils sont tous à plat).
 
-- `Shop`
-- `CustomerShop`
-- `Category`
-- `Brand`
-- `ProductReference`
-- `ProductReferenceProposal`
-- `MerchantProduct` (anciennement `MerchantProductOffer`)
-- `OpenDataProduct`
-- `Kadhia`
-- `KadhiaLine`
-- `PickupSlot`
-- `PickupSlotRule`
-- `ExceptionalClosure`
-- `Order`
-- `OrderLine`
-- `OrderStatusLog`
-- `PasswordResetToken`
-- `PickupSession`
-- `Notification`
-- `PlatformTheme`
-- `ShopTheme`
-- `User` (`deletedAt` pour soft delete client, `lastLoginAt` alimenté après login JWT)
-- `AdminAuditLog` (journal append-only des actions admin critiques : `action`, `resourceType`, `resourceId`, `summary`, `metadata`, `ipAddress`, `userAgent`, `createdAt`)
-- `ProductFamily` (famille produit pour regrouper plusieurs formats d'un même produit : `baseNameFr`, `baseNameAr`, `brand` nullable, `category` nullable, `country` TN)
+Supérette, thème et politique de commande :
+`Shop`, `CustomerShop`, `ShopTheme`, `PlatformTheme`,
+`ShopOrderingPolicy` (délai minimal avant retrait, épic ORDER-LEAD #569 ; défaut 0 = comportement historique)
+
+Référentiel produit partagé :
+`Category`, `Brand`, `ProductReference`, `ProductReferenceProposal`,
+`ProductReferenceMergeHistory`, `ProductImage`, `OpenDataProduct`,
+`ProductFamily` (regroupe plusieurs formats d'un même produit : `baseNameFr`, `baseNameAr`, `brand` nullable, `category` nullable, `country` TN),
+`ProductGroup`, `ProductGroupItem`, `ProductPack`, `ProductPackItem`
+
+Offre marchand (prix, disponibilité et visibilité propres au marchand) :
+`MerchantProduct` (anciennement `MerchantProductOffer`), `MerchantLocalProduct`,
+`MerchantProductPriceHistory`, `MerchantCategory`
+
+Kadhia :
+`Kadhia`, `KadhiaLine`, `KadhiaMember`, `KadhiaShareLink`
+
+Créneaux et retrait :
+`PickupSlot`, `PickupSlotRule`, `ExceptionalClosure`, `PickupSession`
+
+Commande :
+`Order`, `OrderLine`, `OrderStatusLog` (porte aussi l'auteur de la transition via `actor_*`)
+
+Organisation marchande (épic MERCHANT-TEAM #568) :
+`MerchantOrganization`, `MerchantMembership`, `MerchantInvitationToken`
+
+Abonnement et facturation :
+`Subscription`, `SubscriptionPayment`, `SubscriptionPaymentReminder`, `BillingDocument`
+
+CRM marchand :
+`MerchantCrmProfile`, `MerchantCrmContact`
+
+Comptes et authentification :
+`User` (`deletedAt` pour soft delete client, `lastLoginAt` alimenté après login JWT),
+`PasswordResetToken`, `RefreshToken`, `SocialIdentity`, `SocialAuthFlow`
+
+Notifications et canaux :
+`Notification`, `PushSubscription`, `MobileDevice`
+
+Import photo et enrichissement IA :
+`CatalogPhotoImportSession`, `CatalogPhotoImportImage`, `CatalogPhotoQuotaEntry`,
+`CatalogPhotoQuotaGrant`, `ProductAiEnrichmentJob`, `AiBudgetPolicy` (plafonne la dépense IA)
+
+Exploitation, audit et support :
+`AdminAuditLog` (journal append-only des actions admin critiques : `action`, `resourceType`, `resourceId`, `summary`, `metadata`, `ipAddress`, `userAgent`, `createdAt`),
+`Incident`, `IncidentNote`, `FeedbackEntry`, `FeedbackSetting`
+
+Divers client :
+`CustomerProductFavorite`
 
 ## Stack cible recommandée
 
