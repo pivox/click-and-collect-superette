@@ -15,6 +15,8 @@ use App\Repository\AdminMerchantRepository;
 use App\Repository\AdminStoreRepository;
 use App\Repository\MerchantMembershipRepository;
 use App\Service\AdminAuditLogger;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Uid\Uuid;
@@ -74,7 +76,16 @@ final readonly class CreateAdminStoreProcessor implements ProcessorInterface
             summary: \sprintf('Supérette "%s" créée.', $shop->getName()),
             metadata: ['name' => $shop->getName()],
         );
-        $this->adminStoreRepository->save($shop);
+        // generateUniqueSlug() reads before it writes, so two concurrent
+        // creations can pick the same slug. The unique index on shops.slug
+        // (UNIQ_6F6A974989D9B62, created by Version20260507120000) then rejects
+        // the loser of the race. Without this catch the violation surfaced as a
+        // 500; a conflict is the correct answer and the caller can simply retry.
+        try {
+            $this->adminStoreRepository->save($shop);
+        } catch (UniqueConstraintViolationException) {
+            throw new ConflictHttpException('ADMIN_STORE_SLUG_CONFLICT');
+        }
 
         return $this->adminStoreOutputFactory->create($shop, productsCount: 0);
     }
